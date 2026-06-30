@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin
+.kotlin/
+
+# Generated sources (proto / ksp land under build/, but be explicit)
+**/generated/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.fleet/
+.vscode/
+
+# Local config
+local.properties
+
+# Logs
+*.log
+
+# OS
+.DS_Store

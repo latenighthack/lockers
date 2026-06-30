@@ -1,0 +1,31 @@
+[versions]
+kotlin = "2.1.0"
+ksp = "2.1.0-1.0.29"
+coroutines = "1.9.0"
+ktor = "3.0.2"
+protobuf = "0.9.4"
+kotlinInject = "0.7.1"
+ktbuf = "1.1.2"
+
+[libraries]
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib" }
+coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+
+ktbuf-library = { module = "com.latenighthack.ktbuf:ktbuf-library", version.ref = "ktbuf" }
+ktbuf-rpc = { module = "com.latenighthack.ktbuf:ktbuf-rpc", version.ref = "ktbuf" }
+ktbuf-server = { module = "com.latenighthack.ktbuf:ktbuf-server", version.ref = "ktbuf" }
+ktbuf-test = { module = "com.latenighthack.ktbuf:ktbuf-test", version.ref = "ktbuf" }
+
+kotlin-inject-runtime = { module = "me.tatarka.inject:kotlin-inject-runtime", version.ref = "kotlinInject" }
+kotlin-inject-ksp = { module = "me.tatarka.inject:kotlin-inject-compiler-ksp", version.ref = "kotlinInject" }
+
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
+ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
+
+[plugins]
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+protobuf = { id = "com.google.protobuf", version.ref = "protobuf" }
