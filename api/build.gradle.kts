@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.protobuf)
-    `java-library`
+    alias(libs.plugins.androidLibrary)
     `maven-publish`
 }
 
@@ -11,47 +10,94 @@ publishing {
     }
 }
 
-protobuf {
-    protoc {
-        artifact = "com.google.protobuf:protoc:4.33.0"
+// Proto codegen is driven by protoc directly rather than the com.google.protobuf
+// Gradle plugin: that plugin only understands java/android source sets and, once
+// this became a real multi-target KMP module, bound to per-Android-variant tasks
+// instead of producing one shared commonMain output. A single protoc invocation is
+// target-agnostic. protoc is resolved as a pinned artifact; `protoc-gen-kt` (the
+// ktbuf Kotlin codegen plugin, a Go binary) is discovered on PATH (~/go/bin fallback).
+val protocVersion = "4.33.0"
+
+val protocClassifier: String = run {
+    val os = System.getProperty("os.name").lowercase()
+    val arch = System.getProperty("os.arch").lowercase()
+    val osPart = when {
+        os.contains("mac") || os.contains("darwin") -> "osx"
+        os.contains("win") -> "windows"
+        else -> "linux"
     }
+    val archPart = when (arch) {
+        "aarch64", "arm64" -> "aarch_64"
+        "x86_64", "amd64" -> "x86_64"
+        else -> arch
+    }
+    "$osPart-$archPart"
+}
 
-    generateProtoTasks {
-        all().forEach { task ->
-            task.builtins {
-                removeIf { it.name == "java" }
-            }
+val protocExecutable: Configuration by configurations.creating
+dependencies {
+    protocExecutable("com.google.protobuf:protoc:$protocVersion:$protocClassifier@exe")
+}
 
-            // Invokes `protoc-gen-kt` (the ktbuf codegen plugin) found on PATH.
-            task.plugins {
-                create("kt") {
-                    outputSubDir = "kotlin"
-                }
-            }
+val protocGenKt: File = run {
+    val onPath = System.getenv("PATH").orEmpty()
+        .split(File.pathSeparator)
+        .map { File(it, "protoc-gen-kt") }
+        .firstOrNull { it.canExecute() }
+    onPath ?: File(System.getProperty("user.home"), "go/bin/protoc-gen-kt")
+}
 
-            val protoSourceDir: FileCollection = files("${rootDir}/proto")
-            task.addSourceDirs(protoSourceDir)
-            task.addIncludeDir(protoSourceDir)
+val generateProto by tasks.registering(Exec::class) {
+    group = "build"
+    description = "Generate Kotlin protobuf sources via protoc-gen-kt"
 
-            task.outputs.upToDateWhen { false }
+    val protoRoot = file("$rootDir/proto")
+    val protoFiles = fileTree(protoRoot) { include("**/*.proto") }
+    val outDir = layout.buildDirectory.dir("generated/ktproto/kotlin")
 
-            val outputDir = task.outputBaseDir
-            if (outputDir.indexOf("/proto/main") > 0) {
-                kotlin.sourceSets.getByName("commonMain").kotlin.srcDirs("$outputDir/kotlin")
-            }
-        }
+    inputs.files(protoFiles)
+    inputs.file(protocGenKt)
+    outputs.dir(outDir)
+
+    doFirst {
+        val protoc = protocExecutable.singleFile.apply { setExecutable(true) }
+        val out = outDir.get().asFile
+        out.deleteRecursively()
+        out.mkdirs()
+
+        commandLine(
+            buildList {
+                add(protoc.absolutePath)
+                add("--plugin=protoc-gen-kt=${protocGenKt.absolutePath}")
+                add("--kt_out=${out.absolutePath}")
+                add("-I")
+                add(protoRoot.absolutePath)
+                addAll(protoFiles.files.map { it.absolutePath })
+            },
+        )
     }
 }
 
 kotlin {
     jvmToolchain(17)
 
-    jvm {
-        withJava()
+    jvm()
+    androidTarget { publishLibraryVariants("release") }
+    iosArm64()
+    iosX64()
+    iosSimulatorArm64()
+    js(IR) {
+        browser()
+        nodejs()
+        binaries.library()
     }
 
     sourceSets {
         val commonMain by getting {
+            // Passing the task provider wires the generateProto dependency into every
+            // compilation that reads commonMain (metadata klib + each per-target compile)
+            // and the sources jars, with no manual dependsOn needed.
+            kotlin.srcDir(generateProto)
             dependencies {
                 implementation(libs.kotlin.stdlib)
                 implementation(libs.ktbuf.library)
@@ -62,15 +108,10 @@ kotlin {
     }
 }
 
-// The generated sources are added as plain srcDirs, so wire the explicit
-// task dependency the JVM compile would otherwise be missing.
-tasks.matching { it.name == "compileKotlinJvm" || it.name == "jvmSourcesJar" }.configureEach {
-    dependsOn("generateProto")
-}
-
-// Proto-generated sources are wired only into the per-target (jvm) compile.
-// The shared commonMain metadata klib has no consumer here yet, and the
-// generated code trips Kotlin metadata compilation, so disable that task.
-tasks.matching { it.name == "compileCommonMainKotlinMetadata" }.configureEach {
-    enabled = false
+android {
+    namespace = "com.latenighthack.lockers.api"
+    compileSdk = 35
+    defaultConfig {
+        minSdk = 24
+    }
 }

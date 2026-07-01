@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    `java-library`
+    alias(libs.plugins.androidLibrary)
     `maven-publish`
 }
 
@@ -13,8 +13,15 @@ publishing {
 kotlin {
     jvmToolchain(17)
 
-    jvm {
-        withJava()
+    jvm()
+    androidTarget { publishLibraryVariants("release") }
+    iosArm64()
+    iosX64()
+    iosSimulatorArm64()
+    js(IR) {
+        browser()
+        nodejs()
+        binaries.library()
     }
 
     sourceSets {
@@ -46,5 +53,13 @@ kotlin {
                 implementation(projects.server.test)
             }
         }
+    }
+}
+
+android {
+    namespace = "com.latenighthack.lockers.connector"
+    compileSdk = 35
+    defaultConfig {
+        minSdk = 24
     }
 }
