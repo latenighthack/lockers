@@ -4,6 +4,7 @@ import com.latenighthack.ktbuf.net.GrpcRequestContext
 import com.latenighthack.ktbuf.net.ServerDescriptor
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.room.v1.*
+import com.latenighthack.lockers.server.LockersConfig
 import com.latenighthack.lockers.server.ServerCore
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
 import com.latenighthack.lockers.server.services.session.v1.SessionGatewayDiscovery
@@ -19,6 +20,7 @@ import io.micrometer.core.instrument.MeterRegistry
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
+import org.slf4j.LoggerFactory
 import kotlin.random.Random
 
 @ServiceScope
@@ -42,22 +44,25 @@ class RoomServiceImpl(
     private val sessionGatewayDiscovery: SessionGatewayDiscovery,
     private val agentRegistry: LockerAgentRegistry,
     private val meterRegistry: MeterRegistry,
-    private val roomShardCount: Int = Runtime.getRuntime().availableProcessors() * 4,
-    private val sessionCacheSize: Long = 1000
+    private val config: LockersConfig,
 ) : BaseServiceImpl(), RoomServer {
-    private val dispatchers = ShardedDispatcher<RoomId>(roomShardCount, "room-shard") {
+    private val logger = LoggerFactory.getLogger(RoomServiceImpl::class.java)
+    private val dispatchers = ShardedDispatcher<RoomId>(config.shardCount, "room-shard") {
         it.rawValue.contentHashCode()
     }
-    
-    private val gatewayLookupFailureCounter = meterRegistry.counter("fullhouse.room.gateway.lookup.failures")
-    private val postEventSuccessCounter = meterRegistry.counter("fullhouse.room.events.post.success")
-    private val postEventFailureCounter = meterRegistry.counter("fullhouse.room.events.post.failure")
-    private val cacheHitCounter = meterRegistry.counter("fullhouse.room.cache.hits")
-    private val cacheMissCounter = meterRegistry.counter("fullhouse.room.cache.misses")
-    private val dispatcherWaitTimer = meterRegistry.timer("fullhouse.room.dispatcher.time")
-    private val getLockerTimer = meterRegistry.timer("fullhouse.room.locker.get.time")
-    private val getAllLockersTimer = meterRegistry.timer("fullhouse.room.locker.getall.time")
-    private val lockersReturnedSummary = meterRegistry.summary("fullhouse.room.locker.count")
+    private val rateLimiter = RoomRateLimiter(config.roomWritesPerSecond, config.roomWriteBurst)
+
+    private val gatewayLookupFailureCounter = meterRegistry.counter("lockers.room.gateway.lookup.failures")
+    private val oversizeRejectedCounter = meterRegistry.counter("lockers.room.locker.rejected.oversize")
+    private val rateLimitedCounter = meterRegistry.counter("lockers.room.locker.rejected.ratelimited")
+    private val postEventSuccessCounter = meterRegistry.counter("lockers.room.events.post.success")
+    private val postEventFailureCounter = meterRegistry.counter("lockers.room.events.post.failure")
+    private val cacheHitCounter = meterRegistry.counter("lockers.room.cache.hits")
+    private val cacheMissCounter = meterRegistry.counter("lockers.room.cache.misses")
+    private val dispatcherWaitTimer = meterRegistry.timer("lockers.room.dispatcher.time")
+    private val getLockerTimer = meterRegistry.timer("lockers.room.locker.get.time")
+    private val getAllLockersTimer = meterRegistry.timer("lockers.room.locker.getall.time")
+    private val lockersReturnedSummary = meterRegistry.summary("lockers.room.locker.count")
 
     private val roomToSessionCache = Cache.Builder<RoomId, Set<SessionId>>()
         .eventListener { event ->
@@ -74,10 +79,10 @@ class RoomServiceImpl(
                 }
             }
         }
-        .maximumCacheSize(sessionCacheSize)
+        .maximumCacheSize(config.sessionCacheSize)
         .build()
     
-    private val cacheSizeGauge = meterRegistry.gauge("fullhouse.room.cache.size", roomToSessionCache) { it.asMap().size.toDouble() }
+    private val cacheSizeGauge = meterRegistry.gauge("lockers.room.cache.size", roomToSessionCache) { it.asMap().size.toDouble() }
 
     private suspend fun lookupSessions(roomId: RoomId): Set<SessionId> {
         val cached = roomToSessionCache.get(roomId)
@@ -97,7 +102,7 @@ class RoomServiceImpl(
     override suspend fun subscription(
         context: GrpcRequestContext,
         request: SubscriptionRequest
-    ) = meterRegistry.trackResponse("fullhouse.room.locker.subscribe", SubscriptionResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.room.locker.subscribe", SubscriptionResponse::result) {
         val roomId = request.roomId ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
         val sessionId = request.sessionId ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
 
@@ -112,12 +117,12 @@ class RoomServiceImpl(
                     cachedSet + sessionId
                 }
                 is SubscriptionRequest.OneOfKind.unsubscribe -> {
-                    meterRegistry.counter("fullhouse.room.subscriptions", "operation", "unsubscribe", "result", "OK").increment()
+                    meterRegistry.counter("lockers.room.subscriptions", "operation", "unsubscribe", "result", "OK").increment()
                     subscriptionStore.removeSubscription(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue))
                     cachedSet - sessionId
                 }
                 null -> {
-                    meterRegistry.counter("fullhouse.room.subscriptions", "operation", "unknown", "result", "ERROR").increment()
+                    meterRegistry.counter("lockers.room.subscriptions", "operation", "unknown", "result", "ERROR").increment()
                     return@runOnDispatcher SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
                 }
             }
@@ -133,7 +138,7 @@ class RoomServiceImpl(
     override suspend fun getLocker(
         context: GrpcRequestContext,
         request: GetLockerRequest
-    ) = meterRegistry.trackResponse("fullhouse.room.locker.get", GetLockerResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.room.locker.get", GetLockerResponse::result) {
         val startTime = System.nanoTime()
         val lockerId = request.lockerId
         val roomId = request.roomId
@@ -164,7 +169,7 @@ class RoomServiceImpl(
     override suspend fun getAllLockers(
         context: GrpcRequestContext,
         request: GetAllLockersRequest
-    ) = meterRegistry.trackResponse("fullhouse.room.locker.getall", GetAllLockersResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.room.locker.getall", GetAllLockersResponse::result) {
         val startTime = System.nanoTime()
         val roomId = request.roomId
             ?: return@trackResponse GetAllLockersResponse(result = GetAllLockersResponse.Result.UNKNOWN_ERROR)
@@ -199,12 +204,25 @@ class RoomServiceImpl(
     override suspend fun postLockerChange(
         context: GrpcRequestContext,
         request: PostLockerChangeRequest
-    ) = meterRegistry.trackResponse("fullhouse.room.locker.postlockerchange", PostLockerChangeResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.room.locker.postlockerchange", PostLockerChangeResponse::result) {
         val requestRoomId = request.roomId ?: return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
         val requestEventId = EventId(Random.nextBytes(32))
         val updatedLocker = request.locker ?: return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
         val requestLockerId = request.lockerId ?: return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
         val requestVersion = request.parentVersion
+
+        if (!rateLimiter.tryAcquire(requestRoomId)) {
+            rateLimitedCounter.increment()
+            logger.warn("rate limit exceeded for room; rejecting locker change")
+            return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
+        }
+
+        val encodedLocker = updatedLocker.toByteArray()
+        if (encodedLocker.size > config.maxLockerPayloadBytes) {
+            oversizeRejectedCounter.increment()
+            logger.warn("locker payload ${encodedLocker.size}B exceeds limit ${config.maxLockerPayloadBytes}B; rejecting")
+            return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
+        }
 
         val startTime = System.nanoTime()
         return@trackResponse dispatchers.runOnDispatcher(requestRoomId) {
@@ -231,7 +249,7 @@ class RoomServiceImpl(
             val serverLocker = ServerLocker {
                 lockerId = ServerLockerId(requestLockerId.rawValue)
                 roomId = ServerRoomId(requestRoomId.rawValue)
-                locker = updatedLocker.toByteArray()
+                locker = encodedLocker
                 keyspace = (requestLockerId.keyspace?.value ?: 0L)
                 version = updatedLockerVersion
             }
@@ -324,11 +342,17 @@ class RoomServiceImpl(
     override suspend fun deleteLocker(
         context: GrpcRequestContext,
         request: DeleteLockerRequest
-    ) = meterRegistry.trackResponse("fullhouse.room.locker.deletelocker", DeleteLockerResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.room.locker.deletelocker", DeleteLockerResponse::result) {
         val requestRoomId = request.roomId ?: return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
         val requestEventId = EventId(Random.nextBytes(32))
         val requestLockerId = request.lockerId ?: return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
         val requestVersion = request.parentVersion
+
+        if (!rateLimiter.tryAcquire(requestRoomId)) {
+            rateLimitedCounter.increment()
+            logger.warn("rate limit exceeded for room; rejecting locker delete")
+            return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
+        }
 
         val startTime = System.nanoTime()
         return@trackResponse dispatchers.runOnDispatcher(requestRoomId) {
@@ -401,5 +425,9 @@ class RoomServiceImpl(
                 version = updatedLockerVersion
             }
         }
+    }
+
+    fun close() {
+        dispatchers.close()
     }
 }

@@ -1,0 +1,16 @@
+<configuration>
+    <!--
+      Structured JSON logs to stdout, one object per line. This is directly
+      ingestible by Loki/Promtail, the ELK stack, Datadog, etc. Set the root
+      level via the LOG_LEVEL environment variable (default INFO).
+    -->
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeContext>false</includeContext>
+        </encoder>
+    </appender>
+
+    <root level="${LOG_LEVEL:-INFO}">
+        <appender-ref ref="JSON"/>
+    </root>
+</configuration>

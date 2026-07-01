@@ -5,16 +5,15 @@ package com.latenighthack.lockers.common.v1;
 option java_package = "com.latenighthack.lockers.common.v1";
 
 import "google/protobuf/timestamp.proto";
-import "validate/validate.proto";
 
 message Nonce {
     // The time the nonce was generated.
     //
     // If the generation time value is too far in the past _or_ future of the service time,
     // the nonce will be rejected.
-    google.protobuf.Timestamp generation_time = 1 [(validate.rules).timestamp.required = true];
+    google.protobuf.Timestamp generation_time = 1;
 
-    bytes value = 2 [(validate.rules).bytes.min_len = 8];
+    bytes value = 2;
 }
 
 message Secp256r1Key {
@@ -22,10 +21,10 @@ message Secp256r1Key {
     PrivateKey private_key = 2;
 
     message PublicKey {
-        bytes raw_value = 1 [(validate.rules).bytes.min_len = 32];
+        bytes raw_value = 1;
     }
     message PrivateKey {
-        bytes raw_value = 1 [(validate.rules).bytes.min_len = 32];
+        bytes raw_value = 1;
     }
 }
 
@@ -64,11 +63,11 @@ message SealedPayload {
 }
 
 message SessionId {
-    bytes raw_value = 1 [(validate.rules).bytes.min_len = 32];
+    bytes raw_value = 1;
 }
 
 message RoomId {
-    bytes raw_value = 1 [(validate.rules).bytes.min_len = 32];
+    bytes raw_value = 1;
 }
 
 message Locker {
@@ -88,7 +87,7 @@ message Locker {
 }
 
 message LockerId {
-    bytes raw_value = 1 [(validate.rules).bytes.min_len = 32];
+    bytes raw_value = 1;
     LockerKeyspace keyspace = 2;
 }
 

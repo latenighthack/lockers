@@ -34,6 +34,7 @@ annotation class ServerCoreScope
 @ServerCoreScope
 @Component
 abstract class ServerCore(
+    @get:Provides val config: LockersConfig,
     private val storageDelegate: StoreDelegate
 ) {
     private val sessionStoreImpl by lazy { SessionStoreImpl(storageDelegate) }

@@ -13,7 +13,7 @@ import io.ktor.server.routing.routing
  * integration tests via `runTestWithServer(Application::attachTestServices)`.
  */
 suspend fun Application.attachTestServices() {
-    val core = ServerCore::class.create(InMemoryStoreDelegate())
+    val core = ServerCore::class.create(LockersConfig.defaults(), InMemoryStoreDelegate())
 
     core.setup()
 

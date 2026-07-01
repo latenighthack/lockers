@@ -4,6 +4,7 @@ import com.latenighthack.ktbuf.net.GrpcRequestContext
 import com.latenighthack.ktbuf.net.ServerDescriptor
 import com.latenighthack.lockers.common.v1.SessionId
 import com.latenighthack.lockers.push.v1.*
+import com.latenighthack.lockers.server.LockersConfig
 import com.latenighthack.lockers.server.ServerCore
 import com.latenighthack.lockers.server.storage.v1.*
 import com.latenighthack.lockers.server.tools.*
@@ -37,6 +38,10 @@ abstract class PushServiceModule(@Component val serverCore: ServerCore): GrpcRou
     suspend fun start() {
         serverImpl.start()
     }
+
+    fun stop() {
+        serverImpl.stop()
+    }
 }
 
 @Component
@@ -62,49 +67,44 @@ class LocalPushGatewayDiscovery(private val pushGatewayServer: PushGatewayServer
 class PushServiceImpl(
     private val pushSessionStore: PushSessionStore,
     private val pushQueueStore: PushQueueStore,
-    private val meterRegistry: MeterRegistry
+    private val meterRegistry: MeterRegistry,
+    private val config: LockersConfig,
 ) : BaseServiceImpl(), PushServer, PushGatewayServer {
-    companion object {
-        private val DEFAULT_PUSH_TOPIC = "com.latenighthack.lockers"
-    }
     private val logger = LoggerFactory.getLogger(PushServiceImpl::class.java)
     
     private val newPushesFlow = MutableSharedFlow<ServerPush>(extraBufferCapacity = 1000)
     private val processorScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     private val queueSizeGauge = AtomicInteger(0)
-    private val registrationsCounter = meterRegistry.counter("fullhouse.push.registrations")
-    private val pushesSentCounter = meterRegistry.counter("fullhouse.push.sent")
-    private val pushesEnqueuedCounter = meterRegistry.counter("fullhouse.push.enqueued")
-    private val pushesFailedCounter = meterRegistry.counter("fullhouse.push.failed")
-    private val pushesRetriedCounter = meterRegistry.counter("fullhouse.push.retried")
-    private val pushesRejectedCounter = meterRegistry.counter("fullhouse.push.rejected")
+    private val registrationsCounter = meterRegistry.counter("lockers.push.registrations")
+    private val pushesSentCounter = meterRegistry.counter("lockers.push.sent")
+    private val pushesEnqueuedCounter = meterRegistry.counter("lockers.push.enqueued")
+    private val pushesFailedCounter = meterRegistry.counter("lockers.push.failed")
+    private val pushesRetriedCounter = meterRegistry.counter("lockers.push.retried")
+    private val pushesRejectedCounter = meterRegistry.counter("lockers.push.rejected")
     
     init {
-        meterRegistry.gauge("fullhouse.push.queue.size", queueSizeGauge) { it.get().toDouble() }
+        meterRegistry.gauge("lockers.push.queue.size", queueSizeGauge) { it.get().toDouble() }
     }
     
     private val apnsClient: ApnsClient? by lazy {
         try {
-            val teamId = System.getenv("APNS_TEAM_ID")
-            val keyId = System.getenv("APNS_KEY_ID")
-            val keyPath = System.getenv("APNS_KEY_PATH")
-            val environment = System.getenv("APNS_ENVIRONMENT") ?: "development"
+            val apns = config.apns
 
-            if (teamId == null || keyId == null || keyPath == null) {
+            if (!apns.isConfigured) {
                 logger.warn("APNS credentials not configured. Push notifications will not be sent. " +
                     "Set APNS_TEAM_ID, APNS_KEY_ID, and APNS_KEY_PATH environment variables.")
                 return@lazy null
             }
 
-            val keyFile = File(keyPath)
+            val keyFile = File(apns.keyPath!!)
             if (!keyFile.exists()) {
-                logger.error("APNS key file not found at: $keyPath")
+                logger.error("APNS key file not found at: ${apns.keyPath}")
                 return@lazy null
             }
 
-            val signingKey = ApnsSigningKey.loadFromPkcs8File(keyFile, teamId, keyId)
-            val host = if (environment == "production") {
+            val signingKey = ApnsSigningKey.loadFromPkcs8File(keyFile, apns.teamId, apns.keyId)
+            val host = if (apns.environment == "production") {
                 ApnsClientBuilder.PRODUCTION_APNS_HOST
             } else {
                 ApnsClientBuilder.DEVELOPMENT_APNS_HOST
@@ -115,7 +115,7 @@ class PushServiceImpl(
                 .setSigningKey(signingKey)
                 .build()
                 .also {
-                    logger.info("APNS client initialized for $environment environment")
+                    logger.info("APNS client initialized for ${apns.environment} environment")
                 }
         } catch (e: Exception) {
             logger.error("Failed to initialize APNS client", e)
@@ -142,6 +142,12 @@ class PushServiceImpl(
                 }
         }
     }
+
+    fun stop() {
+        logger.info("Stopping push service processor")
+        processorScope.cancel()
+        apnsClient?.close()
+    }
     
     private suspend fun processPush(push: ServerPush, retryCount: Int = 0) {
         val maxRetries = 5
@@ -167,7 +173,7 @@ class PushServiceImpl(
             }
             
             val token = TokenUtil.sanitizeTokenString(pushInfo.apnsToken.decodeToString())
-            val topic = DEFAULT_PUSH_TOPIC
+            val topic = config.apns.topic
             
             val payloadBuilder = SimpleApnsPayloadBuilder()
             if (payloadData.title.isNotEmpty()) {
@@ -265,7 +271,7 @@ class PushServiceImpl(
     override suspend fun registerSession(
         context: GrpcRequestContext,
         request: RegisterSessionRequest
-    ) = meterRegistry.trackResponse("fullhouse.push.register", RegisterSessionResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.push.register", RegisterSessionResponse::result) {
         try {
             val sessionId = request.sessionId?.rawValue
             if (sessionId == null || sessionId.isEmpty()) {
@@ -308,7 +314,7 @@ class PushServiceImpl(
     override suspend fun sendPush(
         context: GrpcRequestContext,
         request: SendPushRequest
-    ) = meterRegistry.trackResponse("fullhouse.push.sendpush", SendPushResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.push.sendpush", SendPushResponse::result) {
         try {
             val sessionId = request.sessionId?.rawValue
             val push = request.push
@@ -337,7 +343,7 @@ class PushServiceImpl(
             val apnsPayload = payloadBuilder.build()
             
             val sessionIdBase64 = sessionId.encodeBase64()
-            val topic = "com.latenighthack.lockers"
+            val topic = config.apns.topic
             val combinedPayload = "$sessionIdBase64|||$apnsPayload|||$topic"
             
             val serverPush = ServerPush {

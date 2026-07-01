@@ -29,4 +29,9 @@ class ShardedDispatcher<T>(
     fun dispatcherFor(id: T): CoroutineDispatcher = shardDispatchers[idHashCode(id)]
 
     fun contextFor(id: T): CoroutineContext = dispatcherFor(id)
+
+    /** Releases the backing thread pool. The dispatcher is unusable afterwards. */
+    fun close() {
+        dispatcher.close()
+    }
 }

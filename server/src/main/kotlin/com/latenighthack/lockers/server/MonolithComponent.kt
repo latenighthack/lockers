@@ -43,4 +43,11 @@ class MonolithComponent(serverCore: ServerCore) {
     suspend fun start() {
         pushServiceModule.start()
     }
+
+    /** Releases background scopes and sharded thread pools for a clean shutdown. */
+    fun stop() {
+        pushServiceModule.stop()
+        sessionServiceModule.serverImpl.close()
+        roomServiceModule.serverImpl.close()
+    }
 }

@@ -298,6 +298,21 @@ class SubscriptionController(
     }
 }
 
+/**
+ * A terminal, non-retryable session-open failure. When one occurs the stream
+ * stops reconnecting and surfaces the reason via [Stream.fatalError] so the app
+ * can react (e.g. regenerate keys or prompt for an upgrade).
+ */
+sealed class StreamFatalError(val reason: String) {
+    object InvalidPublicKey : StreamFatalError("session public key was rejected by the server")
+    object InvalidSessionId : StreamFatalError("session id was rejected by the server")
+    object UpgradeRequired : StreamFatalError("client version is no longer supported; upgrade required")
+}
+
+private class FatalStreamException(val error: StreamFatalError) : CancellationException(error.reason)
+
+private class RetryableStreamException(message: String) : Exception(message)
+
 class Stream(
     private val rpcClient: RpcClient,
     private val keySource: AuthenticationKeySource,
@@ -328,6 +343,18 @@ class Stream(
             return onConnected
         }
 
+    private val fatalErrorState = MutableStateFlow<StreamFatalError?>(null)
+
+    /**
+     * Emits a non-null value when the stream hits a terminal session-open error
+     * and stops reconnecting. Stays null during normal operation and transient,
+     * automatically-retried failures.
+     */
+    val fatalError: Flow<StreamFatalError?>
+        get() {
+            return fatalErrorState
+        }
+
     private suspend fun connect() {
         onConnected.value = false
 
@@ -335,6 +362,11 @@ class Stream(
             connectInternal()
             onConnected.value = false
         }
+    }
+
+    private fun failFatally(error: StreamFatalError): Nothing {
+        fatalErrorState.value = error
+        throw FatalStreamException(error)
     }
 
     fun watchNewSubscriptions(): Flow<RoomId> {
@@ -438,12 +470,22 @@ class Stream(
                             is WatchSessionResponse.Open.Result.UNKNOWN_SESSION -> {
                                 sessionStore.updateSessionId(null)
                             }
-                            is WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY -> TODO()
-                            is WatchSessionResponse.Open.Result.INVALID_SESSION_ID -> TODO()
-                            is WatchSessionResponse.Open.Result.SERVICE_UNAVAILABLE -> TODO()
-                            is WatchSessionResponse.Open.Result.SESSION_EXISTS -> TODO()
-                            is WatchSessionResponse.Open.Result.UNKNOWN_ERROR -> TODO()
-                            is WatchSessionResponse.Open.Result.UPGRADE_REQUIRED -> TODO()
+                            is WatchSessionResponse.Open.Result.SERVICE_UNAVAILABLE ->
+                                throw RetryableStreamException("session service unavailable")
+                            is WatchSessionResponse.Open.Result.UNKNOWN_ERROR ->
+                                throw RetryableStreamException("unknown error opening session")
+                            is WatchSessionResponse.Open.Result.SESSION_EXISTS -> {
+                                // Our freshly generated session id collided; drop it so the
+                                // next reconnect generates a new one.
+                                sessionStore.updateSessionId(null)
+                                throw RetryableStreamException("session already exists; regenerating id")
+                            }
+                            is WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY ->
+                                failFatally(StreamFatalError.InvalidPublicKey)
+                            is WatchSessionResponse.Open.Result.INVALID_SESSION_ID ->
+                                failFatally(StreamFatalError.InvalidSessionId)
+                            is WatchSessionResponse.Open.Result.UPGRADE_REQUIRED ->
+                                failFatally(StreamFatalError.UpgradeRequired)
                             is WatchSessionResponse.Open.Result.UNKNOWN_ -> {
                                 throw Exception("Failed to open session: ${open.result}")
                             }

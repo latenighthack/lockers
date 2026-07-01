@@ -1,6 +1,13 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     `java-library`
+    `maven-publish`
+}
+
+publishing {
+    repositories {
+        mavenLocal()
+    }
 }
 
 kotlin {

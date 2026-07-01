@@ -18,11 +18,12 @@ import kotlinx.coroutines.flow.*
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
+import org.slf4j.LoggerFactory
+import com.latenighthack.lockers.server.LockersConfig
 import java.security.SignatureException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger as AtomicInt
 import kotlin.random.Random
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
 
 @ServiceScope
 @Component
@@ -66,26 +67,26 @@ class SessionServiceImpl(
     private val sessionInboxStore: SessionInboxStore,
     private val meterRegistry: MeterRegistry,
     private val pushGatewayDiscovery: PushGatewayDiscovery,
-    private val pingTimeout: Duration = 5.minutes,
-    sessionShardCount: Int = Runtime.getRuntime().availableProcessors() * 4
+    private val config: LockersConfig,
 ) : BaseServiceImpl(), SessionServer, SessionGatewayServer {
-    private val dispatchers = ShardedDispatcher<SessionId>(sessionShardCount, "session-shard") {
+    private val logger = LoggerFactory.getLogger(SessionServiceImpl::class.java)
+    private val dispatchers = ShardedDispatcher<SessionId>(config.shardCount, "session-shard") {
         it.rawValue.contentHashCode()
     }
-    private val openStreamCancellationChannels = mutableMapOf<ServerSessionId, Channel<Unit>>()
+    private val openStreamCancellationChannels = ConcurrentHashMap<ServerSessionId, Channel<Unit>>()
     private val incomingEvents = MutableSharedFlow<OnlineServerSessionEvent>()
     
     private val activeStreamsCount = AtomicInt(0)
-    private val activeStreamsGauge = meterRegistry.gauge("fullhouse.session.streams.active", activeStreamsCount) { it.get().toDouble() }
-    private val eventsPostedCounter = meterRegistry.counter("fullhouse.session.events.posted")
-    private val eventsDeliveredCounter = meterRegistry.counter("fullhouse.session.events.delivered", "delivery_type", "live")
-    private val eventsDeliveredQueuedCounter = meterRegistry.counter("fullhouse.session.events.delivered", "delivery_type", "queued")
-    private val eventsQueuedCounter = meterRegistry.counter("fullhouse.session.events.queued")
-    private val streamCancellationCounter = meterRegistry.counter("fullhouse.session.streams.cancelled")
-    private val inboxSavesCounter = meterRegistry.counter("fullhouse.session.inbox.saves")
-    private val inboxDeletesCounter = meterRegistry.counter("fullhouse.session.inbox.deletes")
-    private val eventsPreOpen = meterRegistry.counter("fullhouse.session.events.preopen")
-    private val dispatcherWaitTimer = meterRegistry.timer("fullhouse.session.dispatcher.time")
+    private val activeStreamsGauge = meterRegistry.gauge("lockers.session.streams.active", activeStreamsCount) { it.get().toDouble() }
+    private val eventsPostedCounter = meterRegistry.counter("lockers.session.events.posted")
+    private val eventsDeliveredCounter = meterRegistry.counter("lockers.session.events.delivered", "delivery_type", "live")
+    private val eventsDeliveredQueuedCounter = meterRegistry.counter("lockers.session.events.delivered", "delivery_type", "queued")
+    private val eventsQueuedCounter = meterRegistry.counter("lockers.session.events.queued")
+    private val streamCancellationCounter = meterRegistry.counter("lockers.session.streams.cancelled")
+    private val inboxSavesCounter = meterRegistry.counter("lockers.session.inbox.saves")
+    private val inboxDeletesCounter = meterRegistry.counter("lockers.session.inbox.deletes")
+    private val eventsPreOpen = meterRegistry.counter("lockers.session.events.preopen")
+    private val dispatcherWaitTimer = meterRegistry.timer("lockers.session.dispatcher.time")
 
     override suspend fun destroySession(
         context: GrpcRequestContext,
@@ -132,7 +133,7 @@ class SessionServiceImpl(
 
                 val open = openBuilder.build()
 
-                openStreamCancellationChannels.replace(sessionId, cancellationChannel)?.let {
+                openStreamCancellationChannels.put(sessionId, cancellationChannel)?.let {
                     streamCancellationCounter.increment()
                     it.send(Unit)
                 }
@@ -251,7 +252,7 @@ class SessionServiceImpl(
                         return@mapNotNull null
                     }
 
-                    meterRegistry.timer("fullhouse.session.events.delivery.time", "delivery_type", "live")
+                    meterRegistry.timer("lockers.session.events.delivery.time", "delivery_type", "live")
                         .record(System.nanoTime() - it.receiveTime, java.util.concurrent.TimeUnit.NANOSECONDS)
                     eventsDeliveredCounter.increment()
 
@@ -280,12 +281,18 @@ class SessionServiceImpl(
         }).onCompletion {
             if (openState.isCompleted) {
                 activeStreamsCount.decrementAndGet()
-                openStreamCancellationChannels.remove(openState.await().sessionId)
+                // Only drop the entry if it is still this stream's channel — a newer
+                // stream for the same session may have replaced it.
+                openStreamCancellationChannels.remove(openState.await().sessionId, cancellationChannel)
             }
         }
     }
 
-    override suspend fun postEvent(context: GrpcRequestContext, request: PostEventRequest) = meterRegistry.trackResponse("fullhouse.session.post", PostEventResponse::result) {
+    fun close() {
+        dispatchers.close()
+    }
+
+    override suspend fun postEvent(context: GrpcRequestContext, request: PostEventRequest) = meterRegistry.trackResponse("lockers.session.post", PostEventResponse::result) {
         val receiveTime = System.nanoTime()
         val events = request.sessionIds.map {
             OnlineServerSessionEvent(
@@ -335,13 +342,13 @@ class SessionServiceImpl(
 
         if (requestSequenceSignature == null) {
             result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
-            meterRegistry.counter("fullhouse.session.opens", "result", "INVALID_SEQUENCE").increment()
+            meterRegistry.counter("lockers.session.opens", "result", "INVALID_SEQUENCE").increment()
             return null
         }
 
         if (serverSessionId == null) {
             result = WatchSessionResponse.Open.Result.INVALID_SESSION_ID
-            meterRegistry.counter("fullhouse.session.opens", "result", "INVALID_SESSION_ID").increment()
+            meterRegistry.counter("lockers.session.opens", "result", "INVALID_SESSION_ID").increment()
             return null
         }
 
@@ -349,7 +356,7 @@ class SessionServiceImpl(
 
         if (session == null) {
             result = WatchSessionResponse.Open.Result.UNKNOWN_SESSION
-            meterRegistry.counter("fullhouse.session.opens", "result", "UNKNOWN_SESSION").increment()
+            meterRegistry.counter("lockers.session.opens", "result", "UNKNOWN_SESSION").increment()
             return null
         }
 
@@ -358,7 +365,7 @@ class SessionServiceImpl(
         try {
             if (!authorizedPublicKey.verify(session.nextKeyMaterial, requestSequenceSignature)) {
                 result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
-                meterRegistry.counter("fullhouse.session.opens", "result", "INVALID_SEQUENCE").increment()
+                meterRegistry.counter("lockers.session.opens", "result", "INVALID_SEQUENCE").increment()
                 return null
             }
             val updatedSession = session.copy(nextKeyMaterial = Random.nextBytes(32))
@@ -367,14 +374,15 @@ class SessionServiceImpl(
 
             result = WatchSessionResponse.Open.Result.OK
             nextSequenceKey = updatedSession.nextKeyMaterial
-            meterRegistry.counter("fullhouse.session.opens", "result", "OK").increment()
+            meterRegistry.counter("lockers.session.opens", "result", "OK").increment()
         } catch (signatureException: SignatureException) {
             result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
-            meterRegistry.counter("fullhouse.session.opens", "result", "INVALID_SEQUENCE").increment()
+            meterRegistry.counter("lockers.session.opens", "result", "INVALID_SEQUENCE").increment()
             return null
         } catch (ex: Exception) {
+            logger.warn("session open failed unexpectedly", ex)
             result = WatchSessionResponse.Open.Result.UNKNOWN_ERROR
-            meterRegistry.counter("fullhouse.session.opens", "result", "UNKNOWN_ERROR").increment()
+            meterRegistry.counter("lockers.session.opens", "result", "UNKNOWN_ERROR").increment()
             return null
         }
 
@@ -387,13 +395,13 @@ class SessionServiceImpl(
 
         if (requestPublicKey == null) {
             result = WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY
-            meterRegistry.counter("fullhouse.session.creates", "result", "INVALID_PUBLIC_KEY").increment()
+            meterRegistry.counter("lockers.session.creates", "result", "INVALID_PUBLIC_KEY").increment()
             return null
         }
 
         if (serverSessionId == null) {
             result = WatchSessionResponse.Open.Result.INVALID_SESSION_ID
-            meterRegistry.counter("fullhouse.session.creates", "result", "INVALID_SESSION_ID").increment()
+            meterRegistry.counter("lockers.session.creates", "result", "INVALID_SESSION_ID").increment()
             return null
         }
 
@@ -401,7 +409,7 @@ class SessionServiceImpl(
 
         if (session != null) {
             result = WatchSessionResponse.Open.Result.SESSION_EXISTS
-            meterRegistry.counter("fullhouse.session.creates", "result", "SESSION_EXISTS").increment()
+            meterRegistry.counter("lockers.session.creates", "result", "SESSION_EXISTS").increment()
             return null
         }
 
@@ -415,10 +423,11 @@ class SessionServiceImpl(
 
             result = WatchSessionResponse.Open.Result.OK
             nextSequenceKey = updatedSession.nextKeyMaterial
-            meterRegistry.counter("fullhouse.session.creates", "result", "OK").increment()
+            meterRegistry.counter("lockers.session.creates", "result", "OK").increment()
         } catch (ex: Exception) {
+            logger.warn("session create failed unexpectedly", ex)
             result = WatchSessionResponse.Open.Result.SESSION_EXISTS
-            meterRegistry.counter("fullhouse.session.creates", "result", "SESSION_EXISTS").increment()
+            meterRegistry.counter("lockers.session.creates", "result", "SESSION_EXISTS").increment()
             return null
         }
 

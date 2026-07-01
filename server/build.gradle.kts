@@ -31,6 +31,8 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.coroutines.test)
     testImplementation(libs.ktbuf.test)
+    testImplementation(libs.assertk)
+    testImplementation(libs.sqlite.jdbc)
 }
 
 tasks.named<Test>("test") {

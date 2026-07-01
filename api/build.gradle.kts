@@ -2,6 +2,13 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.protobuf)
     `java-library`
+    `maven-publish`
+}
+
+publishing {
+    repositories {
+        mavenLocal()
+    }
 }
 
 protobuf {
