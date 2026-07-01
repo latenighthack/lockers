@@ -4,6 +4,7 @@ import com.diamondedge.logging.KmLog
 import com.diamondedge.logging.logging
 import com.latenighthack.ktbuf.bytes.toBase64String
 import com.latenighthack.ktbuf.net.RpcClient
+import com.latenighthack.ktbuf.rpc.RetryLimitExceeded
 import com.latenighthack.ktbuf.rpc.repeatWithBackoff
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.internal.LockerStore
@@ -17,7 +18,50 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlin.reflect.KFunction1
 
-private fun IdentifiedLocker.toUpdate(roomId: RoomId) = LockerClient.LockerUpdate(roomId, lockerId!!, version,locker?.open?.encodedPayload ?: byteArrayOf())
+private fun IdentifiedLocker.toUpdate(roomId: RoomId) =
+    LockerClient.LockerUpdate(roomId, lockerId!!, version, locker?.open?.encodedPayload ?: byteArrayOf())
+
+private fun StoredLocker.toIdentifiedLocker(): IdentifiedLocker {
+    val storedVersion = version
+    val storedLockerId = LockerId(lockerIdRawValue, LockerKeyspace { value = lockerKeyspace })
+    val storedPayload = lockerPayload
+
+    return IdentifiedLocker {
+        lockerId = storedLockerId
+        locker = Locker { open { encodedPayload = storedPayload } }
+        version = storedVersion
+    }
+}
+
+private fun LockerId.keyspaceOrDefault() = keyspace ?: LockerKeyspace { value = 0L }
+
+private fun LockerClient.LockerUpdate.toStored() = StoredLocker {
+    roomIdRawValue = roomId.rawValue
+    lockerIdRawValue = lockerId.rawValue
+    lockerKeyspace = lockerId.keyspace?.value ?: 0L
+    lockerPayload = payload
+    version = this@toStored.version
+}
+
+/**
+ * A typed view of a locker change. [Present] carries the decoded value; [Deleted]
+ * signals the locker was removed (locally or remotely) so watchers can drop it.
+ */
+sealed interface TypedLockerUpdate<out V> {
+    val roomId: RoomId
+    val lockerId: LockerId
+
+    data class Present<V>(
+        override val roomId: RoomId,
+        override val lockerId: LockerId,
+        val value: V,
+    ) : TypedLockerUpdate<V>
+
+    data class Deleted(
+        override val roomId: RoomId,
+        override val lockerId: LockerId,
+    ) : TypedLockerUpdate<Nothing>
+}
 
 class TypedLockerClient<ValueType>(
     private val lockerClient: LockerClient,
@@ -25,18 +69,29 @@ class TypedLockerClient<ValueType>(
     private val writer: KFunction1<ValueType, ByteArray>,
     private val reader: KFunction1<ByteArray, ValueType>
 ) {
-    inner class TypedLockerUpdate(val roomId: RoomId, val lockerId: LockerId, val value: ValueType)
+    private fun LockerId.scoped(): LockerId {
+        val existing = keyspace
+        require(existing == null || existing == this@TypedLockerClient.keyspace) {
+            "LockerId keyspace ${existing?.value} does not match this client's keyspace ${this@TypedLockerClient.keyspace.value}"
+        }
+        return copy(keyspace = this@TypedLockerClient.keyspace)
+    }
 
-    inner class TypedLocker(val value: ValueType)
+    suspend fun getLocker(roomId: RoomId, lockerId: LockerId, revalidate: Boolean = true): ValueType? {
+        val fetched = lockerClient.getLocker(roomId, lockerId.scoped(), revalidate)
+        return fetched?.locker?.open?.encodedPayload?.let { reader(it) }
+    }
 
-    inner class TypedIdentifiedLocker(val lockerId: LockerId, val value: ValueType)
+    suspend fun getAllLockers(roomId: RoomId, revalidate: Boolean = true): Map<LockerId, ValueType> =
+        lockerClient.getAllLockers(roomId, keyspace, revalidate)
+            .associate { it.lockerId!! to reader(it.locker?.open?.encodedPayload ?: byteArrayOf()) }
 
     suspend fun deleteLocker(
         roomId: RoomId,
         lockerId: LockerId,
         notificationBuilder: NotificationBuilder.() -> Unit = {}
     ) {
-        lockerClient.deleteLocker(roomId, lockerId, notificationBuilder)
+        lockerClient.deleteLocker(roomId, lockerId.scoped(), notificationBuilder)
     }
 
     suspend fun updateLocker(
@@ -45,8 +100,8 @@ class TypedLockerClient<ValueType>(
         notificationBuilder: NotificationBuilder.(Locker?) -> Unit = {},
         builder: (ValueType) -> ValueType
     ): ValueType? {
-        val lockerId = lockerId.copy(keyspace = keyspace)
-        val updated = lockerClient.updateLocker(roomId, lockerId, notificationBuilder) {
+        val scopedId = lockerId.scoped()
+        val updated = lockerClient.updateLocker(roomId, scopedId, notificationBuilder) {
             open {
                 val existingValue = reader(encodedPayload)
 
@@ -57,56 +112,47 @@ class TypedLockerClient<ValueType>(
         return updated?.open?.encodedPayload?.let { reader(it) }
     }
 
-    fun watchAll(roomId: RoomId): Flow<Map<LockerId, ValueType>> = allUpdates
-        .onStart { lockerClient.subscribeToRoom(roomId) }
-        .filter { it.roomId == roomId }
-        .runningFold(emptyMap()) { acc, value ->
-            if (value.value == null) {
-                acc - value.lockerId
-            } else {
-                acc + Pair(value.lockerId, value.value)
-            }
-        }
-
-    fun watchAll(roomId: RoomId, keyspace: LockerKeyspace): Flow<Map<LockerId, ValueType>> = allUpdates
+    fun watchAll(roomId: RoomId, includeHistory: Boolean = true): Flow<Map<LockerId, ValueType>> = allUpdates
         .onStart {
             lockerClient.subscribeToRoom(roomId)
-            emitAll(
-                lockerClient.getAllLockers(roomId, keyspace)
-                    .map {
-                        TypedLockerUpdate(roomId, it.lockerId!!, reader(it.locker?.open?.encodedPayload ?: byteArrayOf()))
-                    }
-                    .asFlow()
-            )
+            if (includeHistory) {
+                emitAll(hydrate(roomId, keyspace))
+            }
+        }
+        .filter { it.roomId == roomId }
+        .runningFold(emptyMap()) { acc, value -> acc.applyUpdate(value) }
+
+    fun watchAll(roomId: RoomId, keyspace: LockerKeyspace, includeHistory: Boolean = true): Flow<Map<LockerId, ValueType>> = allUpdates
+        .onStart {
+            lockerClient.subscribeToRoom(roomId)
+            if (includeHistory) {
+                emitAll(hydrate(roomId, keyspace))
+            }
         }
         .filter { it.lockerId.keyspace == keyspace && it.roomId == roomId }
-        .runningFold(emptyMap()) { acc, value ->
-            if (value.value == null) {
-                acc - value.lockerId
-            } else {
-                acc + Pair(value.lockerId, value.value)
-            }
-        }
+        .runningFold(emptyMap()) { acc, value -> acc.applyUpdate(value) }
 
-    fun watch(roomId: RoomId, lockerId: LockerId): Flow<TypedLocker> {
-        val lockerId = lockerId.copy(keyspace = keyspace)
+    fun watch(roomId: RoomId, lockerId: LockerId, includeHistory: Boolean = true): Flow<TypedLockerUpdate<ValueType>> {
+        val scopedId = lockerId.scoped()
 
         return allUpdates
-            .onStart { lockerClient.subscribeToRoom(roomId) }
-            .filter { it.roomId == roomId && it.lockerId == lockerId }
-            .map {
-                TypedLocker(it.value)
+            .onStart {
+                lockerClient.subscribeToRoom(roomId)
+                if (includeHistory) {
+                    lockerClient.getLocker(roomId, scopedId)?.let {
+                        emit(it.toTyped(roomId))
+                    }
+                }
             }
+            .filter { it.roomId == roomId && it.lockerId == scopedId }
     }
 
-    val allUpdates: Flow<TypedLockerUpdate>
+    val allUpdates: Flow<TypedLockerUpdate<ValueType>>
         get() {
             return lockerClient
                 .changes
                 .filter { it.lockerId.keyspace == keyspace }
-                .map {
-                    TypedLockerUpdate(it.roomId, it.lockerId, reader(it.payload))
-                }
+                .map { it.toTyped() }
         }
 
     val notifications: Flow<IncomingNotification>
@@ -123,13 +169,60 @@ class TypedLockerClient<ValueType>(
     suspend fun unsubscribeFromRoom(roomId: RoomId) {
         lockerClient.unsubscribeFromRoom(roomId)
     }
+
+    private suspend fun hydrate(roomId: RoomId, keyspace: LockerKeyspace): Flow<TypedLockerUpdate<ValueType>> =
+        lockerClient.getAllLockers(roomId, keyspace)
+            .map { it.toTyped(roomId) }
+            .asFlow()
+
+    private fun IdentifiedLocker.toTyped(roomId: RoomId): TypedLockerUpdate<ValueType> =
+        TypedLockerUpdate.Present(roomId, lockerId!!, reader(locker?.open?.encodedPayload ?: byteArrayOf()))
+
+    private fun LockerClient.LockerUpdate.toTyped(): TypedLockerUpdate<ValueType> =
+        if (deleted) {
+            TypedLockerUpdate.Deleted(roomId, lockerId)
+        } else {
+            TypedLockerUpdate.Present(roomId, lockerId, reader(payload))
+        }
+
+    private fun Map<LockerId, ValueType>.applyUpdate(update: TypedLockerUpdate<ValueType>): Map<LockerId, ValueType> =
+        when (update) {
+            is TypedLockerUpdate.Deleted -> this - update.lockerId
+            is TypedLockerUpdate.Present -> this + (update.lockerId to update.value)
+        }
 }
 
-data class IncomingNotification(
+class IncomingNotification(
     val roomId: RoomId,
     val lockerId: LockerId,
     val payload: ByteArray
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is IncomingNotification) return false
+
+        return roomId == other.roomId &&
+            lockerId == other.lockerId &&
+            payload.contentEquals(other.payload)
+    }
+
+    override fun hashCode(): Int {
+        var result = roomId.hashCode()
+        result = 31 * result + lockerId.hashCode()
+        result = 31 * result + payload.contentHashCode()
+        return result
+    }
+}
+
+private const val WRITE_RETRY_LIMIT = 8
+
+/**
+ * Thrown when a locker write cannot be completed — the server reported a terminal
+ * error or the optimistic-concurrency retry budget ([WRITE_RETRY_LIMIT]) was
+ * exhausted. Distinguishes a failed write from a merely slow one; without it a
+ * permanent server error would retry forever.
+ */
+class LockerWriteException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 class LockerClient(
     rpcClient: RpcClient,
@@ -140,10 +233,36 @@ class LockerClient(
     private val processingJob = Job()
     private val processingScope = GlobalScope + processingJob
 
-    data class LockerUpdate(val roomId: RoomId, val lockerId: LockerId, val version: Long, val payload: ByteArray)
+    class LockerUpdate(
+        val roomId: RoomId,
+        val lockerId: LockerId,
+        val version: Long,
+        val payload: ByteArray,
+        val deleted: Boolean = false,
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is LockerUpdate) return false
 
-    private val internalChanges = MutableSharedFlow<LockerUpdate>()
-    private val incomingNotifications = MutableSharedFlow<IncomingNotification>()
+            return roomId == other.roomId &&
+                lockerId == other.lockerId &&
+                version == other.version &&
+                deleted == other.deleted &&
+                payload.contentEquals(other.payload)
+        }
+
+        override fun hashCode(): Int {
+            var result = roomId.hashCode()
+            result = 31 * result + lockerId.hashCode()
+            result = 31 * result + version.hashCode()
+            result = 31 * result + deleted.hashCode()
+            result = 31 * result + payload.contentHashCode()
+            return result
+        }
+    }
+
+    private val internalChanges = MutableSharedFlow<LockerUpdate>(extraBufferCapacity = 64)
+    private val incomingNotifications = MutableSharedFlow<IncomingNotification>(extraBufferCapacity = 64)
 
     val changes: Flow<LockerUpdate>
         get() {
@@ -161,13 +280,11 @@ class LockerClient(
         processingScope.launch {
             internalChanges
                 .onEach { update ->
-                    lockerStore.saveLocker(StoredLocker {
-                        roomIdRawValue = update.roomId.rawValue
-                        lockerIdRawValue = update.lockerId.rawValue
-                        lockerKeyspace = update.lockerId.keyspace?.value ?: 0L
-                        lockerPayload = update.payload
-                        version = update.version
-                    })
+                    if (update.deleted) {
+                        lockerStore.deleteLocker(update.roomId, update.lockerId.keyspaceOrDefault(), update.lockerId)
+                    } else {
+                        lockerStore.saveLocker(update.toStored())
+                    }
                 }
                 .collect()
         }
@@ -200,15 +317,24 @@ class LockerClient(
 
     private suspend fun processEvent(event: Event): Boolean {
         val roomId = event.roomId ?: return true
-        val lockerId = event.locker?.lockerId ?: return true
-        val payload = event.locker?.locker?.open?.encodedPayload ?: return true
-        val version = event.locker?.version ?: 0L
-        val payloadBytes = event.notification?.payload?.rawValue
+        val identified = event.locker
+        val lockerId = identified?.lockerId
+        val version = identified?.version ?: 0L
+        val open = identified?.locker?.open
+        val notificationPayload = event.notification?.payload?.rawValue
 
-        internalChanges.emit(LockerUpdate(roomId, lockerId, version, payload))
+        if (lockerId != null) {
+            if (open != null) {
+                internalChanges.emit(LockerUpdate(roomId, lockerId, version, open.encodedPayload, deleted = false))
+            } else {
+                // A body-less locker event is a tombstone: the server signals a
+                // delete by sending lockerId + version with no Locker body.
+                internalChanges.emit(LockerUpdate(roomId, lockerId, version, byteArrayOf(), deleted = true))
+            }
+        }
 
-        if (payloadBytes != null) {
-            incomingNotifications.emit(IncomingNotification(roomId, lockerId, payloadBytes))
+        if (lockerId != null && notificationPayload != null) {
+            incomingNotifications.emit(IncomingNotification(roomId, lockerId, notificationPayload))
         }
 
         return true
@@ -226,7 +352,20 @@ class LockerClient(
         stream.unsubscribe(roomId)
     }
 
-    suspend fun getAllLockers(roomId: RoomId, keyspace: LockerKeyspace): List<IdentifiedLocker> {
+    suspend fun getAllLockers(roomId: RoomId, keyspace: LockerKeyspace, revalidate: Boolean = true): List<IdentifiedLocker> {
+        val cached = lockerStore.getAllLockers(roomId, keyspace)
+
+        if (cached.isNotEmpty()) {
+            if (revalidate) {
+                processingScope.launch { fetchAllLockers(roomId, keyspace) }
+            }
+            return cached.map { it.toIdentifiedLocker() }
+        }
+
+        return fetchAllLockers(roomId, keyspace)
+    }
+
+    private suspend fun fetchAllLockers(roomId: RoomId, keyspace: LockerKeyspace): List<IdentifiedLocker> {
         val fetchedLockers = roomService.getAllLockers(GetAllLockersRequest {
             this.roomId = roomId
             this.keyspace = keyspace
@@ -242,7 +381,20 @@ class LockerClient(
         return fetchedLockers
     }
 
-    suspend fun getLocker(roomId: RoomId, lockerId: LockerId): IdentifiedLocker? {
+    suspend fun getLocker(roomId: RoomId, lockerId: LockerId, revalidate: Boolean = true): IdentifiedLocker? {
+        val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
+
+        if (cached != null) {
+            if (revalidate) {
+                processingScope.launch { fetchLocker(roomId, lockerId) }
+            }
+            return cached.toIdentifiedLocker()
+        }
+
+        return fetchLocker(roomId, lockerId)
+    }
+
+    private suspend fun fetchLocker(roomId: RoomId, lockerId: LockerId): IdentifiedLocker? {
         val fetchedLocker = roomService.getLocker(GetLockerRequest {
             this.lockerId = lockerId
             this.roomId = roomId
@@ -260,41 +412,47 @@ class LockerClient(
         lockerId: LockerId,
         notificationBuilder: NotificationBuilder.() -> Unit = {}
     ) {
-        val existingLocker = getLocker(roomId, lockerId)
-        var originalLocker = existingLocker?.locker ?: Locker()
-        var parentVersion = existingLocker?.version ?: 0L
+        val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
+        var originalLocker = cached?.toIdentifiedLocker()?.locker ?: Locker()
+        var parentVersion = cached?.version ?: 0L
 
-        val deleteLocker = repeatWithBackoff {
-            val result = roomService.deleteLocker(DeleteLockerRequest {
-                this.roomId = roomId
-                this.lockerId = lockerId
-                this.parentVersion = parentVersion
+        val deletedLocker = try {
+            repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT) {
+                val result = roomService.deleteLocker(DeleteLockerRequest {
+                    this.roomId = roomId
+                    this.lockerId = lockerId
+                    this.parentVersion = parentVersion
 
-                notification {
-                    this.notificationBuilder()
+                    notification {
+                        this.notificationBuilder()
+                    }
+                })
+
+                val locker = when (result.result) {
+                    is DeleteLockerResponse.Result.OK -> originalLocker
+                    is DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION -> {
+                        originalLocker = result.existingLocker!!
+                        parentVersion = result.version
+
+                        retry()
+                    }
+                    else -> retry()
                 }
-            })
 
-            val locker = when (result.result) {
-                is DeleteLockerResponse.Result.OK -> originalLocker
-                is DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION -> {
-                    originalLocker = result.existingLocker!!
-                    parentVersion = result.version
-
-                    retry()
+                IdentifiedLocker {
+                    this.locker = locker
+                    this.lockerId = lockerId
+                    this.version = result.version
                 }
-                else -> retry()
             }
-
-            IdentifiedLocker {
-                this.locker = locker
-                this.lockerId = lockerId
-                this.version = result.version
-            }
+        } catch (e: RetryLimitExceeded) {
+            throw LockerWriteException("locker delete exceeded $WRITE_RETRY_LIMIT attempts", e)
         }
 
-        // todo:
-//        internalChanges.emit(it.toUpdate(roomId))
+        deletedLocker?.let {
+            lockerStore.deleteLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
+            internalChanges.emit(LockerUpdate(roomId, lockerId, it.version, byteArrayOf(), deleted = true))
+        }
     }
 
     suspend fun updateLocker(
@@ -303,52 +461,57 @@ class LockerClient(
         notificationBuilder: NotificationBuilder.(Locker?) -> Unit = {},
         builder: suspend LockerBuilder.() -> Unit,
     ): Locker? {
-        val existingLocker = getLocker(roomId, lockerId)
-        var originalLocker = existingLocker?.locker ?: Locker()
-        var parentVersion = existingLocker?.version ?: 0L
+        val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
+        var originalLocker = cached?.toIdentifiedLocker()?.locker ?: Locker()
+        var parentVersion = cached?.version ?: 0L
 
-        val updatedLocker = repeatWithBackoff {
-            val updatedLocker = originalLocker.copy {
-                builder()
-            }
-            log.debug { "updating locker=${lockerId.toLogString()}" }
-
-            val result = roomService.postLockerChange(PostLockerChangeRequest {
-                this.roomId = roomId
-                this.lockerId = lockerId
-                this.parentVersion = parentVersion
-                this.locker = updatedLocker
-
-                notification {
-                    this.notificationBuilder(updatedLocker)
+        val updatedLocker = try {
+            repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT) {
+                val updatedLocker = originalLocker.copy {
+                    builder()
                 }
-            })
+                log.debug { "updating locker=${lockerId.toLogString()}" }
 
-            log.debug { "updated locker=${lockerId.toLogString()}" }
+                val result = roomService.postLockerChange(PostLockerChangeRequest {
+                    this.roomId = roomId
+                    this.lockerId = lockerId
+                    this.parentVersion = parentVersion
+                    this.locker = updatedLocker
 
-            val locker = when (result.result) {
-                is PostLockerChangeResponse.Result.OK -> updatedLocker
-                is PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION -> {
-                    originalLocker = result.existingLocker!!
-                    parentVersion = result.version
+                    notification {
+                        this.notificationBuilder(updatedLocker)
+                    }
+                })
 
-                    retry()
+                log.debug { "updated locker=${lockerId.toLogString()}" }
+
+                val locker = when (result.result) {
+                    is PostLockerChangeResponse.Result.OK -> updatedLocker
+                    is PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION -> {
+                        originalLocker = result.existingLocker!!
+                        parentVersion = result.version
+
+                        retry()
+                    }
+                    else -> retry()
                 }
-                else -> retry()
-            }
 
-            IdentifiedLocker {
-                this.locker = locker
-                this.lockerId = lockerId
-                this.version = result.version
+                IdentifiedLocker {
+                    this.locker = locker
+                    this.lockerId = lockerId
+                    this.version = result.version
+                }
             }
+        } catch (e: RetryLimitExceeded) {
+            throw LockerWriteException("locker update exceeded $WRITE_RETRY_LIMIT attempts", e)
         }
 
-        return updatedLocker
-            ?.also {
-                internalChanges.emit(it.toUpdate(roomId))
-            }
-            ?.locker
+        val result = updatedLocker ?: return null
+        val update = result.toUpdate(roomId)
+        lockerStore.saveLocker(update.toStored())
+        internalChanges.emit(update)
+
+        return result.locker
     }
 }
 
