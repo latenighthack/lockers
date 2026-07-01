@@ -1,0 +1,5 @@
+syntax = "proto3";
+
+package com.latenighthack.lockers.push.v1;
+
+option java_package = "com.latenighthack.lockers.push.v1";

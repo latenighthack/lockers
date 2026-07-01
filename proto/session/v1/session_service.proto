@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package com.latenighthack.lockers.session.v1;
+
+option java_package = "com.latenighthack.lockers.session.v1";
+
+import "session/v1/model.proto";
+import "common/v1/model.proto";
+
+service Session {
+    rpc WatchSession(stream WatchSessionRequest) returns (stream WatchSessionResponse);
+    rpc DestroySession(DestroySessionRequest) returns (DestroySessionResponse);
+}
+
+message WatchSessionRequest {
+    oneof request {
+        Create create = 1;
+        Open open = 2;
+        Ping ping = 5;
+        Ack ack = 6;
+    }
+
+    message Create {
+        common.v1.SessionId session_id = 1;
+        common.v1.Secp256r1Key.PublicKey public_key = 2;
+        common.v1.Version version = 3;
+    }
+
+    message Open {
+        common.v1.SessionId session_id = 1;
+        common.v1.Signature sequence_key_signature = 2;
+        common.v1.Version version = 3;
+    }
+
+    message Ping {
+    }
+
+    message Ack {
+        repeated EventAck acks = 1;
+    }
+}
+
+message WatchSessionResponse {
+    oneof response {
+        Open open = 1;
+        Events events = 2;
+        Pong pong = 5;
+        Ack ack = 6;
+    }
+
+    message Open {
+        Result result = 1;
+        enum Result {
+            OK = 0;
+            SESSION_EXISTS = 1;
+            INVALID_SESSION_ID = 2;
+            INVALID_PUBLIC_KEY = 3;
+            UNKNOWN_SESSION = 4;
+            INVALID_SEQUENCE = 5;
+            UPGRADE_REQUIRED = 6;
+            SERVICE_UNAVAILABLE = 7;
+            UNKNOWN_ERROR = 10;
+        }
+
+        repeated common.v1.Event queued_events = 3;
+        bytes next_sequence_key = 4;
+    }
+
+    message Events {
+        repeated common.v1.Event event = 1;
+    }
+
+    message Pong {
+    }
+
+    message Ack {
+        repeated EventAck confirmed_acks = 1;
+    }
+}
+
+message DestroySessionRequest {
+    common.v1.SessionId session_id = 1;
+    common.v1.Signature sequence_key_signature = 2;
+}
+
+message DestroySessionResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+        INVALID_SESSION_ID = 1;
+        UNKNOWN_SESSION = 2;
+        INVALID_SEQUENCE = 3;
+        UNKNOWN_ERROR = 10;
+    }
+}

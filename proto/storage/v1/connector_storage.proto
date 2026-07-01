@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package com.latenighthack.lockers.server.storage.v1;
+
+option java_package = "com.latenighthack.lockers.connector.storage.v1";
+
+message StoredSubscription {
+    bytes room_id_raw_value = 1;
+    bool is_pending_remove = 2;
+    bool is_pending_add = 3;
+}
+
+message StoredAck {
+    bytes room_id_raw_value = 1;
+    bytes event_id_raw_value = 2;
+}
+
+message StoredLocker {
+    bytes room_id_raw_value = 1;
+    bytes locker_id_raw_value = 2;
+    int64 locker_keyspace = 3;
+    bytes locker_payload = 4;
+    int64 version = 5;
+}

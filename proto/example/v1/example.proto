@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package com.latenighthack.lockers.example.v1;
+
+option java_package = "com.latenighthack.lockers.example.v1";
+
+// Neutral example locker payload types. These are NOT part of the locker
+// primitive's contract — they exist only to demonstrate how a caller shapes a
+// typed locker value / notification payload, and to exercise the connector
+// tests. Real payloads (chat, profiles, contacts, ...) are add-ons defined by
+// consumers of the primitive.
+
+message ExampleLocker {
+    int64 sequence_number = 1;
+    string title = 2;
+}
+
+message ExamplePayload {
+    bytes data = 1;
+}

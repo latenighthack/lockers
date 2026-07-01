@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package com.latenighthack.lockers.session.v1;
+
+option java_package = "com.latenighthack.lockers.session.v1";
+
+import "common/v1/model.proto";
+
+service SessionGateway {
+    rpc PostEvent(PostEventRequest) returns (PostEventResponse);
+}
+
+message PostEventRequest {
+    repeated common.v1.SessionId session_ids = 1;
+    common.v1.Event event = 2;
+}
+
+message PostEventResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+        UNKNOWN_ERROR = 10;
+    }
+}

@@ -1,0 +1,151 @@
+syntax = "proto3";
+
+package com.latenighthack.lockers.common.v1;
+
+option java_package = "com.latenighthack.lockers.common.v1";
+
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+message Nonce {
+    // The time the nonce was generated.
+    //
+    // If the generation time value is too far in the past _or_ future of the service time,
+    // the nonce will be rejected.
+    google.protobuf.Timestamp generation_time = 1 [(validate.rules).timestamp.required = true];
+
+    bytes value = 2 [(validate.rules).bytes.min_len = 8];
+}
+
+message Secp256r1Key {
+    PublicKey public_key = 1;
+    PrivateKey private_key = 2;
+
+    message PublicKey {
+        bytes raw_value = 1 [(validate.rules).bytes.min_len = 32];
+    }
+    message PrivateKey {
+        bytes raw_value = 1 [(validate.rules).bytes.min_len = 32];
+    }
+}
+
+message Signature {
+    Secp256r1Key.PublicKey public_key = 1;
+    bytes signature = 2;
+}
+
+message KeyId {
+    bytes raw_value = 1;
+}
+message SharedKey {
+    KeyId key_id = 1;
+    bytes encrypted_key = 2;
+}
+
+message SealedPayload {
+    // the public key associated with the one-time private key used for
+    // this payload. This key has no association with the persona
+    Secp256r1Key.PublicKey public_key = 1;
+
+    repeated SharedKey shared_keys = 5;
+
+    // used to validate the payload integrity post-decryption or discard
+    // malformed payloads
+    // SHA256(AES(sealed_payload, ECDH(target_public_key, sealed_private_key)))
+    bytes checksum = 2;
+
+    // AES_ENC(Enclosure, ECDH(target_public_key, sealed_private_key))
+    bytes sealed_payload = 4;
+
+    message Enclosure {
+        Signature signature = 1;
+        bytes inner_payload = 2;
+    }
+}
+
+message SessionId {
+    bytes raw_value = 1 [(validate.rules).bytes.min_len = 32];
+}
+
+message RoomId {
+    bytes raw_value = 1 [(validate.rules).bytes.min_len = 32];
+}
+
+message Locker {
+    OpenLocker open = 1;
+    SealedLocker sealed = 2;
+
+    message OpenLocker {
+        // write keys
+        bytes encoded_payload = 1;
+    }
+
+    message SealedLocker {
+        // write keys
+        // read keys
+        SealedPayload payload = 2;
+    }
+}
+
+message LockerId {
+    bytes raw_value = 1 [(validate.rules).bytes.min_len = 32];
+    LockerKeyspace keyspace = 2;
+}
+
+message TitleId {
+    bytes raw_value = 1;
+}
+
+message AuthorId {
+    bytes raw_value = 1;
+}
+
+message IdentifiedLocker {
+    common.v1.LockerId locker_id = 1;
+    common.v1.Locker locker = 2;
+    int64 version = 3;
+}
+
+// An opaque keyspace: just an int64 that partitions lockers within a room.
+// The primitive assigns no meaning to any particular value — consumers pick
+// their own numbers (chat, profiles, games, ... are add-ons layered on later).
+message LockerKeyspace {
+    int64 value = 1;
+}
+
+message Version {
+    int32 major = 1;
+    int32 minor = 2;
+    int32 revision = 3;
+    int32 build_number = 4;
+}
+
+message Notification {
+    Push push = 1;
+    Payload payload = 2;
+}
+
+message Push {
+    string title = 1;
+    string body = 2;
+
+    // todo: signature
+}
+
+message Payload {
+    bytes raw_value = 1;
+
+    // todo: signature
+}
+
+message EventId {
+    bytes raw_value = 1;
+}
+
+message Event {
+    RoomId room_id = 1;
+    EventId event_id = 2;
+    IdentifiedLocker locker = 3;
+
+    Notification notification = 10;
+}

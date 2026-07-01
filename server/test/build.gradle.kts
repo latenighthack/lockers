@@ -1,19 +1,20 @@
 plugins {
     alias(libs.plugins.kotlinJvm)
-    application
 }
 
 kotlin {
     jvmToolchain(17)
 }
 
-application {
-    mainClass.set("com.latenighthack.lockers.server.MainKt")
-}
-
 dependencies {
+    implementation(projects.api)
     implementation(projects.server)
+
     implementation(libs.kotlin.inject.runtime)
+    implementation(libs.ktbuf.library)
+    implementation(libs.ktbuf.rpc)
+    implementation(libs.ktbuf.server)
+    implementation(libs.ktbuf.test)
     implementation(libs.ktstore.library)
     implementation(libs.coroutines.core)
     implementation(libs.ktor.server.core)

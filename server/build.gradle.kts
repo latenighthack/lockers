@@ -19,6 +19,13 @@ dependencies {
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.websockets)
 
+    implementation(libs.ktstore.library)
+    implementation(libs.ktcrypto.library)
+    implementation(libs.kotlinx.datetime)
+    implementation(libs.micrometer.core)
+    implementation(libs.cache4k)
+    implementation(libs.pushy)
+
     ksp(libs.kotlin.inject.ksp)
 
     testImplementation(kotlin("test"))

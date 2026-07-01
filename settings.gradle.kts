@@ -1,4 +1,4 @@
-rootProject.name = "kitkit"
+rootProject.name = "lockers"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
@@ -18,5 +18,7 @@ dependencyResolutionManagement {
 }
 
 include(":api")
+include(":connector")
 include(":server")
+include(":server:test")
 include(":server:run")

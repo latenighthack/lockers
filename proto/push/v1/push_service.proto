@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package com.latenighthack.lockers.push.v1;
+
+option java_package = "com.latenighthack.lockers.push.v1";
+
+import "common/v1/model.proto";
+
+service Push {
+  rpc RegisterSession(RegisterSessionRequest) returns (RegisterSessionResponse);
+}
+
+message RegisterSessionRequest {
+  common.v1.SessionId session_id = 1;
+  bytes apns_token = 2;
+}
+
+message RegisterSessionResponse {
+  Result result = 1;
+  enum Result {
+    OK = 0;
+    UNKNOWN_ERROR = 10;
+  }
+}

@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package com.latenighthack.lockers.room.v1;
+
+option java_package = "com.latenighthack.lockers.room.v1";
+
+import "common/v1/model.proto";
+
+service Room {
+  rpc Subscription(SubscriptionRequest) returns (SubscriptionResponse);
+  rpc GetLocker(GetLockerRequest) returns (GetLockerResponse);
+  rpc GetAllLockers(GetAllLockersRequest) returns (GetAllLockersResponse);
+  rpc PostLockerChange(PostLockerChangeRequest) returns (PostLockerChangeResponse);
+  rpc DeleteLocker(DeleteLockerRequest) returns (DeleteLockerResponse);
+}
+
+message SubscriptionRequest {
+  common.v1.SessionId session_id = 1;
+  common.v1.RoomId room_id = 2;
+
+  oneof kind {
+    Subscribe subscribe = 10;
+    Unsubscribe unsubscribe = 11;
+  }
+
+  message Subscribe {
+  }
+
+  message Unsubscribe {
+  }
+}
+
+message SubscriptionResponse {
+  Result result = 1;
+  enum Result {
+    OK = 0;
+    UNKNOWN_ERROR = 10;
+  }
+}
+
+message PostLockerChangeRequest {
+  common.v1.RoomId room_id = 1;
+  common.v1.LockerId locker_id = 2;
+  common.v1.Locker locker = 3;
+  int64 parent_version = 4;
+
+  common.v1.Notification notification = 10;
+}
+
+message PostLockerChangeResponse {
+  Result result = 1;
+  enum Result {
+    OK = 0;
+    UPDATE_LOCAL_VERSION = 1;
+    UNKNOWN_ERROR = 10;
+  }
+  common.v1.Locker existing_locker = 2;
+  int64 version = 3;
+}
+
+message DeleteLockerRequest {
+  common.v1.RoomId room_id = 1;
+  common.v1.LockerId locker_id = 2;
+  int64 parent_version = 4;
+
+  common.v1.Notification notification = 10;
+}
+
+message DeleteLockerResponse {
+  Result result = 1;
+  enum Result {
+    OK = 0;
+    UPDATE_LOCAL_VERSION = 1;
+    UNKNOWN_ERROR = 10;
+  }
+  common.v1.Locker existing_locker = 2;
+  int64 version = 3;
+}
+
+message GetAllLockersRequest {
+  common.v1.RoomId room_id = 1;
+  common.v1.LockerKeyspace keyspace = 2;
+}
+
+message GetAllLockersResponse {
+  Result result = 1;
+  enum Result {
+    OK = 0;
+    NOT_ALLOWED = 1;
+    UNKNOWN_ERROR = 10;
+  }
+
+  repeated common.v1.IdentifiedLocker lockers = 2;
+}
+
+message GetLockerRequest {
+  common.v1.RoomId room_id = 1;
+  common.v1.LockerId locker_id = 2;
+}
+
+message GetLockerResponse {
+  Result result = 1;
+  enum Result {
+    OK = 0;
+    NOT_ALLOWED = 1;
+    UNKNOWN_ERROR = 10;
+  }
+
+  common.v1.IdentifiedLocker locker = 2;
+}

@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package com.latenighthack.lockers.server.storage.v1;
+
+option java_package = "com.latenighthack.lockers.server.storage.v1";
+
+message ServerSessionId {
+    bytes raw_value = 1;
+}
+
+message ServerRoomId {
+    bytes raw_value = 1;
+}
+
+message ServerLockerId {
+    bytes raw_value = 1;
+}
+
+message ServerEventId {
+    bytes raw_value = 1;
+}
+
+message ServerSession {
+    ServerSessionId session_id = 1;
+    bytes next_key_material = 2;
+    bytes authorized_public_key = 3;
+}
+
+message ServerSubscription {
+    ServerSessionId session_id = 1;
+    ServerRoomId room_id = 2;
+}
+
+message ServerSessionEvent {
+    ServerSessionId session_id = 1;
+    ServerRoomId room_id = 2;
+    ServerEventId event_id = 3;
+    bytes encoded_payload = 4;
+    bytes encoded_locker = 5;
+}
+
+message ServerLocker {
+    ServerRoomId room_id = 1;
+    int64 keyspace = 2;
+    ServerLockerId locker_id = 3;
+    bytes locker = 4;
+    int64 version = 5;
+}
+
+message ServerPushId {
+    bytes raw_value = 1;
+}
+
+message ServerPush {
+    ServerPushId push_id = 1;
+    ServerSessionId session_id = 2;
+    bytes payload = 3;
+}
+
+message ServerPushInfo {
+    ServerSessionId session_id = 1;
+
+    bytes apns_token = 10;
+}
