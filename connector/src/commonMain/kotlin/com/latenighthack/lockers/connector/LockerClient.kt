@@ -4,8 +4,11 @@ import com.diamondedge.logging.KmLog
 import com.diamondedge.logging.logging
 import com.latenighthack.ktbuf.bytes.toBase64String
 import com.latenighthack.ktbuf.net.RpcClient
+import com.latenighthack.ktbuf.net.RpcResponseException
 import com.latenighthack.ktbuf.rpc.RetryLimitExceeded
 import com.latenighthack.ktbuf.rpc.repeatWithBackoff
+import com.latenighthack.ktcrypto.*
+import com.latenighthack.lockers.common.LockerSigning
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.internal.LockerStore
 import com.latenighthack.lockers.connector.internal.ShardedRoomServiceRpc
@@ -18,8 +21,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlin.reflect.KFunction1
 
+/**
+ * The application bytes of a locker, regardless of envelope. Open lockers carry them
+ * directly; signed/sealed lockers carry them in the (cleartext) enclosure. Callers at
+ * the high level never see the envelope — they only ever get these bytes.
+ */
+internal fun Locker.plaintextPayload(): ByteArray =
+    open?.encodedPayload ?: sealed?.payload?.enclosure?.innerPayload ?: byteArrayOf()
+
 private fun IdentifiedLocker.toUpdate(roomId: RoomId) =
-    LockerClient.LockerUpdate(roomId, lockerId!!, version, locker?.open?.encodedPayload ?: byteArrayOf())
+    LockerClient.LockerUpdate(roomId, lockerId!!, version, locker?.plaintextPayload() ?: byteArrayOf())
 
 private fun StoredLocker.toIdentifiedLocker(): IdentifiedLocker {
     val storedVersion = version
@@ -41,6 +52,20 @@ private fun LockerClient.LockerUpdate.toStored() = StoredLocker {
     lockerKeyspace = lockerId.keyspace?.value ?: 0L
     lockerPayload = payload
     version = this@toStored.version
+}
+
+/**
+ * Supplies the signing keys for locked lockers. This is the client's sole opt-in to
+ * locking: return a keypair for a locker and every write to it is automatically
+ * wrapped in a signed envelope; return null and writes stay open. The source owns the
+ * scope→key mapping (a per-locker, per-keyspace, or per-room key can back many
+ * lockers) so the low-level protocol never needs to know the scope for a plain write.
+ */
+interface LockKeySource {
+    suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId): Secp256r1KeyPair?
+
+    /** Called after a ratchet write succeeds so the source can adopt the rotated key. */
+    suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) {}
 }
 
 /**
@@ -79,12 +104,12 @@ class TypedLockerClient<ValueType>(
 
     suspend fun getLocker(roomId: RoomId, lockerId: LockerId, revalidate: Boolean = true): ValueType? {
         val fetched = lockerClient.getLocker(roomId, lockerId.scoped(), revalidate)
-        return fetched?.locker?.open?.encodedPayload?.let { reader(it) }
+        return fetched?.locker?.let { reader(it.plaintextPayload()) }
     }
 
     suspend fun getAllLockers(roomId: RoomId, revalidate: Boolean = true): Map<LockerId, ValueType> =
         lockerClient.getAllLockers(roomId, keyspace, revalidate)
-            .associate { it.lockerId!! to reader(it.locker?.open?.encodedPayload ?: byteArrayOf()) }
+            .associate { it.lockerId!! to reader(it.locker?.plaintextPayload() ?: byteArrayOf()) }
 
     suspend fun deleteLocker(
         roomId: RoomId,
@@ -98,19 +123,31 @@ class TypedLockerClient<ValueType>(
         roomId: RoomId,
         lockerId: LockerId,
         notificationBuilder: NotificationBuilder.(Locker?) -> Unit = {},
+        ratchet: Boolean = false,
         builder: (ValueType) -> ValueType
     ): ValueType? {
         val scopedId = lockerId.scoped()
-        val updated = lockerClient.updateLocker(roomId, scopedId, notificationBuilder) {
-            open {
-                val existingValue = reader(encodedPayload)
-
-                encodedPayload = writer(builder(existingValue))
-            }
+        val updated = lockerClient.updateLocker(roomId, scopedId, notificationBuilder, ratchet) { existing ->
+            writer(builder(reader(existing)))
         }
 
-        return updated?.open?.encodedPayload?.let { reader(it) }
+        return updated?.let { reader(it.plaintextPayload()) }
     }
+
+    suspend fun lockLocker(
+        roomId: RoomId,
+        scope: LockScope,
+        keyPair: Secp256r1KeyPair,
+        parentKeyPair: Secp256r1KeyPair? = null,
+        parentLockVersion: Long = 0L
+    ) = lockerClient.lockLocker(roomId, scope, keyPair, parentKeyPair, parentLockVersion)
+
+    suspend fun unlockLocker(
+        roomId: RoomId,
+        scope: LockScope,
+        keyPair: Secp256r1KeyPair,
+        parentLockVersion: Long
+    ) = lockerClient.unlockLocker(roomId, scope, keyPair, parentLockVersion)
 
     fun watchAll(roomId: RoomId, includeHistory: Boolean = true): Flow<Map<LockerId, ValueType>> = allUpdates
         .onStart {
@@ -176,7 +213,7 @@ class TypedLockerClient<ValueType>(
             .asFlow()
 
     private fun IdentifiedLocker.toTyped(roomId: RoomId): TypedLockerUpdate<ValueType> =
-        TypedLockerUpdate.Present(roomId, lockerId!!, reader(locker?.open?.encodedPayload ?: byteArrayOf()))
+        TypedLockerUpdate.Present(roomId, lockerId!!, reader(locker?.plaintextPayload() ?: byteArrayOf()))
 
     private fun LockerClient.LockerUpdate.toTyped(): TypedLockerUpdate<ValueType> =
         if (deleted) {
@@ -217,6 +254,19 @@ class IncomingNotification(
 private const val WRITE_RETRY_LIMIT = 8
 
 /**
+ * A [LockerWriteException] is terminal (a bad/absent signing key, or an unauthorized
+ * write) and must not be retried — otherwise the write would burn the whole retry
+ * budget before surfacing. RPC errors keep their usual transient/terminal split.
+ */
+private val WRITE_EXCEPTION_HANDLER: (Throwable) -> Boolean = { e ->
+    when (e) {
+        is LockerWriteException -> false
+        is RpcResponseException -> e.retriable()
+        else -> true
+    }
+}
+
+/**
  * Thrown when a locker write cannot be completed — the server reported a terminal
  * error or the optimistic-concurrency retry budget ([WRITE_RETRY_LIMIT]) was
  * exhausted. Distinguishes a failed write from a merely slow one; without it a
@@ -228,6 +278,7 @@ class LockerClient(
     rpcClient: RpcClient,
     private val stream: Stream,
     private val lockerStore: LockerStore,
+    private val lockKeySource: LockKeySource? = null,
     private val log: KmLog = logging()
 ) {
     private val processingJob = Job()
@@ -320,12 +371,13 @@ class LockerClient(
         val identified = event.locker
         val lockerId = identified?.lockerId
         val version = identified?.version ?: 0L
-        val open = identified?.locker?.open
+        val body = identified?.locker
+        val hasBody = body != null && (body.open != null || body.sealed != null)
         val notificationPayload = event.notification?.payload?.rawValue
 
         if (lockerId != null) {
-            if (open != null) {
-                internalChanges.emit(LockerUpdate(roomId, lockerId, version, open.encodedPayload, deleted = false))
+            if (hasBody) {
+                internalChanges.emit(LockerUpdate(roomId, lockerId, version, body!!.plaintextPayload(), deleted = false))
             } else {
                 // A body-less locker event is a tombstone: the server signals a
                 // delete by sending lockerId + version with no Locker body.
@@ -413,62 +465,79 @@ class LockerClient(
         notificationBuilder: NotificationBuilder.() -> Unit = {}
     ) {
         val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
-        var originalLocker = cached?.toIdentifiedLocker()?.locker ?: Locker()
         var parentVersion = cached?.version ?: 0L
+        val signingKey = lockKeySource?.writeKeyFor(roomId, lockerId)
 
-        val deletedLocker = try {
-            repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT) {
+        val deletedVersion = try {
+            repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
+                val signature = signingKey?.let { signWrite(it, roomId, lockerId, parentVersion, ByteArray(0)) }
+
                 val result = roomService.deleteLocker(DeleteLockerRequest {
                     this.roomId = roomId
                     this.lockerId = lockerId
                     this.parentVersion = parentVersion
+                    if (signature != null) this.writeSignature = signature
 
                     notification {
                         this.notificationBuilder()
                     }
                 })
 
-                val locker = when (result.result) {
-                    is DeleteLockerResponse.Result.OK -> originalLocker
+                when (result.result) {
+                    is DeleteLockerResponse.Result.OK -> result.version
                     is DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION -> {
-                        originalLocker = result.existingLocker!!
                         parentVersion = result.version
-
                         retry()
                     }
+                    is DeleteLockerResponse.Result.SIGNATURE_REQUIRED ->
+                        throw LockerWriteException("locker is locked; a signing key is required to delete")
+                    is DeleteLockerResponse.Result.SIGNATURE_INVALID ->
+                        throw LockerWriteException("locker delete signature was rejected")
+                    is DeleteLockerResponse.Result.NOT_AUTHORIZED ->
+                        throw LockerWriteException("locker delete not authorized")
                     else -> retry()
-                }
-
-                IdentifiedLocker {
-                    this.locker = locker
-                    this.lockerId = lockerId
-                    this.version = result.version
                 }
             }
         } catch (e: RetryLimitExceeded) {
             throw LockerWriteException("locker delete exceeded $WRITE_RETRY_LIMIT attempts", e)
         }
 
-        deletedLocker?.let {
+        deletedVersion?.let {
             lockerStore.deleteLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
-            internalChanges.emit(LockerUpdate(roomId, lockerId, it.version, byteArrayOf(), deleted = true))
+            internalChanges.emit(LockerUpdate(roomId, lockerId, it, byteArrayOf(), deleted = true))
         }
     }
 
+    /**
+     * Update a locker's plaintext content. [transform] receives the current plaintext
+     * and returns the new plaintext; when the locker is signed (a key is available from
+     * the [LockKeySource]) the result is wrapped in a signed envelope and the write is
+     * signed. The signature binds the parent version, so a version conflict re-runs
+     * [transform] and re-signs against the fresh version — preserving the fair-read
+     * retry. Set [ratchet] to rotate the signing key atomically with this write.
+     */
     suspend fun updateLocker(
         roomId: RoomId,
         lockerId: LockerId,
         notificationBuilder: NotificationBuilder.(Locker?) -> Unit = {},
-        builder: suspend LockerBuilder.() -> Unit,
+        ratchet: Boolean = false,
+        transform: suspend (ByteArray) -> ByteArray,
     ): Locker? {
         val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
-        var originalLocker = cached?.toIdentifiedLocker()?.locker ?: Locker()
+        var currentPlaintext = cached?.toIdentifiedLocker()?.locker?.plaintextPayload() ?: byteArrayOf()
         var parentVersion = cached?.version ?: 0L
 
+        val signingKey = lockKeySource?.writeKeyFor(roomId, lockerId)
+        val pendingRatchetKey = if (ratchet && signingKey != null) Secp256r1KeyPair.generate() else null
+
         val updatedLocker = try {
-            repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT) {
-                val updatedLocker = originalLocker.copy {
-                    builder()
+            repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
+                val newPlaintext = transform(currentPlaintext)
+                val body = buildWriteBody(signingKey, roomId, lockerId, parentVersion, newPlaintext)
+                val ratchetMsg = if (pendingRatchetKey != null && signingKey != null) {
+                    buildRatchet(signingKey, pendingRatchetKey, roomId, lockerId, parentVersion)
+                } else {
+                    null
                 }
                 log.debug { "updating locker=${lockerId.toLogString()}" }
 
@@ -476,23 +545,30 @@ class LockerClient(
                     this.roomId = roomId
                     this.lockerId = lockerId
                     this.parentVersion = parentVersion
-                    this.locker = updatedLocker
+                    this.locker = body.locker
+                    if (body.signature != null) this.writeSignature = body.signature
+                    if (ratchetMsg != null) this.ratchet = ratchetMsg
 
                     notification {
-                        this.notificationBuilder(updatedLocker)
+                        this.notificationBuilder(body.locker)
                     }
                 })
 
                 log.debug { "updated locker=${lockerId.toLogString()}" }
 
                 val locker = when (result.result) {
-                    is PostLockerChangeResponse.Result.OK -> updatedLocker
+                    is PostLockerChangeResponse.Result.OK -> body.locker
                     is PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION -> {
-                        originalLocker = result.existingLocker!!
+                        currentPlaintext = result.existingLocker?.plaintextPayload() ?: byteArrayOf()
                         parentVersion = result.version
-
                         retry()
                     }
+                    is PostLockerChangeResponse.Result.SIGNATURE_REQUIRED ->
+                        throw LockerWriteException("locker is locked; a signing key is required")
+                    is PostLockerChangeResponse.Result.SIGNATURE_INVALID ->
+                        throw LockerWriteException("locker write signature was rejected")
+                    is PostLockerChangeResponse.Result.NOT_AUTHORIZED ->
+                        throw LockerWriteException("locker write not authorized")
                     else -> retry()
                 }
 
@@ -507,12 +583,145 @@ class LockerClient(
         }
 
         val result = updatedLocker ?: return null
+        if (pendingRatchetKey != null) {
+            lockKeySource?.onRatcheted(roomId, lockerId, pendingRatchetKey)
+        }
         val update = result.toUpdate(roomId)
         lockerStore.saveLocker(update.toStored())
         internalChanges.emit(update)
 
         return result.locker
     }
+
+    /** Establish a lock at [scope] with [keyPair]. Sign the grant with [parentKeyPair]
+     *  (the parent-scope or room key); pass null for a TOFU root in a non-public-keyed room. */
+    suspend fun lockLocker(
+        roomId: RoomId,
+        scope: LockScope,
+        keyPair: Secp256r1KeyPair,
+        parentKeyPair: Secp256r1KeyPair? = null,
+        parentLockVersion: Long = 0L
+    ): LockLockerResponse {
+        val publicKeyBytes = keyPair.publicKey.encode()
+        val parentSignature = parentKeyPair?.let {
+            val context = LockerSigning.grantContext(roomId, scope, publicKeyBytes)
+            signatureOf(it, context)
+        }
+
+        return roomService.lockLocker(LockLockerRequest {
+            this.roomId = roomId
+            this.parentLockVersion = parentLockVersion
+            grant = LockGrant(
+                scope = scope,
+                publicKey = Secp256R1Key.PublicKey(rawValue = publicKeyBytes),
+                parentSignature = parentSignature,
+            )
+        })
+    }
+
+    /** Remove the lock at [scope], authorized by its current [keyPair]. */
+    suspend fun unlockLocker(
+        roomId: RoomId,
+        scope: LockScope,
+        keyPair: Secp256r1KeyPair,
+        parentLockVersion: Long
+    ): UnlockLockerResponse {
+        val context = LockerSigning.unlockContext(roomId, scope)
+        return roomService.unlockLocker(UnlockLockerRequest {
+            this.roomId = roomId
+            this.scope = scope
+            this.parentLockVersion = parentLockVersion
+            signature = signatureOf(keyPair, context)
+        })
+    }
+
+    private class WriteBody(val locker: Locker, val signature: Signature?)
+
+    private suspend fun buildWriteBody(
+        signingKey: Secp256r1KeyPair?,
+        roomId: RoomId,
+        lockerId: LockerId,
+        parentVersion: Long,
+        plaintext: ByteArray,
+    ): WriteBody {
+        if (signingKey == null) {
+            return WriteBody(Locker { open { encodedPayload = plaintext } }, null)
+        }
+        val hash = SHA256.digest(plaintext)
+        val signature = signWrite(signingKey, roomId, lockerId, parentVersion, hash)
+        val locker = Locker {
+            sealed {
+                payload {
+                    this.checksum = hash
+                    enclosure {
+                        this.signature = signature
+                        innerPayload = plaintext
+                    }
+                }
+            }
+        }
+        return WriteBody(locker, signature)
+    }
+
+    private suspend fun buildRatchet(
+        oldKey: Secp256r1KeyPair,
+        newKey: Secp256r1KeyPair,
+        roomId: RoomId,
+        lockerId: LockerId,
+        parentVersion: Long,
+    ): PostLockerChangeRequest.Ratchet {
+        val newPublicKeyBytes = newKey.publicKey.encode()
+        val context = LockerSigning.ratchetContext(roomId, lockerId, parentVersion, newPublicKeyBytes)
+        return PostLockerChangeRequest.Ratchet(
+            newPublicKey = Secp256R1Key.PublicKey(rawValue = newPublicKeyBytes),
+            newSharedKeys = emptyList(),
+            signature = signatureOf(oldKey, context),
+        )
+    }
+
+    private suspend fun signWrite(
+        keyPair: Secp256r1KeyPair,
+        roomId: RoomId,
+        lockerId: LockerId,
+        parentVersion: Long,
+        contentHash: ByteArray,
+    ): Signature =
+        signatureOf(keyPair, LockerSigning.writeContext(roomId, lockerId, parentVersion, contentHash))
+
+    private suspend fun signatureOf(keyPair: Secp256r1KeyPair, message: ByteArray): Signature =
+        Signature(
+            publicKey = Secp256R1Key.PublicKey(rawValue = keyPair.publicKey.encode()),
+            signature = ecdsaDerToRaw(keyPair.privateKey.sign(message)),
+        )
+}
+
+/**
+ * ktcrypto's secp256r1 `sign` emits a DER-encoded ECDSA signature, but its `verify`
+ * expects a fixed-width raw r‖s (it splits the input in half). Convert here so the
+ * signatures we send verify against the on-file key on the server.
+ */
+internal fun ecdsaDerToRaw(der: ByteArray): ByteArray {
+    var offset = 0
+    check(der.getOrNull(offset++) == 0x30.toByte()) { "invalid DER signature header" }
+    offset++ // sequence length — always short-form for P-256 signatures
+    check(der[offset++] == 0x02.toByte()) { "invalid DER signature (r)" }
+    val rLen = der[offset++].toInt() and 0xFF
+    val r = der.copyOfRange(offset, offset + rLen)
+    offset += rLen
+    check(der[offset++] == 0x02.toByte()) { "invalid DER signature (s)" }
+    val sLen = der[offset++].toInt() and 0xFF
+    val s = der.copyOfRange(offset, offset + sLen)
+    return leftPad32(r) + leftPad32(s)
+}
+
+private fun leftPad32(value: ByteArray): ByteArray {
+    var start = 0
+    while (start < value.size - 1 && value[start] == 0.toByte()) start++
+    val trimmed = value.copyOfRange(start, value.size)
+    val out = ByteArray(32)
+    val copyLen = minOf(trimmed.size, 32)
+    trimmed.copyInto(out, 32 - copyLen, trimmed.size - copyLen, trimmed.size)
+    return out
 }
 
 private fun RoomId.toLogString() = "r+" + (this?.rawValue?.toBase64String()?.substring(0..5) ?: "(nul)")

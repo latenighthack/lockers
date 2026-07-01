@@ -47,6 +47,20 @@ message ServerLocker {
     int64 version = 5;
 }
 
+// A lock at some scope of a room. scope_kind: 0 = locker, 1 = keyspace, 2 = room.
+// keyspace/locker_id are only meaningful for the narrower scopes; unused slots
+// carry sentinel values so the composite primary key stays uniform. lock_state
+// is a serialized common.v1.LockState (public key, delegation chain, ratchet
+// distribution). version is the optimistic-concurrency guard for lock/unlock.
+message ServerLock {
+    ServerRoomId room_id = 1;
+    int64 scope_kind = 2;
+    int64 keyspace = 3;
+    ServerLockerId locker_id = 4;
+    bytes lock_state = 5;
+    int64 version = 6;
+}
+
 message ServerPushId {
     bytes raw_value = 1;
 }

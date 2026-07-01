@@ -8,6 +8,7 @@ import com.latenighthack.lockers.server.LockersConfig
 import com.latenighthack.lockers.server.ServerCore
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
 import com.latenighthack.lockers.server.services.session.v1.SessionGatewayDiscovery
+import com.latenighthack.lockers.server.storage.v1.ServerLock
 import com.latenighthack.lockers.server.storage.v1.ServerLocker
 import com.latenighthack.lockers.server.storage.v1.ServerLockerId
 import com.latenighthack.lockers.server.storage.v1.ServerRoomId
@@ -41,16 +42,41 @@ abstract class RoomServiceModule(
 class RoomServiceImpl(
     private val subscriptionStore: SubscriptionStore,
     private val lockerStore: LockerStore,
+    private val lockStore: LockStore,
     private val sessionGatewayDiscovery: SessionGatewayDiscovery,
     private val agentRegistry: LockerAgentRegistry,
     private val meterRegistry: MeterRegistry,
     private val config: LockersConfig,
 ) : BaseServiceImpl(), RoomServer {
     private val logger = LoggerFactory.getLogger(RoomServiceImpl::class.java)
+    private val lockVerifier = LockVerifier(lockStore)
     private val dispatchers = ShardedDispatcher<RoomId>(config.shardCount, "room-shard") {
         it.rawValue.contentHashCode()
     }
     private val rateLimiter = RoomRateLimiter(config.roomWritesPerSecond, config.roomWriteBurst)
+
+    // Whether a room has any locks. Lets the common open-locker write/read path skip
+    // effective-lock resolution entirely. Kept fresh by lock/unlock; recomputed on miss.
+    private val roomHasLocksCache = Cache.Builder<RoomId, Boolean>()
+        .maximumCacheSize(config.sessionCacheSize)
+        .build()
+
+    private suspend fun roomHasLocks(roomId: RoomId): Boolean {
+        roomHasLocksCache.get(roomId)?.let { return it }
+        val has = lockVerifier.roomHasLocks(roomId)
+        roomHasLocksCache.put(roomId, has)
+        return has
+    }
+
+    private suspend fun effectiveLockOrNull(roomId: RoomId, lockerId: LockerId): ServerLock? =
+        if (roomHasLocks(roomId)) {
+            lockVerifier.resolveEffective(roomId, lockerId.keyspace?.value ?: 0L, lockerId.rawValue)
+        } else {
+            null
+        }
+
+    private suspend fun lockStateFor(roomId: RoomId, lockerId: LockerId): LockState? =
+        effectiveLockOrNull(roomId, lockerId)?.let { lockVerifier.stateOf(it) }
 
     private val gatewayLookupFailureCounter = meterRegistry.counter("lockers.room.gateway.lookup.failures")
     private val oversizeRejectedCounter = meterRegistry.counter("lockers.room.locker.rejected.oversize")
@@ -156,12 +182,14 @@ class RoomServiceImpl(
         }
 
         getLockerTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
+        val effectiveState = lockStateFor(roomId, lockerId)
         GetLockerResponse {
             result = GetLockerResponse.Result.OK
             locker {
                 this.lockerId = lockerId
                 locker = lockerPayload
                 version = storedLocker.version
+                lockState = effectiveState
             }
         }
     }
@@ -185,19 +213,23 @@ class RoomServiceImpl(
         lockersReturnedSummary.record(storedLockers.size.toDouble())
         getAllLockersTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
 
+        // Resolve lock state up front: the builder lambdas below are not suspend contexts.
+        val identified = storedLockers.map { storedLocker ->
+            val storedLockerId = LockerId(
+                rawValue = storedLocker.lockerId?.rawValue!!,
+                keyspace = LockerKeyspace { value = storedLocker.keyspace }
+            )
+            IdentifiedLocker(
+                lockerId = storedLockerId,
+                locker = Locker.fromByteArray(storedLocker.locker),
+                version = storedLocker.version,
+                lockState = lockStateFor(roomId, storedLockerId),
+            )
+        }
+
         return@trackResponse GetAllLockersResponse {
             result = GetAllLockersResponse.Result.OK
-            lockers {
-                for (storedLocker in storedLockers) {
-                    addIdentifiedLocker {
-                        locker = Locker.fromByteArray(storedLocker.locker)
-                        lockerId = LockerId(
-                            rawValue = storedLocker.lockerId?.rawValue!!,
-                            keyspace = LockerKeyspace { value = storedLocker.keyspace }
-                        )
-                    }
-                }
-            }
+            lockers = identified
         }
     }
 
@@ -234,6 +266,9 @@ class RoomServiceImpl(
                 ServerLockerId(requestLockerId.rawValue)
             )
 
+            val effectiveLock = effectiveLockOrNull(requestRoomId, requestLockerId)
+            var effectiveState = effectiveLock?.let { lockVerifier.stateOf(it) }
+
             val updatedLockerVersion = if (storedLocker == null) {
                 requestVersion
             } else if (storedLocker.version == requestVersion) {
@@ -243,6 +278,52 @@ class RoomServiceImpl(
                     result = PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION
                     version = storedLocker.version
                     existingLocker = Locker.fromByteArray(storedLocker.locker)
+                    lockState = effectiveState
+                }
+            }
+
+            // Locked lockers: writes must carry a signature over the canonical write
+            // context that verifies against the effective lock's current key. The
+            // signature binds the parent version, so the client re-signs on retry.
+            if (effectiveLock != null) {
+                val enclosure = updatedLocker.sealed?.payload?.enclosure
+                if (enclosure == null) {
+                    return@runOnDispatcher PostLockerChangeResponse {
+                        result = PostLockerChangeResponse.Result.SIGNATURE_REQUIRED
+                        lockState = effectiveState
+                    }
+                }
+                val hash = lockVerifier.contentHash(enclosure.innerPayload)
+                val checksum = updatedLocker.sealed?.payload?.checksum
+                if (checksum != null && checksum.isNotEmpty() && !checksum.contentEquals(hash)) {
+                    return@runOnDispatcher PostLockerChangeResponse {
+                        result = PostLockerChangeResponse.Result.SIGNATURE_INVALID
+                        lockState = effectiveState
+                    }
+                }
+                when (lockVerifier.verifyWrite(effectiveLock, requestRoomId, requestLockerId, requestVersion, hash, request.writeSignature)) {
+                    LockVerifier.WriteVerdict.REQUIRED -> return@runOnDispatcher PostLockerChangeResponse {
+                        result = PostLockerChangeResponse.Result.SIGNATURE_REQUIRED
+                        lockState = effectiveState
+                    }
+                    LockVerifier.WriteVerdict.INVALID -> return@runOnDispatcher PostLockerChangeResponse {
+                        result = PostLockerChangeResponse.Result.SIGNATURE_INVALID
+                        lockState = effectiveState
+                    }
+                    LockVerifier.WriteVerdict.OK -> {}
+                }
+                val ratchet = request.ratchet
+                if (ratchet != null) {
+                    when (val outcome = lockVerifier.applyRatchet(effectiveLock, requestRoomId, requestLockerId, requestVersion, ratchet)) {
+                        is LockVerifier.RatchetOutcome.Invalid -> return@runOnDispatcher PostLockerChangeResponse {
+                            result = PostLockerChangeResponse.Result.SIGNATURE_INVALID
+                            lockState = effectiveState
+                        }
+                        is LockVerifier.RatchetOutcome.Ok -> {
+                            effectiveState = outcome.state
+                            roomHasLocksCache.put(requestRoomId, true)
+                        }
+                    }
                 }
             }
 
@@ -271,6 +352,7 @@ class RoomServiceImpl(
                             locker = updatedLocker
                             lockerId = requestLockerId
                             version = updatedLockerVersion
+                            lockState = effectiveState
                         }
                         notification {
                             push = request.notification?.push
@@ -335,6 +417,7 @@ class RoomServiceImpl(
             PostLockerChangeResponse {
                 result = PostLockerChangeResponse.Result.OK
                 version = updatedLockerVersion
+                lockState = effectiveState
             }
         }
     }
@@ -364,6 +447,9 @@ class RoomServiceImpl(
                 ServerLockerId(requestLockerId.rawValue)
             )
 
+            val effectiveLock = effectiveLockOrNull(requestRoomId, requestLockerId)
+            val effectiveState = effectiveLock?.let { lockVerifier.stateOf(it) }
+
             val updatedLockerVersion = if (storedLocker == null) {
                 requestVersion
             } else if (storedLocker.version == requestVersion) {
@@ -373,6 +459,23 @@ class RoomServiceImpl(
                     result = DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION
                     version = storedLocker.version
                     existingLocker = Locker.fromByteArray(storedLocker.locker)
+                    lockState = effectiveState
+                }
+            }
+
+            // Locked lockers: deletes must be signed by the effective lock key over the
+            // write context with an empty content hash.
+            if (effectiveLock != null) {
+                when (lockVerifier.verifyWrite(effectiveLock, requestRoomId, requestLockerId, requestVersion, ByteArray(0), request.writeSignature)) {
+                    LockVerifier.WriteVerdict.REQUIRED -> return@runOnDispatcher DeleteLockerResponse {
+                        result = DeleteLockerResponse.Result.SIGNATURE_REQUIRED
+                        lockState = effectiveState
+                    }
+                    LockVerifier.WriteVerdict.INVALID -> return@runOnDispatcher DeleteLockerResponse {
+                        result = DeleteLockerResponse.Result.SIGNATURE_INVALID
+                        lockState = effectiveState
+                    }
+                    LockVerifier.WriteVerdict.OK -> {}
                 }
             }
 
@@ -423,6 +526,52 @@ class RoomServiceImpl(
             DeleteLockerResponse {
                 result = DeleteLockerResponse.Result.OK
                 version = updatedLockerVersion
+                lockState = effectiveState
+            }
+        }
+    }
+
+    override suspend fun lockLocker(
+        context: GrpcRequestContext,
+        request: LockLockerRequest
+    ) = meterRegistry.trackResponse("lockers.room.locker.lock", LockLockerResponse::result) {
+        val requestRoomId = request.roomId ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)
+        val grant = request.grant ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)
+
+        return@trackResponse dispatchers.runOnDispatcher(requestRoomId) {
+            when (val outcome = lockVerifier.applyLock(requestRoomId, grant, request.parentLockVersion)) {
+                is LockVerifier.LockOutcome.Ok -> {
+                    roomHasLocksCache.put(requestRoomId, true)
+                    LockLockerResponse {
+                        result = LockLockerResponse.Result.OK
+                        lockState = outcome.state
+                    }
+                }
+                is LockVerifier.LockOutcome.Stale -> LockLockerResponse {
+                    result = LockLockerResponse.Result.UPDATE_LOCAL_VERSION
+                    lockState = outcome.state
+                }
+                is LockVerifier.LockOutcome.NotAuthorized -> LockLockerResponse(result = LockLockerResponse.Result.NOT_AUTHORIZED)
+            }
+        }
+    }
+
+    override suspend fun unlockLocker(
+        context: GrpcRequestContext,
+        request: UnlockLockerRequest
+    ) = meterRegistry.trackResponse("lockers.room.locker.unlock", UnlockLockerResponse::result) {
+        val requestRoomId = request.roomId ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)
+        val scope = request.scope ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)
+
+        return@trackResponse dispatchers.runOnDispatcher(requestRoomId) {
+            val outcome = lockVerifier.applyUnlock(requestRoomId, scope, request.signature, request.parentLockVersion)
+            when (outcome) {
+                is LockVerifier.UnlockOutcome.Ok -> {
+                    roomHasLocksCache.put(requestRoomId, lockVerifier.roomHasLocks(requestRoomId))
+                    UnlockLockerResponse(result = UnlockLockerResponse.Result.OK)
+                }
+                is LockVerifier.UnlockOutcome.Stale -> UnlockLockerResponse(result = UnlockLockerResponse.Result.UPDATE_LOCAL_VERSION)
+                is LockVerifier.UnlockOutcome.SignatureInvalid -> UnlockLockerResponse(result = UnlockLockerResponse.Result.SIGNATURE_INVALID)
             }
         }
     }

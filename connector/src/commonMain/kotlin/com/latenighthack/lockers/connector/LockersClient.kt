@@ -62,6 +62,7 @@ class LockersClient private constructor(
             keyValueStore: KeyValueStore,
             keySource: AuthenticationKeySource,
             appVersion: Version,
+            lockKeySource: LockKeySource? = null,
         ): LockersClient {
             val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
             val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
@@ -73,7 +74,7 @@ class LockersClient private constructor(
             storeDelegate.createStores()
 
             val stream = Stream(rpcClient, keySource, sessionStore, subscriptionStore, appVersion)
-            val lockerClient = LockerClient(rpcClient, stream, lockerStore)
+            val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource)
 
             stream.start()
             lockerClient.start()

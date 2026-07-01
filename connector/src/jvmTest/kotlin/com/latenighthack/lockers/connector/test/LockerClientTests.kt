@@ -4,14 +4,15 @@ import com.latenighthack.ktbuf.net.RpcClient
 import com.latenighthack.ktbuf.net.RpcResponseException
 import com.latenighthack.ktbuf.proto.Codes
 import com.latenighthack.ktbuf.test.server.runTestWithServer
-import com.latenighthack.ktcrypto.Secp256r1KeyPair
-import com.latenighthack.ktcrypto.generate
+import com.latenighthack.ktcrypto.*
 import com.latenighthack.ktstore.InMemoryKeyValueStoreDelegate
 import com.latenighthack.ktstore.InMemoryStoreDelegate
 import com.latenighthack.ktstore.KeyValueStore
 import com.latenighthack.lockers.example.v1.*
+import com.latenighthack.lockers.common.RoomKeying
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.*
+import com.latenighthack.lockers.room.v1.*
 import com.latenighthack.lockers.server.*
 import io.ktor.server.application.*
 import kotlinx.coroutines.*
@@ -30,7 +31,7 @@ class LockerClientTests {
         val typedClient: TypedLockerClient<ExampleLocker>,
     )
 
-    private suspend fun createClient(rpcClient: RpcClient): ClientContext {
+    private suspend fun createClient(rpcClient: RpcClient, lockKeySource: LockKeySource? = null): ClientContext {
         val sessionKeyPair = Secp256r1KeyPair.generate()
         val keySource = object : AuthenticationKeySource {
             override suspend fun getSessionKeyPair() = sessionKeyPair
@@ -45,6 +46,7 @@ class LockerClientTests {
             keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate()),
             keySource = keySource,
             appVersion = Version(0, 0, 1),
+            lockKeySource = lockKeySource,
         )
         lockers.awaitConnected()
 
@@ -52,6 +54,30 @@ class LockerClientTests {
 
         return ClientContext(lockers, lockers.lockers, typedClient)
     }
+
+    /** A per-locker in-memory key source; adopts rotated keys on ratchet. */
+    private class MapLockKeySource : LockKeySource {
+        private val keys = mutableMapOf<String, Secp256r1KeyPair>()
+
+        private fun key(lockerId: LockerId) =
+            (lockerId.keyspace?.value ?: 0L).toString() + ":" + lockerId.rawValue.joinToString(",")
+
+        fun set(lockerId: LockerId, keyPair: Secp256r1KeyPair) {
+            keys[key(lockerId)] = keyPair
+        }
+
+        override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId): Secp256r1KeyPair? = keys[key(lockerId)]
+
+        override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) {
+            keys[key(lockerId)] = newKeyPair
+        }
+    }
+
+    private fun lockerScope(lockerId: LockerId) = LockScope(
+        kind = LockScopeKind.LOCK_SCOPE_LOCKER,
+        keyspace = lockerId.keyspace ?: DEFAULT_KEYSPACE,
+        lockerRawValue = lockerId.rawValue,
+    )
 
     private fun cleanup(vararg contexts: ClientContext) {
         for (ctx in contexts) {
@@ -206,30 +232,28 @@ class LockerClientTests {
         cleanup(ctx)
     }
 
-    @Test(timeout = 5_000)
+    // Writes both versions before watching so the assertion doesn't race the watcher's
+    // startup: `watch`'s own onStart (subscribe + getLocker) runs after any downstream
+    // onStart, so a "ready" signal there fires before the collector has attached to the
+    // replay-0 changes flow — a live write in that window is dropped and lost, which no
+    // timeout can rescue. Here `watch` hydrates the current value deterministically.
+    @Test(timeout = 10_000)
     fun `watch single locker emits updates`() = runTestWithServer(Application::attachTestServices) { server, _ ->
         val ctx = createClient(server.rpcClient)
         val roomId = randomRoomId()
         val lockerId = randomLockerId()
 
-        val ready = CompletableDeferred<Unit>()
-        val seenV2 = CompletableDeferred<String>()
-        val job = launch {
-            ctx.typedClient.watch(roomId, lockerId)
-                .onStart { ready.complete(Unit) }
-                .mapNotNull { if (it is TypedLockerUpdate.Present) it.value else null }
-                .filter { it.title == "v2" }
-                .first()
-                .let { seenV2.complete(it.title) }
-        }
-
-        ready.await()
-
+        ctx.typedClient.subscribeToRoom(roomId)
         ctx.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "v1" } }
         ctx.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "v2" } }
 
-        assertEquals("v2", seenV2.await())
-        job.cancel()
+        val seenV2 = ctx.typedClient
+            .watch(roomId, lockerId)
+            .mapNotNull { (it as? TypedLockerUpdate.Present)?.value }
+            .filter { it.title == "v2" }
+            .first()
+
+        assertEquals("v2", seenV2.title)
 
         cleanup(ctx)
     }
@@ -716,5 +740,193 @@ class LockerClientTests {
         }
 
         cleanup(ctx)
+    }
+
+    // --- Locked / signed lockers ---
+
+    @Test(timeout = 5_000)
+    fun `TOFU lock then signed write succeeds`() = runTestWithServer(Application::attachTestServices) { server, _ ->
+        val keyPair = Secp256r1KeyPair.generate()
+        val keys = MapLockKeySource()
+        val ctx = createClient(server.rpcClient, keys)
+        val roomId = randomRoomId()
+        val lockerId = randomLockerId()
+        keys.set(lockerId, keyPair)
+        ctx.typedClient.subscribeToRoom(roomId)
+
+        val lockResponse = ctx.typedClient.lockLocker(roomId, lockerScope(lockerId), keyPair)
+        assertTrue(lockResponse.result is LockLockerResponse.Result.OK)
+
+        val result = ctx.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "locked-hello" } }
+        assertEquals("locked-hello", result?.title)
+        assertEquals("locked-hello", ctx.typedClient.getLocker(roomId, lockerId)?.title)
+
+        cleanup(ctx)
+    }
+
+    @Test(timeout = 5_000)
+    fun `unsigned write to locked locker is rejected`() = runTestWithServer(Application::attachTestServices) { server, _ ->
+        val keyPair = Secp256r1KeyPair.generate()
+        val ownerKeys = MapLockKeySource()
+        val owner = createClient(server.rpcClient, ownerKeys)
+        val roomId = randomRoomId()
+        val lockerId = randomLockerId()
+        ownerKeys.set(lockerId, keyPair)
+        owner.typedClient.subscribeToRoom(roomId)
+        assertTrue(owner.typedClient.lockLocker(roomId, lockerScope(lockerId), keyPair).result is LockLockerResponse.Result.OK)
+
+        val stranger = createClient(server.rpcClient, MapLockKeySource())
+        stranger.typedClient.subscribeToRoom(roomId)
+
+        assertFailsWith<LockerWriteException> {
+            stranger.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "intruder" } }
+        }
+
+        cleanup(owner, stranger)
+    }
+
+    @Test(timeout = 5_000)
+    fun `wrong key write to locked locker is rejected`() = runTestWithServer(Application::attachTestServices) { server, _ ->
+        val ownerKey = Secp256r1KeyPair.generate()
+        val wrongKey = Secp256r1KeyPair.generate()
+        val ownerKeys = MapLockKeySource()
+        val owner = createClient(server.rpcClient, ownerKeys)
+        val roomId = randomRoomId()
+        val lockerId = randomLockerId()
+        ownerKeys.set(lockerId, ownerKey)
+        owner.typedClient.subscribeToRoom(roomId)
+        assertTrue(owner.typedClient.lockLocker(roomId, lockerScope(lockerId), ownerKey).result is LockLockerResponse.Result.OK)
+
+        val wrongKeys = MapLockKeySource().apply { set(lockerId, wrongKey) }
+        val impostor = createClient(server.rpcClient, wrongKeys)
+        impostor.typedClient.subscribeToRoom(roomId)
+
+        assertFailsWith<LockerWriteException> {
+            impostor.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "forged" } }
+        }
+
+        cleanup(owner, impostor)
+    }
+
+    @Test(timeout = 5_000)
+    fun `signed write re-signs on version conflict`() = runTestWithServer(Application::attachTestServices) { server, _ ->
+        val keyPair = Secp256r1KeyPair.generate()
+        val roomId = randomRoomId()
+        val lockerId = randomLockerId()
+
+        val a = createClient(server.rpcClient, MapLockKeySource().apply { set(lockerId, keyPair) })
+        val b = createClient(server.rpcClient, MapLockKeySource().apply { set(lockerId, keyPair) })
+        a.typedClient.subscribeToRoom(roomId)
+        b.typedClient.subscribeToRoom(roomId)
+        assertTrue(a.typedClient.lockLocker(roomId, lockerScope(lockerId), keyPair).result is LockLockerResponse.Result.OK)
+
+        a.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "from-a" } }
+        // b has never seen this locker, so it writes against parentVersion 0 and must
+        // re-fetch + re-sign against the current version before succeeding.
+        val result = b.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "from-b" } }
+        assertEquals("from-b", result?.title)
+
+        cleanup(a, b)
+    }
+
+    @Test(timeout = 5_000)
+    fun `ratchet rotates the signing key`() = runTestWithServer(Application::attachTestServices) { server, _ ->
+        val oldKey = Secp256r1KeyPair.generate()
+        val ownerKeys = MapLockKeySource()
+        val owner = createClient(server.rpcClient, ownerKeys)
+        val roomId = randomRoomId()
+        val lockerId = randomLockerId()
+        ownerKeys.set(lockerId, oldKey)
+        owner.typedClient.subscribeToRoom(roomId)
+        assertTrue(owner.typedClient.lockLocker(roomId, lockerScope(lockerId), oldKey).result is LockLockerResponse.Result.OK)
+
+        owner.typedClient.updateLocker(roomId, lockerId, ratchet = true) { it.copy { title = "rotated" } }
+        // The source has adopted the new key; a subsequent write signs with it.
+        val result = owner.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "after-ratchet" } }
+        assertEquals("after-ratchet", result?.title)
+
+        // A client still holding the pre-ratchet key can no longer write.
+        val stale = createClient(server.rpcClient, MapLockKeySource().apply { set(lockerId, oldKey) })
+        stale.typedClient.subscribeToRoom(roomId)
+        assertFailsWith<LockerWriteException> {
+            stale.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "stale-key" } }
+        }
+
+        cleanup(owner, stale)
+    }
+
+    @Test(timeout = 5_000)
+    fun `delegation chain room to keyspace to locker`() = runTestWithServer(Application::attachTestServices) { server, _ ->
+        val roomKey = Secp256r1KeyPair.generate()
+        val keyspaceKey = Secp256r1KeyPair.generate()
+        val lockerKey = Secp256r1KeyPair.generate()
+        val roomId = randomRoomId()
+        val lockerId = randomLockerId()
+        val ownerKeys = MapLockKeySource().apply { set(lockerId, lockerKey) }
+        val owner = createClient(server.rpcClient, ownerKeys)
+        owner.typedClient.subscribeToRoom(roomId)
+
+        val roomScope = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM)
+        val keyspaceScope = LockScope(kind = LockScopeKind.LOCK_SCOPE_KEYSPACE, keyspace = DEFAULT_KEYSPACE)
+
+        assertTrue(owner.typedClient.lockLocker(roomId, roomScope, roomKey).result is LockLockerResponse.Result.OK)
+        assertTrue(owner.typedClient.lockLocker(roomId, keyspaceScope, keyspaceKey, parentKeyPair = roomKey).result is LockLockerResponse.Result.OK)
+        assertTrue(owner.typedClient.lockLocker(roomId, lockerScope(lockerId), lockerKey, parentKeyPair = keyspaceKey).result is LockLockerResponse.Result.OK)
+
+        val result = owner.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "delegated" } }
+        assertEquals("delegated", result?.title)
+
+        cleanup(owner)
+    }
+
+    @Test(timeout = 5_000)
+    fun `public-keyed room requires room key to lock`() = runTestWithServer(Application::attachTestServices) { server, _ ->
+        val roomKey = Secp256r1KeyPair.generate()
+        val lockKey = Secp256r1KeyPair.generate()
+        val roomId = RoomKeying.publicKeyed(roomKey.publicKey.encode())
+        val lockerId = randomLockerId()
+        val ownerKeys = MapLockKeySource().apply { set(lockerId, lockKey) }
+        val owner = createClient(server.rpcClient, ownerKeys)
+        owner.typedClient.subscribeToRoom(roomId)
+
+        // TOFU without the room key's signature is rejected in a public-keyed room.
+        val tofu = owner.typedClient.lockLocker(roomId, lockerScope(lockerId), lockKey)
+        assertTrue(tofu.result is LockLockerResponse.Result.NOT_AUTHORIZED)
+
+        // Signed by the room key, the lock is accepted.
+        val granted = owner.typedClient.lockLocker(roomId, lockerScope(lockerId), lockKey, parentKeyPair = roomKey)
+        assertTrue(granted.result is LockLockerResponse.Result.OK)
+
+        val result = owner.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "public-keyed" } }
+        assertEquals("public-keyed", result?.title)
+
+        cleanup(owner)
+    }
+
+    @Test(timeout = 5_000)
+    fun `unlock returns locker to open writes`() = runTestWithServer(Application::attachTestServices) { server, _ ->
+        val keyPair = Secp256r1KeyPair.generate()
+        val ownerKeys = MapLockKeySource()
+        val owner = createClient(server.rpcClient, ownerKeys)
+        val roomId = randomRoomId()
+        val lockerId = randomLockerId()
+        ownerKeys.set(lockerId, keyPair)
+        owner.typedClient.subscribeToRoom(roomId)
+
+        val lockResponse = owner.typedClient.lockLocker(roomId, lockerScope(lockerId), keyPair)
+        assertTrue(lockResponse.result is LockLockerResponse.Result.OK)
+        val lockVersion = lockResponse.lockState?.lockVersion ?: 0L
+        owner.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "before-unlock" } }
+
+        val unlockResponse = owner.typedClient.unlockLocker(roomId, lockerScope(lockerId), keyPair, lockVersion)
+        assertTrue(unlockResponse.result is UnlockLockerResponse.Result.OK)
+
+        // With the lock gone, a keyless client can write again.
+        val stranger = createClient(server.rpcClient, MapLockKeySource())
+        stranger.typedClient.subscribeToRoom(roomId)
+        val result = stranger.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "after-unlock" } }
+        assertEquals("after-unlock", result?.title)
+
+        cleanup(owner, stranger)
     }
 }

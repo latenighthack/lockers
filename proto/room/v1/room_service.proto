@@ -12,6 +12,8 @@ service Room {
   rpc GetAllLockers(GetAllLockersRequest) returns (GetAllLockersResponse);
   rpc PostLockerChange(PostLockerChangeRequest) returns (PostLockerChangeResponse);
   rpc DeleteLocker(DeleteLockerRequest) returns (DeleteLockerResponse);
+  rpc LockLocker(LockLockerRequest) returns (LockLockerResponse);
+  rpc UnlockLocker(UnlockLockerRequest) returns (UnlockLockerResponse);
 }
 
 message SubscriptionRequest {
@@ -44,7 +46,22 @@ message PostLockerChangeRequest {
   common.v1.Locker locker = 3;
   int64 parent_version = 4;
 
+  // Required when the effective scope is locked: signs
+  // writeContext(room_id, locker_id, new_version, contentHash).
+  common.v1.Signature write_signature = 5;
+
+  // Optional key rotation applied atomically with this write.
+  Ratchet ratchet = 6;
+
   common.v1.Notification notification = 10;
+
+  message Ratchet {
+    common.v1.Secp256r1Key.PublicKey new_public_key = 1;
+    // The new key re-sealed to each current member (true group forward secrecy).
+    repeated common.v1.SharedKey new_shared_keys = 2;
+    // The OLD key signs ratchetContext(room_id, locker_id, new_version, new_public_key).
+    common.v1.Signature signature = 3;
+  }
 }
 
 message PostLockerChangeResponse {
@@ -52,16 +69,24 @@ message PostLockerChangeResponse {
   enum Result {
     OK = 0;
     UPDATE_LOCAL_VERSION = 1;
+    SIGNATURE_REQUIRED = 2;
+    SIGNATURE_INVALID = 3;
+    NOT_AUTHORIZED = 4;
     UNKNOWN_ERROR = 10;
   }
   common.v1.Locker existing_locker = 2;
   int64 version = 3;
+  common.v1.LockState lock_state = 4;
 }
 
 message DeleteLockerRequest {
   common.v1.RoomId room_id = 1;
   common.v1.LockerId locker_id = 2;
   int64 parent_version = 4;
+
+  // Required when the effective scope is locked: signs
+  // writeContext(room_id, locker_id, new_version, empty-hash).
+  common.v1.Signature write_signature = 5;
 
   common.v1.Notification notification = 10;
 }
@@ -71,10 +96,52 @@ message DeleteLockerResponse {
   enum Result {
     OK = 0;
     UPDATE_LOCAL_VERSION = 1;
+    SIGNATURE_REQUIRED = 2;
+    SIGNATURE_INVALID = 3;
+    NOT_AUTHORIZED = 4;
     UNKNOWN_ERROR = 10;
   }
   common.v1.Locker existing_locker = 2;
   int64 version = 3;
+  common.v1.LockState lock_state = 4;
+}
+
+message LockLockerRequest {
+  common.v1.RoomId room_id = 1;
+  // scope + new key + delegation proof (or TOFU root).
+  common.v1.LockGrant grant = 2;
+  // optimistic-concurrency guard on the lock record (0 for a fresh lock).
+  int64 parent_lock_version = 3;
+}
+
+message LockLockerResponse {
+  Result result = 1;
+  enum Result {
+    OK = 0;
+    NOT_AUTHORIZED = 1;
+    UPDATE_LOCAL_VERSION = 2;
+    UNKNOWN_ERROR = 10;
+  }
+  common.v1.LockState lock_state = 2;
+}
+
+message UnlockLockerRequest {
+  common.v1.RoomId room_id = 1;
+  common.v1.LockScope scope = 2;
+  // current lock key signs unlockContext(room_id, scope).
+  common.v1.Signature signature = 3;
+  int64 parent_lock_version = 4;
+}
+
+message UnlockLockerResponse {
+  Result result = 1;
+  enum Result {
+    OK = 0;
+    NOT_AUTHORIZED = 1;
+    SIGNATURE_INVALID = 2;
+    UPDATE_LOCAL_VERSION = 3;
+    UNKNOWN_ERROR = 10;
+  }
 }
 
 message GetAllLockersRequest {

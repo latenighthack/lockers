@@ -43,23 +43,63 @@ message SharedKey {
 
 message SealedPayload {
     // the public key associated with the one-time private key used for
-    // this payload. This key has no association with the persona
+    // this payload. This key has no association with the persona.
+    // Only set in encrypted mode (the ephemeral ECDH public key).
     Secp256r1Key.PublicKey public_key = 1;
 
     repeated SharedKey shared_keys = 5;
 
-    // used to validate the payload integrity post-decryption or discard
-    // malformed payloads
-    // SHA256(AES(sealed_payload, ECDH(target_public_key, sealed_private_key)))
+    // used to validate content integrity. In cleartext-signed mode this is
+    // SHA256(enclosure.inner_payload); in encrypted mode it is
+    // SHA256(AES(sealed_payload, ECDH(target_public_key, sealed_private_key))).
     bytes checksum = 2;
 
-    // AES_ENC(Enclosure, ECDH(target_public_key, sealed_private_key))
+    // Cleartext-signed mode: the enclosure is carried in the clear. Exactly one
+    // of `enclosure` / `sealed_payload` is set. First cut only populates this.
+    Enclosure enclosure = 3;
+
+    // Encrypted mode (deferred): AES_ENC(Enclosure, ECDH(target_public_key, sealed_private_key)).
     bytes sealed_payload = 4;
 
     message Enclosure {
         Signature signature = 1;
         bytes inner_payload = 2;
     }
+}
+
+// Which slice of a room a lock applies to. Most-specific in force wins for a
+// given write: LOCKER over KEYSPACE over ROOM.
+enum LockScopeKind {
+    LOCK_SCOPE_LOCKER = 0;
+    LOCK_SCOPE_KEYSPACE = 1;
+    LOCK_SCOPE_ROOM = 2;
+}
+
+message LockScope {
+    LockScopeKind kind = 1;
+    LockerKeyspace keyspace = 2;    // set for KEYSPACE and LOCKER scopes
+    bytes locker_raw_value = 3;     // set for LOCKER scope
+}
+
+// A signed grant delegating write authority to `public_key` at `scope`.
+// `parent_signature` is by the parent scope's key (or, in a public-keyed room,
+// the room key) over grantContext(room_id, scope, public_key). Empty parent
+// signature marks a TOFU root (allowed only when the room is not public-keyed).
+message LockGrant {
+    LockScope scope = 1;
+    Secp256r1Key.PublicKey public_key = 2;
+    Signature parent_signature = 3;
+}
+
+// The lock status returned on every get and event (present even when unlocked,
+// in which case `locked` is false and the other fields are empty).
+message LockState {
+    bool locked = 1;
+    LockScope scope = 2;
+    Secp256r1Key.PublicKey public_key = 3;    // current verify key on file
+    repeated LockGrant chain = 4;             // delegation chain to the root
+    repeated SharedKey ratchet_keys = 5;      // current key re-sealed per member (group FS)
+    int64 lock_version = 6;
 }
 
 message SessionId {
@@ -103,6 +143,11 @@ message IdentifiedLocker {
     common.v1.LockerId locker_id = 1;
     common.v1.Locker locker = 2;
     int64 version = 3;
+
+    // Lock status of the effective scope covering this locker. Present even when
+    // the locker is not locked (locked = false), so readers always learn the
+    // current key / ratchet distribution (empty when open).
+    LockState lock_state = 4;
 }
 
 // An opaque keyspace: just an int64 that partitions lockers within a room.
