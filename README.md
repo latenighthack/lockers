@@ -22,8 +22,15 @@ concurrency. Clients subscribe to a room and receive live events as lockers chan
 
 ## Build & test
 
-Proto codegen shells out to `protoc-gen-kt` (the ktbuf Kotlin protoc plugin, a Go
-binary) which must be on your `PATH`. Then:
+Proto codegen shells out to `protoc-gen-kt` (the Kotlin protoc plugin, a Go binary)
+which must be on your `PATH`. Install the pinned version (matching CI):
+
+```bash
+go install latenighthack.com/protoc-gen-kt@v0.0.0-20251214023608-0fa742406fbf
+# ensure "$(go env GOPATH)/bin" is on your PATH
+```
+
+Then:
 
 ```bash
 ./gradlew build                 # compile everything + run all tests
