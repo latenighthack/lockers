@@ -1,12 +1,16 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
-    `maven-publish`
+    alias(libs.plugins.mavenPublish)
 }
 
-publishing {
-    repositories {
-        mavenLocal()
+mavenPublishing {
+    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+    coordinates(artifactId = "lockers-connector")
+    pom {
+        name.set("lockers-connector")
+        description.set("Kotlin Multiplatform client connector for the lockers sync service.")
     }
 }
 

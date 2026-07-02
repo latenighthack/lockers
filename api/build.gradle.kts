@@ -1,12 +1,16 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
-    `maven-publish`
+    alias(libs.plugins.mavenPublish)
 }
 
-publishing {
-    repositories {
-        mavenLocal()
+mavenPublishing {
+    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+    coordinates(artifactId = "lockers-api")
+    pom {
+        name.set("lockers-api")
+        description.set("Generated protobuf/gRPC models for the lockers sync API (Kotlin Multiplatform).")
     }
 }
 
