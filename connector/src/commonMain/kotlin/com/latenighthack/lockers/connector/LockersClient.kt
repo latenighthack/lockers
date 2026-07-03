@@ -4,9 +4,11 @@ import com.latenighthack.ktbuf.net.RpcClient
 import com.latenighthack.ktstore.KeyValueStore
 import com.latenighthack.ktstore.StoreDelegate
 import com.latenighthack.lockers.common.v1.LockerKeyspace
+import com.latenighthack.lockers.common.v1.SessionId
 import com.latenighthack.lockers.common.v1.Version
 import com.latenighthack.lockers.connector.internal.LockerStoreImpl
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlin.reflect.KFunction1
@@ -31,6 +33,9 @@ class LockersClient private constructor(
 
     /** Emits a non-null value when the stream hits a terminal, non-retryable error. */
     val fatalError: Flow<StreamFatalError?> get() = stream.fatalError
+
+    /** The current session id once the session has opened, else null. */
+    val sessionId: StateFlow<SessionId?> get() = stream.sessionId
 
     /** Suspends until the stream connects at least once. */
     suspend fun awaitConnected() {

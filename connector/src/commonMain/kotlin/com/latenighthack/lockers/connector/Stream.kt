@@ -355,6 +355,10 @@ class Stream(
             return fatalErrorState
         }
 
+    /** The current session id once the session has opened, else null. */
+    val sessionId: StateFlow<SessionId?>
+        get() = sessionIdSource
+
     private suspend fun connect() {
         onConnected.value = false
 
