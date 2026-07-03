@@ -1,10 +1,21 @@
 plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.mavenPublish)
 }
 
 kotlin {
     jvmToolchain(17)
+}
+
+mavenPublishing {
+    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+    coordinates(artifactId = "lockers-server")
+    pom {
+        name.set("lockers-server")
+        description.set("JVM service host for the lockers sync primitive (session, room, push).")
+    }
 }
 
 dependencies {

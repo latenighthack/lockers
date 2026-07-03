@@ -14,6 +14,7 @@ import io.ktor.server.websocket.WebSockets
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.runBlocking
+import java.util.ServiceLoader
 
 private const val JDBC_POSTGRES_PREFIX = "jdbc:postgresql:"
 
@@ -46,7 +47,10 @@ fun main() {
         core.overrideMeterRegistry = metricsRegistry
         core.setup()
 
-        val component = MonolithComponent(core)
+        // Optional add-ons contributed from the classpath (e.g. remote content).
+        val extensions = ServiceLoader.load(ServerExtensionFactory::class.java)
+            .map { it.create(metricsRegistry) }
+        val component = MonolithComponent(core, extensions)
         component.start()
 
         val server = embeddedServer(CIO, port = config.httpPort) {

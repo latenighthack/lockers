@@ -12,6 +12,9 @@ fun Routing.monolith(component: MonolithComponent) {
     for (service in component.allServices) {
         serveAll(service.server as Any, service.descriptor)
     }
+    for (extension in component.extensions) {
+        extension.install(this)
+    }
 }
 
 /** Convenience overload that builds a fresh [MonolithComponent] and mounts it. */
