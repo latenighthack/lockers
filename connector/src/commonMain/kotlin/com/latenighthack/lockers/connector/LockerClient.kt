@@ -279,6 +279,7 @@ class LockerClient(
     private val stream: Stream,
     private val lockerStore: LockerStore,
     private val lockKeySource: LockKeySource? = null,
+    private val codecs: NotificationCodecs = NotificationCodecs.identity(),
     private val log: KmLog = logging()
 ) {
     private val processingJob = Job()
@@ -386,10 +387,48 @@ class LockerClient(
         }
 
         if (lockerId != null && notificationPayload != null) {
-            incomingNotifications.emit(IncomingNotification(roomId, lockerId, notificationPayload))
+            val keyspace = lockerId.keyspaceOrDefault()
+            val decoded = if (codecs.isEmpty(keyspace)) {
+                notificationPayload
+            } else {
+                val push = event.notification?.push
+                codecs.decode(
+                    NotificationContext(roomId, lockerId, keyspace, push?.title, push?.body),
+                    notificationPayload,
+                )
+            }
+            // A codec may drop the notification by returning null.
+            if (decoded != null) {
+                incomingNotifications.emit(IncomingNotification(roomId, lockerId, decoded))
+            }
         }
 
         return true
+    }
+
+    /**
+     * Builds the write-side [Notification] from the caller's [build] block, then
+     * runs its payload through the encode chain so a consumer's codec round-trips
+     * with [processEvent]'s decode.
+     */
+    private suspend fun encodedNotification(
+        roomId: RoomId,
+        lockerId: LockerId,
+        configure: NotificationBuilder.() -> Unit,
+    ): Notification {
+        // Pass `configure` to the factory directly; `Notification { configure() }`
+        // would instead resolve to NotificationBuilder.build()'s sibling and drop it.
+        val built = Notification(configure)
+        val payload = built.payload?.rawValue
+        val keyspace = lockerId.keyspaceOrDefault()
+        if (payload == null || payload.isEmpty() || codecs.isEmpty(keyspace)) {
+            return built
+        }
+        val encoded = codecs.encode(
+            NotificationContext(roomId, lockerId, keyspace, built.push?.title, built.push?.body),
+            payload,
+        )
+        return built.copy { payload { rawValue = encoded } }
     }
 
     fun stop() {
@@ -472,15 +511,15 @@ class LockerClient(
             repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
                 val signature = signingKey?.let { signWrite(it, roomId, lockerId, parentVersion, ByteArray(0)) }
 
+                val notif = encodedNotification(roomId, lockerId) { this.notificationBuilder() }
+
                 val result = roomService.deleteLocker(DeleteLockerRequest {
                     this.roomId = roomId
                     this.lockerId = lockerId
                     this.parentVersion = parentVersion
                     if (signature != null) this.writeSignature = signature
 
-                    notification {
-                        this.notificationBuilder()
-                    }
+                    this.notification = notif
                 })
 
                 when (result.result) {
@@ -541,6 +580,8 @@ class LockerClient(
                 }
                 log.debug { "updating locker=${lockerId.toLogString()}" }
 
+                val notif = encodedNotification(roomId, lockerId) { this.notificationBuilder(body.locker) }
+
                 val result = roomService.postLockerChange(PostLockerChangeRequest {
                     this.roomId = roomId
                     this.lockerId = lockerId
@@ -549,9 +590,7 @@ class LockerClient(
                     if (body.signature != null) this.writeSignature = body.signature
                     if (ratchetMsg != null) this.ratchet = ratchetMsg
 
-                    notification {
-                        this.notificationBuilder(body.locker)
-                    }
+                    this.notification = notif
                 })
 
                 log.debug { "updated locker=${lockerId.toLogString()}" }

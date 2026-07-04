@@ -53,23 +53,36 @@ fun main() {
         val component = MonolithComponent(core, extensions)
         component.start()
 
+        // Public port: client/peer traffic + probes + metrics.
         val server = embeddedServer(CIO, port = config.httpPort) {
             install(WebSockets)
             routing {
                 get("/healthz") { call.respondText("ok") }
                 get("/readyz") { call.respondText("ok") }
                 get("/metrics") { call.respondText(metricsRegistry.scrape(), ContentType.Text.Plain) }
-                monolith(component)
+                monolithClient(component)
+            }
+        }
+
+        // Internal admin port: management RPCs only. Bind this cluster-internal
+        // (do not expose via the public Service/Ingress); set LOCKERS_ADMIN_TOKEN
+        // for defense in depth.
+        val adminServer = embeddedServer(CIO, port = config.adminPort) {
+            install(WebSockets)
+            routing {
+                monolithAdmin(component)
             }
         }
 
         Runtime.getRuntime().addShutdownHook(
             Thread {
                 runBlocking { component.stop() }
+                adminServer.stop(gracePeriodMillis = 1_000, timeoutMillis = 5_000)
                 server.stop(gracePeriodMillis = 1_000, timeoutMillis = 5_000)
             }
         )
 
+        adminServer.start(wait = false)
         server.start(wait = true)
     }
 }

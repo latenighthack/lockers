@@ -13,6 +13,8 @@ kmLogger = "2.0.3"
 cache4k = "0.14.0"
 micrometer = "1.10.3"
 pushy = "0.15.4"
+firebaseAdmin = "9.4.3"
+webpush = "1.1.0"
 assertk = "0.28.1"
 postgresql = "42.7.3"
 sqliteJdbc = "3.45.3.0"
@@ -46,6 +48,8 @@ cache4k = { module = "io.github.reactivecircus.cache4k:cache4k", version.ref = "
 micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
 pushy = { module = "com.eatthepath:pushy", version.ref = "pushy" }
+firebase-admin = { module = "com.google.firebase:firebase-admin", version.ref = "firebaseAdmin" }
+webpush = { module = "com.interaso:webpush", version.ref = "webpush" }
 assertk = { module = "com.willowtreeapps.assertk:assertk", version.ref = "assertk" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }

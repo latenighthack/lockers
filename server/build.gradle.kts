@@ -36,10 +36,13 @@ dependencies {
     implementation(libs.micrometer.core)
     implementation(libs.cache4k)
     implementation(libs.pushy)
+    implementation(libs.firebase.admin)
+    implementation(libs.webpush)
 
     ksp(libs.kotlin.inject.ksp)
 
     testImplementation(kotlin("test"))
+    testImplementation(projects.server.test)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.ktbuf.test)
     testImplementation(libs.assertk)

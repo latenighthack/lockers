@@ -22,3 +22,13 @@ message StoredLocker {
     bytes locker_payload = 4;
     int64 version = 5;
 }
+
+// The client's desired push credential for one backend. backend mirrors
+// push.v1.PushBackend; encoded_registration is a serialized
+// push.v1.PushRegistration. is_pending is true until the current session has
+// acknowledged the (re)registration.
+message StoredPushRegistration {
+    int32 backend = 1;
+    bytes encoded_registration = 2;
+    bool is_pending = 3;
+}

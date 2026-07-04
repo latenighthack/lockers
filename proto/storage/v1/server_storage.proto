@@ -65,14 +65,41 @@ message ServerPushId {
     bytes raw_value = 1;
 }
 
+// A queued push for one session and one backend. backend mirrors
+// push.v1.PushBackend; encoded_push is a serialized common.v1.Push. Each
+// backend is its own queue row so one dead token never blocks the others.
+// attempt is the persisted delivery-attempt count, so the retry budget (and the
+// dead-letter threshold) survive a restart instead of resetting to zero.
 message ServerPush {
     ServerPushId push_id = 1;
     ServerSessionId session_id = 2;
-    bytes payload = 3;
+    int32 backend = 3;
+    bytes encoded_push = 4;
+    int32 attempt = 5;
+}
+
+// A push that exhausted its retry budget (or was permanently rejected) and was
+// parked here so it stops competing for processing. Retained for inspection and
+// manual retry/purge via the PushAdmin service. reason is the last failure;
+// dead_lettered_at is epoch milliseconds.
+message ServerDeadLetter {
+    ServerPushId push_id = 1;
+    ServerSessionId session_id = 2;
+    int32 backend = 3;
+    bytes encoded_push = 4;
+    int32 attempts = 5;
+    string reason = 6;
+    int64 dead_lettered_at = 7;
+}
+
+// One backend's stored credentials. backend mirrors push.v1.PushBackend;
+// encoded_registration is a serialized push.v1.PushRegistration.
+message ServerPushRegistration {
+    int32 backend = 1;
+    bytes encoded_registration = 2;
 }
 
 message ServerPushInfo {
     ServerSessionId session_id = 1;
-
-    bytes apns_token = 10;
+    repeated ServerPushRegistration registrations = 2;
 }

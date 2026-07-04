@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package com.latenighthack.lockers.push.v1;
+
+option java_package = "com.latenighthack.lockers.push.v1";
+
+import "common/v1/model.proto";
+import "push/v1/model.proto";
+
+// Internal, operator-facing management surface for the push queue and its dead
+// letters. Not meant for end-user clients — mounted alongside the gateway.
+service PushAdmin {
+  // Point-in-time queue and dead-letter depths (total and per backend).
+  rpc GetQueueStats(GetQueueStatsRequest) returns (GetQueueStatsResponse);
+  // Re-feeds every persisted-but-idle queued push into the processor.
+  rpc DrainQueue(DrainQueueRequest) returns (DrainQueueResponse);
+  // Lists parked (dead-lettered) pushes for inspection.
+  rpc ListDeadLetters(ListDeadLettersRequest) returns (ListDeadLettersResponse);
+  // Moves dead letters back onto the active queue with a fresh attempt budget.
+  rpc RetryDeadLetters(RetryDeadLettersRequest) returns (RetryDeadLettersResponse);
+  // Permanently deletes dead letters.
+  rpc PurgeDeadLetters(PurgeDeadLettersRequest) returns (PurgeDeadLettersResponse);
+}
+
+message BackendCount {
+  PushBackend backend = 1;
+  int64 count = 2;
+}
+
+message GetQueueStatsRequest {
+}
+
+message GetQueueStatsResponse {
+  int64 queued = 1;
+  int64 dead_lettered = 2;
+  repeated BackendCount queued_by_backend = 3;
+  repeated BackendCount dead_lettered_by_backend = 4;
+}
+
+message DrainQueueRequest {
+}
+
+message DrainQueueResponse {
+  int64 drained = 1;
+}
+
+message DeadLetter {
+  bytes push_id = 1;
+  common.v1.SessionId session_id = 2;
+  PushBackend backend = 3;
+  common.v1.Push push = 4;
+  int32 attempts = 5;
+  string reason = 6;
+  int64 dead_lettered_at = 7;
+}
+
+message ListDeadLettersRequest {
+  // Cap on returned rows; <= 0 applies a server default.
+  int32 limit = 1;
+}
+
+message ListDeadLettersResponse {
+  repeated DeadLetter dead_letters = 1;
+}
+
+message RetryDeadLettersRequest {
+  // Specific dead letters to retry; empty retries every dead letter.
+  repeated bytes push_ids = 1;
+}
+
+message RetryDeadLettersResponse {
+  int64 retried = 1;
+}
+
+message PurgeDeadLettersRequest {
+  // Specific dead letters to delete; empty purges every dead letter.
+  repeated bytes push_ids = 1;
+}
+
+message PurgeDeadLettersResponse {
+  int64 purged = 1;
+}

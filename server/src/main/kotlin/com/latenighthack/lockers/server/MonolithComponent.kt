@@ -24,6 +24,8 @@ class MonolithComponent(
         PushServiceModule::class.create(serverCore)
     val pushGatewayServiceModule: PushGatewayServiceModule =
         PushGatewayServiceModule::class.create(serverCore, pushServiceModule)
+    val pushAdminServiceModule: PushAdminServiceModule =
+        PushAdminServiceModule::class.create(serverCore, pushServiceModule)
     private val pushGatewayDiscovery: PushGatewayDiscovery =
         LocalPushGatewayDiscovery(pushGatewayServiceModule.server)
 
@@ -37,7 +39,13 @@ class MonolithComponent(
     val roomServiceModule: RoomServiceModule =
         RoomServiceModule::class.create(serverCore, sessionGatewayDiscovery)
 
-    val allServices: List<GrpcRouteProvider<*>>
+    /**
+     * Client- and peer-facing services, mounted on the public port. The gateways
+     * are internal cross-service RPCs but are called in-process here (via local
+     * discovery); they remain in this set to preserve the future split-service
+     * topology.
+     */
+    val clientServices: List<GrpcRouteProvider<*>>
         get() = listOf(
             sessionServiceModule,
             sessionGatewayServiceModule,
@@ -45,6 +53,16 @@ class MonolithComponent(
             pushServiceModule,
             pushGatewayServiceModule,
         ) + extensions.flatMap { it.services }
+
+    /** Operator-facing management services, mounted on the internal admin port only. */
+    val adminServices: List<GrpcRouteProvider<*>>
+        get() = listOf(
+            pushAdminServiceModule,
+        )
+
+    /** Every service (public + admin) — used by the in-process test harness. */
+    val allServices: List<GrpcRouteProvider<*>>
+        get() = clientServices + adminServices
 
     suspend fun start() {
         pushServiceModule.start()

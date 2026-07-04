@@ -5,14 +5,17 @@ package com.latenighthack.lockers.push.v1;
 option java_package = "com.latenighthack.lockers.push.v1";
 
 import "common/v1/model.proto";
+import "push/v1/model.proto";
 
 service Push {
   rpc RegisterSession(RegisterSessionRequest) returns (RegisterSessionResponse);
+  rpc UnregisterSession(UnregisterSessionRequest) returns (UnregisterSessionResponse);
+  rpc GetPushConfig(GetPushConfigRequest) returns (GetPushConfigResponse);
 }
 
 message RegisterSessionRequest {
   common.v1.SessionId session_id = 1;
-  bytes apns_token = 2;
+  PushRegistration registration = 2;
 }
 
 message RegisterSessionResponse {
@@ -21,4 +24,29 @@ message RegisterSessionResponse {
     OK = 0;
     UNKNOWN_ERROR = 10;
   }
+}
+
+message UnregisterSessionRequest {
+  common.v1.SessionId session_id = 1;
+  PushBackend backend = 2;
+}
+
+message UnregisterSessionResponse {
+  Result result = 1;
+  enum Result {
+    OK = 0;
+    UNKNOWN_ERROR = 10;
+  }
+}
+
+message GetPushConfigRequest {
+}
+
+message GetPushConfigResponse {
+  Result result = 1;
+  enum Result {
+    OK = 0;
+    UNKNOWN_ERROR = 10;
+  }
+  PushConfig config = 2;
 }

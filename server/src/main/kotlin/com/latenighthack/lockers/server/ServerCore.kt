@@ -3,10 +3,15 @@ package com.latenighthack.lockers.server
 import com.latenighthack.ktstore.StoreDelegate
 import com.latenighthack.lockers.server.agents.ExampleLockerAgent
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
+import com.latenighthack.lockers.server.services.push.v1.PushDeadLetterStore
+import com.latenighthack.lockers.server.services.push.v1.PushDeadLetterStoreImpl
+import com.latenighthack.lockers.server.services.push.v1.PushDispatchConfig
 import com.latenighthack.lockers.server.services.push.v1.PushQueueStore
 import com.latenighthack.lockers.server.services.push.v1.PushQueueStoreImpl
 import com.latenighthack.lockers.server.services.push.v1.PushSessionStore
 import com.latenighthack.lockers.server.services.push.v1.PushSessionStoreImpl
+import com.latenighthack.lockers.server.services.push.v1.providers.PushProvider
+import com.latenighthack.lockers.server.services.push.v1.providers.PushProviders
 import com.latenighthack.lockers.server.services.room.v1.LockStore
 import com.latenighthack.lockers.server.services.room.v1.LockStoreImpl
 import com.latenighthack.lockers.server.services.room.v1.LockerStore
@@ -46,6 +51,7 @@ abstract class ServerCore(
     private val lockStoreImpl by lazy { LockStoreImpl(storageDelegate) }
     private val pushSessionStoreImpl by lazy { PushSessionStoreImpl(storageDelegate) }
     private val pushQueueStoreImpl by lazy { PushQueueStoreImpl(storageDelegate) }
+    private val pushDeadLetterStoreImpl by lazy { PushDeadLetterStoreImpl(storageDelegate) }
 
     @get:Provides val sessionStore: SessionStore = sessionStoreImpl
     @get:Provides val sessionInboxStore: SessionInboxStore = sessionInboxStoreImpl
@@ -54,10 +60,22 @@ abstract class ServerCore(
     @get:Provides val lockStore: LockStore = lockStoreImpl
     @get:Provides val pushStore: PushSessionStore = pushSessionStoreImpl
     @get:Provides val pushQueueStore: PushQueueStore = pushQueueStoreImpl
+    @get:Provides val pushDeadLetterStore: PushDeadLetterStore = pushDeadLetterStoreImpl
 
     var overrideMeterRegistry: MeterRegistry? = null
     private val _meterRegistry by lazy { overrideMeterRegistry ?: SimpleMeterRegistry() }
     @get:Provides val meterRegistry: MeterRegistry get() = _meterRegistry
+
+    /** Test seam: set before [setup] to swap the real backends for fakes. */
+    var overridePushProviders: List<PushProvider>? = null
+    private val _pushProviders by lazy { overridePushProviders ?: PushProviders.fromConfig(config) }
+    @get:Provides val pushProviders: List<PushProvider> get() = _pushProviders
+
+    @get:Provides val pushDispatchConfig: PushDispatchConfig = PushDispatchConfig(
+        sendConcurrencyPerBackend = config.pushSendConcurrency,
+        workerEnabled = config.pushWorkerEnabled,
+        adminToken = config.adminToken,
+    )
 
     @get:Provides val agentRegistry: LockerAgentRegistry = ExampleLockerAgent()
 
@@ -69,6 +87,7 @@ abstract class ServerCore(
         lockStoreImpl.prepare()
         pushSessionStoreImpl.prepare()
         pushQueueStoreImpl.prepare()
+        pushDeadLetterStoreImpl.prepare()
 
         storageDelegate.createStores()
     }

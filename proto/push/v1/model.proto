@@ -3,3 +3,51 @@ syntax = "proto3";
 package com.latenighthack.lockers.push.v1;
 
 option java_package = "com.latenighthack.lockers.push.v1";
+
+// The delivery backends a session can register credentials for. A session may
+// register more than one (e.g. a web app that also runs as an installed PWA).
+enum PushBackend {
+  PUSH_BACKEND_UNSPECIFIED = 0;
+  PUSH_BACKEND_APNS = 1;
+  PUSH_BACKEND_FCM = 2;
+  PUSH_BACKEND_WEB_PUSH = 3;
+}
+
+// A single backend's credentials. Registering again for the same backend
+// replaces the prior credentials (this is the "update your keys" path).
+message PushRegistration {
+  oneof backend {
+    ApnsRegistration apns = 1;
+    FcmRegistration fcm = 2;
+    WebPushRegistration web_push = 3;
+  }
+}
+
+message ApnsRegistration {
+  bytes device_token = 1;
+  // APNS topic (usually the app bundle id). Empty falls back to the server default.
+  string topic = 2;
+  // true => production APNS host, false => sandbox.
+  bool production = 3;
+}
+
+message FcmRegistration {
+  string registration_token = 1;
+}
+
+// A browser Push API subscription: the endpoint URL plus the keys needed to
+// encrypt the payload (RFC 8291) — the client's P-256 public key and the auth
+// secret, both carried raw (already base64url-decoded).
+message WebPushRegistration {
+  string endpoint = 1;
+  bytes p256dh = 2;
+  bytes auth = 3;
+}
+
+// Server push capabilities, fetched by clients before they subscribe. Web
+// clients need the VAPID public key (65-byte uncompressed P-256 point) to
+// create a browser Push subscription.
+message PushConfig {
+  repeated PushBackend supported = 1;
+  bytes vapid_public_key = 2;
+}
