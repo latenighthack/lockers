@@ -456,6 +456,22 @@ class LockerClient(
         return fetchAllLockers(roomId, keyspace)
     }
 
+    /**
+     * Every locker currently in the local cache, across all rooms and keyspaces — the
+     * client's whole known-locker set, for introspection/debugging. Reads the cache only
+     * (no server round-trip); each entry carries its room, keyspaced id, version, and
+     * plaintext bytes.
+     */
+    suspend fun getAllKnownLockers(): List<LockerUpdate> =
+        lockerStore.getAllLockers().map { stored ->
+            LockerUpdate(
+                RoomId(stored.roomIdRawValue),
+                LockerId(stored.lockerIdRawValue, LockerKeyspace { value = stored.lockerKeyspace }),
+                stored.version,
+                stored.lockerPayload,
+            )
+        }
+
     private suspend fun fetchAllLockers(roomId: RoomId, keyspace: LockerKeyspace): List<IdentifiedLocker> {
         val fetchedLockers = roomService.getAllLockers(GetAllLockersRequest {
             this.roomId = roomId

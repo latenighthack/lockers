@@ -52,6 +52,12 @@ class LockersClient private constructor(
         reader: KFunction1<ByteArray, V>,
     ): TypedLockerClient<V> = TypedLockerClient(lockers, keyspace, writer, reader)
 
+    /** Every locker in the local cache, across all rooms and keyspaces (for introspection). */
+    suspend fun getAllKnownLockers(): List<LockerClient.LockerUpdate> = lockers.getAllKnownLockers()
+
+    /** The stream of locker changes (adds, updates, deletes) across every keyspace. */
+    val lockerChanges: Flow<LockerClient.LockerUpdate> get() = lockers.changes
+
     /**
      * Registers (or rotates) this device's push credential for its backend. The
      * credential is persisted and re-sent automatically on every reconnect;

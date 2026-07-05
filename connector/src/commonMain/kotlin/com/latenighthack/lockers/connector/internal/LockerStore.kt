@@ -14,6 +14,8 @@ import com.latenighthack.lockers.connector.storage.v1.toByteArray
 interface LockerStore {
     suspend fun saveLocker(locker: StoredLocker)
 
+    suspend fun getAllLockers(): List<StoredLocker>
+
     suspend fun getAllLockers(roomId: RoomId, keyspace: LockerKeyspace): List<StoredLocker>
 
     suspend fun getAllLockers(roomId: RoomId): List<StoredLocker>
@@ -36,6 +38,8 @@ class LockerStoreImpl(delegate: StoreDelegate) : LockerStore, Store<StoredLocker
     private val roomIdLockerIdLockerKeyspaceKey = compositeIndex(roomIdKey, lockerIdKey, lockerKeyspaceKey).also { primaryKey(it) }
 
     override suspend fun saveLocker(locker: StoredLocker) = save(locker)
+
+    override suspend fun getAllLockers() = getAll()
 
     override suspend fun getAllLockers(roomId: RoomId, keyspace: LockerKeyspace) = getAll(roomIdLockerKeyspaceKey.eq(listOf(
         BoundStoreKey.SerializedKey(roomIdKey.name, roomId.rawValue),

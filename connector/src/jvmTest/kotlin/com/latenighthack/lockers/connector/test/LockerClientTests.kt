@@ -602,6 +602,34 @@ class LockerClientTests {
     }
 
     @Test(timeout = 15_000)
+    fun `getAllKnownLockers returns every cached locker across rooms and keyspaces`() = runTestWithServer(Application::attachTestServices) { server, _ ->
+        val ctx = createClient(server.rpcClient)
+        val gameClient = ctx.lockers.typed(GAME_KEYSPACE, ExampleLocker::toByteArray, ExampleLocker.Companion::fromByteArray)
+        val room1 = randomRoomId()
+        val room2 = randomRoomId()
+        ctx.typedClient.subscribeToRoom(room1)
+        ctx.typedClient.subscribeToRoom(room2)
+
+        ctx.typedClient.updateLocker(room1, randomLockerId(DEFAULT_KEYSPACE)) { it.copy { title = "a" } }
+        ctx.typedClient.updateLocker(room1, randomLockerId(DEFAULT_KEYSPACE)) { it.copy { title = "b" } }
+        gameClient.updateLocker(room2, randomLockerId(GAME_KEYSPACE)) { it.copy { title = "c" } }
+
+        val known = ctx.lockers.getAllKnownLockers()
+        assertEquals(3, known.size)
+        assertEquals(
+            setOf(DEFAULT_KEYSPACE.value, GAME_KEYSPACE.value),
+            known.mapNotNull { it.lockerId.keyspace?.value }.toSet(),
+        )
+        assertEquals(setOf(room1, room2), known.map { it.roomId }.toSet())
+        assertEquals(
+            setOf("a", "b", "c"),
+            known.map { ExampleLocker.fromByteArray(it.payload).title }.toSet(),
+        )
+
+        cleanup(ctx)
+    }
+
+    @Test(timeout = 15_000)
     fun `watch with includeHistory emits current value on start`() = runTestWithServer(Application::attachTestServices) { server, _ ->
         val ctx = createClient(server.rpcClient)
         val roomId = randomRoomId()
