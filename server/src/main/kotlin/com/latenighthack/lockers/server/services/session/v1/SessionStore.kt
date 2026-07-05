@@ -7,6 +7,8 @@ import com.latenighthack.lockers.server.storage.v1.*
 interface SessionStore {
     suspend fun getSessionById(sessionId: ServerSessionId): ServerSession?
 
+    suspend fun getAllSessions(): List<ServerSession>
+
     suspend fun updateSession(session: ServerSession)
 
     suspend fun destroySession(sessionId: ServerSessionId)
@@ -24,6 +26,8 @@ class SessionStoreImpl(delegate: StoreDelegate) : SessionStore, Store<ServerSess
     ).also { primaryKey(it) }
 
     override suspend fun getSessionById(sessionId: ServerSessionId): ServerSession? = get(sessionIdKey.eq(sessionId.toByteArray()))
+
+    override suspend fun getAllSessions(): List<ServerSession> = getAll()
 
     override suspend fun updateSession(session: ServerSession) = save(session)
 

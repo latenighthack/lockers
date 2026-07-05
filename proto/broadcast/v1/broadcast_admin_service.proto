@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package com.latenighthack.lockers.broadcast.v1;
+
+option java_package = "com.latenighthack.lockers.broadcast.v1";
+
+import "common/v1/model.proto";
+
+// Internal, operator-facing surface for enqueuing a broadcast into a set of
+// sessions (app status, new-version promotion, ...). The message is not scoped to
+// a room: it is written into each targeted session's inbox and delivered over its
+// stream (with a push riding along per session when the notification carries one),
+// reusing the ordinary session-event machinery. Not meant for end-user clients —
+// mounted on the internal admin port alongside PushAdmin.
+service BroadcastAdmin {
+  rpc Broadcast(BroadcastRequest) returns (BroadcastResponse);
+}
+
+message BroadcastRequest {
+  common.v1.Notification notification = 1;
+  common.v1.BroadcastTarget target = 2;
+}
+
+message BroadcastResponse {
+  Result result = 1;
+  enum Result {
+    OK = 0;
+    UNKNOWN_ERROR = 10;
+  }
+  // Number of sessions the broadcast was enqueued into.
+  int64 delivered = 2;
+}

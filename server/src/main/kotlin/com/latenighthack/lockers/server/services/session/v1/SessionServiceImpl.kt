@@ -4,10 +4,13 @@ import com.latenighthack.ktbuf.net.GrpcRequestContext
 import com.latenighthack.ktbuf.net.ServerDescriptor
 import com.latenighthack.ktbuf.net.StreamControlEvent
 import com.latenighthack.ktcrypto.*
+import com.latenighthack.lockers.broadcast.v1.*
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.push.v1.SendPushRequest
 import com.latenighthack.lockers.server.ServerCore
 import com.latenighthack.lockers.server.services.push.v1.PushGatewayDiscovery
+import com.latenighthack.lockers.server.services.push.v1.PushServiceImpl.Companion.ADMIN_TOKEN_HEADER
+import java.util.concurrent.TimeUnit
 import com.latenighthack.lockers.server.tools.*
 import com.latenighthack.lockers.server.storage.v1.*
 import com.latenighthack.lockers.session.v1.*
@@ -46,6 +49,15 @@ abstract class SessionGatewayServiceModule(
     override val descriptor: ServerDescriptor = SessionGatewayServer.Descriptor
 }
 
+@Component
+abstract class BroadcastAdminServiceModule(
+    @Component val serverCore: ServerCore,
+    @Component val sessionServiceModule: SessionServiceModule
+): GrpcRouteProvider<BroadcastAdminServer> {
+    override val server: BroadcastAdminServer get() = sessionServiceModule.serverImpl
+    override val descriptor: ServerDescriptor = BroadcastAdminServer.Descriptor
+}
+
 interface SessionGatewayDiscovery {
     suspend fun findServer(sessionId: SessionId): SessionGatewayService?
 }
@@ -60,6 +72,8 @@ class LocalSessionGatewayDiscovery(private val sessionGatewayServer: SessionGate
 
 private data class OnlineServerSessionEvent(val event: ServerSessionEvent? = null, val receiveTime: Long = 0L)
 
+private const val BROADCAST_EVENT_ID_BYTES = 16
+
 @ServiceScope
 @Inject
 class SessionServiceImpl(
@@ -68,7 +82,7 @@ class SessionServiceImpl(
     private val meterRegistry: MeterRegistry,
     private val pushGatewayDiscovery: PushGatewayDiscovery,
     private val config: LockersConfig,
-) : BaseServiceImpl(), SessionServer, SessionGatewayServer {
+) : BaseServiceImpl(), SessionServer, SessionGatewayServer, BroadcastAdminServer {
     private val logger = LoggerFactory.getLogger(SessionServiceImpl::class.java)
     private val dispatchers = ShardedDispatcher<SessionId>(config.shardCount, "session-shard") {
         it.rawValue.contentHashCode()
@@ -293,24 +307,58 @@ class SessionServiceImpl(
     }
 
     override suspend fun postEvent(context: GrpcRequestContext, request: PostEventRequest) = meterRegistry.trackResponse("lockers.session.post", PostEventResponse::result) {
-        val receiveTime = System.nanoTime()
-        val events = request.sessionIds.map {
-            OnlineServerSessionEvent(
-                ServerSessionEvent(
-                    ServerSessionId(it.rawValue),
-                    ServerRoomId(request.event?.roomId!!.rawValue),
-                    ServerEventId(request.event?.eventId!!.rawValue),
-                    request.event?.notification?.payload?.rawValue ?: byteArrayOf(),
-                    request.event?.locker?.toByteArray() ?: byteArrayOf()
-                ),
-                receiveTime
-            )
+        request.event?.let { enqueueEvent(request.sessionIds, it) }
+
+        return@trackResponse PostEventResponse {
+            result = PostEventResponse.Result.OK
         }
-        val requestPush = request.event?.notification?.push
+    }
 
-        for (event in events) {
-            val sessionId = SessionId(event.event?.sessionId?.rawValue!!)
+    override suspend fun broadcast(context: GrpcRequestContext, request: BroadcastRequest): BroadcastResponse {
+        authorizeAdmin(context)
 
+        return meterRegistry.trackResponse("lockers.session.broadcast", BroadcastResponse::result) {
+            val targets = when (val kind = request.target?.kind) {
+                is BroadcastTarget.OneOfKind.all ->
+                    sessionStore.getAllSessions().mapNotNull { session ->
+                        session.sessionId?.rawValue?.let { SessionId { rawValue = it } }
+                    }
+
+                is BroadcastTarget.OneOfKind.sessions ->
+                    kind.getSessions()?.sessionIds.orEmpty()
+
+                else -> emptyList()
+            }
+
+            // A broadcast is an Event with no room association (empty room_id), given
+            // a fresh event id so it dedups/acks per session like any other event.
+            val event = Event {
+                eventId { rawValue = Random.nextBytes(BROADCAST_EVENT_ID_BYTES) }
+                roomId { rawValue = byteArrayOf() }
+                request.notification?.let { this.notification = it }
+            }
+
+            val delivered = enqueueEvent(targets, event)
+
+            return@trackResponse BroadcastResponse {
+                result = BroadcastResponse.Result.OK
+                this.delivered = delivered.toLong()
+            }
+        }
+    }
+
+    // Fan one event into each target session: fire a per-session push (when the
+    // event carries one), persist to the session inbox and emit live. Shared by
+    // room-scoped posts and server-wide broadcasts; returns the count enqueued.
+    private suspend fun enqueueEvent(sessionIds: List<SessionId>, event: Event): Int {
+        val receiveTime = System.nanoTime()
+        val requestPush = event.notification?.push
+        val roomIdRaw = event.roomId?.rawValue ?: byteArrayOf()
+        val eventIdRaw = event.eventId?.rawValue ?: byteArrayOf()
+        val encodedPayload = event.notification?.payload?.rawValue ?: byteArrayOf()
+        val encodedLocker = event.locker?.toByteArray() ?: byteArrayOf()
+
+        for (sessionId in sessionIds) {
             if (requestPush != null) {
                 val pushService = pushGatewayDiscovery.findServer(sessionId)
 
@@ -320,19 +368,40 @@ class SessionServiceImpl(
                 })
             }
 
+            val serverEvent = ServerSessionEvent(
+                ServerSessionId(sessionId.rawValue),
+                ServerRoomId(roomIdRaw),
+                ServerEventId(eventIdRaw),
+                encodedPayload,
+                encodedLocker
+            )
+
             eventsPostedCounter.increment()
             val startTime = System.nanoTime()
             dispatchers.runOnDispatcher(sessionId) {
-                dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
-                sessionInboxStore.saveEvent(event.event)
+                dispatcherWaitTimer.record(System.nanoTime() - startTime, TimeUnit.NANOSECONDS)
+                sessionInboxStore.saveEvent(serverEvent)
                 inboxSavesCounter.increment()
                 eventsQueuedCounter.increment()
-                incomingEvents.emit(event)
+                incomingEvents.emit(OnlineServerSessionEvent(serverEvent, receiveTime))
             }
         }
 
-        return@trackResponse PostEventResponse {
-            result = PostEventResponse.Result.OK
+        return sessionIds.size
+    }
+
+    /**
+     * Defense in depth on top of binding the broadcast admin service to the internal
+     * port: when an admin token is configured, the call must present it as the
+     * [ADMIN_TOKEN_HEADER]. In-process callers (tests) with no token configured pass.
+     */
+    private fun authorizeAdmin(context: GrpcRequestContext) {
+        val required = config.adminToken ?: return
+        val presented = context.headers.entries
+            .firstOrNull { it.key.equals(ADMIN_TOKEN_HEADER, ignoreCase = true) }
+            ?.value
+        if (presented != required) {
+            throw SecurityException("broadcast admin: missing or invalid $ADMIN_TOKEN_HEADER")
         }
     }
 

@@ -35,6 +35,8 @@ class MonolithComponent(
         SessionGatewayServiceModule::class.create(serverCore, sessionServiceModule)
     private val sessionGatewayDiscovery: SessionGatewayDiscovery =
         LocalSessionGatewayDiscovery(sessionGatewayServiceModule.server)
+    val broadcastAdminServiceModule: BroadcastAdminServiceModule =
+        BroadcastAdminServiceModule::class.create(serverCore, sessionServiceModule)
 
     val roomServiceModule: RoomServiceModule =
         RoomServiceModule::class.create(serverCore, sessionGatewayDiscovery)
@@ -58,6 +60,7 @@ class MonolithComponent(
     val adminServices: List<GrpcRouteProvider<*>>
         get() = listOf(
             pushAdminServiceModule,
+            broadcastAdminServiceModule,
         )
 
     /** Every service (public + admin) — used by the in-process test harness. */

@@ -193,3 +193,19 @@ message Event {
 
     Notification notification = 10;
 }
+
+// Selects which sessions a server-wide broadcast is enqueued into. Extensible:
+// holdback/range selectors can be added as further oneof cases later.
+message BroadcastTarget {
+    oneof kind {
+        AllSessions all = 1;
+        SessionList sessions = 2;
+    }
+
+    message AllSessions {
+    }
+
+    message SessionList {
+        repeated SessionId session_ids = 1;
+    }
+}
