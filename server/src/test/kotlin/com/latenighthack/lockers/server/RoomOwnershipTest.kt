@@ -6,14 +6,20 @@ import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isTrue
 import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.lockers.common.v1.LockGrant
+import com.latenighthack.lockers.common.v1.LockScope
 import com.latenighthack.lockers.common.v1.Locker
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.LockerKeyspace
 import com.latenighthack.lockers.common.v1.RoomId
 import com.latenighthack.lockers.common.v1.SessionId
 import com.latenighthack.lockers.room.v1.LocalRoomServiceRpc
+import com.latenighthack.lockers.room.v1.LockLockerRequest
+import com.latenighthack.lockers.room.v1.LockLockerResponse
 import com.latenighthack.lockers.room.v1.PostLockerChangeRequest
 import com.latenighthack.lockers.room.v1.PostLockerChangeResponse
+import com.latenighthack.lockers.room.v1.UnlockLockerRequest
+import com.latenighthack.lockers.room.v1.UnlockLockerResponse
 import com.latenighthack.lockers.server.agents.ExampleLockerAgent
 import com.latenighthack.lockers.server.cluster.RingRoomOwnership
 import com.latenighthack.lockers.server.services.room.v1.LockStoreImpl
@@ -62,6 +68,29 @@ class RoomOwnershipTest {
             keyspace = LockerKeyspace { value = 1 }
         }
         locker = Locker { }
+    }
+
+    @Test
+    fun `lock and unlock on a non-owner node are rejected with NOT_OWNER`() = runBlocking {
+        val client = roomServiceWith(object : RoomOwnership {
+            override suspend fun resolve(keyspace: Long, roomId: RoomId) =
+                RoomOwner.Remote(address = "peer-c:8080", epoch = 3)
+        })
+
+        // Room-wide scope carries no keyspace, so it pins to keyspace 0 and still redirects.
+        val lock = client.lockLocker(LockLockerRequest {
+            roomId = RoomId(byteArrayOf(1, 2, 3))
+            grant = LockGrant { scope = LockScope { } }
+        })
+        assertThat(lock.result is LockLockerResponse.Result.NOT_OWNER).isTrue()
+        assertThat(lock.redirect?.ownerAddress).isEqualTo("peer-c:8080")
+
+        val unlock = client.unlockLocker(UnlockLockerRequest {
+            roomId = RoomId(byteArrayOf(1, 2, 3))
+            scope = LockScope { }
+        })
+        assertThat(unlock.result is UnlockLockerResponse.Result.NOT_OWNER).isTrue()
+        assertThat(unlock.redirect?.ownerAddress).isEqualTo("peer-c:8080")
     }
 
     @Test

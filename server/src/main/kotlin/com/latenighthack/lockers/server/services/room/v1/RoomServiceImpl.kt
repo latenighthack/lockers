@@ -581,6 +581,15 @@ class RoomServiceImpl(
         val requestRoomId = request.roomId ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)
         val grant = request.grant ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)
 
+        // A lock and the lockers it governs must be coordinated on the same shard, so gate by the
+        // scope's keyspace; a room-wide scope carries no keyspace and pins to keyspace 0.
+        redirectIfNotOwner(grant.scope?.keyspace?.value ?: 0L, requestRoomId)?.let {
+            return@trackResponse LockLockerResponse {
+                result = LockLockerResponse.Result.NOT_OWNER
+                redirect = it
+            }
+        }
+
         return@trackResponse dispatchers.runOnDispatcher(requestRoomId) {
             when (val outcome = lockVerifier.applyLock(requestRoomId, grant, request.parentLockVersion)) {
                 is LockVerifier.LockOutcome.Ok -> {
@@ -605,6 +614,13 @@ class RoomServiceImpl(
     ) = meterRegistry.trackResponse("lockers.room.locker.unlock", UnlockLockerResponse::result) {
         val requestRoomId = request.roomId ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)
         val scope = request.scope ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)
+
+        redirectIfNotOwner(scope.keyspace?.value ?: 0L, requestRoomId)?.let {
+            return@trackResponse UnlockLockerResponse {
+                result = UnlockLockerResponse.Result.NOT_OWNER
+                redirect = it
+            }
+        }
 
         return@trackResponse dispatchers.runOnDispatcher(requestRoomId) {
             val outcome = lockVerifier.applyUnlock(requestRoomId, scope, request.signature, request.parentLockVersion)
