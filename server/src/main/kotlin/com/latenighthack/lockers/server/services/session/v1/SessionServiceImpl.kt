@@ -32,7 +32,8 @@ import kotlin.random.Random
 @Component
 abstract class SessionServiceModule(
     @Component val serverCore: ServerCore,
-    @get:Provides val pushGatewayDiscovery: PushGatewayDiscovery
+    @get:Provides val pushGatewayDiscovery: PushGatewayDiscovery,
+    @get:Provides val sessionOwnership: SessionOwnership,
 ): GrpcRouteProvider<SessionServer> {
     abstract val serverImpl: SessionServiceImpl
 
@@ -81,6 +82,7 @@ class SessionServiceImpl(
     private val sessionInboxStore: SessionInboxStore,
     private val meterRegistry: MeterRegistry,
     private val pushGatewayDiscovery: PushGatewayDiscovery,
+    private val sessionOwnership: SessionOwnership,
     private val config: LockersConfig,
 ) : BaseServiceImpl(), SessionServer, SessionGatewayServer, BroadcastAdminServer {
     private val logger = LoggerFactory.getLogger(SessionServiceImpl::class.java)
@@ -427,6 +429,23 @@ class SessionServiceImpl(
             result = WatchSessionResponse.Open.Result.UNKNOWN_SESSION
             meterRegistry.counter("lockers.session.opens", "result", "UNKNOWN_SESSION").increment()
             return null
+        }
+
+        // Gate the open to the node that owns this session's shard on the session ring. On a
+        // non-owner node, reject with EPOCH_STALE + a redirect to the owner (rather than rotating
+        // the sequence key here) so the client's reconnect loop re-resolves and opens against the
+        // owner. In a monolith LocalSessionOwnership always returns Local, so this never fires.
+        when (val owner = sessionOwnership.resolve(SessionId(serverSessionId.rawValue))) {
+            is SessionOwner.Local -> {}
+            is SessionOwner.Remote -> {
+                result = WatchSessionResponse.Open.Result.EPOCH_STALE
+                redirect = ShardRedirect {
+                    ownerAddress = owner.address
+                    epoch = owner.epoch
+                }
+                meterRegistry.counter("lockers.session.opens", "result", "EPOCH_STALE").increment()
+                return null
+            }
         }
 
         val authorizedPublicKey = Secp256r1PublicKey.decode(session.authorizedPublicKey)

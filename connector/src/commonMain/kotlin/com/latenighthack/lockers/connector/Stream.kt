@@ -1,5 +1,6 @@
 package com.latenighthack.lockers.connector
 
+import com.latenighthack.ktbuf.bytes.toBase64String
 import com.latenighthack.ktbuf.net.RpcClient
 import com.latenighthack.ktbuf.rpc.repeatWithBackoff
 import com.latenighthack.ktcrypto.Secp256r1KeyPair
@@ -328,6 +329,11 @@ class Stream(
     private val streamScope = CoroutineScope(Dispatchers.Default + streamJob)
     private val sessionIdSource = MutableStateFlow<SessionId?>(null)
     private val sessionService = ShardedSessionServiceRpc(rpcClient)
+
+    // When routing through a [RoutingRpcClient], an EPOCH_STALE + redirect on session open is
+    // recorded here so the reconnect re-targets the owning node. A plain client (monolith) never
+    // sees EPOCH_STALE, so this stays a no-op.
+    private val routing = rpcClient as? RoutingRpcClient
     private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource)
     private val outgoingAcks = MutableSharedFlow<List<StoredAck>>()
 
@@ -476,10 +482,18 @@ class Stream(
                             }
                             is WatchSessionResponse.Open.Result.SERVICE_UNAVAILABLE ->
                                 throw RetryableStreamException("session service unavailable")
-                            is WatchSessionResponse.Open.Result.EPOCH_STALE ->
-                                // The session's shard moved to another node; reconnect so the
-                                // routing tier (or a redirect) re-resolves the current owner.
+                            is WatchSessionResponse.Open.Result.EPOCH_STALE -> {
+                                // The session's shard moved to another node. Cache the server's
+                                // redirect toward the owner (keyed by this session's `s` metadata)
+                                // then reconnect: the routing client re-targets the owner on the
+                                // next open, and resendSubscriptions + inbox replay recover state.
+                                routing?.recordRedirect(
+                                    currentSessionId.rawValue.toBase64String(),
+                                    open.redirect?.ownerAddress ?: "",
+                                    open.redirect?.epoch ?: 0L,
+                                )
                                 throw RetryableStreamException("session shard moved; reconnecting")
+                            }
                             is WatchSessionResponse.Open.Result.UNKNOWN_ERROR ->
                                 throw RetryableStreamException("unknown error opening session")
                             is WatchSessionResponse.Open.Result.SESSION_EXISTS -> {

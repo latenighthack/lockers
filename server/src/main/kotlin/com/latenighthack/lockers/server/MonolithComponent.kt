@@ -1,10 +1,12 @@
 package com.latenighthack.lockers.server
 
 import com.latenighthack.lockers.server.cluster.ClusterContext
+import com.latenighthack.lockers.server.cluster.ClusterServiceModule
 import com.latenighthack.lockers.server.cluster.OwnerLifecycle
 import com.latenighthack.lockers.server.cluster.RingPushGatewayDiscovery
 import com.latenighthack.lockers.server.cluster.RingRoomOwnership
 import com.latenighthack.lockers.server.cluster.RingSessionGatewayDiscovery
+import com.latenighthack.lockers.server.cluster.RingSessionOwnership
 import com.latenighthack.lockers.server.services.push.v1.*
 import com.latenighthack.lockers.server.services.room.v1.*
 import com.latenighthack.lockers.server.services.session.v1.*
@@ -40,8 +42,11 @@ class MonolithComponent(
         cluster?.let { RingPushGatewayDiscovery(it.router, pushGatewayServiceModule.server, it.pushGateways) }
             ?: LocalPushGatewayDiscovery(pushGatewayServiceModule.server)
 
+    private val sessionOwnership: SessionOwnership =
+        cluster?.let { RingSessionOwnership(it.router) } ?: LocalSessionOwnership()
+
     val sessionServiceModule: SessionServiceModule =
-        SessionServiceModule::class.create(serverCore, pushGatewayDiscovery)
+        SessionServiceModule::class.create(serverCore, pushGatewayDiscovery, sessionOwnership)
     val sessionGatewayServiceModule: SessionGatewayServiceModule =
         SessionGatewayServiceModule::class.create(serverCore, sessionServiceModule)
     private val sessionGatewayDiscovery: SessionGatewayDiscovery =
@@ -92,11 +97,19 @@ class MonolithComponent(
             pushGatewayServiceModule,
         ) + extensions.flatMap { it.services }
 
+    /**
+     * The cluster topology service, present only when running as a cluster node. Read-only,
+     * backed by the [ShardRouter]; the monolith has no ring, so it contributes nothing here.
+     */
+    private val clusterServiceModule: ClusterServiceModule? =
+        cluster?.let { ClusterServiceModule(it.router) }
+
     /** Operator-facing management services, mounted on the internal admin port only. */
     val adminServices: List<GrpcRouteProvider<*>>
-        get() = listOf(
+        get() = listOfNotNull(
             pushAdminServiceModule,
             broadcastAdminServiceModule,
+            clusterServiceModule,
         )
 
     /** Every service (public + admin) — used by the in-process test harness. */

@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package com.latenighthack.lockers.cluster.v1;
+
+option java_package = "com.latenighthack.lockers.cluster.v1";
+
+// Read-only introspection of the cluster's current sharding topology. The smart
+// client (RoutingRpcClient) and a cluster-aware keymaster call this to learn the
+// live shard-map summary — per-ring epochs, shard counts, and the node addresses
+// a shard resolves to — so they can target the owning node directly instead of
+// bouncing off a NOT_OWNER / EPOCH_STALE redirect on every call. Mounted on the
+// internal admin port.
+service Cluster {
+    rpc GetTopology(GetTopologyRequest) returns (GetTopologyResponse);
+}
+
+message GetTopologyRequest {
+}
+
+message GetTopologyResponse {
+    // The room ring (owns write coordination + locker/lock/subscription state).
+    Ring room = 1;
+    // The session/gateway ring (owns the live WebSocket + inbox delivery).
+    Ring session = 2;
+
+    // One independent ring's snapshot at its own monotonic epoch.
+    message Ring {
+        // The shard-map epoch this snapshot was computed under (staleness ordering).
+        int64 epoch = 1;
+        // Default shard count when a keyspace has no explicit override.
+        int32 default_shard_count = 2;
+        // Per-keyspace shard-count overrides.
+        repeated KeyspaceShardCount keyspace_shard_counts = 3;
+        // Every node currently in this ring, with the address peers reach it at.
+        repeated Node nodes = 4;
+    }
+
+    message KeyspaceShardCount {
+        int64 keyspace = 1;
+        int32 shard_count = 2;
+    }
+
+    message Node {
+        // Stable logical node id (not an address).
+        string node_id = 1;
+        // host:port the node is reachable at for east-west / client redirect, if known.
+        string address = 2;
+    }
+}

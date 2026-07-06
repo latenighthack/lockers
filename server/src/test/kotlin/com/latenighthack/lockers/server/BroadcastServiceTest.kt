@@ -13,6 +13,7 @@ import com.latenighthack.lockers.push.v1.PushGatewayService
 import com.latenighthack.lockers.push.v1.SendPushRequest
 import com.latenighthack.lockers.push.v1.SendPushResponse
 import com.latenighthack.lockers.server.services.push.v1.PushGatewayDiscovery
+import com.latenighthack.lockers.server.services.session.v1.LocalSessionOwnership
 import com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreImpl
 import com.latenighthack.lockers.server.services.session.v1.SessionServiceImpl
 import com.latenighthack.lockers.server.services.session.v1.SessionStoreImpl
@@ -51,7 +52,7 @@ class BroadcastServiceTest {
         inboxStore.prepare()
         delegate.createStores()
         val push = RecordingPushGateway()
-        val impl = SessionServiceImpl(sessionStore, inboxStore, SimpleMeterRegistry(), push, config)
+        val impl = SessionServiceImpl(sessionStore, inboxStore, SimpleMeterRegistry(), push, LocalSessionOwnership(), config)
         return Harness(impl, sessionStore, inboxStore, push, LocalBroadcastAdminServiceRpc(impl))
     }
 

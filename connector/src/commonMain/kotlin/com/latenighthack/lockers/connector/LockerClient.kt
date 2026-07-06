@@ -328,6 +328,16 @@ class LockerClient(
 
     private val roomService = ShardedRoomServiceRpc(rpcClient)
 
+    // When routing through a [RoutingRpcClient], a NOT_OWNER + redirect is recorded here so the
+    // next write attempt (inside the same repeatWithBackoff loop) re-targets the owning node. With
+    // a plain client (e.g. a monolith) this is a no-op and writes never see NOT_OWNER.
+    private val routing = rpcClient as? RoutingRpcClient
+
+    private fun recordRoomRedirect(roomId: RoomId, redirect: ShardRedirect?) {
+        val owner = redirect?.ownerAddress ?: return
+        routing?.recordRedirect(roomId.rawValue.toBase64String(), owner, redirect.epoch)
+    }
+
     suspend fun start() {
         processingScope.launch {
             internalChanges
@@ -544,6 +554,12 @@ class LockerClient(
                         parentVersion = result.version
                         retry()
                     }
+                    is DeleteLockerResponse.Result.NOT_OWNER -> {
+                        // This node doesn't own the room's shard; cache the redirect and retry so
+                        // the routing client re-targets the owner on the next attempt.
+                        recordRoomRedirect(roomId, result.redirect)
+                        retry()
+                    }
                     is DeleteLockerResponse.Result.SIGNATURE_REQUIRED ->
                         throw LockerWriteException("locker is locked; a signing key is required to delete")
                     is DeleteLockerResponse.Result.SIGNATURE_INVALID ->
@@ -618,6 +634,12 @@ class LockerClient(
                         parentVersion = result.version
                         retry()
                     }
+                    is PostLockerChangeResponse.Result.NOT_OWNER -> {
+                        // This node doesn't own the room's shard; cache the redirect and retry so
+                        // the routing client re-targets the owner on the next attempt.
+                        recordRoomRedirect(roomId, result.redirect)
+                        retry()
+                    }
                     is PostLockerChangeResponse.Result.SIGNATURE_REQUIRED ->
                         throw LockerWriteException("locker is locked; a signing key is required")
                     is PostLockerChangeResponse.Result.SIGNATURE_INVALID ->
@@ -671,7 +693,9 @@ class LockerClient(
                 publicKey = Secp256R1Key.PublicKey(rawValue = publicKeyBytes),
                 parentSignature = parentSignature,
             )
-        })
+        }).also {
+            if (it.result is LockLockerResponse.Result.NOT_OWNER) recordRoomRedirect(roomId, it.redirect)
+        }
     }
 
     /** Remove the lock at [scope], authorized by its current [keyPair]. */
@@ -687,7 +711,9 @@ class LockerClient(
             this.scope = scope
             this.parentLockVersion = parentLockVersion
             signature = signatureOf(keyPair, context)
-        })
+        }).also {
+            if (it.result is UnlockLockerResponse.Result.NOT_OWNER) recordRoomRedirect(roomId, it.redirect)
+        }
     }
 
     private class WriteBody(val locker: Locker, val signature: Signature?)

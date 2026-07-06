@@ -16,6 +16,26 @@ data class Route(
     val epoch: Epoch,
 )
 
+/** A ring member and the address peers/clients reach it at (null when unknown). */
+data class NodeAddress(val node: NodeId, val address: PeerAddress?)
+
+/**
+ * A read-only summary of ONE ring at its current epoch: the per-keyspace shard [counts] and
+ * every member node with its resolved address. Backs `ClusterService.GetTopology` so a smart
+ * client / keymaster can target owners directly instead of relying on redirects.
+ */
+data class RingTopology(
+    val epoch: Epoch,
+    val counts: ShardCounts,
+    val nodes: List<NodeAddress>,
+)
+
+/** Both independent rings' topologies at their respective epochs. */
+data class Topology(
+    val room: RingTopology,
+    val session: RingTopology,
+)
+
 /**
  * One ring's live view: its [Membership] (and hence this node's identity on that ring) plus the
  * latest [ShardMap] tracked from its [ShardMapSource].
@@ -98,6 +118,21 @@ class ShardRouter private constructor(
             node = owner,
             address = if (isLocal) null else locator.addressOf(owner),
             epoch = ring.map.epoch,
+        )
+    }
+
+    /** A snapshot of both rings' epochs, shard counts, and member addresses (for GetTopology). */
+    suspend fun topology(): Topology = Topology(
+        room = ringTopology(room),
+        session = ringTopology(session),
+    )
+
+    private suspend fun ringTopology(ring: RingView): RingTopology {
+        val map = ring.map
+        return RingTopology(
+            epoch = map.epoch,
+            counts = map.counts,
+            nodes = map.nodes.map { node -> NodeAddress(node, locator.addressOf(node)) },
         )
     }
 

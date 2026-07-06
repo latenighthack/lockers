@@ -36,4 +36,7 @@ value class Epoch(val value: Long) : Comparable<Epoch> {
 }
 
 /** A network address a peer node is reachable at for east-west RPC. */
-data class PeerAddress(val host: String, val port: Int)
+data class PeerAddress(val host: String, val port: Int) {
+    /** The `host:port` form used in redirects and topology (empty for a null address). */
+    fun hostPort(): String = "$host:$port"
+}
