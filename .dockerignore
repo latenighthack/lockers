@@ -1,0 +1,38 @@
+# Keep the Docker build context small and free of host/local artifacts. Gradle
+# rebuilds everything under */build inside the image, so shipping them just
+# invalidates the layer cache and can smuggle host-compiled classes in.
+
+# Gradle / Kotlin build outputs
+.gradle/
+build/
+**/build/
+.kotlin/
+**/generated/
+
+# VCS + CI
+.git/
+.github/
+.claude/
+
+# IDE / editor
+.idea/
+*.iml
+*.ipr
+*.iws
+.fleet/
+.vscode/
+
+# Local config & secrets (never bake credentials into an image)
+local.properties
+*.env
+.env
+**/*.p8
+**/*.pem
+**/service-account*.json
+
+# Logs / OS cruft
+*.log
+.DS_Store
+
+# Deployment manifests are not needed to build the JVM image
+deploy/

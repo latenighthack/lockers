@@ -44,12 +44,23 @@ private class HeaderInjectingRpcClient(
     ) = delegate.serverStreamingCall(method, block, readyCallback)
 }
 
-private fun KeymasterConfig.adminRpc(): RpcClient {
-    val http = HttpRpcClient(serverPath(adminUrl))
+private fun KeymasterConfig.adminRpc(url: String): RpcClient {
+    val http = HttpRpcClient(serverPath(url))
     val token = adminToken ?: return http
     return HeaderInjectingRpcClient(http, mapOf(ADMIN_TOKEN_HEADER to token))
 }
 
-fun KeymasterConfig.broadcastAdmin(): BroadcastAdminServiceRpc = BroadcastAdminServiceRpc(adminRpc())
+fun KeymasterConfig.broadcastAdmin(): BroadcastAdminServiceRpc = BroadcastAdminServiceRpc(adminRpc(adminUrl))
 
-fun KeymasterConfig.pushAdmin(): PushAdminServiceRpc = PushAdminServiceRpc(adminRpc())
+fun KeymasterConfig.pushAdmin(): PushAdminServiceRpc = PushAdminServiceRpc(adminRpc(adminUrl))
+
+/**
+ * A PushAdmin stub per target node, labeled by its admin URL. Fan-out push commands iterate these
+ * and aggregate; a single-node/monolith invocation yields exactly one entry (the [adminUrl]), so
+ * their behavior is unchanged. The list follows the operator-supplied `--node` set — keymaster does
+ * not resolve topology from the server.
+ */
+data class NodePushAdmin(val node: String, val client: PushAdminServiceRpc)
+
+fun KeymasterConfig.pushAdmins(): List<NodePushAdmin> =
+    adminNodes.map { NodePushAdmin(it, PushAdminServiceRpc(adminRpc(it))) }

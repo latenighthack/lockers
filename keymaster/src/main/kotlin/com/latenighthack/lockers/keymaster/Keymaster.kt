@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
 
@@ -12,9 +13,16 @@ import com.github.ajalt.clikt.parameters.types.choice
  * context object. URLs point at the two server listeners: [adminUrl] is the
  * internal admin port (BroadcastAdmin / PushAdmin), [publicUrl] the client port
  * that also serves the HTTP health/metrics probes.
+ *
+ * [adminNodes] holds the cluster's admin endpoints for fan-out commands. It is the
+ * explicit `--node` list when given, otherwise the single [adminUrl] (so a monolith
+ * and a single-node invocation behave exactly as before). Keymaster deliberately does
+ * NOT call `GetTopology`: the operator supplies the node list, keeping admin ops
+ * decoupled from the (parallel) topology-RPC milestone.
  */
 data class KeymasterConfig(
     val adminUrl: String,
+    val adminNodes: List<String>,
     val publicUrl: String,
     val adminToken: String?,
     val output: OutputFormat,
@@ -40,6 +48,12 @@ class Keymaster : CliktCommand(name = "keymaster") {
         help = "Base URL of the internal admin port (BroadcastAdmin / PushAdmin).",
     ).default("http://localhost:8081")
 
+    private val adminNodes by option(
+        "--node",
+        help = "A cluster node's admin URL; repeat to target every node. Push admin ops fan out " +
+            "across all --node endpoints and aggregate. Defaults to --admin-url when omitted.",
+    ).multiple()
+
     private val publicUrl by option(
         "--public-url",
         help = "Base URL of the public port (serves /healthz, /readyz, /metrics).",
@@ -56,6 +70,7 @@ class Keymaster : CliktCommand(name = "keymaster") {
     ).choice("table" to OutputFormat.TABLE, "json" to OutputFormat.JSON).default(OutputFormat.TABLE)
 
     override fun run() {
-        currentContext.findOrSetObject { KeymasterConfig(adminUrl, publicUrl, adminToken, output) }
+        val nodes = adminNodes.ifEmpty { listOf(adminUrl) }
+        currentContext.findOrSetObject { KeymasterConfig(adminUrl, nodes, publicUrl, adminToken, output) }
     }
 }

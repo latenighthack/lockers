@@ -1,0 +1,124 @@
+# Kubernetes blueprint (documented ALTERNATIVE, same :sharding-core SPI).
+#
+# A StatefulSet gives each pod a stable ordinal identity (lockers-0, lockers-1, ...) and a stable
+# per-pod DNS name via a headless Service (lockers-<ordinal>.lockers-headless.<ns>.svc). That is
+# exactly what the ring needs: individually addressable peers. The env wiring below drives the SAME
+# StaticMembership / StaticPeerLocator / PostgresShardMapSource / AdvisoryLockCoordinator impls the
+# VM/Railway blueprint uses — this file only changes how identity + addresses are supplied.
+#
+# A fuller k8s-native blueprint could swap PostgresShardMapSource for a ConfigMap/CRD-backed source
+# and the advisory-lock coordinator for a k8s Lease/etcd coordinator, behind the same SPI. Here we
+# keep Postgres for both so it is a drop-in of the primary blueprint.
+#
+# NOTE: LOCKERS_PEERS is the full roster and must be kept in sync with `.spec.replicas`. Scaling is
+# therefore a two-step change (bump replicas AND update LOCKERS_PEERS) — a control-plane operator or
+# a rendered template (Helm/Kustomize) should own that. This mirrors the static-membership contract.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lockers-headless
+  labels: { app: lockers }
+spec:
+  clusterIP: None            # headless => per-pod DNS: lockers-N.lockers-headless.<ns>.svc
+  publishNotReadyAddresses: true  # peers must resolve each other during rollout/handoff
+  selector: { app: lockers }
+  ports:
+    - { name: public, port: 8080, targetPort: 8080 }
+    - { name: admin, port: 8081, targetPort: 8081 }
+---
+# Public client entrypoint (load-balanced). The smart client follows ownership redirects from here;
+# east-west peer RPC uses the headless per-pod names above, never this Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: lockers
+  labels: { app: lockers }
+spec:
+  type: ClusterIP
+  selector: { app: lockers }
+  ports:
+    - { name: public, port: 8080, targetPort: 8080 }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: lockers
+  labels: { app: lockers }
+spec:
+  serviceName: lockers-headless   # binds stable network identity to the headless Service
+  replicas: 3
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels: { app: lockers }
+  template:
+    metadata:
+      labels: { app: lockers }
+    spec:
+      securityContext:
+        runAsNonRoot: true        # matches the image's numeric USER 10001
+        runAsUser: 10001
+        runAsGroup: 10001
+      terminationGracePeriodSeconds: 30  # room for the ordered drain (leave ring -> stop -> close)
+      containers:
+        - name: lockers
+          image: lockers:local     # replace with your registry/tag
+          ports:
+            - { name: public, containerPort: 8080 }
+            - { name: admin, containerPort: 8081 }
+          env:
+            # Stable identity from the pod's ordinal hostname (lockers-0, lockers-1, ...).
+            - name: LOCKERS_NODE_ID
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            # This pod's peer-reachable address = its stable headless DNS name.
+            - name: POD_NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+            - name: LOCKERS_ADVERTISE_ADDR
+              value: "$(LOCKERS_NODE_ID).lockers-headless.$(POD_NAMESPACE).svc.cluster.local:8080"
+            # Full roster (keep in sync with .spec.replicas). Rendered here for replicas=3.
+            - name: LOCKERS_PEERS
+              value: >-
+                lockers-0.lockers-headless.$(POD_NAMESPACE).svc.cluster.local:8080,
+                lockers-1.lockers-headless.$(POD_NAMESPACE).svc.cluster.local:8080,
+                lockers-2.lockers-headless.$(POD_NAMESPACE).svc.cluster.local:8080
+            - name: LOCKERS_REQUIRE_DB
+              value: "true"
+            - name: LOCKERS_DB_URL
+              valueFrom: { secretKeyRef: { name: lockers-db, key: jdbc-url } }
+            - name: LOCKERS_ADMIN_TOKEN
+              valueFrom: { secretKeyRef: { name: lockers-admin, key: token } }
+            - name: LOCKERS_SHARD_COUNT_DEFAULT
+              value: "256"
+            - name: LOCKERS_SESSION_SHARD_COUNT
+              value: "256"
+          # Liveness: process up only (never gated on ring/DB, so a not-ready node is not killed).
+          livenessProbe:
+            httpGet: { path: /healthz, port: public }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          # Readiness: ring-aware (shard map loaded) + DB reachable -> 200; else 503. Gates Service
+          # membership so traffic only lands on nodes that can actually coordinate.
+          readinessProbe:
+            httpGet: { path: /readyz, port: public }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          # Startup: give the JVM + first shard-map read time before liveness kicks in.
+          startupProbe:
+            httpGet: { path: /healthz, port: public }
+            failureThreshold: 30
+            periodSeconds: 2
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { memory: "1Gi" }   # -XX:MaxRAMPercentage=75 sizes the heap to this
+---
+# Keep a quorum of owners live during voluntary disruptions (node drains, rolling updates) so shard
+# handoff stays orderly and at most one owner per shard is ever unavailable at a time.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: lockers
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels: { app: lockers }

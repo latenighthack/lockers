@@ -40,6 +40,26 @@ data class WebPushConfig(
 }
 
 /**
+ * Horizontal ring-sharding configuration (the VM/bare-metal + Postgres blueprint). All fields
+ * default to the disabled/monolith values, so an unset environment yields a single-node process
+ * that behaves exactly as before. [nodeId] + [peers] together enable cluster mode
+ * ([LockersConfig.clusterEnabled]); the counts/vnodes size the two rings.
+ *
+ * Parsing of [peers] into a validated topology and of [keyspaceShardCounts] lives in
+ * `:sharding-core` / the `cluster` package — this holds only the raw strings so [LockersConfig]
+ * stays free of a `:sharding-core` dependency and fails fast at boot in `Main`, not here.
+ */
+data class ShardingConfig(
+    val nodeId: String?,
+    val advertiseAddr: String?,
+    val peers: String?,
+    val shardCountDefault: Int,
+    val keyspaceShardCounts: String?,
+    val ringVnodes: Int,
+    val sessionShardCount: Int,
+)
+
+/**
  * All runtime tunables, read once from the environment at startup.
  *
  * Environment variables (12-factor style) are the source of truth so the same
@@ -63,6 +83,14 @@ data class WebPushConfig(
  *   FCM_CREDENTIALS_PATH         service-account JSON for FCM (unset => FCM off)
  *   WEBPUSH_VAPID_PUBLIC_KEY / WEBPUSH_VAPID_PRIVATE_KEY   base64url VAPID key pair
  *   WEBPUSH_SUBJECT              VAPID `sub` claim (mailto: or origin URL)
+ *   LOCKERS_NODE_ID              this node's logical ring identity (default: unset => monolith)
+ *   LOCKERS_ADVERTISE_ADDR       peer-reachable host:port for east-west RPC
+ *   LOCKERS_PEERS                comma-separated node list; presence enables cluster mode
+ *   LOCKERS_SHARD_COUNT_DEFAULT  room-ring global shard count (default 256)
+ *   LOCKERS_KEYSPACE_SHARD_COUNTS  per-keyspace overrides, e.g. "1=512,30=128"
+ *   LOCKERS_RING_VNODES          consistent-hash virtual nodes per node (default 128)
+ *   LOCKERS_SESSION_SHARD_COUNT  session/gateway-ring shard count (default 256)
+ *   LOCKERS_REQUIRE_DB           fail fast at boot if LOCKERS_DB_URL is unset (default false)
  */
 data class LockersConfig(
     val httpPort: Int,
@@ -79,8 +107,19 @@ data class LockersConfig(
     val pushSendConcurrency: Int,
     val pushWorkerEnabled: Boolean,
     val adminToken: String?,
+    val sharding: ShardingConfig,
+    val requireDb: Boolean,
 ) {
     val shardCount: Int get() = (Runtime.getRuntime().availableProcessors() * shardMultiplier).coerceAtLeast(1)
+
+    /**
+     * Whether horizontal ring-sharding is enabled. Requires both a peer list and this node's
+     * identity; when either is absent the process runs as the single-node monolith (the exact
+     * pre-sharding behavior). This is intentionally a two-signal gate so a stray env var never
+     * silently flips a monolith into a mis-configured cluster.
+     */
+    val clusterEnabled: Boolean
+        get() = !sharding.peers.isNullOrBlank() && !sharding.nodeId.isNullOrBlank()
 
     companion object {
         fun fromEnv(env: (String) -> String? = System::getenv): LockersConfig {
@@ -114,6 +153,16 @@ data class LockersConfig(
                     vapidPrivateKey = env("WEBPUSH_VAPID_PRIVATE_KEY"),
                     subject = env("WEBPUSH_SUBJECT"),
                 ),
+                sharding = ShardingConfig(
+                    nodeId = env("LOCKERS_NODE_ID")?.takeIf { it.isNotBlank() },
+                    advertiseAddr = env("LOCKERS_ADVERTISE_ADDR")?.takeIf { it.isNotBlank() },
+                    peers = env("LOCKERS_PEERS")?.takeIf { it.isNotBlank() },
+                    shardCountDefault = int("LOCKERS_SHARD_COUNT_DEFAULT", 256),
+                    keyspaceShardCounts = env("LOCKERS_KEYSPACE_SHARD_COUNTS")?.takeIf { it.isNotBlank() },
+                    ringVnodes = int("LOCKERS_RING_VNODES", 128),
+                    sessionShardCount = int("LOCKERS_SESSION_SHARD_COUNT", 256),
+                ),
+                requireDb = bool("LOCKERS_REQUIRE_DB", false),
             )
         }
 
