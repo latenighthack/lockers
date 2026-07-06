@@ -19,6 +19,7 @@ dependencies {
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.websockets)
+    implementation(libs.micrometer.core)
     implementation(libs.micrometer.registry.prometheus)
 
     runtimeOnly(libs.postgresql)

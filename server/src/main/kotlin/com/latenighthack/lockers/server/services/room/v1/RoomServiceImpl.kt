@@ -102,6 +102,13 @@ class RoomServiceImpl(
     private val postEventFailureCounter = meterRegistry.counter("lockers.room.events.post.failure")
     private val cacheHitCounter = meterRegistry.counter("lockers.room.cache.hits")
     private val cacheMissCounter = meterRegistry.counter("lockers.room.cache.misses")
+
+    // Reshard observability (§7). A cache miss on the room→session set is the lazy-rebuild path a
+    // new shard owner takes after a fenced handoff, so it also increments reshard.rooms.rebuilt.
+    // A version-CAS reject (UPDATE_LOCAL_VERSION) is the dual-coordination backstop firing, counted
+    // as reshard.cas.conflicts — if two nodes ever briefly both coordinate a room, exactly one wins.
+    private val reshardRoomsRebuiltCounter = meterRegistry.counter("lockers.reshard.rooms.rebuilt")
+    private val reshardCasConflictsCounter = meterRegistry.counter("lockers.reshard.cas.conflicts")
     private val dispatcherWaitTimer = meterRegistry.timer("lockers.room.dispatcher.time")
     private val getLockerTimer = meterRegistry.timer("lockers.room.locker.get.time")
     private val getAllLockersTimer = meterRegistry.timer("lockers.room.locker.getall.time")
@@ -135,6 +142,9 @@ class RoomServiceImpl(
         }
         
         cacheMissCounter.increment()
+        // Rebuilding room→session routing from the durable store: this is exactly the path a new
+        // shard owner takes on first access after a fenced handoff (Model A — no state transfer).
+        reshardRoomsRebuiltCounter.increment()
         val sessions = subscriptionStore.getAllSessions(ServerRoomId(roomId.rawValue))
             .map { SessionId(it.rawValue) }
             .toSet()
@@ -298,6 +308,7 @@ class RoomServiceImpl(
             } else if (storedLocker.version == requestVersion) {
                 storedLocker.version + 1
             } else {
+                reshardCasConflictsCounter.increment()
                 return@runOnDispatcher PostLockerChangeResponse {
                     result = PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION
                     version = storedLocker.version
@@ -486,6 +497,7 @@ class RoomServiceImpl(
             } else if (storedLocker.version == requestVersion) {
                 storedLocker.version + 1
             } else {
+                reshardCasConflictsCounter.increment()
                 return@runOnDispatcher DeleteLockerResponse {
                     result = DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION
                     version = storedLocker.version
@@ -605,6 +617,18 @@ class RoomServiceImpl(
                 is LockVerifier.UnlockOutcome.SignatureInvalid -> UnlockLockerResponse(result = UnlockLockerResponse.Result.SIGNATURE_INVALID)
             }
         }
+    }
+
+    /**
+     * Quiesce hook for the owner lifecycle: on a fenced handoff of shards away from this node, drop
+     * the per-room routing/lock caches so the new owner rebuilds them lazily from the shared store
+     * on first access (the `lookupSessions` cache-miss path). Shard→room is one-way (partition is a
+     * hash), so we clear the whole cache — safe and cheap: it only forces a rebuild-on-miss and
+     * moves no durable data. Called only in a clustered deployment.
+     */
+    fun evictRoomCaches() {
+        roomToSessionCache.invalidateAll()
+        roomHasLocksCache.invalidateAll()
     }
 
     fun close() {

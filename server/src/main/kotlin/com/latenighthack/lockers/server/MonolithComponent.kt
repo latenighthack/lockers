@@ -1,6 +1,7 @@
 package com.latenighthack.lockers.server
 
 import com.latenighthack.lockers.server.cluster.ClusterContext
+import com.latenighthack.lockers.server.cluster.OwnerLifecycle
 import com.latenighthack.lockers.server.cluster.RingPushGatewayDiscovery
 import com.latenighthack.lockers.server.cluster.RingRoomOwnership
 import com.latenighthack.lockers.server.cluster.RingSessionGatewayDiscovery
@@ -8,6 +9,10 @@ import com.latenighthack.lockers.server.services.push.v1.*
 import com.latenighthack.lockers.server.services.room.v1.*
 import com.latenighthack.lockers.server.services.session.v1.*
 import com.latenighthack.lockers.server.tools.GrpcRouteProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runBlocking
 
 /**
  * The monolith composition root. It instantiates every locker service module
@@ -45,11 +50,32 @@ class MonolithComponent(
     val broadcastAdminServiceModule: BroadcastAdminServiceModule =
         BroadcastAdminServiceModule::class.create(serverCore, sessionServiceModule)
 
+    /**
+     * M5 owner lifecycle for the room ring: present only in a clustered deployment that supplies an
+     * `ownerCoordinator`. It holds a fenced lease per owned shard and, on a fenced handoff away from
+     * this node, evicts the room caches (below) so the new owner rebuilds lazily from the store.
+     * [RingRoomOwnership] consults it so a write only proceeds when this node is both route-local
+     * and still holds a valid lease. Its map watch runs on [clusterScope], started in [start].
+     */
+    val ownerLifecycle: OwnerLifecycle? =
+        cluster?.ownerCoordinator?.let { coordinator ->
+            OwnerLifecycle(
+                self = cluster.router.roomSelf,
+                coordinator = coordinator,
+                keyspaces = cluster.roomKeyspaces,
+                onShardsDropped = { roomServiceModule.serverImpl.evictRoomCaches() },
+                metrics = cluster.ownerMetrics,
+            )
+        }
+
     private val roomOwnership: RoomOwnership =
-        cluster?.let { RingRoomOwnership(it.router) } ?: LocalRoomOwnership()
+        cluster?.let { RingRoomOwnership(it.router, ownerLifecycle) } ?: LocalRoomOwnership()
 
     val roomServiceModule: RoomServiceModule =
         RoomServiceModule::class.create(serverCore, sessionGatewayDiscovery, roomOwnership)
+
+    /** Scope for the owner lifecycle's shard-map watch; cancelled on [stop]. */
+    private val clusterScope = CoroutineScope(SupervisorJob())
 
     /**
      * Client- and peer-facing services, mounted on the public port. The gateways
@@ -79,11 +105,26 @@ class MonolithComponent(
 
     suspend fun start() {
         pushServiceModule.start()
+        // In a cluster, begin maintaining shard leases: acquire for owned shards and react to
+        // every reassignment. Reconcile once synchronously against the current map so the node is
+        // ready (owns its leases) before it starts serving; the watch keeps it in step thereafter.
+        ownerLifecycle?.let { lifecycle ->
+            cluster?.router?.let { router ->
+                lifecycle.reconcile(router.roomMap())
+                lifecycle.start(clusterScope, router.roomMapWatch())
+            }
+        }
         extensions.forEach { it.start() }
     }
 
-    /** Releases background scopes and sharded thread pools for a clean shutdown. */
+    /**
+     * Releases background scopes and sharded thread pools for a clean shutdown. In a cluster this
+     * first drains shard leases (`releaseAll`) so peers stop being redirected here and a successor
+     * can acquire at the next epoch, then cancels the lifecycle's map watch.
+     */
     fun stop() {
+        ownerLifecycle?.let { runBlocking { it.releaseAll() } }
+        clusterScope.cancel()
         pushServiceModule.stop()
         sessionServiceModule.serverImpl.close()
         roomServiceModule.serverImpl.close()

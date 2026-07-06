@@ -3,6 +3,7 @@ package com.latenighthack.lockers.server
 import com.latenighthack.ktstore.InMemoryStoreDelegate
 import com.latenighthack.ktstore.StoreDelegate
 import com.latenighthack.ktstore.createStoreDelegate
+import com.latenighthack.lockers.server.cluster.ShardMetrics
 import io.ktor.http.ContentType
 import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
@@ -11,6 +12,13 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
+import io.micrometer.core.instrument.binder.system.FileDescriptorMetrics
+import io.micrometer.core.instrument.binder.system.ProcessorMetrics
+import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.runBlocking
@@ -38,10 +46,29 @@ private fun storeDelegate(config: LockersConfig): StoreDelegate {
     }
 }
 
+/**
+ * Binds the standard JVM/system runtime meters to [registry] so `/metrics` reports heap/GC/threads/
+ * CPU/file-descriptors/uptime — the telemetry gap folded into this milestone (§7). [JvmGcMetrics] is
+ * an [AutoCloseable] (it registers GC notification listeners); the process runs until exit so we let
+ * the JVM reclaim it rather than tracking a close.
+ */
+private fun bindRuntimeMetrics(registry: MeterRegistry) {
+    JvmMemoryMetrics().bindTo(registry)
+    JvmGcMetrics().bindTo(registry)
+    JvmThreadMetrics().bindTo(registry)
+    ProcessorMetrics().bindTo(registry)
+    FileDescriptorMetrics().bindTo(registry)
+    UptimeMetrics().bindTo(registry)
+}
+
 fun main() {
     runBlocking {
         val config = LockersConfig.fromEnv()
         val metricsRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+        bindRuntimeMetrics(metricsRegistry)
+        // Pre-register the sharding/reshard meters (§7) so `/metrics` is shape-stable across
+        // deployment modes; the monolith owns every shard and never mutates them.
+        ShardMetrics(metricsRegistry)
 
         val core = ServerCore::class.create(config, storeDelegate(config))
         core.overrideMeterRegistry = metricsRegistry

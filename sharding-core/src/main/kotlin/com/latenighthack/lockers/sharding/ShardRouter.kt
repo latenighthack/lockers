@@ -4,6 +4,7 @@ import com.latenighthack.lockers.sharding.spi.Membership
 import com.latenighthack.lockers.sharding.spi.PeerLocator
 import com.latenighthack.lockers.sharding.spi.ShardMapSource
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -29,6 +30,9 @@ internal class RingView(
         private set
 
     val self: NodeId get() = membership.self
+
+    /** The underlying source stream (each emission at a higher epoch). */
+    fun watch(): Flow<ShardMap> = source.watch()
 
     fun start(scope: CoroutineScope) {
         source.watch().onEach { map = it }.launchIn(scope)
@@ -64,6 +68,15 @@ class ShardRouter private constructor(
 
     fun roomMap(): ShardMap = room.map
     fun sessionMap(): ShardMap = session.map
+
+    /**
+     * The room ring's [ShardMap] stream (each emission at a higher epoch). Drives the per-shard
+     * owner lifecycle so it acquires/releases leases in lock-step with reassignment.
+     */
+    fun roomMapWatch(): Flow<ShardMap> = room.watch()
+
+    /** The session ring's [ShardMap] stream, for symmetry with [roomMapWatch]. */
+    fun sessionMapWatch(): Flow<ShardMap> = session.watch()
 
     fun start(scope: CoroutineScope) {
         room.start(scope)

@@ -21,13 +21,17 @@ import kotlinx.coroutines.flow.update
  */
 class SimCluster(
     initialRoomNodes: Collection<NodeId>,
-    private val roomCounts: ShardCounts,
+    roomCounts: ShardCounts,
     initialSessionNodes: Collection<NodeId> = initialRoomNodes,
-    private val sessionCounts: ShardCounts = roomCounts,
+    sessionCounts: ShardCounts = roomCounts,
     private val vnodes: Int = RingAssignment.DEFAULT_VNODES,
 ) {
     private val roomRegistry = MutableStateFlow(initialRoomNodes.toSet())
     private val sessionRegistry = MutableStateFlow(initialSessionNodes.toSet())
+    // Shard counts are part of the shared control plane (M7): mutating them emits a higher-epoch
+    // ShardMap from every node's source, exactly like a membership change does.
+    private val roomCountsFlow = MutableStateFlow(roomCounts)
+    private val sessionCountsFlow = MutableStateFlow(sessionCounts)
     private val ownership = InMemoryOwnershipCoordinator()
 
     // Room-ring topology controls (addNode/removeNode kept as the room-ring aliases).
@@ -42,6 +46,12 @@ class SimCluster(
     fun removeSessionNode(node: NodeId) = sessionRegistry.update { it - node }
     fun sessionNodes(): Set<NodeId> = sessionRegistry.value
 
+    // Online shard-count controls (M7): repartition a ring across all nodes at a new epoch.
+    fun setRoomCounts(counts: ShardCounts) = roomCountsFlow.update { counts }
+    fun roomCounts(): ShardCounts = roomCountsFlow.value
+    fun setSessionCounts(counts: ShardCounts) = sessionCountsFlow.update { counts }
+    fun sessionCounts(): ShardCounts = sessionCountsFlow.value
+
     fun coordinatorFor(node: NodeId): OwnershipCoordinator = ownership.coordinatorFor(node)
 
     /** A locator that derives a stable fake address from the node id (in-process routing). */
@@ -51,10 +61,12 @@ class SimCluster(
     fun sessionMembershipFor(self: NodeId): Membership = InMemoryMembership(self, sessionRegistry)
 
     fun roomSourceFor(self: NodeId, scope: CoroutineScope): InMemoryShardMapSource =
-        InMemoryShardMapSource(roomMembershipFor(self), roomCounts, vnodes).also { it.bind(scope) }
+        InMemoryShardMapSource(roomMembershipFor(self), roomCountsFlow.value, vnodes, countsChanges = roomCountsFlow)
+            .also { it.bind(scope) }
 
     fun sessionSourceFor(self: NodeId, scope: CoroutineScope): InMemoryShardMapSource =
-        InMemoryShardMapSource(sessionMembershipFor(self), sessionCounts, vnodes).also { it.bind(scope) }
+        InMemoryShardMapSource(sessionMembershipFor(self), sessionCountsFlow.value, vnodes, countsChanges = sessionCountsFlow)
+            .also { it.bind(scope) }
 
     /** Room-ring shard-map source alias (back-compat with room-axis tests). */
     fun shardMapSourceFor(self: NodeId, scope: CoroutineScope): InMemoryShardMapSource =
