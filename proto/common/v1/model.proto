@@ -33,6 +33,16 @@ message Signature {
     bytes signature = 2;
 }
 
+// Points a client at the node that currently owns a shard, returned alongside a
+// NOT_OWNER / EPOCH_STALE result so the client re-targets the owning node without
+// needing any client-side knowledge of the ring (see server-side ShardRouter).
+message ShardRedirect {
+    // Base URL or host:port of the owning node, reachable by the client.
+    string owner_address = 1;
+    // The shard-map epoch this ownership was computed under (for staleness ordering).
+    int64 epoch = 2;
+}
+
 message KeyId {
     bytes raw_value = 1;
 }

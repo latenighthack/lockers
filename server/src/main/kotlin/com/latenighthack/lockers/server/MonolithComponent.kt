@@ -1,5 +1,9 @@
 package com.latenighthack.lockers.server
 
+import com.latenighthack.lockers.server.cluster.ClusterContext
+import com.latenighthack.lockers.server.cluster.RingPushGatewayDiscovery
+import com.latenighthack.lockers.server.cluster.RingRoomOwnership
+import com.latenighthack.lockers.server.cluster.RingSessionGatewayDiscovery
 import com.latenighthack.lockers.server.services.push.v1.*
 import com.latenighthack.lockers.server.services.room.v1.*
 import com.latenighthack.lockers.server.services.session.v1.*
@@ -19,6 +23,7 @@ import com.latenighthack.lockers.server.tools.GrpcRouteProvider
 class MonolithComponent(
     serverCore: ServerCore,
     val extensions: List<ServerExtension> = emptyList(),
+    private val cluster: ClusterContext? = null,
 ) {
     val pushServiceModule: PushServiceModule =
         PushServiceModule::class.create(serverCore)
@@ -27,19 +32,24 @@ class MonolithComponent(
     val pushAdminServiceModule: PushAdminServiceModule =
         PushAdminServiceModule::class.create(serverCore, pushServiceModule)
     private val pushGatewayDiscovery: PushGatewayDiscovery =
-        LocalPushGatewayDiscovery(pushGatewayServiceModule.server)
+        cluster?.let { RingPushGatewayDiscovery(it.router, pushGatewayServiceModule.server, it.pushGateways) }
+            ?: LocalPushGatewayDiscovery(pushGatewayServiceModule.server)
 
     val sessionServiceModule: SessionServiceModule =
         SessionServiceModule::class.create(serverCore, pushGatewayDiscovery)
     val sessionGatewayServiceModule: SessionGatewayServiceModule =
         SessionGatewayServiceModule::class.create(serverCore, sessionServiceModule)
     private val sessionGatewayDiscovery: SessionGatewayDiscovery =
-        LocalSessionGatewayDiscovery(sessionGatewayServiceModule.server)
+        cluster?.let { RingSessionGatewayDiscovery(it.router, sessionGatewayServiceModule.server, it.sessionGateways) }
+            ?: LocalSessionGatewayDiscovery(sessionGatewayServiceModule.server)
     val broadcastAdminServiceModule: BroadcastAdminServiceModule =
         BroadcastAdminServiceModule::class.create(serverCore, sessionServiceModule)
 
+    private val roomOwnership: RoomOwnership =
+        cluster?.let { RingRoomOwnership(it.router) } ?: LocalRoomOwnership()
+
     val roomServiceModule: RoomServiceModule =
-        RoomServiceModule::class.create(serverCore, sessionGatewayDiscovery)
+        RoomServiceModule::class.create(serverCore, sessionGatewayDiscovery, roomOwnership)
 
     /**
      * Client- and peer-facing services, mounted on the public port. The gateways

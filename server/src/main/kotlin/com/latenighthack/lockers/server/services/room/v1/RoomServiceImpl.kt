@@ -28,7 +28,8 @@ import kotlin.random.Random
 @Component
 abstract class RoomServiceModule(
     @Component val serverCore: ServerCore,
-    @get:Provides val sessionGatewayDiscovery: SessionGatewayDiscovery
+    @get:Provides val sessionGatewayDiscovery: SessionGatewayDiscovery,
+    @get:Provides val roomOwnership: RoomOwnership,
 ): GrpcRouteProvider<RoomServer> {
     abstract val serverImpl: RoomServiceImpl
 
@@ -44,6 +45,7 @@ class RoomServiceImpl(
     private val lockerStore: LockerStore,
     private val lockStore: LockStore,
     private val sessionGatewayDiscovery: SessionGatewayDiscovery,
+    private val roomOwnership: RoomOwnership,
     private val agentRegistry: LockerAgentRegistry,
     private val meterRegistry: MeterRegistry,
     private val config: LockersConfig,
@@ -77,6 +79,21 @@ class RoomServiceImpl(
 
     private suspend fun lockStateFor(roomId: RoomId, lockerId: LockerId): LockState? =
         effectiveLockOrNull(roomId, lockerId)?.let { lockVerifier.stateOf(it) }
+
+    /**
+     * Locker writes are gated to the node that owns the room's `(keyspace, roomId)` shard. On a
+     * non-owner node this returns a [ShardRedirect] to the owner so the caller answers NOT_OWNER;
+     * on the owner (and in a monolith) it returns null and the write proceeds. Reads and the
+     * per-room subscription registry stay ungated — they run against the shared store.
+     */
+    private suspend fun redirectIfNotOwner(keyspace: Long, roomId: RoomId): ShardRedirect? =
+        when (val owner = roomOwnership.resolve(keyspace, roomId)) {
+            is RoomOwner.Local -> null
+            is RoomOwner.Remote -> ShardRedirect {
+                ownerAddress = owner.address
+                epoch = owner.epoch
+            }
+        }
 
     private val gatewayLookupFailureCounter = meterRegistry.counter("lockers.room.gateway.lookup.failures")
     private val oversizeRejectedCounter = meterRegistry.counter("lockers.room.locker.rejected.oversize")
@@ -242,6 +259,13 @@ class RoomServiceImpl(
         val updatedLocker = request.locker ?: return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
         val requestLockerId = request.lockerId ?: return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
         val requestVersion = request.parentVersion
+
+        redirectIfNotOwner(requestLockerId.keyspace?.value ?: 0L, requestRoomId)?.let {
+            return@trackResponse PostLockerChangeResponse {
+                result = PostLockerChangeResponse.Result.NOT_OWNER
+                redirect = it
+            }
+        }
 
         if (!rateLimiter.tryAcquire(requestRoomId)) {
             rateLimitedCounter.increment()
@@ -430,6 +454,13 @@ class RoomServiceImpl(
         val requestEventId = EventId(Random.nextBytes(32))
         val requestLockerId = request.lockerId ?: return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
         val requestVersion = request.parentVersion
+
+        redirectIfNotOwner(requestLockerId.keyspace?.value ?: 0L, requestRoomId)?.let {
+            return@trackResponse DeleteLockerResponse {
+                result = DeleteLockerResponse.Result.NOT_OWNER
+                redirect = it
+            }
+        }
 
         if (!rateLimiter.tryAcquire(requestRoomId)) {
             rateLimitedCounter.increment()

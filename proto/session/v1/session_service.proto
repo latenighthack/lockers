@@ -59,11 +59,14 @@ message WatchSessionResponse {
             INVALID_SEQUENCE = 5;
             UPGRADE_REQUIRED = 6;
             SERVICE_UNAVAILABLE = 7;
+            // This node does not own the session's shard; reconnect to `redirect.owner_address`.
+            EPOCH_STALE = 8;
             UNKNOWN_ERROR = 10;
         }
 
         repeated common.v1.Event queued_events = 3;
         bytes next_sequence_key = 4;
+        common.v1.ShardRedirect redirect = 5;
     }
 
     message Events {

@@ -20,6 +20,7 @@ mavenPublishing {
 
 dependencies {
     implementation(projects.api)
+    implementation(projects.shardingCore)
 
     implementation(libs.kotlin.inject.runtime)
     implementation(libs.ktbuf.library)

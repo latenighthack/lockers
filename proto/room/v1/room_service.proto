@@ -72,11 +72,14 @@ message PostLockerChangeResponse {
     SIGNATURE_REQUIRED = 2;
     SIGNATURE_INVALID = 3;
     NOT_AUTHORIZED = 4;
+    // This node does not own the room's shard; retry against `redirect.owner_address`.
+    NOT_OWNER = 5;
     UNKNOWN_ERROR = 10;
   }
   common.v1.Locker existing_locker = 2;
   int64 version = 3;
   common.v1.LockState lock_state = 4;
+  common.v1.ShardRedirect redirect = 5;
 }
 
 message DeleteLockerRequest {
@@ -99,11 +102,14 @@ message DeleteLockerResponse {
     SIGNATURE_REQUIRED = 2;
     SIGNATURE_INVALID = 3;
     NOT_AUTHORIZED = 4;
+    // This node does not own the room's shard; retry against `redirect.owner_address`.
+    NOT_OWNER = 5;
     UNKNOWN_ERROR = 10;
   }
   common.v1.Locker existing_locker = 2;
   int64 version = 3;
   common.v1.LockState lock_state = 4;
+  common.v1.ShardRedirect redirect = 5;
 }
 
 message LockLockerRequest {
@@ -120,9 +126,12 @@ message LockLockerResponse {
     OK = 0;
     NOT_AUTHORIZED = 1;
     UPDATE_LOCAL_VERSION = 2;
+    // This node does not own the room's shard; retry against `redirect.owner_address`.
+    NOT_OWNER = 3;
     UNKNOWN_ERROR = 10;
   }
   common.v1.LockState lock_state = 2;
+  common.v1.ShardRedirect redirect = 3;
 }
 
 message UnlockLockerRequest {
@@ -140,8 +149,11 @@ message UnlockLockerResponse {
     NOT_AUTHORIZED = 1;
     SIGNATURE_INVALID = 2;
     UPDATE_LOCAL_VERSION = 3;
+    // This node does not own the room's shard; retry against `redirect.owner_address`.
+    NOT_OWNER = 4;
     UNKNOWN_ERROR = 10;
   }
+  common.v1.ShardRedirect redirect = 2;
 }
 
 message GetAllLockersRequest {

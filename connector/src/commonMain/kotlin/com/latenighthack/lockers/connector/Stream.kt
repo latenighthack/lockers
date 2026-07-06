@@ -476,6 +476,10 @@ class Stream(
                             }
                             is WatchSessionResponse.Open.Result.SERVICE_UNAVAILABLE ->
                                 throw RetryableStreamException("session service unavailable")
+                            is WatchSessionResponse.Open.Result.EPOCH_STALE ->
+                                // The session's shard moved to another node; reconnect so the
+                                // routing tier (or a redirect) re-resolves the current owner.
+                                throw RetryableStreamException("session shard moved; reconnecting")
                             is WatchSessionResponse.Open.Result.UNKNOWN_ERROR ->
                                 throw RetryableStreamException("unknown error opening session")
                             is WatchSessionResponse.Open.Result.SESSION_EXISTS -> {
