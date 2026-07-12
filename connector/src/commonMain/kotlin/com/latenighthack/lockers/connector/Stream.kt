@@ -320,6 +320,7 @@ sealed class StreamFatalError(val reason: String) {
     object InvalidPublicKey : StreamFatalError("session public key was rejected by the server")
     object InvalidSessionId : StreamFatalError("session id was rejected by the server")
     object UpgradeRequired : StreamFatalError("client version is no longer supported; upgrade required")
+    object TransportExhausted : StreamFatalError("transport retries exhausted")
 }
 
 private class FatalStreamException(val error: StreamFatalError) : CancellationException(error.reason)
@@ -399,7 +400,17 @@ class Stream(
         subscriptionController.startWatchingSubscriptions()
 
         streamScope.launch {
-            connect()
+            // connect() throws on fatal errors and on retry exhaustion; either way the
+            // outcome belongs in fatalError, not an uncaught scope crash
+            try {
+                connect()
+            } catch (e: FatalStreamException) {
+                // fatalErrorState already set by failFatally
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                fatalErrorState.value = StreamFatalError.TransportExhausted
+            }
         }
     }
 
