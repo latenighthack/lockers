@@ -77,7 +77,10 @@ abstract class ServerCore(
         adminToken = config.adminToken,
     )
 
-    @get:Provides val agentRegistry: LockerAgentRegistry = ExampleLockerAgent()
+    /** Embedder seam: set before [setup] to plug a real agent (mirrors [overridePushProviders]). */
+    var overrideAgentRegistry: LockerAgentRegistry? = null
+    private val _agentRegistry by lazy { overrideAgentRegistry ?: ExampleLockerAgent() }
+    @get:Provides val agentRegistry: LockerAgentRegistry get() = _agentRegistry
 
     suspend fun setup() {
         sessionStoreImpl.prepare()
