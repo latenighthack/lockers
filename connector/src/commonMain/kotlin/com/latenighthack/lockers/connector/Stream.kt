@@ -1,5 +1,8 @@
 package com.latenighthack.lockers.connector
 
+import com.diamondedge.logging.KmLog
+import com.diamondedge.logging.logging
+
 import com.latenighthack.ktbuf.bytes.toBase64String
 import com.latenighthack.ktbuf.net.RpcClient
 import com.latenighthack.ktbuf.rpc.repeatWithBackoff
@@ -105,7 +108,8 @@ class SubscriptionController(
     private val rpcClient: RpcClient,
     private val subscriptionStore: SubscriptionStore,
     private val sessionStore: SessionStore,
-    private val sessionIdSource: Flow<SessionId?>
+    private val sessionIdSource: Flow<SessionId?>,
+    private val log: KmLog = logging()
 ) {
     private val controllerJob = SupervisorJob()
     private val controllerScope = CoroutineScope(Dispatchers.Default + controllerJob)
@@ -220,6 +224,9 @@ class SubscriptionController(
                     }.asFlow())
                 }
                 .collect { subscriptionChange ->
+                    // a failed subscribe/unsubscribe RPC must not kill the reconcile loop;
+                    // the room stays pending in the store and is retried on next reconnect
+                    try {
                     val sessionId = sessionIdSource.filter { it != null }.first()
 
                     roomService.subscription(SubscriptionRequest {
@@ -250,6 +257,11 @@ class SubscriptionController(
                             subscriptionStore.deleteSubscription(subscriptionChange.roomId)
                             reconciledSubscriptions.value -= subscriptionChange.roomId
                         }
+                    }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        log.error { "subscription reconcile failed for change=$subscriptionChange: $e" }
                     }
                 }
         }
