@@ -16,6 +16,7 @@ import com.latenighthack.lockers.server.storage.v1.*
 import com.latenighthack.lockers.session.v1.*
 import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import me.tatarka.inject.annotations.Component
@@ -90,7 +91,14 @@ class SessionServiceImpl(
         it.rawValue.contentHashCode()
     }
     private val openStreamCancellationChannels = ConcurrentHashMap<ServerSessionId, Channel<Unit>>()
-    private val incomingEvents = MutableSharedFlow<OnlineServerSessionEvent>()
+    // Live delivery must never suspend the emitter: enqueueEvent runs on the session shard inside
+    // the room shard's postLockerChange, so a stalled stream collector would wedge both shards for
+    // every room hashed to them. Dropped events are safe — they are already in sessionInboxStore
+    // and replay on the next stream open.
+    private val incomingEvents = MutableSharedFlow<OnlineServerSessionEvent>(
+        extraBufferCapacity = 1024,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
     
     private val activeStreamsCount = AtomicInt(0)
     private val activeStreamsGauge = meterRegistry.gauge("lockers.session.streams.active", activeStreamsCount) { it.get().toDouble() }

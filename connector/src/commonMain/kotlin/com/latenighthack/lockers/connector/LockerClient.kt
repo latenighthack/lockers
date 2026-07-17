@@ -151,9 +151,16 @@ class TypedLockerClient<ValueType>(
 
     fun watchAll(roomId: RoomId, includeHistory: Boolean = true): Flow<Map<LockerId, ValueType>> = allUpdates
         .onStart {
-            lockerClient.subscribeToRoom(roomId)
-            if (includeHistory) {
-                emitAll(hydrate(roomId, keyspace))
+            // a failed subscribe/hydrate must not tear down the watcher; live updates still flow
+            try {
+                lockerClient.subscribeToRoom(roomId)
+                if (includeHistory) {
+                    emitAll(hydrate(roomId, keyspace))
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                lockerClient.log.error { "watchAll hydrate failed for ${roomId.toLogString()}: $e" }
             }
         }
         .filter { it.roomId == roomId }
@@ -161,9 +168,15 @@ class TypedLockerClient<ValueType>(
 
     fun watchAll(roomId: RoomId, keyspace: LockerKeyspace, includeHistory: Boolean = true): Flow<Map<LockerId, ValueType>> = allUpdates
         .onStart {
-            lockerClient.subscribeToRoom(roomId)
-            if (includeHistory) {
-                emitAll(hydrate(roomId, keyspace))
+            try {
+                lockerClient.subscribeToRoom(roomId)
+                if (includeHistory) {
+                    emitAll(hydrate(roomId, keyspace))
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                lockerClient.log.error { "watchAll hydrate failed for ${roomId.toLogString()}: $e" }
             }
         }
         .filter { it.lockerId.keyspace == keyspace && it.roomId == roomId }
@@ -174,11 +187,17 @@ class TypedLockerClient<ValueType>(
 
         return allUpdates
             .onStart {
-                lockerClient.subscribeToRoom(roomId)
-                if (includeHistory) {
-                    lockerClient.getLocker(roomId, scopedId)?.let {
-                        emit(it.toTyped(roomId))
+                try {
+                    lockerClient.subscribeToRoom(roomId)
+                    if (includeHistory) {
+                        lockerClient.getLocker(roomId, scopedId)?.let {
+                            emit(it.toTyped(roomId))
+                        }
                     }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    lockerClient.log.error { "watch hydrate failed for ${roomId.toLogString()}: $e" }
                 }
             }
             .filter { it.roomId == roomId && it.lockerId == scopedId }
@@ -259,12 +278,15 @@ private const val WRITE_RETRY_LIMIT = 8
  * budget before surfacing. RPC errors keep their usual transient/terminal split.
  */
 private val WRITE_EXCEPTION_HANDLER: (Throwable) -> Boolean = { e ->
+    writeRetryLog.debug { "locker write attempt failed (${e::class.simpleName}: ${e.message})\n${e.stackTraceToString()}" }
     when (e) {
         is LockerWriteException -> false
         is RpcResponseException -> e.retriable()
         else -> true
     }
 }
+
+private val writeRetryLog = com.diamondedge.logging.logging("LockerWriteRetry")
 
 /**
  * Thrown when a locker write cannot be completed — the server reported a terminal
@@ -280,7 +302,7 @@ class LockerClient(
     private val lockerStore: LockerStore,
     private val lockKeySource: LockKeySource? = null,
     private val codecs: NotificationCodecs = NotificationCodecs.identity(),
-    private val log: KmLog = logging()
+    internal val log: KmLog = logging()
 ) {
     private val processingJob = Job()
     private val processingScope = GlobalScope + processingJob
@@ -360,19 +382,26 @@ class LockerClient(
 
         processingScope.launch {
             stream.watchNewSubscriptions().collect { subscribedRoomId ->
-                log.debug { "fetching all lockers for ${subscribedRoomId.toLogString()}" }
-                val fetchedLockers = roomService.getAllLockers(GetAllLockersRequest {
-                    roomId = subscribedRoomId
-                }).lockers
+                // a failed fetch must not kill the loop — log and keep serving later subscriptions
+                try {
+                    log.debug { "fetching all lockers for ${subscribedRoomId.toLogString()}" }
+                    val fetchedLockers = roomService.getAllLockers(GetAllLockersRequest {
+                        roomId = subscribedRoomId
+                    }).lockers
 
-                log.debug {"got ${fetchedLockers.size} lockers for ${subscribedRoomId.toLogString()}" }
+                    log.debug {"got ${fetchedLockers.size} lockers for ${subscribedRoomId.toLogString()}" }
 
-                internalChanges.emitAll(fetchedLockers
-                    .map {
-                        it.toUpdate(subscribedRoomId)
-                    }
-                    .asFlow()
-                )
+                    internalChanges.emitAll(fetchedLockers
+                        .map {
+                            it.toUpdate(subscribedRoomId)
+                        }
+                        .asFlow()
+                    )
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    log.error { "failed to fetch lockers for ${subscribedRoomId.toLogString()}: $e" }
+                }
             }
         }
     }
@@ -458,7 +487,17 @@ class LockerClient(
 
         if (cached.isNotEmpty()) {
             if (revalidate) {
-                processingScope.launch { fetchAllLockers(roomId, keyspace) }
+                processingScope.launch {
+                    // background revalidation is best-effort; a network failure must not
+                    // surface as an uncaught crash
+                    try {
+                        fetchAllLockers(roomId, keyspace)
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        log.error { "revalidate failed for ${roomId.toLogString()}: $e" }
+                    }
+                }
             }
             return cached.map { it.toIdentifiedLocker() }
         }
@@ -503,7 +542,17 @@ class LockerClient(
 
         if (cached != null) {
             if (revalidate) {
-                processingScope.launch { fetchLocker(roomId, lockerId) }
+                processingScope.launch {
+                    // background revalidation is best-effort; a network failure must not
+                    // surface as an uncaught crash
+                    try {
+                        fetchLocker(roomId, lockerId)
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        log.error { "revalidate failed for ${roomId.toLogString()}: $e" }
+                    }
+                }
             }
             return cached.toIdentifiedLocker()
         }
@@ -601,6 +650,10 @@ class LockerClient(
         val signingKey = lockKeySource?.writeKeyFor(roomId, lockerId)
         val pendingRatchetKey = if (ratchet && signingKey != null) Secp256r1KeyPair.generate() else null
 
+        // Names the write in rejection messages: a REQUIRED verdict means the key chain returned no
+        // signing key for this room (signed=false), which is otherwise invisible from the message.
+        val writeContext = "room=${roomId.toLogString()} locker=${lockerId.toLogString()} signed=${signingKey != null}"
+
         val updatedLocker = try {
             repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
                 val newPlaintext = transform(currentPlaintext)
@@ -625,7 +678,7 @@ class LockerClient(
                     this.notification = notif
                 })
 
-                log.debug { "updated locker=${lockerId.toLogString()}" }
+                log.debug { "updated locker=${lockerId.toLogString()} result=${result.result} version=${result.version}" }
 
                 val locker = when (result.result) {
                     is PostLockerChangeResponse.Result.OK -> body.locker
@@ -641,11 +694,11 @@ class LockerClient(
                         retry()
                     }
                     is PostLockerChangeResponse.Result.SIGNATURE_REQUIRED ->
-                        throw LockerWriteException("locker is locked; a signing key is required")
+                        throw LockerWriteException("locker is locked; a signing key is required ($writeContext)")
                     is PostLockerChangeResponse.Result.SIGNATURE_INVALID ->
-                        throw LockerWriteException("locker write signature was rejected")
+                        throw LockerWriteException("locker write signature was rejected ($writeContext)")
                     is PostLockerChangeResponse.Result.NOT_AUTHORIZED ->
-                        throw LockerWriteException("locker write not authorized")
+                        throw LockerWriteException("locker write not authorized ($writeContext)")
                     else -> retry()
                 }
 
@@ -772,39 +825,12 @@ class LockerClient(
     private suspend fun signatureOf(keyPair: Secp256r1KeyPair, message: ByteArray): Signature =
         Signature(
             publicKey = Secp256R1Key.PublicKey(rawValue = keyPair.publicKey.encode()),
-            signature = ecdsaDerToRaw(keyPair.privateKey.sign(message)),
+            // ktcrypto's sign() returns the raw r‖s the server expects on every platform.
+            signature = keyPair.privateKey.sign(message),
         )
-}
-
-/**
- * ktcrypto's secp256r1 `sign` emits a DER-encoded ECDSA signature, but its `verify`
- * expects a fixed-width raw r‖s (it splits the input in half). Convert here so the
- * signatures we send verify against the on-file key on the server.
- */
-internal fun ecdsaDerToRaw(der: ByteArray): ByteArray {
-    var offset = 0
-    check(der.getOrNull(offset++) == 0x30.toByte()) { "invalid DER signature header" }
-    offset++ // sequence length — always short-form for P-256 signatures
-    check(der[offset++] == 0x02.toByte()) { "invalid DER signature (r)" }
-    val rLen = der[offset++].toInt() and 0xFF
-    val r = der.copyOfRange(offset, offset + rLen)
-    offset += rLen
-    check(der[offset++] == 0x02.toByte()) { "invalid DER signature (s)" }
-    val sLen = der[offset++].toInt() and 0xFF
-    val s = der.copyOfRange(offset, offset + sLen)
-    return leftPad32(r) + leftPad32(s)
-}
-
-private fun leftPad32(value: ByteArray): ByteArray {
-    var start = 0
-    while (start < value.size - 1 && value[start] == 0.toByte()) start++
-    val trimmed = value.copyOfRange(start, value.size)
-    val out = ByteArray(32)
-    val copyLen = minOf(trimmed.size, 32)
-    trimmed.copyInto(out, 32 - copyLen, trimmed.size - copyLen, trimmed.size)
-    return out
 }
 
 private fun RoomId.toLogString() = "r+" + (this?.rawValue?.toBase64String()?.substring(0..5) ?: "(nul)")
 
-private fun LockerId?.toLogString() = "l+" + (this?.rawValue?.toBase64String()?.substring(0..5) ?: "(nul)")
+private fun LockerId?.toLogString() = "l+" + (this?.rawValue?.toBase64String()?.substring(0..5) ?: "(nul)") +
+    "/ks" + (this?.keyspace?.value?.toString() ?: "0")
