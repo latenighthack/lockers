@@ -12,6 +12,7 @@ import com.latenighthack.lockers.common.v1.Version
 import com.latenighthack.lockers.connector.*
 import com.latenighthack.lockers.server.*
 import com.latenighthack.lockers.connector.internal.ShardedRoomServiceRpc
+import com.latenighthack.lockers.connector.storage.v1.StoredAck
 import com.latenighthack.lockers.room.v1.PostLockerChangeRequest
 import io.ktor.server.application.*
 import kotlinx.coroutines.*
@@ -109,6 +110,29 @@ class StreamTests {
         assertContentEquals(byteArrayOf(1, 2, 3), event.notification?.payload?.rawValue)
     }
 
+    /**
+     * Delays stream connection setup, as a real transport does (DNS/TLS/upgrade). Surfaces the
+     * request-flow race: anything the client emits right after its open request (pending acks)
+     * had time to displace the open before the transport started sending.
+     */
+    private class SlowConnectRpcClient(private val delegate: com.latenighthack.ktbuf.net.RpcClient) :
+        com.latenighthack.ktbuf.net.RpcClient {
+        override suspend fun unaryCall(
+            method: com.latenighthack.ktbuf.net.RpcMethodSpecifier,
+            headers: Map<String, String>,
+            request: ByteArray
+        ) = delegate.unaryCall(method, headers, request)
+
+        override suspend fun serverStreamingCall(
+            method: com.latenighthack.ktbuf.net.RpcMethodSpecifier,
+            block: suspend com.latenighthack.ktbuf.net.RpcServerStream.() -> Unit,
+            readyCallback: () -> Unit
+        ) {
+            kotlinx.coroutines.delay(250)
+            delegate.serverStreamingCall(method, block, readyCallback)
+        }
+    }
+
     private class FixedKeySource(private val keyPair: Secp256r1KeyPair) : AuthenticationKeySource {
         override suspend fun getSessionKeyPair(): Secp256r1KeyPair = keyPair
         override suspend fun hasSessionKeyPair(): Boolean = true
@@ -168,6 +192,49 @@ class StreamTests {
             assertContentEquals(firstSessionId.rawValue, recoveredSessionId.rawValue)
             assertContentEquals(byteArrayOf(7, 8, 9), queued.await().notification?.payload?.rawValue)
             stream2.stop()
+        }
+
+    @Test
+    fun `pending stored acks do not block the session open`() =
+        runTestWithServer(Application::attachTestServices) { server, _ ->
+            val rpcClient = server.rpcClient
+            val storeDelegate = InMemoryStoreDelegate()
+            val keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate())
+            val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
+            val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
+            val keySource = FixedKeySource(Secp256r1KeyPair.generate())
+            val testRoomId = RoomId(Random.nextBytes(32))
+            val testLockerId = LockerId(Random.nextBytes(32), LockerKeyspace { value = 1L })
+
+            subscriptionStore.prepare()
+            sessionStore.prepare()
+            storeDelegate.createStores()
+
+            // Pending acks (e.g. the app died before the server confirmed them) are re-sent
+            // immediately after the open request. That early second request must never displace
+            // the open as the first frame on the wire — a client in this state used to lose its
+            // open to the request-flow replay race and never truly connect.
+            sessionStore.addAck(StoredAck(Random.nextBytes(32), Random.nextBytes(32)))
+            sessionStore.addAck(StoredAck(Random.nextBytes(32), Random.nextBytes(32)))
+
+            val version = Version(0, 0, 1)
+            val stream = Stream(SlowConnectRpcClient(rpcClient), keySource, sessionStore, subscriptionStore, version)
+            val incoming = CompletableDeferred<Event>()
+            launch { incoming.complete(stream.events.first()) }
+            stream.start()
+            awaitConnected(stream)
+            stream.subscribe(testRoomId, waitForSubscription = true)
+
+            ShardedRoomServiceRpc(rpcClient).postLockerChange(PostLockerChangeRequest {
+                roomId = testRoomId
+                lockerId = testLockerId
+                parentVersion = 0
+                locker { open { encodedPayload = byteArrayOf() } }
+                notification { payload { rawValue = byteArrayOf(4, 5, 6) } }
+            })
+
+            assertContentEquals(byteArrayOf(4, 5, 6), incoming.await().notification?.payload?.rawValue)
+            stream.stop()
         }
 
     @Test

@@ -144,6 +144,10 @@ class SessionServiceImpl(
                     is WatchSessionRequest.OneOfRequest.open -> openBuilder.handleOpen(oneOf.getOpen()!!)
                     is WatchSessionRequest.OneOfRequest.create -> openBuilder.handleCreate(oneOf.getCreate()!!)
                     else -> {
+                        // First frame wasn't open/create (e.g. a client bug sent an ack first).
+                        // Result must be explicit: the proto default is OK, and answering OK here
+                        // made such a client believe it was connected to a stream that then closed.
+                        openBuilder.result = WatchSessionResponse.Open.Result.UNKNOWN_ERROR
                         eventsPreOpen.increment()
                         null
                     }
