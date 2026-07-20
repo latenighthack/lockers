@@ -9,7 +9,10 @@ kotlin {
 
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-    signAllPublications()
+    // Sign only when a key is configured (CI); local publishToMavenLocal has no signatory.
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) {
+        signAllPublications()
+    }
     coordinates(artifactId = "lockers-sharding-core")
     pom {
         name.set("lockers-sharding-core")

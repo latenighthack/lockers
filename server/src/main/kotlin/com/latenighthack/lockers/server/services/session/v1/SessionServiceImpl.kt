@@ -123,15 +123,21 @@ class SessionServiceImpl(
 
     private data class OpenState(val sessionId: ServerSessionId, val open: WatchSessionResponse.Open)
 
+    // Ends the response stream after a rejected open/create. Must NOT be a CancellationException:
+    // cancelling the collector can abort the transport before the error response and close frame
+    // are flushed, leaving the client hanging on a half-dead socket instead of seeing the result.
+    private class StreamRejected : Exception()
+
     override fun watchSession(
         context: GrpcRequestContext,
         request: Flow<WatchSessionRequest>
     ): Flow<StreamControlEvent<WatchSessionResponse>> {
         val cancellationChannel = Channel<Unit>()
-        val openState = CompletableDeferred<OpenState>()
+        val openState = CompletableDeferred<OpenState?>()
 
         return merge(flow {
-            request.collectFirst({ openOrCreate ->
+            try {
+                request.collectFirst({ openOrCreate ->
                 // attempt to handle the open OR create
                 val openBuilder = WatchSessionResponse_OpenBuilder()
                 val sessionId = when (val oneOf = openOrCreate.request) {
@@ -144,15 +150,17 @@ class SessionServiceImpl(
                 }
 
                 if (sessionId == null) {
-                    // the stream could not be opened, close the socket
+                    // The stream could not be opened: report the result, then end every merged
+                    // branch NORMALLY so the transport flushes the response and closes cleanly.
                     emit(StreamControlEvent.Message(WatchSessionResponse {
                         response.open = openBuilder.build()
                     }))
                     emit(StreamControlEvent.Close())
 
-                    currentCoroutineContext().cancel()
+                    openState.complete(null)
+                    cancellationChannel.close()
 
-                    return@collectFirst null
+                    throw StreamRejected()
                 }
 
                 val open = openBuilder.build()
@@ -219,14 +227,19 @@ class SessionServiceImpl(
                     }
                 }
             }
+            } catch (e: StreamRejected) {
+                // Rejection response and Close already emitted; end this branch normally.
+            }
         }, cancellationChannel.receiveAsFlow().map {
             StreamControlEvent.Close()
         }, flow {
-            val os = openState.await()
+            val os = openState.await() ?: return@flow
             val sessionId = os.sessionId
             val originalOpen = os.open
             var isFirst = true
-            var storedQueuedEvents: Set<ByteArray>? = null
+            // Keyed by List<Byte> — a Set<ByteArray> compares by reference and would never match,
+            // re-delivering every open-queued event on the live path too.
+            var storedQueuedEvents: Set<List<Byte>>? = null
 
             emitAll(incomingEvents
                 .onStart {
@@ -257,7 +270,7 @@ class SessionServiceImpl(
                             }
                         }
 
-                        storedQueuedEvents = setOf(*queuedEvents.mapNotNull { it.eventId?.rawValue }.toTypedArray())
+                        storedQueuedEvents = queuedEvents.mapNotNull { it.eventId?.rawValue?.toList() }.toSet()
 
                         eventsDeliveredQueuedCounter.increment(queuedEvents.size.toDouble())
 
@@ -272,7 +285,7 @@ class SessionServiceImpl(
                     it.event?.sessionId?.rawValue.contentEquals(sessionId.rawValue)
                 }
                 .mapNotNull {
-                    if (storedQueuedEvents?.contains(it.event?.eventId?.rawValue) == true) {
+                    if (storedQueuedEvents?.contains(it.event?.eventId?.rawValue?.toList()) == true) {
                         return@mapNotNull null
                     }
 
@@ -303,11 +316,15 @@ class SessionServiceImpl(
                 }
             )
         }).onCompletion {
+            // A rejected open completes openState with null: nothing was registered, so there is
+            // nothing to unwind (and activeStreamsCount was never incremented).
             if (openState.isCompleted) {
-                activeStreamsCount.decrementAndGet()
-                // Only drop the entry if it is still this stream's channel — a newer
-                // stream for the same session may have replaced it.
-                openStreamCancellationChannels.remove(openState.await().sessionId, cancellationChannel)
+                openState.await()?.let { os ->
+                    activeStreamsCount.decrementAndGet()
+                    // Only drop the entry if it is still this stream's channel — a newer
+                    // stream for the same session may have replaced it.
+                    openStreamCancellationChannels.remove(os.sessionId, cancellationChannel)
+                }
             }
         }
     }
@@ -370,12 +387,18 @@ class SessionServiceImpl(
 
         for (sessionId in sessionIds) {
             if (requestPush != null) {
-                val pushService = pushGatewayDiscovery.findServer(sessionId)
-
-                pushService?.sendPush(SendPushRequest {
-                    this.sessionId = sessionId
-                    push = requestPush
-                })
+                // Push is best-effort: a gateway lookup/send failure must not abort the fanout —
+                // the inbox save below is what guarantees delivery.
+                try {
+                    pushGatewayDiscovery.findServer(sessionId)?.sendPush(SendPushRequest {
+                        this.sessionId = sessionId
+                        push = requestPush
+                    })
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (ex: Exception) {
+                    logger.warn("push send failed for session; continuing fanout", ex)
+                }
             }
 
             val serverEvent = ServerSessionEvent(
@@ -461,6 +484,11 @@ class SessionServiceImpl(
         try {
             if (!authorizedPublicKey.verify(session.nextKeyMaterial, requestSequenceSignature)) {
                 result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
+                // Recovery contract: hand back the material the client must sign. It is a nonce
+                // challenge — useless without the session's private key — and without it a client
+                // whose stored sequence bytes desynced (e.g. killed between our rotation and its
+                // persist) is locked out of the session permanently.
+                nextSequenceKey = session.nextKeyMaterial
                 meterRegistry.counter("lockers.session.opens", "result", "INVALID_SEQUENCE").increment()
                 return null
             }
@@ -473,6 +501,7 @@ class SessionServiceImpl(
             meterRegistry.counter("lockers.session.opens", "result", "OK").increment()
         } catch (signatureException: SignatureException) {
             result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
+            nextSequenceKey = session.nextKeyMaterial
             meterRegistry.counter("lockers.session.opens", "result", "INVALID_SEQUENCE").increment()
             return null
         } catch (ex: Exception) {

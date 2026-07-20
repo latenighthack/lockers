@@ -336,7 +336,16 @@ class Stream(
 ) {
     companion object {
         val PING_TIMEOUT = 60_000L
+        val RECONNECT_DELAY_MILLIS = 1_000L
+
+        // Consecutive INVALID_SEQUENCE opens tolerated before abandoning the session and
+        // re-creating. Re-creating orphans the old session's queued events, so it is a last
+        // resort — but a permanent lockout is worse.
+        const val INVALID_SEQUENCE_WIPE_THRESHOLD = 3
     }
+
+    // Consecutive INVALID_SEQUENCE count across reconnects; reset by a successful open.
+    private var invalidSequenceStreak = 0
 
     private val streamJob = SupervisorJob()
     private val streamScope = CoroutineScope(Dispatchers.Default + streamJob)
@@ -379,11 +388,21 @@ class Stream(
         get() = sessionIdSource
 
     private suspend fun connect() {
-        onConnected.value = false
-
-        repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
-            connectInternal()
+        // Outer loop: a stream that ends WITHOUT throwing (server closed the socket cleanly —
+        // LB idle timeout, deploy, session takeover) must reconnect too; previously only
+        // exceptions retried and a clean close ended the stream permanently. Each pass restarts
+        // repeatWithBackoff with a fresh budget, so TransportExhausted still fires on
+        // *consecutive* transport failures.
+        while (true) {
             onConnected.value = false
+
+            repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
+                connectInternal()
+                onConnected.value = false
+            }
+
+            // Clean close: brief pause so a same-session takeover fight can't tight-loop.
+            delay(RECONNECT_DELAY_MILLIS)
         }
     }
 
@@ -489,6 +508,7 @@ class Stream(
 
                         when (open.result) {
                             is WatchSessionResponse.Open.Result.OK -> {
+                                invalidSequenceStreak = 0
                                 sessionStore.updateNextSequenceBytes(open.nextSequenceKey)
                                 sessionStore.updateSessionId(currentSessionId)
 
@@ -498,10 +518,28 @@ class Stream(
                                 processIncomingEvents(open.queuedEvents)
                             }
                             is WatchSessionResponse.Open.Result.INVALID_SEQUENCE -> {
-                                sessionStore.updateNextSequenceBytes(open.nextSequenceKey)
+                                // Sequence desync (e.g. killed between the server's key rotation and
+                                // our persist). The server returns the material to re-sign; persist
+                                // it and reconnect. NEVER store an empty key — doing so poisons every
+                                // future open (we would sign empty bytes forever).
+                                invalidSequenceStreak += 1
+                                if (open.nextSequenceKey.isNotEmpty()) {
+                                    sessionStore.updateNextSequenceBytes(open.nextSequenceKey)
+                                }
+                                if (invalidSequenceStreak >= INVALID_SEQUENCE_WIPE_THRESHOLD) {
+                                    // Not converging (old server without recovery material, or a
+                                    // key mismatch): abandon the session; the reconnect creates a
+                                    // fresh one and resendSubscriptions restores its state.
+                                    invalidSequenceStreak = 0
+                                    sessionStore.updateSessionId(null)
+                                    sessionStore.updateNextSequenceBytes(null)
+                                }
+                                throw RetryableStreamException("sequence desync; reconnecting")
                             }
                             is WatchSessionResponse.Open.Result.UNKNOWN_SESSION -> {
                                 sessionStore.updateSessionId(null)
+                                sessionStore.updateNextSequenceBytes(null)
+                                throw RetryableStreamException("unknown session; re-creating")
                             }
                             is WatchSessionResponse.Open.Result.SERVICE_UNAVAILABLE ->
                                 throw RetryableStreamException("session service unavailable")

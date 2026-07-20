@@ -6,7 +6,10 @@ plugins {
 
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-    signAllPublications()
+    // Sign only when a key is configured (CI); local publishToMavenLocal has no signatory.
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) {
+        signAllPublications()
+    }
     coordinates(artifactId = "lockers-connector")
     pom {
         name.set("lockers-connector")
