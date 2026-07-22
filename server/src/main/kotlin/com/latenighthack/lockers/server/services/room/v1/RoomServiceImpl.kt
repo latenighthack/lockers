@@ -100,6 +100,7 @@ class RoomServiceImpl(
     private val rateLimitedCounter = meterRegistry.counter("lockers.room.locker.rejected.ratelimited")
     private val postEventSuccessCounter = meterRegistry.counter("lockers.room.events.post.success")
     private val postEventFailureCounter = meterRegistry.counter("lockers.room.events.post.failure")
+    private val agentFailureCounter = meterRegistry.counter("lockers.room.agent.failures")
     private val cacheHitCounter = meterRegistry.counter("lockers.room.cache.hits")
     private val cacheMissCounter = meterRegistry.counter("lockers.room.cache.misses")
 
@@ -411,42 +412,50 @@ class RoomServiceImpl(
 
             // let the pluggable agent derive additional lockers; write + broadcast them.
             // Keyspaces stay opaque to the core — the agent decides what to act on.
-            val frameLockers = agentRegistry.processPayload(requestRoomId, requestLockerId, updatedLocker)
+            // The client's write is already persisted + fanned out, so an agent failure
+            // must not fail the RPC — a 500 here punishes a successful write and the
+            // client has no way to retry into a consistent state.
+            try {
+                val frameLockers = agentRegistry.processPayload(requestRoomId, requestLockerId, updatedLocker)
 
-            for (frameLocker in frameLockers) {
-                val existingDerivedLocker = lockerStore.getLocker(
-                    ServerRoomId(requestRoomId.rawValue),
-                    frameLocker.lockerId.keyspace?.value ?: 0L,
-                    ServerLockerId(frameLocker.lockerId.rawValue)
-                )
-                val frameLockerVersion = (existingDerivedLocker?.version ?: 0L) + 1
+                for (frameLocker in frameLockers) {
+                    val existingDerivedLocker = lockerStore.getLocker(
+                        ServerRoomId(requestRoomId.rawValue),
+                        frameLocker.lockerId.keyspace?.value ?: 0L,
+                        ServerLockerId(frameLocker.lockerId.rawValue)
+                    )
+                    val frameLockerVersion = (existingDerivedLocker?.version ?: 0L) + 1
 
-                lockerStore.updateLocker(ServerLocker {
-                    lockerId = ServerLockerId(frameLocker.lockerId.rawValue)
-                    roomId = ServerRoomId(requestRoomId.rawValue)
-                    locker = frameLocker.locker.toByteArray()
-                    keyspace = frameLocker.lockerId.keyspace?.value ?: 0L
-                    version = frameLockerVersion
-                })
-
-                val frameEventId = EventId(Random.nextBytes(32))
-                for (sessionId in sessionIds) {
-                    val gatewayServiceRpc = sessionGatewayDiscovery.findServer(sessionId) ?: continue
-                    gatewayServiceRpc.postEvent(PostEventRequest {
-                        event {
-                            roomId = requestRoomId
-                            eventId = frameEventId
-                            locker {
-                                locker = frameLocker.locker
-                                lockerId = frameLocker.lockerId
-                                version = frameLockerVersion
-                            }
-                        }
-                        sessionIds {
-                            addSessionId { rawValue = sessionId.rawValue }
-                        }
+                    lockerStore.updateLocker(ServerLocker {
+                        lockerId = ServerLockerId(frameLocker.lockerId.rawValue)
+                        roomId = ServerRoomId(requestRoomId.rawValue)
+                        locker = frameLocker.locker.toByteArray()
+                        keyspace = frameLocker.lockerId.keyspace?.value ?: 0L
+                        version = frameLockerVersion
                     })
+
+                    val frameEventId = EventId(Random.nextBytes(32))
+                    for (sessionId in sessionIds) {
+                        val gatewayServiceRpc = sessionGatewayDiscovery.findServer(sessionId) ?: continue
+                        gatewayServiceRpc.postEvent(PostEventRequest {
+                            event {
+                                roomId = requestRoomId
+                                eventId = frameEventId
+                                locker {
+                                    locker = frameLocker.locker
+                                    lockerId = frameLocker.lockerId
+                                    version = frameLockerVersion
+                                }
+                            }
+                            sessionIds {
+                                addSessionId { rawValue = sessionId.rawValue }
+                            }
+                        })
+                    }
                 }
+            } catch (e: Exception) {
+                agentFailureCounter.increment()
+                logger.error("agent processing failed for locker change (keyspace=${requestLockerId.keyspace?.value})", e)
             }
 
             PostLockerChangeResponse {
