@@ -151,9 +151,10 @@ class TypedLockerClient<ValueType>(
 
     fun watchAll(roomId: RoomId, includeHistory: Boolean = true): Flow<Map<LockerId, ValueType>> = allUpdates
         .onStart {
-            // a failed subscribe/hydrate must not tear down the watcher; live updates still flow
+            // a failed subscribe/hydrate must not tear down the watcher; live updates still flow.
+            // no ACK wait: offline, cached lockers must still hydrate (reconnect reconciles the sub)
             try {
-                lockerClient.subscribeToRoom(roomId)
+                lockerClient.subscribeToRoom(roomId, waitForSubscription = false)
                 if (includeHistory) {
                     emitAll(hydrate(roomId, keyspace))
                 }
@@ -169,7 +170,7 @@ class TypedLockerClient<ValueType>(
     fun watchAll(roomId: RoomId, keyspace: LockerKeyspace, includeHistory: Boolean = true): Flow<Map<LockerId, ValueType>> = allUpdates
         .onStart {
             try {
-                lockerClient.subscribeToRoom(roomId)
+                lockerClient.subscribeToRoom(roomId, waitForSubscription = false)
                 if (includeHistory) {
                     emitAll(hydrate(roomId, keyspace))
                 }
@@ -188,7 +189,7 @@ class TypedLockerClient<ValueType>(
         return allUpdates
             .onStart {
                 try {
-                    lockerClient.subscribeToRoom(roomId)
+                    lockerClient.subscribeToRoom(roomId, waitForSubscription = false)
                     if (includeHistory) {
                         lockerClient.getLocker(roomId, scopedId)?.let {
                             emit(it.toTyped(roomId))
