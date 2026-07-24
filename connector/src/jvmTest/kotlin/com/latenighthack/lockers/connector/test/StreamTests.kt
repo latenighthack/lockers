@@ -14,6 +14,13 @@ import com.latenighthack.lockers.server.*
 import com.latenighthack.lockers.connector.internal.ShardedRoomServiceRpc
 import com.latenighthack.lockers.connector.storage.v1.StoredAck
 import com.latenighthack.lockers.room.v1.PostLockerChangeRequest
+import com.latenighthack.lockers.room.v1.SubscriptionRequest
+import com.latenighthack.lockers.room.v1.fromByteArray
+import com.latenighthack.ktbuf.net.RpcClient
+import com.latenighthack.ktbuf.net.RpcMethodSpecifier
+import com.latenighthack.ktbuf.net.RpcResponse
+import com.latenighthack.ktbuf.net.RpcServerStream
+import com.latenighthack.ktbuf.proto.Codes
 import io.ktor.server.application.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filter
@@ -265,5 +272,97 @@ class StreamTests {
 
             assertEquals(false, firstSessionId.rawValue.contentEquals(freshSessionId.rawValue))
             stream2.stop()
+        }
+
+    @Test(timeout = 30_000)
+    fun `a failing subscription reconcile retries in-session instead of parking until reconnect`() =
+        runTestWithServer(Application::attachTestServices) { server, _ ->
+            val storeDelegate = InMemoryStoreDelegate()
+            val keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate())
+            val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
+            val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
+            val testRoomId = RoomId(Random.nextBytes(32))
+
+            subscriptionStore.prepare()
+            sessionStore.prepare()
+            storeDelegate.createStores()
+
+            // Fail the first two Subscription RPCs, then let it through. Previously the first
+            // failure parked the room (left pending in the store) until the next reconnect, so
+            // waitForSubscription hung; the reconcile must now retry in-session and settle.
+            val faulty = FaultInjectingRpcClient(server.rpcClient) { method, attempt ->
+                if (method.methodName == "Subscription" && attempt <= 2) {
+                    throw FaultInjectingRpcClient.rpcError(Codes.UNAVAILABLE)
+                }
+            }
+
+            val stream = Stream(faulty, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, Version(0, 0, 1))
+            stream.start()
+            awaitConnected(stream)
+
+            // Returns only because the reconcile retried past the injected faults, in-session.
+            stream.subscribe(testRoomId, waitForSubscription = true)
+
+            stream.stop()
+        }
+
+    /** Faults the Subscription RPC only for [failRoom]; every other room passes through. */
+    private class RoomFaultRpcClient(
+        private val delegate: RpcClient,
+        private val failRoom: RoomId,
+    ) : RpcClient {
+        override suspend fun unaryCall(
+            method: RpcMethodSpecifier,
+            headers: Map<String, String>,
+            request: ByteArray,
+        ): RpcResponse {
+            if (method.methodName == "Subscription") {
+                val decoded = SubscriptionRequest.fromByteArray(request)
+                if (decoded.roomId?.rawValue?.contentEquals(failRoom.rawValue) == true) {
+                    throw FaultInjectingRpcClient.rpcError(Codes.UNAVAILABLE)
+                }
+            }
+            return delegate.unaryCall(method, headers, request)
+        }
+
+        override suspend fun serverStreamingCall(
+            method: RpcMethodSpecifier,
+            block: suspend RpcServerStream.() -> Unit,
+            readyCallback: () -> Unit,
+        ) = delegate.serverStreamingCall(method, block, readyCallback)
+    }
+
+    @Test(timeout = 30_000)
+    fun `one room's failing subscription does not head-of-line-block another room`() =
+        runTestWithServer(Application::attachTestServices) { server, _ ->
+            val storeDelegate = InMemoryStoreDelegate()
+            val keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate())
+            val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
+            val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
+            val badRoomId = RoomId(Random.nextBytes(32))
+            val goodRoomId = RoomId(Random.nextBytes(32))
+
+            subscriptionStore.prepare()
+            sessionStore.prepare()
+            storeDelegate.createStores()
+
+            val stream = Stream(
+                RoomFaultRpcClient(server.rpcClient, failRoom = badRoomId),
+                FixedKeySource(Secp256r1KeyPair.generate()),
+                sessionStore,
+                subscriptionStore,
+                Version(0, 0, 1),
+            )
+            stream.start()
+            awaitConnected(stream)
+
+            // The bad room's reconcile keeps failing and retries forever on its own coroutine.
+            stream.subscribe(badRoomId, waitForSubscription = false)
+
+            // A healthy room must still reconcile promptly. If the bad room's retry ran on the
+            // shared reconcile loop it would head-of-line-block this one and the test would hang.
+            stream.subscribe(goodRoomId, waitForSubscription = true)
+
+            stream.stop()
         }
 }

@@ -12,6 +12,8 @@ import com.latenighthack.ktstore.BoundStoreKey
 import com.latenighthack.lockers.session.v1.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.random.Random
 import com.latenighthack.ktstore.KeyValueStore
 import com.latenighthack.ktstore.Store
@@ -130,6 +132,49 @@ class SubscriptionController(
         subscriptionChanges.emitAll(changes.asFlow())
     }
 
+    // Reconcile a single room's subscription against the server, retrying the RPC in-session
+    // with backoff instead of parking the room (pending in the store) until the next reconnect.
+    // Runs per-room (see the fan-out in startWatchingSubscriptions), so a room whose RPC keeps
+    // failing retries on its own without blocking other rooms. CancellationException — including
+    // supersession by a newer change, RetryLimitExceeded, and stop() — is never retried and
+    // propagates. On success the reconciled state is finalized in the store.
+    private suspend fun reconcile(subscriptionChange: SubscriptionChange) {
+        repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
+            val sessionId = sessionIdSource.filter { it != null }.first()
+
+            roomService.subscription(SubscriptionRequest {
+                this.sessionId = sessionId
+
+                when (subscriptionChange) {
+                    is SubscriptionChange.Subscribed -> {
+                        roomId = subscriptionChange.roomId
+                        kind.subscribe { }
+                    }
+
+                    is SubscriptionChange.Unsubscribed -> {
+                        roomId = subscriptionChange.roomId
+                        kind.unsubscribe { }
+                    }
+                }
+            })
+        }
+
+        when (subscriptionChange) {
+            is SubscriptionChange.Subscribed -> {
+                subscriptionStore.updateSubscription(StoredSubscription {
+                    roomIdRawValue = subscriptionChange.roomId.rawValue
+                })
+                // concurrent per-room reconciles mutate this set, so update atomically
+                reconciledSubscriptions.update { it + subscriptionChange.roomId }
+                newSubscriptions.emit(subscriptionChange.roomId)
+            }
+            is SubscriptionChange.Unsubscribed -> {
+                subscriptionStore.deleteSubscription(subscriptionChange.roomId)
+                reconciledSubscriptions.update { it - subscriptionChange.roomId }
+            }
+        }
+    }
+
     suspend fun startWatchingSubscriptions() {
         val subsReady = CompletableDeferred<Unit>()
 
@@ -224,44 +269,26 @@ class SubscriptionController(
                     }.asFlow())
                 }
                 .collect { subscriptionChange ->
-                    // a failed subscribe/unsubscribe RPC must not kill the reconcile loop;
-                    // the room stays pending in the store and is retried on next reconnect
-                    try {
-                    val sessionId = sessionIdSource.filter { it != null }.first()
-
-                    roomService.subscription(SubscriptionRequest {
-                        this.sessionId = sessionId
-
-                        when (subscriptionChange) {
-                            is SubscriptionChange.Subscribed -> {
-                                roomId = subscriptionChange.roomId
-                                kind.subscribe { }
+                    // Per-room fan-out: reconcile each room on its own job so a failing/slow
+                    // room retries in-session (see reconcile) without head-of-line-blocking the
+                    // reconciles of other rooms. A newer change for the same room supersedes
+                    // (cancels) the in-flight retry so a stale Subscribe can't clobber an
+                    // Unsubscribe (or vice versa).
+                    val roomId = subscriptionChange.roomId
+                    reconcileMutex.withLock {
+                        reconcileJobs.remove(roomId)?.cancel()
+                        reconcileJobs[roomId] = controllerScope.launch {
+                            val self = coroutineContext[Job]
+                            try {
+                                reconcile(subscriptionChange)
+                            } finally {
+                                reconcileMutex.withLock {
+                                    if (reconcileJobs[roomId] === self) {
+                                        reconcileJobs.remove(roomId)
+                                    }
+                                }
                             }
-
-                            is SubscriptionChange.Unsubscribed -> {
-                                roomId = subscriptionChange.roomId
-                                kind.unsubscribe { }
-                            }
                         }
-                    })
-
-                    when (subscriptionChange) {
-                        is SubscriptionChange.Subscribed -> {
-                            subscriptionStore.updateSubscription(StoredSubscription {
-                                roomIdRawValue = subscriptionChange.roomId.rawValue
-                            })
-                            reconciledSubscriptions.value += subscriptionChange.roomId
-                            newSubscriptions.emit(subscriptionChange.roomId)
-                        }
-                        is SubscriptionChange.Unsubscribed -> {
-                            subscriptionStore.deleteSubscription(subscriptionChange.roomId)
-                            reconciledSubscriptions.value -= subscriptionChange.roomId
-                        }
-                    }
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        log.error { "subscription reconcile failed for change=$subscriptionChange: $e" }
                     }
                 }
         }
@@ -270,14 +297,20 @@ class SubscriptionController(
     }
 
     private sealed class SubscriptionChange {
-        data class Subscribed(val roomId: RoomId) : SubscriptionChange()
-        data class Unsubscribed(val roomId: RoomId) : SubscriptionChange()
+        abstract val roomId: RoomId
+        data class Subscribed(override val roomId: RoomId) : SubscriptionChange()
+        data class Unsubscribed(override val roomId: RoomId) : SubscriptionChange()
     }
 
     private val subscriptionState = MutableStateFlow(emptySet<RoomId>())
     private val subscriptionChanges = MutableSharedFlow<SubscriptionChange>()
     private val reconciledSubscriptions = MutableStateFlow(emptySet<RoomId>())
     private val newSubscriptions = MutableSharedFlow<RoomId>(extraBufferCapacity = 64)
+
+    // In-flight per-room reconcile jobs, so a newer change can supersede an outstanding retry
+    // for the same room. Guarded by reconcileMutex.
+    private val reconcileMutex = Mutex()
+    private val reconcileJobs = mutableMapOf<RoomId, Job>()
 
     suspend fun awaitSubscription(roomId: RoomId) {
         if (reconciledSubscriptions.value.contains(roomId)) {
