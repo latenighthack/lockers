@@ -149,39 +149,42 @@ class TypedLockerClient<ValueType>(
         parentLockVersion: Long
     ) = lockerClient.unlockLocker(roomId, scope, keyPair, parentLockVersion)
 
-    fun watchAll(roomId: RoomId, includeHistory: Boolean = true): Flow<Map<LockerId, ValueType>> = allUpdates
-        .onStart {
-            // a failed subscribe/hydrate must not tear down the watcher; live updates still flow.
-            // no ACK wait: offline, cached lockers must still hydrate (reconnect reconciles the sub)
-            try {
-                lockerClient.subscribeToRoom(roomId, waitForSubscription = false)
-                if (includeHistory) {
-                    emitAll(hydrate(roomId, keyspace))
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                lockerClient.log.error { "watchAll hydrate failed for ${roomId.toLogString()}: $e" }
-            }
-        }
-        .filter { it.roomId == roomId }
-        .runningFold(emptyMap()) { acc, value -> acc.applyUpdate(value) }
+    fun watchAll(roomId: RoomId, includeHistory: Boolean = true): Flow<Map<LockerId, ValueType>> =
+        watchAllIn(roomId, keyspace, includeHistory)
 
-    fun watchAll(roomId: RoomId, keyspace: LockerKeyspace, includeHistory: Boolean = true): Flow<Map<LockerId, ValueType>> = allUpdates
-        .onStart {
-            try {
-                lockerClient.subscribeToRoom(roomId, waitForSubscription = false)
-                if (includeHistory) {
-                    emitAll(hydrate(roomId, keyspace))
+    fun watchAll(roomId: RoomId, keyspace: LockerKeyspace, includeHistory: Boolean = true): Flow<Map<LockerId, ValueType>> =
+        watchAllIn(roomId, keyspace, includeHistory)
+
+    // The stored keyspace is one getAllLockers read, emitted as ONE snapshot map that live
+    // updates then fold onto. (Hydration used to replay each cached locker as a separate update
+    // event through the fold, so every subscriber observed the map re-assemble {} -> {a} -> {a,b}.)
+    // A failed subscribe/hydrate must not tear down the watcher; live updates still flow.
+    // No ACK wait: offline, cached lockers must still hydrate (reconnect reconciles the sub).
+    // Startup window unchanged: a live write between the snapshot read and attaching to the
+    // replay-0 changes flow is missed; a write raced into both is harmless (Present replaces).
+    private fun watchAllIn(roomId: RoomId, keyspace: LockerKeyspace, includeHistory: Boolean): Flow<Map<LockerId, ValueType>> = flow {
+        val snapshot: Map<LockerId, ValueType> = try {
+            lockerClient.subscribeToRoom(roomId, waitForSubscription = false)
+            if (includeHistory) {
+                lockerClient.getAllLockers(roomId, keyspace).associate {
+                    it.lockerId!! to reader(it.locker?.plaintextPayload() ?: byteArrayOf())
                 }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                lockerClient.log.error { "watchAll hydrate failed for ${roomId.toLogString()}: $e" }
+            } else {
+                emptyMap()
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            lockerClient.log.error { "watchAll hydrate failed for ${roomId.toLogString()}: $e" }
+            emptyMap()
         }
-        .filter { it.lockerId.keyspace == keyspace && it.roomId == roomId }
-        .runningFold(emptyMap()) { acc, value -> acc.applyUpdate(value) }
+
+        emitAll(
+            allUpdates
+                .filter { it.lockerId.keyspace == keyspace && it.roomId == roomId }
+                .runningFold(snapshot) { acc, value -> acc.applyUpdate(value) }
+        )
+    }
 
     fun watch(roomId: RoomId, lockerId: LockerId, includeHistory: Boolean = true): Flow<TypedLockerUpdate<ValueType>> {
         val scopedId = lockerId.scoped()
@@ -226,11 +229,6 @@ class TypedLockerClient<ValueType>(
     suspend fun unsubscribeFromRoom(roomId: RoomId) {
         lockerClient.unsubscribeFromRoom(roomId)
     }
-
-    private suspend fun hydrate(roomId: RoomId, keyspace: LockerKeyspace): Flow<TypedLockerUpdate<ValueType>> =
-        lockerClient.getAllLockers(roomId, keyspace)
-            .map { it.toTyped(roomId) }
-            .asFlow()
 
     private fun IdentifiedLocker.toTyped(roomId: RoomId): TypedLockerUpdate<ValueType> =
         TypedLockerUpdate.Present(roomId, lockerId!!, reader(locker?.plaintextPayload() ?: byteArrayOf()))
