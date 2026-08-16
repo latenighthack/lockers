@@ -23,7 +23,7 @@ logstashEncoder = "7.4"
 detekt = "1.23.7"
 mavenPublish = "0.30.0"
 clikt = "5.0.3"
-shadow = "8.3.5"
+shadow = "9.6.1"
 
 [libraries]
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib" }
