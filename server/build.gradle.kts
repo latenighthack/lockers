@@ -51,6 +51,8 @@ dependencies {
     testImplementation(libs.ktbuf.test)
     testImplementation(libs.assertk)
     testImplementation(libs.sqlite.jdbc)
+    // Real-Postgres claim-store tests (gated on LOCKERS_TEST_PG_URL; see PgTestGate).
+    testRuntimeOnly(libs.postgresql)
 }
 
 tasks.named<Test>("test") {

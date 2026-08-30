@@ -29,7 +29,7 @@ class RingRoomOwnership(
         val holdsLease = lifecycle == null ||
             lifecycle.leaseFor(ks, router.roomMap().shard(ks, roomId.rawValue)) != null
         return if (route.isLocal && holdsLease) {
-            RoomOwner.Local
+            RoomOwner.Local()
         } else {
             RoomOwner.Remote(
                 address = route.address?.let { "${it.host}:${it.port}" } ?: "",

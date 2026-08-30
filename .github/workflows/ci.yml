@@ -9,6 +9,22 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      # Real Postgres for the claim-ownership SQL tests (ON CONFLICT/WHERE semantics are the
+      # product; H2/SQLite substitutes are not acceptable there). LOCKERS_TEST_PG_REQUIRED makes
+      # an unset URL a hard failure in CI so these suites can never silently skip.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lockers
+          POSTGRES_PASSWORD: lockers
+          POSTGRES_DB: lockers
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +55,9 @@ jobs:
 
       - name: Build and test
         run: ./gradlew build
+        env:
+          LOCKERS_TEST_PG_URL: jdbc:postgresql://localhost:5432/lockers?user=lockers&password=lockers
+          LOCKERS_TEST_PG_REQUIRED: 'true'
 
       - name: Static analysis (detekt, advisory)
         run: ./gradlew detekt

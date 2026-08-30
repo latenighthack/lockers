@@ -1,0 +1,74 @@
+name: Load test (claim mode)
+
+# Manual-only: the claim-mode load test launches real server JVMs and drives write load
+# against a shared Postgres (scripts/claim-load.sh). It is far too heavy for every push/PR,
+# so run it on demand from the Actions tab (or via `gh workflow run load-test.yml`).
+on:
+  workflow_dispatch:
+    inputs:
+      nodes:
+        description: 'Claim-cluster node count (LOCKERS_LOAD_NODES)'
+        required: false
+        default: '2'
+      rooms:
+        description: 'Distinct rooms exercised (LOCKERS_LOAD_ROOMS)'
+        required: false
+        default: '1000'
+      wps:
+        description: 'Writes per second (LOCKERS_LOAD_WPS)'
+        required: false
+        default: '50'
+      duration_sec:
+        description: 'Load duration in seconds (LOCKERS_LOAD_DURATION_SEC; doc soak is 600)'
+        required: false
+        default: '30'
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lockers
+          POSTGRES_PASSWORD: lockers
+          POSTGRES_DB: lockers
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install protoc-gen-kt (Kotlin protoc plugin)
+        env:
+          # Keep in sync with ci.yml.
+          PROTOC_GEN_KT_VERSION: v0.0.0-20251214023608-0fa742406fbf
+        run: |
+          go install "latenighthack.com/protoc-gen-kt@${PROTOC_GEN_KT_VERSION}"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run claim-mode load test
+        env:
+          LOCKERS_DB_URL: jdbc:postgresql://localhost:5432/lockers?user=lockers&password=lockers
+          LOCKERS_LOAD_NODES: ${{ github.event.inputs.nodes }}
+          LOCKERS_LOAD_ROOMS: ${{ github.event.inputs.rooms }}
+          LOCKERS_LOAD_WPS: ${{ github.event.inputs.wps }}
+          LOCKERS_LOAD_DURATION_SEC: ${{ github.event.inputs.duration_sec }}
+        run: scripts/claim-load.sh

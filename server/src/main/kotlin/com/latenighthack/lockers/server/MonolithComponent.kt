@@ -1,5 +1,11 @@
 package com.latenighthack.lockers.server
 
+import com.latenighthack.lockers.server.claim.ClaimContext
+import com.latenighthack.lockers.server.claim.ClaimRenewalService
+import com.latenighthack.lockers.server.claim.ClaimRoomOwnership
+import com.latenighthack.lockers.server.claim.ClaimSessionRegistry
+import com.latenighthack.lockers.server.claim.RegistryPushGatewayDiscovery
+import com.latenighthack.lockers.server.claim.RegistrySessionGatewayDiscovery
 import com.latenighthack.lockers.server.cluster.ClusterContext
 import com.latenighthack.lockers.server.cluster.ClusterServiceModule
 import com.latenighthack.lockers.server.cluster.OwnerLifecycle
@@ -31,7 +37,19 @@ class MonolithComponent(
     serverCore: ServerCore,
     val extensions: List<ServerExtension> = emptyList(),
     private val cluster: ClusterContext? = null,
+    private val claim: ClaimContext? = null,
 ) {
+    init {
+        require(cluster == null || claim == null) { "ring and claim ownership are mutually exclusive" }
+    }
+
+    /**
+     * Scope for multi-node background work (the ring's shard-map watch, or claim mode's renewal
+     * loop and async registry writes); cancelled on [stop]. Declared first: properties below
+     * capture it during construction.
+     */
+    private val clusterScope = CoroutineScope(SupervisorJob())
+
     val pushServiceModule: PushServiceModule =
         PushServiceModule::class.create(serverCore)
     val pushGatewayServiceModule: PushGatewayServiceModule =
@@ -39,18 +57,27 @@ class MonolithComponent(
     val pushAdminServiceModule: PushAdminServiceModule =
         PushAdminServiceModule::class.create(serverCore, pushServiceModule)
     private val pushGatewayDiscovery: PushGatewayDiscovery =
-        cluster?.let { RingPushGatewayDiscovery(it.router, pushGatewayServiceModule.server, it.pushGateways) }
+        claim?.let { RegistryPushGatewayDiscovery(pushGatewayServiceModule.server, it.sessionGateways, it.pool, it.nodeId, it.meters) }
+            ?: cluster?.let { RingPushGatewayDiscovery(it.router, pushGatewayServiceModule.server, it.pushGateways) }
             ?: LocalPushGatewayDiscovery(pushGatewayServiceModule.server)
 
+    // Claim mode keeps session ownership Local: a session lives wherever its WebSocket is, and a
+    // reconnect legitimately moves it (the registry's unconditional upsert follows the socket).
     private val sessionOwnership: SessionOwnership =
         cluster?.let { RingSessionOwnership(it.router) } ?: LocalSessionOwnership()
 
+    /** Claim-mode registry publishing live sessions to `session_gateway`; Noop otherwise. */
+    private val sessionRegistry: SessionRegistry =
+        claim?.let { ClaimSessionRegistry(it.sessionGateways, it.nodeId, it.advertiseAddr, it.ttlMs, clusterScope) }
+            ?: SessionRegistry.Noop
+
     val sessionServiceModule: SessionServiceModule =
-        SessionServiceModule::class.create(serverCore, pushGatewayDiscovery, sessionOwnership)
+        SessionServiceModule::class.create(serverCore, pushGatewayDiscovery, sessionOwnership, sessionRegistry)
     val sessionGatewayServiceModule: SessionGatewayServiceModule =
         SessionGatewayServiceModule::class.create(serverCore, sessionServiceModule)
     private val sessionGatewayDiscovery: SessionGatewayDiscovery =
-        cluster?.let { RingSessionGatewayDiscovery(it.router, sessionGatewayServiceModule.server, it.sessionGateways) }
+        claim?.let { RegistrySessionGatewayDiscovery(sessionGatewayServiceModule.server, it.sessionGateways, it.pool, it.nodeId, it.meters) }
+            ?: cluster?.let { RingSessionGatewayDiscovery(it.router, sessionGatewayServiceModule.server, it.sessionGateways) }
             ?: LocalSessionGatewayDiscovery(sessionGatewayServiceModule.server)
     val broadcastAdminServiceModule: BroadcastAdminServiceModule =
         BroadcastAdminServiceModule::class.create(serverCore, sessionServiceModule)
@@ -73,14 +100,37 @@ class MonolithComponent(
             )
         }
 
+    /** Claim-mode room ownership; kept as the concrete type so the renewal service can drive it. */
+    private val claimRoomOwnership: ClaimRoomOwnership? =
+        claim?.let { ClaimRoomOwnership(it.roomClaims, it.nodeId, it.advertiseAddr, it.ttlMs, it.renewMs, it.meters) }
+
     private val roomOwnership: RoomOwnership =
-        cluster?.let { RingRoomOwnership(it.router, ownerLifecycle) } ?: LocalRoomOwnership()
+        claimRoomOwnership
+            ?: cluster?.let { RingRoomOwnership(it.router, ownerLifecycle) }
+            ?: LocalRoomOwnership()
 
     val roomServiceModule: RoomServiceModule =
         RoomServiceModule::class.create(serverCore, sessionGatewayDiscovery, roomOwnership)
 
-    /** Scope for the owner lifecycle's shard-map watch; cancelled on [stop]. */
-    private val clusterScope = CoroutineScope(SupervisorJob())
+    /**
+     * Claim mode's heartbeat: batched TTL renewal for `room_claim`/`session_gateway`, demotion of
+     * lost claims (with room-cache eviction, mirroring [ownerLifecycle]'s `onShardsDropped`), and
+     * row release on drain. Started in [start] on [clusterScope], drained first in [stop].
+     */
+    val claimRenewal: ClaimRenewalService? =
+        claim?.let { ctx ->
+            ClaimRenewalService(
+                roomClaims = ctx.roomClaims,
+                ownership = claimRoomOwnership!!,
+                nodeId = ctx.nodeId,
+                ttlMs = ctx.ttlMs,
+                renewIntervalMs = ctx.renewMs,
+                meters = ctx.meters,
+                onDemoted = { roomServiceModule.serverImpl.evictRoomCaches() },
+                sessionRenewRound = { (sessionRegistry as ClaimSessionRegistry).renewRound() },
+                sessionReleaseAll = { (sessionRegistry as ClaimSessionRegistry).releaseAll() },
+            )
+        }
 
     /**
      * Client- and peer-facing services, mounted on the public port. The gateways
@@ -127,6 +177,7 @@ class MonolithComponent(
                 lifecycle.start(clusterScope, router.roomMapWatch())
             }
         }
+        claimRenewal?.start(clusterScope)
         extensions.forEach { it.start() }
     }
 
@@ -137,6 +188,9 @@ class MonolithComponent(
      */
     fun stop() {
         ownerLifecycle?.let { runBlocking { it.releaseAll() } }
+        // Claim drain mirrors the lease drain: delete this node's claim/registry rows so peers
+        // stop redirecting here and successors claim without waiting out a TTL.
+        claimRenewal?.let { runBlocking { it.stopAndRelease() } }
         clusterScope.cancel()
         pushServiceModule.stop()
         sessionServiceModule.serverImpl.close()

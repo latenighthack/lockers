@@ -110,7 +110,7 @@ class RoomOwnershipTest {
     @Test
     fun `write to the owning node proceeds`() = runBlocking {
         val client = roomServiceWith(object : RoomOwnership {
-            override suspend fun resolve(keyspace: Long, roomId: RoomId) = RoomOwner.Local
+            override suspend fun resolve(keyspace: Long, roomId: RoomId) = RoomOwner.Local()
         })
 
         val response = client.postLockerChange(postRequest())
@@ -133,7 +133,7 @@ class RoomOwnershipTest {
             val resolved = ownership.resolve(1L, roomId)
             val route = router.routeRoom(Keyspace(1), roomId.rawValue)
             if (route.isLocal) {
-                assertThat(resolved).isEqualTo(RoomOwner.Local)
+                assertThat(resolved).isEqualTo(RoomOwner.Local())
                 localSeen++
             } else {
                 assertThat(resolved is RoomOwner.Remote).isTrue()

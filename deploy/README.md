@@ -1,5 +1,58 @@
 # Deployment blueprints
 
+## Multi-node: claim-based ownership (`LOCKERS_ROOM_OWNERSHIP=claim`)
+
+The supported way to run 2..~16 nodes over one Postgres (`docs/design/claim-ownership.md`). One
+TTL-renewed `room_claim` row per active room is both the router and the fence (monotonic `epoch`);
+one `session_gateway` row per live WebSocket drives directed fan-out. O(nodes) coordination
+connections (a 2-connection pool per node), automatic ≤TTL failover, no control plane, no reshard
+tooling. The ring blueprint below is **deprecated** and quarantined behind
+`LOCKERS_ROOM_OWNERSHIP=ring`.
+
+| Var | Meaning | Default |
+| --- | --- | --- |
+| `LOCKERS_ROOM_OWNERSHIP` | `local` (monolith), `claim`, or deprecated `ring` | `local` |
+| `LOCKERS_DB_URL` | Postgres JDBC URL — storage and the claim/registry tables | **required** for claim |
+| `LOCKERS_NODE_ID` | this node's stable identity (any unique string) | **required** for claim |
+| `LOCKERS_ADVERTISE_ADDR` | peer-reachable `host:port` for redirects + east-west RPC | **required** for claim |
+| `LOCKERS_CLAIM_TTL_MS` | claim lease TTL (failover upper bound per room) | `15000` |
+| `LOCKERS_CLAIM_RENEW_MS` | renew interval; must be < TTL/2 | `5000` |
+
+No peer roster: nodes discover each other only through claim/registry rows, so scaling out is
+"start another replica behind the LB". The tables are created automatically at boot
+(idempotent `CREATE TABLE IF NOT EXISTS`); operators whose app user lacks DDL can pre-apply:
+
+```sql
+CREATE TABLE IF NOT EXISTS room_claim (
+    room_id     BYTEA PRIMARY KEY,
+    node_id     TEXT        NOT NULL,
+    node_addr   TEXT        NOT NULL,
+    epoch       BIGINT      NOT NULL DEFAULT 1,
+    expires_at  TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS room_claim_node ON room_claim (node_id);
+
+CREATE TABLE IF NOT EXISTS session_gateway (
+    session_id  BYTEA PRIMARY KEY,
+    node_id     TEXT        NOT NULL,
+    node_addr   TEXT        NOT NULL,
+    expires_at  TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS session_gateway_node ON session_gateway (node_id);
+```
+
+Caveat for a **fresh** database: boot the first replica alone before scaling out (or pre-apply the
+DDL). Two nodes bootstrapping simultaneously can race the app-table `CREATE TABLE` statements —
+Postgres can reject one with a `pg_type` duplicate-key error even under `IF NOT EXISTS`. Rolling
+deploys and any already-initialized database are unaffected.
+
+All expiry decisions use the database's `now()` — a single clock authority, so node clock skew is
+irrelevant. Watch `lockers.claim.*` meters (`acquires`, `steals`, `lost`, `redirects`,
+`rooms.owned`, `renew.duration`) — steady-state `lockers.claim.lost > 0` means renew rounds are
+missing their TTL budget.
+
+## Ring blueprints (deprecated)
+
 `lockers` is one binary with three modes (sharding is opt-in):
 
 1. **Monolith** — a single process owns every shard of both rings; all routing is in-process. This
@@ -37,8 +90,11 @@ A **Kubernetes** alternative implements the *same* SPI with different tech (a Co
 
 ## Environment variables (cluster mode)
 
-Cluster mode turns on only when **both** `LOCKERS_PEERS` and `LOCKERS_NODE_ID` are set (a single
-stray var can never silently promote a monolith to a mis-configured cluster).
+Ring mode additionally requires the explicit `LOCKERS_ROOM_OWNERSHIP=ring` (deprecated; boot warns,
+and refuses to start when `LOCKERS_SHARD_COUNT_DEFAULT` exceeds `LOCKERS_RING_MAX_CONNECTIONS`,
+default 64 — each shard lease pins a dedicated Postgres connection). With `LOCKERS_PEERS` set but
+no mode, the node boots as a monolith with a warning. Both `LOCKERS_PEERS` and `LOCKERS_NODE_ID`
+must be set (a single stray var can never silently promote a monolith to a mis-configured cluster).
 
 | Var | Meaning | Default |
 | --- | --- | --- |

@@ -37,7 +37,12 @@ class PeerConnectionPool(
         clients.remove(url(address))
     }
 
-    private fun url(address: PeerAddress): String = "$scheme://${address.host}:${address.port}"
+    // HttpRpcClient prepends "http://" itself unless the path starts with "https", so a plain-http
+    // peer address must be passed SCHEMELESS ("host:port"); "http://host:port" would dial the
+    // nonsense URL "http://http://host:port".
+    private fun url(address: PeerAddress): String =
+        if (scheme == "http") "${address.host}:${address.port}"
+        else "$scheme://${address.host}:${address.port}"
 
     override fun close() {
         clients.clear()

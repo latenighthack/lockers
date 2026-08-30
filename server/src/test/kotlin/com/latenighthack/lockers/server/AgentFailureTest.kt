@@ -41,7 +41,7 @@ class AgentFailureTest {
     }
 
     private val localOwnership = object : RoomOwnership {
-        override suspend fun resolve(keyspace: Long, roomId: RoomId) = RoomOwner.Local
+        override suspend fun resolve(keyspace: Long, roomId: RoomId) = RoomOwner.Local()
     }
 
     private val throwingAgent = object : LockerAgentRegistry {

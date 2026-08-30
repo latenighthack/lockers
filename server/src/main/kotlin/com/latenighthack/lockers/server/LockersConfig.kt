@@ -91,6 +91,14 @@ data class ShardingConfig(
  *   LOCKERS_RING_VNODES          consistent-hash virtual nodes per node (default 128)
  *   LOCKERS_SESSION_SHARD_COUNT  session/gateway-ring shard count (default 256)
  *   LOCKERS_REQUIRE_DB           fail fast at boot if LOCKERS_DB_URL is unset (default false)
+ *   LOCKERS_ROOM_OWNERSHIP       room write coordination: local | ring | claim (default local).
+ *                                `claim` requires LOCKERS_DB_URL, LOCKERS_NODE_ID and
+ *                                LOCKERS_ADVERTISE_ADDR; `ring` is deprecated (see docs/design)
+ *   LOCKERS_CLAIM_TTL_MS         claim-mode room/session lease TTL (default 15000)
+ *   LOCKERS_CLAIM_RENEW_MS       claim-mode renew interval; must be < TTL/2 (default 5000)
+ *   LOCKERS_RING_MAX_CONNECTIONS boot guard for ring mode: refuse to start when the room shard
+ *                                count exceeds this (each shard pins a Postgres connection;
+ *                                default 64)
  */
 data class LockersConfig(
     val httpPort: Int,
@@ -109,6 +117,11 @@ data class LockersConfig(
     val adminToken: String?,
     val sharding: ShardingConfig,
     val requireDb: Boolean,
+    /** Raw ownership mode string ("local" | "ring" | "claim"); validated at boot in `Main`. */
+    val roomOwnership: String,
+    val claimTtlMs: Long,
+    val claimRenewMs: Long,
+    val ringMaxConnections: Int,
 ) {
     val shardCount: Int get() = (Runtime.getRuntime().availableProcessors() * shardMultiplier).coerceAtLeast(1)
 
@@ -163,6 +176,10 @@ data class LockersConfig(
                     sessionShardCount = int("LOCKERS_SESSION_SHARD_COUNT", 256),
                 ),
                 requireDb = bool("LOCKERS_REQUIRE_DB", false),
+                roomOwnership = env("LOCKERS_ROOM_OWNERSHIP")?.trim()?.takeIf { it.isNotBlank() } ?: "local",
+                claimTtlMs = long("LOCKERS_CLAIM_TTL_MS", 15_000),
+                claimRenewMs = long("LOCKERS_CLAIM_RENEW_MS", 5_000),
+                ringMaxConnections = int("LOCKERS_RING_MAX_CONNECTIONS", 64),
             )
         }
 

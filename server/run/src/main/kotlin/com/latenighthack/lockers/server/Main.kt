@@ -3,7 +3,14 @@ package com.latenighthack.lockers.server
 import com.latenighthack.ktstore.InMemoryStoreDelegate
 import com.latenighthack.ktstore.StoreDelegate
 import com.latenighthack.ktstore.createStoreDelegate
+import com.latenighthack.lockers.server.claim.ClaimContext
+import com.latenighthack.lockers.server.claim.ClaimJdbcPool
+import com.latenighthack.lockers.server.claim.ClaimMetrics
+import com.latenighthack.lockers.server.claim.JdbcRoomClaimStore
+import com.latenighthack.lockers.server.claim.JdbcSessionGatewayStore
+import com.latenighthack.lockers.server.claim.RoomClaimStore
 import com.latenighthack.lockers.server.cluster.BlueprintV
+import com.latenighthack.lockers.server.cluster.PeerConnectionPool
 import com.latenighthack.lockers.server.cluster.ShardMetrics
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -99,25 +106,143 @@ private class ClusterRuntime private constructor(
     }
 }
 
+private fun fatal(message: String): Nothing {
+    System.err.println("FATAL: $message")
+    kotlin.system.exitProcess(1)
+}
+
+/**
+ * Validates `LOCKERS_ROOM_OWNERSHIP` and its mode-specific requirements at boot (config holds raw
+ * strings only; all validation fails fast here). Returns the validated mode.
+ */
+private fun validateOwnershipMode(config: LockersConfig): String {
+    val mode = config.roomOwnership
+    when (mode) {
+        "local" -> {
+            if (config.clusterEnabled) {
+                System.err.println(
+                    "WARNING: LOCKERS_PEERS/LOCKERS_NODE_ID are set but LOCKERS_ROOM_OWNERSHIP=local — " +
+                        "running as a single-node monolith. Multi-node operation requires " +
+                        "LOCKERS_ROOM_OWNERSHIP=claim (or the deprecated 'ring')."
+                )
+            }
+        }
+
+        "claim" -> {
+            if (config.databaseUrl == null) fatal("LOCKERS_ROOM_OWNERSHIP=claim requires LOCKERS_DB_URL.")
+            if (config.sharding.nodeId.isNullOrBlank()) fatal("LOCKERS_ROOM_OWNERSHIP=claim requires LOCKERS_NODE_ID.")
+            if (config.sharding.advertiseAddr.isNullOrBlank()) {
+                fatal("LOCKERS_ROOM_OWNERSHIP=claim requires LOCKERS_ADVERTISE_ADDR (peer-reachable host:port).")
+            }
+            if (config.claimRenewMs <= 0 || config.claimRenewMs >= config.claimTtlMs / 2) {
+                fatal(
+                    "LOCKERS_CLAIM_RENEW_MS (${config.claimRenewMs}) must be > 0 and < half of " +
+                        "LOCKERS_CLAIM_TTL_MS (${config.claimTtlMs})."
+                )
+            }
+        }
+
+        "ring" -> {
+            System.err.println(
+                "WARNING: LOCKERS_ROOM_OWNERSHIP=ring is DEPRECATED (see docs/design/claim-ownership.md). " +
+                    "Each shard pins a dedicated Postgres connection; prefer 'claim'."
+            )
+            if (!config.clusterEnabled) {
+                fatal("LOCKERS_ROOM_OWNERSHIP=ring requires LOCKERS_PEERS and LOCKERS_NODE_ID.")
+            }
+            if (config.sharding.shardCountDefault > config.ringMaxConnections) {
+                fatal(
+                    "LOCKERS_ROOM_OWNERSHIP=ring with LOCKERS_SHARD_COUNT_DEFAULT=" +
+                        "${config.sharding.shardCountDefault} would pin more Postgres connections than " +
+                        "LOCKERS_RING_MAX_CONNECTIONS=${config.ringMaxConnections} allows. Lower the shard " +
+                        "count or (preferably) use LOCKERS_ROOM_OWNERSHIP=claim."
+                )
+            }
+        }
+
+        else -> fatal("LOCKERS_ROOM_OWNERSHIP='$mode' is not one of: local, ring, claim.")
+    }
+    return mode
+}
+
+/** Claim-mode wiring: the 2-connection coordination pool, both stores (DDL applied), east-west pool. */
+private class ClaimRuntime(
+    val context: ClaimContext,
+    private val jdbcPool: ClaimJdbcPool,
+) {
+    val roomClaims: RoomClaimStore get() = context.roomClaims
+
+    fun close() {
+        context.pool.close()
+        jdbcPool.close()
+    }
+
+    companion object {
+        suspend fun start(config: LockersConfig, meters: ClaimMetrics): ClaimRuntime {
+            val jdbcPool = ClaimJdbcPool(checkNotNull(config.databaseUrl))
+            val roomClaims = JdbcRoomClaimStore(jdbcPool).also { it.prepare() }
+            val sessionGateways = JdbcSessionGatewayStore(jdbcPool).also { it.prepare() }
+            return ClaimRuntime(
+                ClaimContext(
+                    nodeId = checkNotNull(config.sharding.nodeId),
+                    advertiseAddr = checkNotNull(config.sharding.advertiseAddr),
+                    roomClaims = roomClaims,
+                    sessionGateways = sessionGateways,
+                    pool = PeerConnectionPool(),
+                    ttlMs = config.claimTtlMs,
+                    renewMs = config.claimRenewMs,
+                    meters = meters,
+                ),
+                jdbcPool,
+            )
+        }
+    }
+}
+
+/**
+ * Fail fast: an operator who declared the DB mandatory must not silently boot on the ephemeral
+ * in-memory store (data loss on restart, no shared claim/coordination tables).
+ */
+private fun validateDbRequirement(config: LockersConfig) {
+    if (config.requireDb && config.databaseUrl == null) {
+        fatal(
+            "LOCKERS_REQUIRE_DB=true but LOCKERS_DB_URL is unset. Set a Postgres JDBC URL or " +
+                "clear LOCKERS_REQUIRE_DB."
+        )
+    }
+}
+
+/**
+ * The coordination wiring for the validated ownership mode: the (deprecated) ring's
+ * [ClusterRuntime] — which wires only under an explicit `ring`; `LOCKERS_PEERS` alone no longer
+ * enables it — and claim mode's [ClaimRuntime] (stores built + idempotent DDL applied).
+ */
+private suspend fun startCoordination(
+    config: LockersConfig,
+    ownershipMode: String,
+    claimMetrics: ClaimMetrics,
+    scope: CoroutineScope,
+): Pair<ClusterRuntime, ClaimRuntime?> {
+    val ringConfig =
+        if (ownershipMode == "ring") config
+        else config.copy(sharding = config.sharding.copy(peers = null))
+    val cluster = ClusterRuntime.start(ringConfig, scope)
+    val claim = if (ownershipMode == "claim") ClaimRuntime.start(config, claimMetrics) else null
+    return cluster to claim
+}
+
 fun main() {
     runBlocking {
         val config = LockersConfig.fromEnv()
-
-        // Fail fast: an operator who declared the DB mandatory must not silently boot on the
-        // ephemeral in-memory store (data loss on restart, no shared shard_map/advisory locks).
-        if (config.requireDb && config.databaseUrl == null) {
-            System.err.println(
-                "FATAL: LOCKERS_REQUIRE_DB=true but LOCKERS_DB_URL is unset. Set a Postgres JDBC URL " +
-                    "or clear LOCKERS_REQUIRE_DB."
-            )
-            kotlin.system.exitProcess(1)
-        }
+        validateDbRequirement(config)
+        val ownershipMode = validateOwnershipMode(config)
 
         val metricsRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
         bindRuntimeMetrics(metricsRegistry)
-        // Pre-register the sharding/reshard meters (§7) so `/metrics` is shape-stable across
-        // deployment modes; the monolith owns every shard and never mutates them.
+        // Pre-register the sharding/reshard + claim meters so `/metrics` is shape-stable across
+        // deployment modes; unused modes simply never mutate them.
         ShardMetrics(metricsRegistry)
+        val claimMetrics = ClaimMetrics(metricsRegistry)
 
         val core = ServerCore::class.create(config, storeDelegate(config))
         core.overrideMeterRegistry = metricsRegistry
@@ -126,14 +251,14 @@ fun main() {
         // Background scope for cluster pollers/pool — supervised so one failure doesn't kill the
         // process, and cancelled last on shutdown.
         val clusterScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        val cluster = ClusterRuntime.start(config, clusterScope)
+        val (cluster, claim) = startCoordination(config, ownershipMode, claimMetrics, clusterScope)
 
         // Optional add-ons contributed from the classpath (e.g. remote content).
         val extensions = ServiceLoader.load(ServerExtensionFactory::class.java)
             .map { it.create(metricsRegistry) }
-        // When sharding is configured the cluster context swaps in Ring*Discovery; otherwise the
-        // monolith wires in-process Local*Discovery exactly as before (byte-for-byte).
-        val component = MonolithComponent(core, extensions, cluster.context)
+        // The ownership mode swaps in Registry*/Ring* discovery; the default monolith wires
+        // in-process Local*Discovery exactly as before (byte-for-byte).
+        val component = MonolithComponent(core, extensions, cluster.context, claim?.context)
         component.start()
 
         // Public port: client/peer traffic + probes + metrics.
@@ -146,6 +271,8 @@ fun main() {
                 // Readiness: gate traffic until the shard map is loaded and the DB is reachable.
                 get("/readyz") {
                     val reason = cluster.notReadyReason()
+                        ?: claim?.let { runCatching { it.roomClaims.ping() }.exceptionOrNull() }
+                            ?.let { "claim store unreachable: ${it.message}" }
                     if (reason == null) {
                         call.respondText("ok")
                     } else {
@@ -171,9 +298,11 @@ fun main() {
             Thread {
                 runBlocking {
                     // Ordered drain: leave the ring first (peers stop routing to us), then stop
-                    // services, then the listeners.
+                    // services (claim mode's stop releases its rows), then the coordination pool
+                    // and the listeners.
                     cluster.close()
                     component.stop()
+                    claim?.close()
                 }
                 adminServer.stop(gracePeriodMillis = 1_000, timeoutMillis = 5_000)
                 server.stop(gracePeriodMillis = 1_000, timeoutMillis = 5_000)

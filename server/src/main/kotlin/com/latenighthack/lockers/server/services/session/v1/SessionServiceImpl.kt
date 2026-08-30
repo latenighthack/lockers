@@ -35,6 +35,7 @@ abstract class SessionServiceModule(
     @Component val serverCore: ServerCore,
     @get:Provides val pushGatewayDiscovery: PushGatewayDiscovery,
     @get:Provides val sessionOwnership: SessionOwnership,
+    @get:Provides val sessionRegistry: SessionRegistry,
 ): GrpcRouteProvider<SessionServer> {
     abstract val serverImpl: SessionServiceImpl
 
@@ -85,6 +86,7 @@ class SessionServiceImpl(
     private val pushGatewayDiscovery: PushGatewayDiscovery,
     private val sessionOwnership: SessionOwnership,
     private val config: LockersConfig,
+    private val sessionRegistry: SessionRegistry = SessionRegistry.Noop,
 ) : BaseServiceImpl(), SessionServer, SessionGatewayServer, BroadcastAdminServer {
     private val logger = LoggerFactory.getLogger(SessionServiceImpl::class.java)
     private val dispatchers = ShardedDispatcher<SessionId>(config.shardCount, "session-shard") {
@@ -176,6 +178,9 @@ class SessionServiceImpl(
 
                 activeStreamsCount.incrementAndGet()
                 openState.complete(OpenState(sessionId, open))
+                // Publish this node as the session's gateway (async inside the registry; the
+                // socket path never waits on it). Claim mode only — Noop elsewhere.
+                sessionRegistry.attach(sessionId)
 
                 sessionId
             }) { sessionId, nextRequest ->
@@ -327,7 +332,11 @@ class SessionServiceImpl(
                     activeStreamsCount.decrementAndGet()
                     // Only drop the entry if it is still this stream's channel — a newer
                     // stream for the same session may have replaced it.
-                    openStreamCancellationChannels.remove(os.sessionId, cancellationChannel)
+                    if (openStreamCancellationChannels.remove(os.sessionId, cancellationChannel)) {
+                        // Same guard for the gateway registry: never unregister a session whose
+                        // socket a replacing stream (possibly on this node) still holds.
+                        sessionRegistry.detach(os.sessionId)
+                    }
                 }
             }
         }
