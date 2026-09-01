@@ -11,6 +11,7 @@ import com.latenighthack.lockers.common.v1.LockerKeyspace
 import com.latenighthack.lockers.common.v1.RoomId
 import com.latenighthack.lockers.room.v1.PostLockerChangeRequest
 import com.latenighthack.lockers.room.v1.PostLockerChangeResponse
+import com.latenighthack.lockers.room.v1.RoomServiceRpc
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -66,16 +67,22 @@ class ClaimClusterPgTest {
     }
 
     @Test
-    fun `redirects carry the owner's address over the real store`() = runBlocking {
+    fun `non-owner forwards over the real store - forwarded-stamped calls carry the redirect`() = runBlocking {
         val (node1, node2) = twoPgNodes()
         try {
             val first = node1.roomClient().postLockerChange(post("pg-r1"))
             assertThat(first.result is PostLockerChangeResponse.Result.OK).isTrue()
 
-            val second = node2.roomClient().postLockerChange(post("pg-r1"))
-            assertThat(second.result is PostLockerChangeResponse.Result.NOT_OWNER).isTrue()
-            assertThat(second.redirect!!.ownerAddress).isNotEmpty()
-            assertThat(second.redirect!!.ownerAddress).isEqualTo(node1.addr)
+            // Plain-client write on the non-owner: forwarded east-west, owner's OK relayed.
+            val second = node2.roomClient().postLockerChange(post("pg-r1", lockerRaw = 2))
+            assertThat(second.result is PostLockerChangeResponse.Result.OK).isTrue()
+
+            // Forwarded-stamped call: never re-forwarded — answers NOT_OWNER + redirect.
+            val stamped = RoomServiceRpc(node2.rpc) { _, _ -> mapOf("fwd" to "1") }
+            val third = stamped.postLockerChange(post("pg-r1", lockerRaw = 3))
+            assertThat(third.result is PostLockerChangeResponse.Result.NOT_OWNER).isTrue()
+            assertThat(third.redirect!!.ownerAddress).isNotEmpty()
+            assertThat(third.redirect!!.ownerAddress).isEqualTo(node1.addr)
         } finally {
             node1.stopGracefully()
             node2.stopGracefully()
