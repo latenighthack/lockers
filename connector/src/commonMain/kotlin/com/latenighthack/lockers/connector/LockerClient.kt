@@ -618,7 +618,12 @@ class LockerClient(
                 }
             }
         } catch (e: RetryLimitExceeded) {
-            throw LockerWriteException("locker delete exceeded $WRITE_RETRY_LIMIT attempts", e)
+            // Transient (transport / ownership routing) exhaustion: log-and-drop rather than throw.
+            // Callers routinely fire writes from long-lived scopes with no handler, where a throw
+            // is an app crash; a lost delete self-heals on the next reconcile. Terminal rejections
+            // (signature, authorization) above still throw — those are caller bugs.
+            log.error { "locker delete dropped after $WRITE_RETRY_LIMIT attempts room=${roomId.toLogString()} locker=${lockerId.toLogString()}" }
+            null
         }
 
         deletedVersion?.let {
@@ -634,6 +639,10 @@ class LockerClient(
      * signed. The signature binds the parent version, so a version conflict re-runs
      * [transform] and re-signs against the fresh version — preserving the fair-read
      * retry. Set [ratchet] to rotate the signing key atomically with this write.
+     *
+     * Returns null (write dropped, error logged) when the retry budget is exhausted on
+     * transient results; throws [LockerWriteException] only for terminal rejections
+     * (signature required/invalid, not authorized).
      */
     suspend fun updateLocker(
         roomId: RoomId,
@@ -708,7 +717,12 @@ class LockerClient(
                 }
             }
         } catch (e: RetryLimitExceeded) {
-            throw LockerWriteException("locker update exceeded $WRITE_RETRY_LIMIT attempts", e)
+            // Transient (transport / ownership routing) exhaustion: log-and-return-null rather than
+            // throw. Callers routinely fire writes from long-lived scopes with no handler, where a
+            // throw is an app crash (seen in prod: NOT_OWNER x8 on a routing/claim mismatch took
+            // the app down). Terminal rejections (signature, authorization) above still throw.
+            log.error { "locker update dropped after $WRITE_RETRY_LIMIT attempts ($writeContext)" }
+            null
         }
 
         val result = updatedLocker ?: return null

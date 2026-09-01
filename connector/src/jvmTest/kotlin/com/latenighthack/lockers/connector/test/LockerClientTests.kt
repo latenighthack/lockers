@@ -711,7 +711,7 @@ class LockerClientTests {
     // --- Write failure handling (fault injection) ---
 
     @Test(timeout = 15_000)
-    fun `updateLocker throws LockerWriteException when retries are exhausted`() = runTestWithServer(Application::attachTestServices) { server, _ ->
+    fun `updateLocker drops the write (returns null) when retries are exhausted`() = runTestWithServer(Application::attachTestServices) { server, _ ->
         val faulty = FaultInjectingRpcClient(server.rpcClient) { method, _ ->
             if (method.methodName == "PostLockerChange") throw FaultInjectingRpcClient.rpcError(Codes.UNAVAILABLE)
         }
@@ -720,9 +720,10 @@ class LockerClientTests {
         val lockerId = randomLockerId()
         ctx.typedClient.subscribeToRoom(roomId)
 
-        assertFailsWith<LockerWriteException> {
-            ctx.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "x" } }
-        }
+        // Transient exhaustion must NOT throw — callers fire writes from long-lived scopes with
+        // no handler, where a throw is an app crash. The write is dropped and logged instead.
+        val result = ctx.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "x" } }
+        assertNull(result)
 
         cleanup(ctx)
     }
@@ -761,7 +762,7 @@ class LockerClientTests {
     }
 
     @Test(timeout = 15_000)
-    fun `deleteLocker throws LockerWriteException when retries are exhausted`() = runTestWithServer(Application::attachTestServices) { server, _ ->
+    fun `deleteLocker drops the delete (no throw) when retries are exhausted`() = runTestWithServer(Application::attachTestServices) { server, _ ->
         val faulty = FaultInjectingRpcClient(server.rpcClient) { method, _ ->
             if (method.methodName == "DeleteLocker") throw FaultInjectingRpcClient.rpcError(Codes.UNAVAILABLE)
         }
@@ -772,9 +773,10 @@ class LockerClientTests {
 
         ctx.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "seed" } }
 
-        assertFailsWith<LockerWriteException> {
-            ctx.typedClient.deleteLocker(roomId, lockerId)
-        }
+        // Transient exhaustion: dropped and logged, never thrown. The locker survives locally
+        // (the store only deletes on server confirmation), so a later reconcile can retry.
+        ctx.typedClient.deleteLocker(roomId, lockerId)
+        assertEquals("seed", ctx.typedClient.getLocker(roomId, lockerId, revalidate = false)?.title)
 
         cleanup(ctx)
     }

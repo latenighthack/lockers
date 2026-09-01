@@ -13,6 +13,7 @@ import com.latenighthack.lockers.common.v1.RoomId
 import com.latenighthack.lockers.common.v1.SessionId
 import com.latenighthack.lockers.room.v1.PostLockerChangeRequest
 import com.latenighthack.lockers.room.v1.PostLockerChangeResponse
+import com.latenighthack.lockers.room.v1.RoomServiceRpc
 import com.latenighthack.lockers.server.agents.LOBBY_KEYSPACE
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
 import com.latenighthack.lockers.server.services.room.v1.SubscriptionStoreImpl
@@ -66,20 +67,28 @@ class ClaimClusterTest {
     }
 
     @Test
-    fun `redirect correctness - non-owner answers NOT_OWNER with the owner's address`() = runBlocking {
+    fun `write forwarding - non-owner forwards to the owner and relays its response`() = runBlocking {
         startTwoNodeClaimCluster().use { cluster ->
             val first = cluster.node1.roomClient().postLockerChange(post("r1"))
             assertThat(first.result is PostLockerChangeResponse.Result.OK).isTrue()
 
-            val second = cluster.node2.roomClient().postLockerChange(post("r1"))
-            assertThat(second.result is PostLockerChangeResponse.Result.NOT_OWNER).isTrue()
-            assertThat(second.redirect?.ownerAddress).isNotNull()
-            assertThat(second.redirect!!.ownerAddress).isNotEmpty()
-            assertThat(second.redirect!!.ownerAddress).isEqualTo(cluster.node1.addr)
+            // A plain client's write on the non-owner is proxied east-west to the owner and the
+            // owner's OK relayed back; ownership does not move.
+            val second = cluster.node2.roomClient().postLockerChange(post("r1", lockerRaw = 10))
+            assertThat(second.result is PostLockerChangeResponse.Result.OK).isTrue()
+            assertThat(cluster.roomClaims.lookup(room("r1"))!!.nodeId).isEqualTo("node1")
+            assertThat(
+                cluster.node2.meterRegistry.find("lockers.room.forward.writes").counter()?.count()
+            ).isEqualTo(1.0)
 
-            // Retrying against the redirect target succeeds.
-            val retried = cluster.node1.roomClient().postLockerChange(post("r1"))
-            assertThat(retried.result is PostLockerChangeResponse.Result.OK).isTrue()
+            // Loop protection: a forwarded-stamped call is never forwarded again — the non-owner
+            // answers NOT_OWNER + redirect (the smart-routing-client contract, unchanged).
+            val stamped = RoomServiceRpc(cluster.node2.rpc) { _, _ -> mapOf("fwd" to "1") }
+            val third = stamped.postLockerChange(post("r1", lockerRaw = 11))
+            assertThat(third.result is PostLockerChangeResponse.Result.NOT_OWNER).isTrue()
+            assertThat(third.redirect?.ownerAddress).isNotNull()
+            assertThat(third.redirect!!.ownerAddress).isNotEmpty()
+            assertThat(third.redirect!!.ownerAddress).isEqualTo(cluster.node1.addr)
         }
     }
 
@@ -107,14 +116,15 @@ class ClaimClusterTest {
                     is PostLockerChangeResponse.Result.OK
             ).isTrue()
             repeat(3) { i ->
-                // Non-owner write: rejected before the agent can run.
-                val rejected = it.node2.roomClient().postLockerChange(post("game", LOBBY_KEYSPACE, lockerRaw = i.toByte()))
-                assertThat(rejected.result is PostLockerChangeResponse.Result.NOT_OWNER).isTrue()
-                // Owner write: the only place the agent runs.
-                val ok = it.node1.roomClient().postLockerChange(post("game", LOBBY_KEYSPACE, lockerRaw = i.toByte()))
+                // Non-owner write: forwarded to the owner — the only node where the agent runs.
+                val forwarded = it.node2.roomClient().postLockerChange(post("game", LOBBY_KEYSPACE, lockerRaw = i.toByte()))
+                assertThat(forwarded.result is PostLockerChangeResponse.Result.OK).isTrue()
+                // Owner write (fresh locker id: the forwarded write above already landed its id).
+                val ok = it.node1.roomClient().postLockerChange(post("game", LOBBY_KEYSPACE, lockerRaw = (50 + i).toByte()))
                 assertThat(ok.result is PostLockerChangeResponse.Result.OK).isTrue()
             }
-            assertThat(invocations["node1"]!!.get()).isEqualTo(4)
+            // 1 initial + 3 forwarded + 3 owner-direct, all processed on node1 only.
+            assertThat(invocations["node1"]!!.get()).isEqualTo(7)
             assertThat(invocations["node2"]!!.get()).isEqualTo(0)
         }
     }
@@ -220,11 +230,12 @@ class ClaimClusterTest {
             awaitOkWrite(it.node2, "fenced")
             assertThat(it.roomClaims.lookup(room("fenced"))!!.nodeId).isEqualTo("node2")
 
-            // Heal the partition: node1 must redirect to node2, not resurrect its ownership.
+            // Heal the partition: node1 resolves node2 as owner and forwards the write there —
+            // served OK without resurrecting node1's ownership.
             failingByNode["node1"]!!.failing.set(false)
-            val healed = it.node1.roomClient().postLockerChange(post("fenced"))
-            assertThat(healed.result is PostLockerChangeResponse.Result.NOT_OWNER).isTrue()
-            assertThat(healed.redirect?.ownerAddress).isEqualTo(it.node2.addr)
+            val healed = it.node1.roomClient().postLockerChange(post("fenced", lockerRaw = 43))
+            assertThat(healed.result is PostLockerChangeResponse.Result.OK).isTrue()
+            assertThat(it.roomClaims.lookup(room("fenced"))!!.nodeId).isEqualTo("node2")
         }
     }
 }

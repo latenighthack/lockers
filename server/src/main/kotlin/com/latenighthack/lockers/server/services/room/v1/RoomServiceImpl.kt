@@ -24,6 +24,10 @@ import me.tatarka.inject.annotations.Provides
 import org.slf4j.LoggerFactory
 import kotlin.random.Random
 
+/** Query-param stamp on east-west forwarded writes; its presence means "do not forward again". */
+private const val FORWARDED_PARAM = "fwd"
+private const val FORWARD_TIMEOUT_MS = 5_000L
+
 @ServiceScope
 @Component
 abstract class RoomServiceModule(
@@ -94,6 +98,47 @@ class RoomServiceImpl(
                 epoch = owner.epoch
             }
         }
+
+    // East-west write forwarding: public clients sit behind one domain (plain HttpRpcClient) and
+    // cannot dial a redirect's cluster-internal owner address, so a NOT_OWNER answer strands any
+    // client whose proxy routing disagrees with claim placement (e.g. a room claimed by a
+    // server-side first write, or claimed before a routing-policy change). Instead the non-owner
+    // proxies the write to the owner over the same east-west HTTP path the gateways use and
+    // relays the owner's response verbatim. Forwarded calls are stamped `?fwd=1`; a node that is
+    // still not the owner for a forwarded call answers NOT_OWNER as before — one hop max, no
+    // ping-pong, and the redirect stays intact for smart routing clients (RoutingRpcClient).
+    private val forwardStubs = java.util.concurrent.ConcurrentHashMap<String, RoomServiceRpc>()
+    private val forwardedWritesCounter = meterRegistry.counter("lockers.room.forward.writes")
+    private val forwardFailureCounter = meterRegistry.counter("lockers.room.forward.failures")
+
+    private suspend fun <R> forwardToOwnerOrNull(
+        context: GrpcRequestContext,
+        redirect: ShardRedirect,
+        call: suspend (RoomService) -> R,
+    ): R? {
+        if (context.query.containsKey(FORWARDED_PARAM)) return null
+        // Advertise addresses are schemeless host:port — exactly what JVM HttpRpcClient wants.
+        val address = redirect.ownerAddress?.takeIf { it.isNotBlank() } ?: return null
+        val stub = forwardStubs.computeIfAbsent(address) {
+            RoomServiceRpc(com.latenighthack.ktbuf.rpc.HttpRpcClient(it)) { _, _ -> mapOf(FORWARDED_PARAM to "1") }
+        }
+        return try {
+            kotlinx.coroutines.withTimeout(FORWARD_TIMEOUT_MS) { call(stub) }
+                .also { forwardedWritesCounter.increment() }
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            forwardFailureCounter.increment()
+            logger.warn("write forward to {} timed out; answering NOT_OWNER", address)
+            forwardStubs.remove(address)
+            null
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            forwardFailureCounter.increment()
+            logger.warn("write forward to {} failed ({}); answering NOT_OWNER", address, e.message)
+            forwardStubs.remove(address)
+            null
+        }
+    }
 
     private val gatewayLookupFailureCounter = meterRegistry.counter("lockers.room.gateway.lookup.failures")
     private val oversizeRejectedCounter = meterRegistry.counter("lockers.room.locker.rejected.oversize")
@@ -271,10 +316,13 @@ class RoomServiceImpl(
         val requestLockerId = request.lockerId ?: return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
         val requestVersion = request.parentVersion
 
-        redirectIfNotOwner(requestLockerId.keyspace?.value ?: 0L, requestRoomId)?.let {
+        redirectIfNotOwner(requestLockerId.keyspace?.value ?: 0L, requestRoomId)?.let { redirect ->
+            forwardToOwnerOrNull(context, redirect) { it.postLockerChange(request) }?.let {
+                return@trackResponse it
+            }
             return@trackResponse PostLockerChangeResponse {
                 result = PostLockerChangeResponse.Result.NOT_OWNER
-                redirect = it
+                this.redirect = redirect
             }
         }
 
@@ -475,10 +523,13 @@ class RoomServiceImpl(
         val requestLockerId = request.lockerId ?: return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
         val requestVersion = request.parentVersion
 
-        redirectIfNotOwner(requestLockerId.keyspace?.value ?: 0L, requestRoomId)?.let {
+        redirectIfNotOwner(requestLockerId.keyspace?.value ?: 0L, requestRoomId)?.let { redirect ->
+            forwardToOwnerOrNull(context, redirect) { it.deleteLocker(request) }?.let {
+                return@trackResponse it
+            }
             return@trackResponse DeleteLockerResponse {
                 result = DeleteLockerResponse.Result.NOT_OWNER
-                redirect = it
+                this.redirect = redirect
             }
         }
 
@@ -592,10 +643,13 @@ class RoomServiceImpl(
 
         // A lock and the lockers it governs must be coordinated on the same shard, so gate by the
         // scope's keyspace; a room-wide scope carries no keyspace and pins to keyspace 0.
-        redirectIfNotOwner(grant.scope?.keyspace?.value ?: 0L, requestRoomId)?.let {
+        redirectIfNotOwner(grant.scope?.keyspace?.value ?: 0L, requestRoomId)?.let { redirect ->
+            forwardToOwnerOrNull(context, redirect) { it.lockLocker(request) }?.let {
+                return@trackResponse it
+            }
             return@trackResponse LockLockerResponse {
                 result = LockLockerResponse.Result.NOT_OWNER
-                redirect = it
+                this.redirect = redirect
             }
         }
 
@@ -624,10 +678,13 @@ class RoomServiceImpl(
         val requestRoomId = request.roomId ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)
         val scope = request.scope ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)
 
-        redirectIfNotOwner(scope.keyspace?.value ?: 0L, requestRoomId)?.let {
+        redirectIfNotOwner(scope.keyspace?.value ?: 0L, requestRoomId)?.let { redirect ->
+            forwardToOwnerOrNull(context, redirect) { it.unlockLocker(request) }?.let {
+                return@trackResponse it
+            }
             return@trackResponse UnlockLockerResponse {
                 result = UnlockLockerResponse.Result.NOT_OWNER
-                redirect = it
+                this.redirect = redirect
             }
         }
 
