@@ -4,7 +4,6 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
-import assertk.assertions.isNull
 import com.latenighthack.lockers.common.v1.SessionId
 import com.latenighthack.lockers.server.cluster.PeerConnectionPool
 import com.latenighthack.lockers.session.v1.LocalSessionGatewayServiceRpc
@@ -42,9 +41,11 @@ class RegistrySessionGatewayDiscoveryTest {
         RegistrySessionGatewayDiscovery(localServer, store, PeerConnectionPool(), "self", meters, cacheTtlMs)
 
     @Test
-    fun `a locally-homed session short-circuits to the in-process gateway`() = runBlocking {
+    fun `a locally-homed session short-circuits to the in-process gateway`(): Unit = runBlocking {
         val store = InMemorySessionGatewayStore()
         store.upsert(session("s1"), "self", "self:1", ttlMs = 60_000)
+        // NB: `: Unit` matters — runBlocking returns the last expression, and a @Test method
+        // with a non-void return type is silently skipped by the JUnit platform.
         assertThat(discovery(store).findServer(session("s1")))
             .isNotNull().isInstanceOf(LocalSessionGatewayServiceRpc::class)
     }
@@ -59,14 +60,18 @@ class RegistrySessionGatewayDiscoveryTest {
     }
 
     @Test
-    fun `a missing or expired row means offline`() = runBlocking {
+    fun `a missing or expired row means offline - falls back to the local gateway`(): Unit = runBlocking {
         val store = InMemorySessionGatewayStore()
-        assertThat(discovery(store).findServer(session("absent"))).isNull()
+        // Offline delivery goes through the in-process gateway (durable inbox from any node);
+        // the miss is still metered so offline lookup volume stays observable.
+        assertThat(discovery(store).findServer(session("absent")))
+            .isNotNull().isInstanceOf(LocalSessionGatewayServiceRpc::class)
         assertThat(meters.registryMisses.count()).isEqualTo(1.0)
 
         store.upsert(session("expired"), "peer", "peer-host:9999", ttlMs = 50)
         delay(150)
-        assertThat(discovery(store).findServer(session("expired"))).isNull()
+        assertThat(discovery(store).findServer(session("expired")))
+            .isNotNull().isInstanceOf(LocalSessionGatewayServiceRpc::class)
     }
 
     @Test

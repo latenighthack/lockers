@@ -11,12 +11,15 @@ import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.LockerKeyspace
 import com.latenighthack.lockers.common.v1.RoomId
 import com.latenighthack.lockers.common.v1.SessionId
+import com.latenighthack.lockers.room.v1.DeleteLockerRequest
+import com.latenighthack.lockers.room.v1.DeleteLockerResponse
 import com.latenighthack.lockers.room.v1.PostLockerChangeRequest
 import com.latenighthack.lockers.room.v1.PostLockerChangeResponse
 import com.latenighthack.lockers.room.v1.RoomServiceRpc
 import com.latenighthack.lockers.server.agents.LOBBY_KEYSPACE
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
 import com.latenighthack.lockers.server.services.room.v1.SubscriptionStoreImpl
+import com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreImpl
 import com.latenighthack.lockers.server.storage.v1.ServerRoomId
 import com.latenighthack.lockers.server.storage.v1.ServerSessionId
 import kotlinx.coroutines.delay
@@ -153,6 +156,72 @@ class ClaimClusterTest {
             assertThat(
                 cluster.node1.meterRegistry.find("lockers.session.events.posted").counter()?.count() ?: 0.0
             ).isEqualTo(0.0)
+        }
+    }
+
+    @Test
+    fun `offline subscriber - the write succeeds and delivery lands durably in the inbox`() = runBlocking {
+        startTwoNodeClaimCluster().use { cluster ->
+            // Durably subscribed but with NO session_gateway row: an offline session (e.g. the
+            // pre-login session a signup flow leaves behind). This used to poison every write to
+            // the room: UNKNOWN_ERROR after the persist → client version ping-pong → dropped.
+            val ghost = SessionId("ghost-1".encodeToByteArray())
+            val subs = SubscriptionStoreImpl(cluster.delegate).also { it.prepare() }
+            subs.addSubscription(
+                ServerSessionId(ghost.rawValue),
+                ServerRoomId(room("offline").rawValue),
+            )
+
+            val response = cluster.node1.roomClient().postLockerChange(post("offline"))
+            assertThat(response.result is PostLockerChangeResponse.Result.OK).isTrue()
+
+            // Delivery fell back to the writing node's in-process gateway: the event is in the
+            // shared inbox store, where the session's reconnect hydrate will find it.
+            val inbox = SessionInboxStoreImpl(cluster.delegate).also { it.prepare() }
+            awaitUntil { inbox.getAllEvents(ServerSessionId(ghost.rawValue)).size == 1 }
+            assertThat(
+                cluster.node1.meterRegistry.find("lockers.session.events.posted").counter()?.count()
+            ).isEqualTo(1.0)
+
+            // Deletes take the same fan-out path; they must survive the offline subscriber too.
+            val delete = cluster.node1.roomClient().deleteLocker(DeleteLockerRequest {
+                roomId = room("offline")
+                lockerId = LockerId {
+                    rawValue = byteArrayOf(9)
+                    keyspace = LockerKeyspace { value = 1L }
+                }
+                parentVersion = response.version
+            })
+            assertThat(delete.result is DeleteLockerResponse.Result.OK).isTrue()
+        }
+    }
+
+    @Test
+    fun `unreachable peer gateway - fan-out failure neither fails the write nor blocks other sessions`() = runBlocking {
+        startTwoNodeClaimCluster().use { cluster ->
+            // One subscriber's registry row points at a dead node; another is live on node2.
+            val dead = SessionId("dead-1".encodeToByteArray())
+            val live = SessionId("live-1".encodeToByteArray())
+            cluster.sessionGateways.upsert(dead, "node3", "127.0.0.1:1", ttlMs = 60_000)
+            cluster.sessionGateways.upsert(live, "node2", cluster.node2.addr, ttlMs = 60_000)
+            val subs = SubscriptionStoreImpl(cluster.delegate).also { it.prepare() }
+            for (session in listOf(dead, live)) {
+                subs.addSubscription(
+                    ServerSessionId(session.rawValue),
+                    ServerRoomId(room("badpeer").rawValue),
+                )
+            }
+
+            // The dead peer's postEvent throws inside the fan-out; the write must still be OK
+            // and the live subscriber on node2 must still receive the event.
+            val response = cluster.node1.roomClient().postLockerChange(post("badpeer"))
+            assertThat(response.result is PostLockerChangeResponse.Result.OK).isTrue()
+            awaitUntil {
+                cluster.node2.meterRegistry.find("lockers.session.events.posted").counter()?.count() == 1.0
+            }
+            assertThat(
+                cluster.node1.meterRegistry.find("lockers.room.events.post.failure").counter()?.count() ?: 0.0
+            ).isEqualTo(1.0)
         }
     }
 

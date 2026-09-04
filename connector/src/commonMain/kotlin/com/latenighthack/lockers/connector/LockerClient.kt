@@ -614,7 +614,11 @@ class LockerClient(
                         throw LockerWriteException("locker delete signature was rejected")
                     is DeleteLockerResponse.Result.NOT_AUTHORIZED ->
                         throw LockerWriteException("locker delete not authorized")
-                    else -> retry()
+                    else -> {
+                        // See updateLocker: rebase on server state before retrying an unknown result.
+                        fetchLocker(roomId, lockerId)?.let { parentVersion = it.version }
+                        retry()
+                    }
                 }
             }
         } catch (e: RetryLimitExceeded) {
@@ -707,7 +711,17 @@ class LockerClient(
                         throw LockerWriteException("locker write signature was rejected ($writeContext)")
                     is PostLockerChangeResponse.Result.NOT_AUTHORIZED ->
                         throw LockerWriteException("locker write not authorized ($writeContext)")
-                    else -> retry()
+                    else -> {
+                        // Unknown/transient server result: the write may have persisted before the
+                        // server failed (e.g. a fan-out error), so a blind retry with the same
+                        // parentVersion would just bounce off UPDATE_LOCAL_VERSION and burn two
+                        // attempts per round trip. Rebase on the server's current state first.
+                        fetchLocker(roomId, lockerId)?.let { fetched ->
+                            currentPlaintext = fetched.locker?.plaintextPayload() ?: byteArrayOf()
+                            parentVersion = fetched.version
+                        }
+                        retry()
+                    }
                 }
 
                 IdentifiedLocker {

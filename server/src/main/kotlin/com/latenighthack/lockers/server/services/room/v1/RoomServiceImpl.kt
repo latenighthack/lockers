@@ -420,41 +420,53 @@ class RoomServiceImpl(
             }
             lockerStore.updateLocker(serverLocker)
 
+            // The write above is durable: from here on, fan-out is best-effort per session and
+            // must never fail the RPC — a failure response after the persist point sends the
+            // client into a version ping-pong it can't win (retry → UPDATE_LOCAL_VERSION →
+            // rebase → persist again → fail again, until its retry budget drops the write).
             val sessionIds = lookupSessions(requestRoomId)
             for (sessionId in sessionIds) {
                 val gatewayServiceRpc = sessionGatewayDiscovery.findServer(sessionId)
                 if (gatewayServiceRpc == null) {
+                    // Ring/local modes only (claim-mode discovery falls back locally):
+                    // the session's gateway is unreachable; it re-hydrates on reconnect.
                     gatewayLookupFailureCounter.increment()
-                    return@runOnDispatcher PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
+                    continue
                 }
 
-                val postEventResponse = gatewayServiceRpc.postEvent(PostEventRequest {
-                    event {
-                        roomId = requestRoomId
-                        eventId = requestEventId
-                        locker {
-                            locker = updatedLocker
-                            lockerId = requestLockerId
-                            version = updatedLockerVersion
-                            lockState = effectiveState
+                try {
+                    val postEventResponse = gatewayServiceRpc.postEvent(PostEventRequest {
+                        event {
+                            roomId = requestRoomId
+                            eventId = requestEventId
+                            locker {
+                                locker = updatedLocker
+                                lockerId = requestLockerId
+                                version = updatedLockerVersion
+                                lockState = effectiveState
+                            }
+                            notification {
+                                push = request.notification?.push
+                                payload = request.notification?.payload
+                            }
                         }
-                        notification {
-                            push = request.notification?.push
-                            payload = request.notification?.payload
+                        sessionIds {
+                            addSessionId {
+                                rawValue = sessionId.rawValue
+                            }
                         }
-                    }
-                    sessionIds {
-                        addSessionId {
-                            rawValue = sessionId.rawValue
-                        }
-                    }
-                })
+                    })
 
-                if (!postEventResponse.result.isOk()) {
+                    if (!postEventResponse.result.isOk()) {
+                        postEventFailureCounter.increment()
+                    } else {
+                        postEventSuccessCounter.increment()
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
                     postEventFailureCounter.increment()
-                    return@runOnDispatcher PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
-                } else {
-                    postEventSuccessCounter.increment()
+                    logger.warn("postEvent to session gateway failed; continuing fan-out", e)
                 }
             }
 
@@ -588,6 +600,7 @@ class RoomServiceImpl(
                 ServerLockerId(requestLockerId.rawValue)
             )
 
+            // Delete is durable above; fan-out is best-effort per session (see postLockerChange).
             val sessionIds = lookupSessions(requestRoomId)
 
             // notify change event
@@ -595,34 +608,40 @@ class RoomServiceImpl(
                 val gatewayServiceRpc = sessionGatewayDiscovery.findServer(sessionId)
                 if (gatewayServiceRpc == null) {
                     gatewayLookupFailureCounter.increment()
-                    return@runOnDispatcher DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
+                    continue
                 }
 
-                val postEventResponse = gatewayServiceRpc.postEvent(PostEventRequest {
-                    event {
-                        roomId = requestRoomId
-                        eventId = requestEventId
-                        locker {
-                            lockerId = requestLockerId
-                            version = updatedLockerVersion
+                try {
+                    val postEventResponse = gatewayServiceRpc.postEvent(PostEventRequest {
+                        event {
+                            roomId = requestRoomId
+                            eventId = requestEventId
+                            locker {
+                                lockerId = requestLockerId
+                                version = updatedLockerVersion
+                            }
+                            notification {
+                                push = request.notification?.push
+                                payload = request.notification?.payload
+                            }
                         }
-                        notification {
-                            push = request.notification?.push
-                            payload = request.notification?.payload
+                        sessionIds {
+                            addSessionId {
+                                rawValue = sessionId.rawValue
+                            }
                         }
-                    }
-                    sessionIds {
-                        addSessionId {
-                            rawValue = sessionId.rawValue
-                        }
-                    }
-                })
+                    })
 
-                if (!postEventResponse.result.isOk()) {
+                    if (!postEventResponse.result.isOk()) {
+                        postEventFailureCounter.increment()
+                    } else {
+                        postEventSuccessCounter.increment()
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
                     postEventFailureCounter.increment()
-                    return@runOnDispatcher DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
-                } else {
-                    postEventSuccessCounter.increment()
+                    logger.warn("postEvent to session gateway failed; continuing fan-out", e)
                 }
             }
 

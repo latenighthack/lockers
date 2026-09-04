@@ -59,7 +59,10 @@ internal class SessionGatewayLookup(
 /**
  * Claim-mode [SessionGatewayDiscovery]: resolves the node holding a session's WebSocket from the
  * `session_gateway` registry (replacing the session ring). A local row short-circuits to the
- * in-process gateway; a remote row dials the peer over the existing east-west transport.
+ * in-process gateway; a remote row dials the peer over the existing east-west transport. No row
+ * means the session is offline — delivery falls back to the in-process gateway, whose enqueue is
+ * durable from any node (shared inbox store) and best-effort push routes through
+ * [RegistryPushGatewayDiscovery]'s own local fallback; there is simply no live socket to emit to.
  */
 class RegistrySessionGatewayDiscovery(
     private val local: SessionGatewayServer,
@@ -72,7 +75,7 @@ class RegistrySessionGatewayDiscovery(
     private val lookup = SessionGatewayLookup(store, meters, cacheTtlMs)
 
     override suspend fun findServer(sessionId: SessionId): SessionGatewayService? {
-        val row = lookup.find(sessionId) ?: return null
+        val row = lookup.find(sessionId) ?: return LocalSessionGatewayServiceRpc(local)
         return if (row.nodeId == selfNodeId) {
             LocalSessionGatewayServiceRpc(local)
         } else {
