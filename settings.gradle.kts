@@ -4,7 +4,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     repositories {
-        mavenLocal()
+        // Global Maven Local is intentionally excluded; use -PfhWorkspace for local development.
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -13,7 +13,7 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
-        mavenLocal()
+        // Global Maven Local is intentionally excluded; use -PfhWorkspace for local development.
         google()
         mavenCentral()
     }
@@ -26,3 +26,6 @@ include(":server:test")
 include(":server:run")
 include(":keymaster")
 include(":sharding-core")
+
+// Explicit isolated library development; release builds use published dependencies.
+apply(from = "gradle/fh-workspace.settings.gradle")

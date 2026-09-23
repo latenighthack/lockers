@@ -33,6 +33,54 @@ import kotlin.test.assertEquals
 class StreamTests {
 
     @Test
+    fun `recreated session restores live room subscriptions`() =
+        runTestWithServer(Application::attachTestServices) { server, _ ->
+        withContext(Dispatchers.Default) {
+            val rpcClient = server.rpcClient
+            val storeDelegate = InMemoryStoreDelegate()
+            val keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate())
+            val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
+            val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
+            val keySource = FixedKeySource(Secp256r1KeyPair.generate())
+            val testRoomId = RoomId(Random.nextBytes(32))
+            val testLockerId = LockerId(Random.nextBytes(32), LockerKeyspace { value = 1L })
+
+            subscriptionStore.prepare()
+            sessionStore.prepare()
+            storeDelegate.createStores()
+
+            val version = Version(0, 0, 1)
+            val stream1 = Stream(rpcClient, keySource, sessionStore, subscriptionStore, version)
+            stream1.start()
+            val firstSessionId = awaitConnected(stream1)
+            stream1.subscribe(testRoomId, waitForSubscription = true)
+            stream1.stop()
+
+            sessionStore.updateSessionId(null)
+            sessionStore.updateNextSequenceBytes(null)
+            val stream2 = Stream(rpcClient, keySource, sessionStore, subscriptionStore, version)
+            stream2.start()
+            val freshSessionId = awaitConnected(stream2)
+            assertEquals(false, firstSessionId.rawValue.contentEquals(freshSessionId.rawValue))
+            stream2.subscribe(testRoomId, waitForSubscription = true)
+            val live = async(start = CoroutineStart.UNDISPATCHED) {
+                withTimeoutOrNull(2000) { stream2.events.first() }
+            }
+            ShardedRoomServiceRpc(rpcClient).postLockerChange(PostLockerChangeRequest {
+                roomId = testRoomId
+                lockerId = testLockerId
+                parentVersion = 0
+                locker { open { encodedPayload = byteArrayOf(42) } }
+            })
+            val received = live.await()
+            stream2.stop()
+            kotlin.test.assertNotNull(received, "Connected replacement session never receives live room event")
+        }
+        }
+
+
+
+    @Test
     fun `initialized → subscribed → event received`() = runTestWithServer(Application::attachTestServices) { server, _ ->
         val rpcClient = server.rpcClient
         val storeDelegate = InMemoryStoreDelegate()

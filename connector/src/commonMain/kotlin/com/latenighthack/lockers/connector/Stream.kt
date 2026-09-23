@@ -12,8 +12,6 @@ import com.latenighthack.ktstore.BoundStoreKey
 import com.latenighthack.lockers.session.v1.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlin.random.Random
 import com.latenighthack.ktstore.KeyValueStore
 import com.latenighthack.ktstore.Store
@@ -109,7 +107,7 @@ class SubscriptionStoreImpl(delegate: StoreDelegate) : SubscriptionStore, Store<
 class SubscriptionController(
     private val rpcClient: RpcClient,
     private val subscriptionStore: SubscriptionStore,
-    private val sessionStore: SessionStore,
+    @Suppress("UNUSED_PARAMETER") sessionStore: SessionStore,
     private val sessionIdSource: Flow<SessionId?>,
     private val log: KmLog = logging()
 ) {
@@ -117,230 +115,121 @@ class SubscriptionController(
     private val controllerScope = CoroutineScope(Dispatchers.Default + controllerJob)
     private val roomService = ShardedRoomServiceRpc(rpcClient)
 
-    suspend fun resendSubscriptions() {
-        val changes = mutableListOf<SubscriptionChange>()
-        for (subscription in subscriptionStore.getAllSubscriptions()) {
-            if (subscription.isPendingAdd || !subscription.isPendingRemove) {
-                // resend
-                changes.add(SubscriptionChange.Subscribed(RoomId(subscription.roomIdRawValue)))
-            } else {
-                // clear
-                subscriptionStore.deleteSubscription(RoomId(subscription.roomIdRawValue))
-            }
-        }
-
-        subscriptionChanges.emitAll(changes.asFlow())
+    // Persisted subscriptions describe intent, not confirmation for a particular session.
+    // Serialize intent, session changes and acknowledgments so a late RPC cannot confirm
+    // an obsolete session or overwrite a newer unsubscribe. RPCs still run per room.
+    private sealed interface Change {
+        data class Desired(val roomId: RoomId, val subscribed: Boolean) : Change
+        data class Session(val sessionId: SessionId?) : Change
+        data object Refresh : Change
+        data class Confirmed(val roomId: RoomId, val sessionId: SessionId,
+                             val generation: Long, val subscribed: Boolean) : Change
     }
 
-    // Reconcile a single room's subscription against the server, retrying the RPC in-session
-    // with backoff instead of parking the room (pending in the store) until the next reconnect.
-    // Runs per-room (see the fan-out in startWatchingSubscriptions), so a room whose RPC keeps
-    // failing retries on its own without blocking other rooms. CancellationException — including
-    // supersession by a newer change, RetryLimitExceeded, and stop() — is never retried and
-    // propagates. On success the reconciled state is finalized in the store.
-    private suspend fun reconcile(subscriptionChange: SubscriptionChange) {
-        repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
-            val sessionId = sessionIdSource.filter { it != null }.first()
+    private data class Confirmations(val sessionId: SessionId? = null, val rooms: Set<RoomId> = emptySet())
+    private val changes = kotlinx.coroutines.channels.Channel<Change>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+    private val confirmations = MutableStateFlow(Confirmations())
+    private val newSubscriptions = MutableSharedFlow<RoomId>(extraBufferCapacity = 64)
 
-            roomService.subscription(SubscriptionRequest {
-                this.sessionId = sessionId
-
-                when (subscriptionChange) {
-                    is SubscriptionChange.Subscribed -> {
-                        roomId = subscriptionChange.roomId
-                        kind.subscribe { }
-                    }
-
-                    is SubscriptionChange.Unsubscribed -> {
-                        roomId = subscriptionChange.roomId
-                        kind.unsubscribe { }
-                    }
-                }
-            })
-        }
-
-        when (subscriptionChange) {
-            is SubscriptionChange.Subscribed -> {
-                subscriptionStore.updateSubscription(StoredSubscription {
-                    roomIdRawValue = subscriptionChange.roomId.rawValue
-                })
-                // concurrent per-room reconciles mutate this set, so update atomically
-                reconciledSubscriptions.update { it + subscriptionChange.roomId }
-                newSubscriptions.emit(subscriptionChange.roomId)
-            }
-            is SubscriptionChange.Unsubscribed -> {
-                subscriptionStore.deleteSubscription(subscriptionChange.roomId)
-                reconciledSubscriptions.update { it - subscriptionChange.roomId }
-            }
-        }
+    suspend fun resendSubscriptions() {
+        changes.send(Change.Refresh)
     }
 
     suspend fun startWatchingSubscriptions() {
-        val subsReady = CompletableDeferred<Unit>()
+        val desired = subscriptionStore.getAllSubscriptions().associate {
+            RoomId(it.roomIdRawValue) to !it.isPendingRemove
+        }.toMutableMap()
 
         controllerScope.launch {
-            sessionIdSource
-                .onStart {
-                    emit(sessionStore.getSessionId())
+            var sessionId: SessionId? = null
+            var nextGeneration = 0L
+            val generations = mutableMapOf<RoomId, Long>()
+            val jobs = mutableMapOf<RoomId, Job>()
+
+            fun reconcile(roomId: RoomId, subscribed: Boolean) {
+                jobs.remove(roomId)?.cancel()
+                val generation = ++nextGeneration
+                generations[roomId] = generation
+                val targetSession = sessionId ?: return
+                jobs[roomId] = controllerScope.launch {
+                    repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
+                        val response = roomService.subscription(SubscriptionRequest {
+                            this.sessionId = targetSession
+                            this.roomId = roomId
+                            if (subscribed) kind.subscribe { } else kind.unsubscribe { }
+                        })
+                        check(response.result.isOk()) { "subscription rejected: ${response.result}" }
+                    }
+                    changes.send(Change.Confirmed(roomId, targetSession, generation, subscribed))
                 }
-                .distinctUntilChanged()
-                .filterNotNull()
-                .collect {
-                    resendSubscriptions()
-                }
-        }
+            }
 
-        controllerScope.launch {
-            subscriptionChanges
-                .mapNotNull {
-                    when (it) {
-                        is SubscriptionChange.Subscribed -> {
-                            val existingSubscription = subscriptionStore.getSubscription(it.roomId)
-
-                            if (existingSubscription != null) {
-                                if (existingSubscription.isPendingAdd || !existingSubscription.isPendingRemove) {
-                                    // we already know about this
-                                    return@mapNotNull null
-                                }
-                            }
-
+            for (change in changes) {
+                when (change) {
+                    is Change.Desired -> {
+                        if (desired[change.roomId] == change.subscribed) continue
+                        desired[change.roomId] = change.subscribed
+                        confirmations.update { it.copy(rooms = it.rooms - change.roomId) }
+                        subscriptionStore.updateSubscription(StoredSubscription {
+                            roomIdRawValue = change.roomId.rawValue
+                            isPendingAdd = change.subscribed
+                            isPendingRemove = !change.subscribed
+                        })
+                        reconcile(change.roomId, change.subscribed)
+                    }
+                    is Change.Session, Change.Refresh -> {
+                        if (change is Change.Session) {
+                            if (sessionId == change.sessionId) continue
+                            sessionId = change.sessionId
+                        }
+                        confirmations.value = Confirmations(sessionId)
+                        jobs.values.forEach { it.cancel() }
+                        jobs.clear()
+                        // Reconcile every persisted intent for the new session, including rooms
+                        // previously confirmed on an old one. Never deduplicate this as a user ask.
+                        desired.forEach { (room, subscribed) -> reconcile(room, subscribed) }
+                    }
+                    is Change.Confirmed -> {
+                        if (change.sessionId != sessionId || generations[change.roomId] != change.generation) continue
+                        jobs.remove(change.roomId)
+                        if (change.subscribed) {
                             subscriptionStore.updateSubscription(StoredSubscription {
-                                roomIdRawValue = it.roomId.rawValue
-                                isPendingAdd = true
+                                roomIdRawValue = change.roomId.rawValue
                             })
-                        }
-                        is SubscriptionChange.Unsubscribed -> {
-                            val existingSubscription = subscriptionStore.getSubscription(it.roomId)
-
-                            if (existingSubscription != null) {
-                                if (existingSubscription.isPendingRemove) {
-                                    // we already know about this
-                                    return@mapNotNull null
-                                }
-                            }
-
-                            subscriptionStore.updateSubscription(StoredSubscription {
-                                roomIdRawValue = it.roomId.rawValue
-                                isPendingRemove = true
-                            })
-                        }
-                    }
-
-                    it
-                }
-                .onStart {
-                    subsReady.complete(Unit)
-
-                    val subscriptions = subscriptionStore.getAllSubscriptions()
-
-                    subscriptionState.update {
-                        it + subscriptions.mapNotNull { storedSubscription ->
-                            if (storedSubscription.isPendingRemove) {
-                                null
-                            } else {
-                                RoomId(storedSubscription.roomIdRawValue)
-                            }
-                        }
-                    }
-
-                    reconciledSubscriptions.update {
-                        it + subscriptions.mapNotNull { storedSubscription ->
-                            if (storedSubscription.isPendingAdd || storedSubscription.isPendingRemove) {
-                                null
-                            } else {
-                                RoomId(storedSubscription.roomIdRawValue)
-                            }
-                        }
-                    }
-
-                    val pendingSubscriptions = subscriptions
-                        .filter {
-                            it.isPendingAdd || it.isPendingRemove
-                        }
-
-                    emitAll(pendingSubscriptions.mapNotNull {
-                        if (it.isPendingAdd) {
-                            SubscriptionChange.Subscribed(RoomId(it.roomIdRawValue))
-                        } else if (it.isPendingRemove) {
-                            SubscriptionChange.Unsubscribed(RoomId(it.roomIdRawValue))
+                            confirmations.update { it.copy(rooms = it.rooms + change.roomId) }
+                            newSubscriptions.emit(change.roomId)
                         } else {
-                            null
-                        }
-                    }.asFlow())
-                }
-                .collect { subscriptionChange ->
-                    // Per-room fan-out: reconcile each room on its own job so a failing/slow
-                    // room retries in-session (see reconcile) without head-of-line-blocking the
-                    // reconciles of other rooms. A newer change for the same room supersedes
-                    // (cancels) the in-flight retry so a stale Subscribe can't clobber an
-                    // Unsubscribe (or vice versa).
-                    val roomId = subscriptionChange.roomId
-                    reconcileMutex.withLock {
-                        reconcileJobs.remove(roomId)?.cancel()
-                        reconcileJobs[roomId] = controllerScope.launch {
-                            val self = coroutineContext[Job]
-                            try {
-                                reconcile(subscriptionChange)
-                            } finally {
-                                reconcileMutex.withLock {
-                                    if (reconcileJobs[roomId] === self) {
-                                        reconcileJobs.remove(roomId)
-                                    }
-                                }
-                            }
+                            subscriptionStore.deleteSubscription(change.roomId)
+                            desired.remove(change.roomId)
                         }
                     }
                 }
+            }
         }
-
-        subsReady.await()
+        controllerScope.launch {
+            sessionIdSource.distinctUntilChanged().collect { changes.send(Change.Session(it)) }
+        }
     }
-
-    private sealed class SubscriptionChange {
-        abstract val roomId: RoomId
-        data class Subscribed(override val roomId: RoomId) : SubscriptionChange()
-        data class Unsubscribed(override val roomId: RoomId) : SubscriptionChange()
-    }
-
-    private val subscriptionState = MutableStateFlow(emptySet<RoomId>())
-    private val subscriptionChanges = MutableSharedFlow<SubscriptionChange>()
-    private val reconciledSubscriptions = MutableStateFlow(emptySet<RoomId>())
-    private val newSubscriptions = MutableSharedFlow<RoomId>(extraBufferCapacity = 64)
-
-    // In-flight per-room reconcile jobs, so a newer change can supersede an outstanding retry
-    // for the same room. Guarded by reconcileMutex.
-    private val reconcileMutex = Mutex()
-    private val reconcileJobs = mutableMapOf<RoomId, Job>()
 
     suspend fun awaitSubscription(roomId: RoomId) {
-        if (reconciledSubscriptions.value.contains(roomId)) {
-            return
-        }
-        reconciledSubscriptions
-            .filter { it.contains(roomId) }
-            .first()
+        combine(sessionIdSource, confirmations) { session, confirmed ->
+            session != null && session == confirmed.sessionId && roomId in confirmed.rooms
+        }.first { it }
     }
 
-    fun watchNewSubscriptions(): Flow<RoomId> {
-        return newSubscriptions
-    }
+    fun watchNewSubscriptions(): Flow<RoomId> = newSubscriptions
 
     suspend fun subscribe(roomId: RoomId) {
-        subscriptionState.update {
-            it + roomId
-        }
-        subscriptionChanges.emit(SubscriptionChange.Subscribed(roomId))
+        changes.send(Change.Desired(roomId, true))
     }
 
     suspend fun unsubscribe(roomId: RoomId) {
-        subscriptionState.update {
-            it - roomId
-        }
-        subscriptionChanges.emit(SubscriptionChange.Unsubscribed(roomId))
+        changes.send(Change.Desired(roomId, false))
     }
 
     fun stop() {
         controllerJob.cancel()
+        changes.close()
     }
 }
 
@@ -484,7 +373,6 @@ class Stream(
                             publicKey { rawValue = encodedPublicKey }
                         }
                     } else {
-                        sessionIdSource.value = currentSessionId
                         request.open {
                             sessionId = currentSessionId
                             sequenceKeySignature {
