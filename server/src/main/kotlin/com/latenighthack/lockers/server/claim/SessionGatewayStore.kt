@@ -28,6 +28,8 @@ interface SessionGatewayStore {
 
     /** The live (unexpired) row, or null — null means offline (push-queue path). */
     suspend fun lookup(sessionId: SessionId): SessionGatewayRow?
+    suspend fun lookupMany(sessionIds: List<SessionId>): Map<SessionId, SessionGatewayRow> =
+        sessionIds.mapNotNull { id -> lookup(id)?.let { id to it } }.toMap()
 }
 
 /** Production [SessionGatewayStore] over the shared Postgres, plain JDBC on a [ClaimJdbcPool]. */
@@ -94,6 +96,23 @@ class JdbcSessionGatewayStore(private val pool: ClaimJdbcPool) : SessionGatewayS
                 }
             }
         }
+
+    override suspend fun lookupMany(sessionIds: List<SessionId>): Map<SessionId, SessionGatewayRow> {
+        if (sessionIds.isEmpty()) return emptyMap()
+        return pool.withConnection { conn ->
+            buildMap {
+                for (ids in sessionIds.distinct().chunked(512)) {
+                    val placeholders = ids.joinToString(",") { "?" }
+                    conn.prepareStatement("SELECT session_id, node_id, node_addr FROM session_gateway WHERE session_id IN ($placeholders) AND expires_at >= now()").use { st ->
+                        ids.forEachIndexed { index, id -> st.setBytes(index + 1, id.rawValue) }
+                        st.executeQuery().use { rs ->
+                            while (rs.next()) put(SessionId(rs.getBytes("session_id")), SessionGatewayRow(rs.getString("node_id"), rs.getString("node_addr")))
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     companion object {
         const val TABLE_DDL = """

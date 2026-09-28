@@ -6,6 +6,8 @@ import com.latenighthack.ktstore.StoreDelegate
 import com.latenighthack.lockers.server.storage.v1.*
 
 interface SessionInboxStore {
+    suspend fun saveEvents(events: List<ServerSessionEvent>) { events.forEach { saveEvent(it) } }
+    suspend fun deleteEvents(eventIds: List<ServerEventId>, sessionId: ServerSessionId) { eventIds.forEach { deleteEvent(it, sessionId) } }
     suspend fun saveEvent(event: ServerSessionEvent)
 
     suspend fun getAllEvents(sessionId: ServerSessionId): List<ServerSessionEvent>
@@ -24,6 +26,13 @@ class SessionInboxStoreImpl(delegate: StoreDelegate): SessionInboxStore, Store<S
     private val sessionIdEventIdKey = compositeIndex(sessionIdKey, eventIdKey).also { primaryKey(it) }
 
     override suspend fun saveEvent(event: ServerSessionEvent) = save(event)
+    override suspend fun saveEvents(events: List<ServerSessionEvent>) = saveAll(events)
+    override suspend fun deleteEvents(eventIds: List<ServerEventId>, sessionId: ServerSessionId) = deleteMany(eventIds.map {
+        sessionIdEventIdKey.eq(listOf(
+            BoundStoreKey.SerializedKey(sessionIdKey.name, sessionId.toByteArray()),
+            BoundStoreKey.SerializedKey(eventIdKey.name, it.toByteArray())
+        ))
+    })
 
     override suspend fun getAllEvents(sessionId: ServerSessionId) = getAll(sessionIdKey.eq(sessionId.toByteArray()))
 

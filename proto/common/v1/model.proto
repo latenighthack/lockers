@@ -201,6 +201,7 @@ message Event {
     EventId event_id = 2;
     IdentifiedLocker locker = 3;
 
+    int64 room_sequence = 4;
     Notification notification = 10;
 }
 

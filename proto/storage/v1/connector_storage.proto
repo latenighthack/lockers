@@ -13,6 +13,7 @@ message StoredSubscription {
 message StoredAck {
     bytes room_id_raw_value = 1;
     bytes event_id_raw_value = 2;
+    bool confirmed = 3;
 }
 
 message StoredLocker {
@@ -21,6 +22,8 @@ message StoredLocker {
     int64 locker_keyspace = 3;
     bytes locker_payload = 4;
     int64 version = 5;
+    bool deleted = 6;
+    int64 room_sequence = 7;
 }
 
 // The client's desired push credential for one backend. backend mirrors

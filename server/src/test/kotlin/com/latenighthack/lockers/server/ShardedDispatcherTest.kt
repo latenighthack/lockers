@@ -10,6 +10,21 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 
 class ShardedDispatcherTest {
+    @Test fun holdsSameRoomAcrossSuspensionButAllowsOtherRooms() = runBlocking {
+        val dispatcher = ShardedDispatcher<String>(1, "suspension-test") { 0 }
+        val entered = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val release = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val first = launch { dispatcher.runOnDispatcher("one") { entered.complete(Unit); release.await() } }
+        entered.await()
+        var secondEntered = false
+        val second = launch { dispatcher.runOnDispatcher("one") { secondEntered = true } }
+        dispatcher.runOnDispatcher("two") { kotlin.test.assertFalse(secondEntered) }
+        release.complete(Unit)
+        first.join(); second.join()
+        kotlin.test.assertTrue(secondEntered)
+        dispatcher.close()
+    }
+
     @Test
     fun serializesWorkForTheSameId() = runBlocking {
         val dispatcher = ShardedDispatcher<String>(shardCount = 4, name = "test-shard") { it.hashCode() }

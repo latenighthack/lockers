@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.server.claim
 
+import com.latenighthack.lockers.session.v1.PostEventsRequest
+import com.latenighthack.lockers.session.v1.PostEventsResponse
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
@@ -19,10 +21,27 @@ import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
 class RegistrySessionGatewayDiscoveryTest {
+    @Test fun `migration is visible before snapshot and old renewal cannot steal it back`() = runBlocking {
+        val store = InMemorySessionGatewayStore()
+        val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob())
+        try {
+            val old = ClaimSessionRegistry(store, "old", "old:1", 60000, scope)
+            val next = ClaimSessionRegistry(store, "new", "new:1", 60000, scope)
+            val id = SessionId(byteArrayOf(1))
+            val serverId = com.latenighthack.lockers.server.storage.v1.ServerSessionId(id.rawValue)
+            old.attachBeforeSnapshot(serverId)
+            next.attachBeforeSnapshot(serverId)
+            kotlin.test.assertEquals(setOf(id), old.remoteSessions(listOf(id)))
+            old.renewRound()
+            kotlin.test.assertEquals("new", store.lookup(id)?.nodeId)
+        } finally { scope.coroutineContext[kotlinx.coroutines.Job]!!.cancel() }
+    }
+
     private val registry = SimpleMeterRegistry()
     private val meters = ClaimMetrics(registry)
 
     private val localServer = object : SessionGatewayServer {
+        override suspend fun postEvents(context: GrpcRequestContext, request: PostEventsRequest) = PostEventsResponse(request.groups.map { postEvent(context, it) })
         override suspend fun postEvent(context: GrpcRequestContext, request: PostEventRequest): PostEventResponse =
             PostEventResponse { }
     }

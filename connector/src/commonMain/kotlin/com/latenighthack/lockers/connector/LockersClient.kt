@@ -115,8 +115,8 @@ class LockersClient private constructor(
             val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs)
             val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId)
 
-            stream.start()
             lockerClient.start()
+            stream.start()
             pushRegistrations.start()
 
             return LockersClient(stream, lockerClient, pushRegistrations)

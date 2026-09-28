@@ -122,6 +122,8 @@ data class LockersConfig(
     val claimTtlMs: Long,
     val claimRenewMs: Long,
     val ringMaxConnections: Int,
+    val deliveryOutboxEnabled: Boolean = false,
+    val deliveryWorkerEnabled: Boolean = true,
 ) {
     val shardCount: Int get() = (Runtime.getRuntime().availableProcessors() * shardMultiplier).coerceAtLeast(1)
 
@@ -140,6 +142,8 @@ data class LockersConfig(
             fun long(name: String, default: Long) = env(name)?.trim()?.toLongOrNull() ?: default
             fun bool(name: String, default: Boolean) = env(name)?.trim()?.toBooleanStrictOrNull() ?: default
             return LockersConfig(
+                deliveryOutboxEnabled = bool("LOCKERS_DELIVERY_OUTBOX_ENABLED", false),
+                deliveryWorkerEnabled = bool("LOCKERS_DELIVERY_WORKER_ENABLED", true),
                 httpPort = int("LOCKERS_HTTP_PORT", 8080),
                 adminPort = int("LOCKERS_ADMIN_PORT", 8081),
                 databaseUrl = env("LOCKERS_DB_URL")?.takeIf { it.isNotBlank() },

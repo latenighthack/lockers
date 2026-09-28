@@ -6,6 +6,9 @@ import com.latenighthack.lockers.room.v1.*
 
 internal class ShardedRoomServiceRpc(rpcClient: RpcClient): RoomServiceRpc(rpcClient, { _, request ->
     val roomId = when (request) {
+        is SubscribeAndSnapshotRequest -> request.roomId
+        is PostLockerChangesRequest -> request.roomId
+        is GetLockersRequest -> request.roomId
         is SubscriptionRequest -> request.roomId
         is GetLockerRequest -> request.roomId
         is GetAllLockersRequest -> request.roomId

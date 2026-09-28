@@ -14,6 +14,9 @@ import com.latenighthack.lockers.connector.internal.LockerStore
 import com.latenighthack.lockers.connector.internal.ShardedRoomServiceRpc
 import com.latenighthack.lockers.connector.storage.v1.StoredLocker
 import com.latenighthack.lockers.room.v1.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -29,8 +32,8 @@ import kotlin.reflect.KFunction1
 internal fun Locker.plaintextPayload(): ByteArray =
     open?.encodedPayload ?: sealed?.payload?.enclosure?.innerPayload ?: byteArrayOf()
 
-private fun IdentifiedLocker.toUpdate(roomId: RoomId) =
-    LockerClient.LockerUpdate(roomId, lockerId!!, version, locker?.plaintextPayload() ?: byteArrayOf())
+private fun IdentifiedLocker.toUpdate(roomId: RoomId, roomSequence: Long = 0L) =
+    LockerClient.LockerUpdate(roomId, lockerId!!, version, locker?.plaintextPayload() ?: byteArrayOf(), deleted = locker == null, roomSequence = roomSequence)
 
 private fun StoredLocker.toIdentifiedLocker(): IdentifiedLocker {
     val storedVersion = version
@@ -52,6 +55,8 @@ private fun LockerClient.LockerUpdate.toStored() = StoredLocker {
     lockerKeyspace = lockerId.keyspace?.value ?: 0L
     lockerPayload = payload
     version = this@toStored.version
+    deleted = this@toStored.deleted
+    roomSequence = this@toStored.roomSequence
 }
 
 /**
@@ -160,51 +165,22 @@ class TypedLockerClient<ValueType>(
     // event through the fold, so every subscriber observed the map re-assemble {} -> {a} -> {a,b}.)
     // A failed subscribe/hydrate must not tear down the watcher; live updates still flow.
     // No ACK wait: offline, cached lockers must still hydrate (reconnect reconciles the sub).
-    // Startup window unchanged: a live write between the snapshot read and attaching to the
-    // replay-0 changes flow is missed; a write raced into both is harmless (Present replaces).
-    private fun watchAllIn(roomId: RoomId, keyspace: LockerKeyspace, includeHistory: Boolean): Flow<Map<LockerId, ValueType>> = flow {
-        val snapshot: Map<LockerId, ValueType> = try {
-            lockerClient.subscribeToRoom(roomId, waitForSubscription = false)
-            if (includeHistory) {
-                lockerClient.getAllLockers(roomId, keyspace).associate {
-                    it.lockerId!! to reader(it.locker?.plaintextPayload() ?: byteArrayOf())
-                }
-            } else {
-                emptyMap()
-            }
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            lockerClient.log.error { "watchAll hydrate failed for ${roomId.toLogString()}: $e" }
-            emptyMap()
-        }
-
-        emitAll(
-            allUpdates
-                .filter { it.lockerId.keyspace == keyspace && it.roomId == roomId }
-                .runningFold(snapshot) { acc, value -> acc.applyUpdate(value) }
-        )
-    }
+    // The shared coordinator installs live collection before hydration and merges versions.
+    private fun watchAllIn(roomId: RoomId, keyspace: LockerKeyspace, includeHistory: Boolean): Flow<Map<LockerId, ValueType>> =
+        if (includeHistory) lockerClient.watchSnapshot(roomId, keyspace).map { items ->
+            items.associate { it.lockerId!! to reader(it.locker!!.plaintextPayload()) }
+        } else allUpdates.filter { it.lockerId.keyspace == keyspace && it.roomId == roomId }
+            .onStart { lockerClient.subscribeToRoom(roomId, false) }
+            .runningFold(emptyMap()) { acc, value -> acc.applyUpdate(value) }
 
     fun watch(roomId: RoomId, lockerId: LockerId, includeHistory: Boolean = true): Flow<TypedLockerUpdate<ValueType>> {
         val scopedId = lockerId.scoped()
-
-        return allUpdates
-            .onStart {
-                try {
-                    lockerClient.subscribeToRoom(roomId, waitForSubscription = false)
-                    if (includeHistory) {
-                        lockerClient.getLocker(roomId, scopedId)?.let {
-                            emit(it.toTyped(roomId))
-                        }
-                    }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    lockerClient.log.error { "watch hydrate failed for ${roomId.toLogString()}: $e" }
-                }
-            }
-            .filter { it.roomId == roomId && it.lockerId == scopedId }
+        if (!includeHistory) return allUpdates.filter { it.roomId == roomId && it.lockerId == scopedId }
+            .onStart { lockerClient.subscribeToRoom(roomId, false) }
+        return lockerClient.watchSnapshot(roomId, keyspace).map { items ->
+            items.firstOrNull { it.lockerId == scopedId }?.toTyped(roomId)
+                ?: TypedLockerUpdate.Deleted(roomId, scopedId)
+        }.distinctUntilChanged()
     }
 
     val allUpdates: Flow<TypedLockerUpdate<ValueType>>
@@ -303,8 +279,12 @@ class LockerClient(
     private val codecs: NotificationCodecs = NotificationCodecs.identity(),
     internal val log: KmLog = logging()
 ) {
-    private val processingJob = Job()
+    private val processingJob = SupervisorJob()
     private val processingScope = GlobalScope + processingJob
+    private val sync = LockerSyncCoordinator(processingScope)
+    private val acceptance = Mutex()
+    private val watched = mutableMapOf<Pair<RoomId, LockerKeyspace>, Flow<List<IdentifiedLocker>>>()
+    private val watchMutex = Mutex()
 
     class LockerUpdate(
         val roomId: RoomId,
@@ -312,6 +292,7 @@ class LockerClient(
         val version: Long,
         val payload: ByteArray,
         val deleted: Boolean = false,
+        val roomSequence: Long = 0L,
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -360,49 +341,158 @@ class LockerClient(
     }
 
     suspend fun start() {
-        processingScope.launch {
-            internalChanges
-                .onEach { update ->
-                    if (update.deleted) {
-                        lockerStore.deleteLocker(update.roomId, update.lockerId.keyspaceOrDefault(), update.lockerId)
-                    } else {
-                        lockerStore.saveLocker(update.toStored())
+        stream.acceptEvent = { processEvent(it) }
+
+        stream.hydrateSubscription = { room, session -> hydrateRoom(room, session) }
+    }
+
+    private suspend fun hydrateRoom(room: RoomId, session: SessionId? = stream.sessionId.value): List<IdentifiedLocker> {
+        val capabilities = capabilities()
+        return sync.read(room) {
+        var watermark = 0L
+        val lockers = if (capabilities.subscribeAndSnapshot && session != null) {
+            val response = roomService.subscribeAndSnapshot(SubscribeAndSnapshotRequest(roomId = room, sessionId = session))
+            check(response.result.isOk()) { "subscribe and snapshot failed" }
+            watermark = response.roomSequence
+            response.lockers
+        } else {
+            if (session != null) roomService.subscription(SubscriptionRequest {
+                roomId = room; sessionId = session; kind.subscribe { }
+            })
+            roomService.getAllLockers(GetAllLockersRequest(roomId = room)).lockers
+        }
+        lockers.forEach { accept(it.toUpdate(room, watermark)) }
+        lockers
+        }
+    }
+
+    private var cachedCapabilities: CapabilitiesResponse? = null
+    private suspend fun capabilities(): CapabilitiesResponse {
+        // A warm write must not queue behind hydration merely to read cached capabilities.
+        cachedCapabilities?.let { return it }
+        return sync.read("capabilities") {
+        cachedCapabilities ?: try { roomService.capabilities(CapabilitiesRequest()) }
+        catch (e: RpcResponseException) {
+            if (e.code == com.latenighthack.ktbuf.proto.Codes.UNIMPLEMENTED || e.code == com.latenighthack.ktbuf.proto.Codes.NOT_FOUND) CapabilitiesResponse() else throw e
+        }.also { cachedCapabilities = it }
+        }
+    }
+
+    class Change(val lockerId: LockerId, val transform: suspend (ByteArray) -> ByteArray)
+
+    /** Atomic on capable servers. Legacy fallback is selected before submitting any write. */
+    suspend fun updateLockers(roomId: RoomId, changes: List<Change>, initialKey: Secp256r1KeyPair? = null) {
+        require(changes.isNotEmpty() && changes.size <= 64 && changes.map { it.lockerId }.distinct().size == changes.size)
+        // Room batch lock and stable locker ordering prevent overlapping single writes interleaving.
+        suspend fun locked(index: Int, action: suspend () -> Unit) {
+            if (index == changes.size) action()
+            else sync.mutate(roomId to changes.sortedBy { it.lockerId.toByteArray().toBase64String() }[index].lockerId) { locked(index + 1, action) }
+        }
+        locked(0) {
+            val caps = capabilities()
+            if (!caps.postLockerChanges) {
+                if (initialKey != null) {
+                    val lock = lockLocker(roomId, LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM), initialKey, initialKey)
+                    if (!lock.result.isOk()) throw LockerWriteException("initial room lock rejected: ${lock.result}")
+                }
+                coroutineScope { changes.map { change -> async {
+                    updateLockerSerialized(roomId, change.lockerId, transform = change.transform)
+                } }.awaitAll() }
+                return@locked
+            }
+            val current = changes.associate { change ->
+                val stored = lockerStore.getLocker(roomId, change.lockerId.keyspaceOrDefault(), change.lockerId)
+                change.lockerId to ((stored?.version ?: 0L) to (stored?.lockerPayload ?: byteArrayOf()))
+            }.toMutableMap()
+            // Explicit pair construction avoids conflating version zero with a missing body.
+            changes.forEach { change ->
+                val stored = lockerStore.getLocker(roomId, change.lockerId.keyspaceOrDefault(), change.lockerId)
+                current[change.lockerId] = (stored?.version ?: 0L) to (stored?.lockerPayload ?: byteArrayOf())
+            }
+            val scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM)
+            val grant = initialKey?.let { key ->
+                val public = key.publicKey.encode()
+                LockGrant(scope, Secp256R1Key.PublicKey(public), signatureOf(key, LockerSigning.grantContext(roomId, scope, public)))
+            }
+            var submitted: PostLockerChangesRequest? = null
+            try {
+                repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
+                    val request = submitted ?: PostLockerChangesRequest(roomId = roomId, initialLock = grant,
+                        writeRequestId = kotlin.random.Random.nextBytes(32), changes = changes.map { change ->
+                            val (version, plaintext) = current.getValue(change.lockerId)
+                            val body = buildWriteBody(initialKey ?: lockKeySource?.writeKeyFor(roomId, change.lockerId),
+                                roomId, change.lockerId, version, change.transform(plaintext))
+                            PostLockerChangeRequest(roomId = roomId, lockerId = change.lockerId, locker = body.locker,
+                                parentVersion = version, writeSignature = body.signature)
+                        }).also {
+                            if (it.toByteArray().size > minOf(8 * 1024 * 1024, caps.maxBatchBytes))
+                                throw LockerWriteException("atomic locker batch exceeds encoded request limit")
+                            submitted = it
+                        }
+                    val response = sync.network { roomService.postLockerChanges(request) }
+                    when (response.result) {
+                        is PostLockerChangesResponse.Result.OK -> {
+                            if (response.agentFailed || response.agentPending) throw LockerWriteException("batch committed; agent ${if (response.agentPending) "pending" else "failed"}")
+                            request.changes.zip(response.changes).forEach { (change, result) ->
+                                accept(LockerUpdate(roomId, change.lockerId!!, result.version, change.locker!!.plaintextPayload()))
+                            }
+                        }
+                        is PostLockerChangesResponse.Result.CONFLICT -> {
+                            response.changes.forEachIndexed { index, item ->
+                                if (item.result is PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION)
+                                    current[changes[index].lockerId] = item.version to (item.existingLocker?.plaintextPayload() ?: byteArrayOf())
+                                else if (!item.result.isOk()) throw LockerWriteException("batch rejected: ${item.result}")
+                            }
+                            if (response.changes.isEmpty()) throw LockerWriteException("initial lock conflict")
+                            submitted = null
+                            retry()
+                        }
+                        is PostLockerChangesResponse.Result.NOT_OWNER -> { recordRoomRedirect(roomId, response.redirect); retry() }
+                        else -> throw LockerWriteException("batch rejected: ${response.result}")
                     }
                 }
-                .collect()
+            } catch (e: RetryLimitExceeded) { throw LockerWriteException("batch retry budget exhausted: $e") }
         }
+    }
 
-        processingScope.launch {
-            stream.events
-                .collect {
-                    processEvent(it)
+    private suspend fun accept(update: LockerUpdate) = acceptance.withLock {
+        val stored = lockerStore.getLocker(update.roomId, update.lockerId.keyspaceOrDefault(), update.lockerId)
+        if (stored != null && (stored.version > update.version ||
+            (stored.roomSequence > 0 && update.roomSequence > 0 && stored.roomSequence >= update.roomSequence) ||
+            (stored.version == update.version && (stored.deleted || stored.lockerPayload.contentEquals(update.payload))))) return@withLock false
+        lockerStore.saveLocker(update.toStored())
+        internalChanges.emit(update)
+        true
+    }
+
+    internal fun watchSnapshot(roomId: RoomId, keyspace: LockerKeyspace): Flow<List<IdentifiedLocker>> = flow {
+        val shared = watchMutex.withLock { watched.getOrPut(roomId to keyspace) {
+            channelFlow {
+                val state = mutableMapOf<LockerId, LockerUpdate>()
+                val stateMutex = Mutex()
+                suspend fun merge(update: LockerUpdate) = stateMutex.withLock {
+                    val previous = state[update.lockerId]
+                    if (previous == null || update.version > previous.version ||
+                        (update.version == previous.version && update.deleted && !previous.deleted)) {
+                        state[update.lockerId] = update
+                        send(state.values.filterNot { it.deleted }.map { value -> IdentifiedLocker(value.lockerId,
+                            Locker { open { encodedPayload = value.payload } }, value.version) })
+                    }
                 }
-        }
-
-        processingScope.launch {
-            stream.watchNewSubscriptions().collect { subscribedRoomId ->
-                // a failed fetch must not kill the loop — log and keep serving later subscriptions
+                // Install live collector before starting hydration, buffering while the snapshot loads.
+                val live = launch(start = CoroutineStart.UNDISPATCHED) {
+                    changes.filter { it.roomId == roomId && it.lockerId.keyspaceOrDefault() == keyspace }.collect { merge(it) }
+                }
                 try {
-                    log.debug { "fetching all lockers for ${subscribedRoomId.toLogString()}" }
-                    val fetchedLockers = roomService.getAllLockers(GetAllLockersRequest {
-                        roomId = subscribedRoomId
-                    }).lockers
-
-                    log.debug {"got ${fetchedLockers.size} lockers for ${subscribedRoomId.toLogString()}" }
-
-                    internalChanges.emitAll(fetchedLockers
-                        .map {
-                            it.toUpdate(subscribedRoomId)
-                        }
-                        .asFlow()
-                    )
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    log.error { "failed to fetch lockers for ${subscribedRoomId.toLogString()}: $e" }
-                }
-            }
-        }
+                    subscribeToRoom(roomId, false)
+                    getAllLockers(roomId, keyspace).forEach { merge(it.toUpdate(roomId)) }
+                    if (state.isEmpty()) send(emptyList())
+                } catch (e: CancellationException) { throw e }
+                catch (e: Exception) { log.error { "watch hydration failed: $e" } }
+                live.join()
+            }.shareIn(processingScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+        } }
+        emitAll(shared)
     }
 
     private suspend fun processEvent(event: Event): Boolean {
@@ -416,11 +506,11 @@ class LockerClient(
 
         if (lockerId != null) {
             if (hasBody) {
-                internalChanges.emit(LockerUpdate(roomId, lockerId, version, body!!.plaintextPayload(), deleted = false))
+                accept(LockerUpdate(roomId, lockerId, version, body!!.plaintextPayload(), deleted = false, roomSequence = event.roomSequence))
             } else {
                 // A body-less locker event is a tombstone: the server signals a
                 // delete by sending lockerId + version with no Locker body.
-                internalChanges.emit(LockerUpdate(roomId, lockerId, version, byteArrayOf(), deleted = true))
+                accept(LockerUpdate(roomId, lockerId, version, byteArrayOf(), deleted = true, roomSequence = event.roomSequence))
             }
         }
 
@@ -498,7 +588,7 @@ class LockerClient(
                     }
                 }
             }
-            return cached.map { it.toIdentifiedLocker() }
+            return cached.filterNot { it.deleted }.map { it.toIdentifiedLocker() }
         }
 
         return fetchAllLockers(roomId, keyspace)
@@ -511,7 +601,7 @@ class LockerClient(
      * plaintext bytes.
      */
     suspend fun getAllKnownLockers(): List<LockerUpdate> =
-        lockerStore.getAllLockers().map { stored ->
+        lockerStore.getAllLockers().filterNot { it.deleted }.map { stored ->
             LockerUpdate(
                 RoomId(stored.roomIdRawValue),
                 LockerId(stored.lockerIdRawValue, LockerKeyspace { value = stored.lockerKeyspace }),
@@ -520,21 +610,8 @@ class LockerClient(
             )
         }
 
-    private suspend fun fetchAllLockers(roomId: RoomId, keyspace: LockerKeyspace): List<IdentifiedLocker> {
-        val fetchedLockers = roomService.getAllLockers(GetAllLockersRequest {
-            this.roomId = roomId
-            this.keyspace = keyspace
-        }).lockers
-
-        internalChanges.emitAll(fetchedLockers
-            .map {
-                it.toUpdate(roomId)
-            }
-            .asFlow()
-        )
-
-        return fetchedLockers
-    }
+    private suspend fun fetchAllLockers(roomId: RoomId, keyspace: LockerKeyspace): List<IdentifiedLocker> =
+        hydrateRoom(roomId).filter { it.locker != null && it.lockerId?.keyspace == keyspace }
 
     suspend fun getLocker(roomId: RoomId, lockerId: LockerId, revalidate: Boolean = true): IdentifiedLocker? {
         val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
@@ -553,26 +630,40 @@ class LockerClient(
                     }
                 }
             }
-            return cached.toIdentifiedLocker()
+            return cached.takeUnless { it.deleted }?.toIdentifiedLocker()
         }
 
         return fetchLocker(roomId, lockerId)
     }
 
-    private suspend fun fetchLocker(roomId: RoomId, lockerId: LockerId): IdentifiedLocker? {
+    suspend fun getLockers(roomId: RoomId, lockerIds: List<LockerId>): List<IdentifiedLocker?> {
+        require(lockerIds.size <= 64)
+        val caps = capabilities()
+        if (!caps.getLockers) return coroutineScope { lockerIds.map { id -> async { fetchLocker(roomId, id) } }.awaitAll() }
+        return sync.read(Triple("lockers", roomId, lockerIds)) {
+            roomService.getLockers(GetLockersRequest(roomId, lockerIds)).results.map { item ->
+                item.locker?.also { accept(it.toUpdate(roomId)) }
+            }
+        }
+    }
+
+    private suspend fun fetchLocker(roomId: RoomId, lockerId: LockerId): IdentifiedLocker? = sync.read(roomId to lockerId) {
         val fetchedLocker = roomService.getLocker(GetLockerRequest {
             this.lockerId = lockerId
             this.roomId = roomId
         }).locker
 
         fetchedLocker?.let {
-            internalChanges.emit(it.toUpdate(roomId))
+            accept(it.toUpdate(roomId))
         }
 
-        return fetchedLocker
+        fetchedLocker
     }
 
-    suspend fun deleteLocker(
+    suspend fun deleteLocker(roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.() -> Unit = {}) =
+        sync.mutate(roomId to lockerId) { deleteLockerSerialized(roomId, lockerId, notificationBuilder) }
+
+    private suspend fun deleteLockerSerialized(
         roomId: RoomId,
         lockerId: LockerId,
         notificationBuilder: NotificationBuilder.() -> Unit = {}
@@ -587,14 +678,14 @@ class LockerClient(
 
                 val notif = encodedNotification(roomId, lockerId) { this.notificationBuilder() }
 
-                val result = roomService.deleteLocker(DeleteLockerRequest {
+                val result = sync.network { roomService.deleteLocker(DeleteLockerRequest {
                     this.roomId = roomId
                     this.lockerId = lockerId
                     this.parentVersion = parentVersion
                     if (signature != null) this.writeSignature = signature
 
                     this.notification = notif
-                })
+                }) }
 
                 when (result.result) {
                     is DeleteLockerResponse.Result.OK -> result.version
@@ -622,17 +713,11 @@ class LockerClient(
                 }
             }
         } catch (e: RetryLimitExceeded) {
-            // Transient (transport / ownership routing) exhaustion: log-and-drop rather than throw.
-            // Callers routinely fire writes from long-lived scopes with no handler, where a throw
-            // is an app crash; a lost delete self-heals on the next reconcile. Terminal rejections
-            // (signature, authorization) above still throw — those are caller bugs.
-            log.error { "locker delete dropped after $WRITE_RETRY_LIMIT attempts room=${roomId.toLogString()} locker=${lockerId.toLogString()}" }
-            null
+            throw LockerWriteException("locker delete failed after $WRITE_RETRY_LIMIT attempts: $e")
         }
 
         deletedVersion?.let {
-            lockerStore.deleteLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
-            internalChanges.emit(LockerUpdate(roomId, lockerId, it, byteArrayOf(), deleted = true))
+            accept(LockerUpdate(roomId, lockerId, it, byteArrayOf(), deleted = true))
         }
     }
 
@@ -644,11 +729,16 @@ class LockerClient(
      * [transform] and re-signs against the fresh version — preserving the fair-read
      * retry. Set [ratchet] to rotate the signing key atomically with this write.
      *
-     * Returns null (write dropped, error logged) when the retry budget is exhausted on
-     * transient results; throws [LockerWriteException] only for terminal rejections
-     * (signature required/invalid, not authorized).
+     * Throws [LockerWriteException] for retry exhaustion, terminal rejection, or a committed
+     * source whose synchronous agent did not complete successfully.
      */
     suspend fun updateLocker(
+        roomId: RoomId, lockerId: LockerId,
+        notificationBuilder: NotificationBuilder.(Locker?) -> Unit = {}, ratchet: Boolean = false,
+        transform: suspend (ByteArray) -> ByteArray,
+    ): Locker? = sync.mutate(roomId to lockerId) { updateLockerSerialized(roomId, lockerId, notificationBuilder, ratchet, transform) }
+
+    private suspend fun updateLockerSerialized(
         roomId: RoomId,
         lockerId: LockerId,
         notificationBuilder: NotificationBuilder.(Locker?) -> Unit = {},
@@ -666,6 +756,8 @@ class LockerClient(
         // signing key for this room (signed=false), which is otherwise invisible from the message.
         val writeContext = "room=${roomId.toLogString()} locker=${lockerId.toLogString()} signed=${signingKey != null}"
 
+        val supportsReceipts = capabilities().writeReceipts
+        var submitted: PostLockerChangeRequest? = null
         val updatedLocker = try {
             repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
                 val newPlaintext = transform(currentPlaintext)
@@ -679,7 +771,8 @@ class LockerClient(
 
                 val notif = encodedNotification(roomId, lockerId) { this.notificationBuilder(body.locker) }
 
-                val result = roomService.postLockerChange(PostLockerChangeRequest {
+                val request = submitted ?: PostLockerChangeRequest {
+                    if (supportsReceipts) writeRequestId = kotlin.random.Random.nextBytes(32)
                     this.roomId = roomId
                     this.lockerId = lockerId
                     this.parentVersion = parentVersion
@@ -688,13 +781,16 @@ class LockerClient(
                     if (ratchetMsg != null) this.ratchet = ratchetMsg
 
                     this.notification = notif
-                })
+                }.also { submitted = it }
+                val result = sync.network { roomService.postLockerChange(request) }
 
+                if (result.agentFailed || result.agentPending) throw LockerWriteException("source write committed, but game agent failed ($writeContext)")
                 log.debug { "updated locker=${lockerId.toLogString()} result=${result.result} version=${result.version}" }
 
                 val locker = when (result.result) {
-                    is PostLockerChangeResponse.Result.OK -> body.locker
+                    is PostLockerChangeResponse.Result.OK -> request.locker!!
                     is PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION -> {
+                        submitted = null
                         currentPlaintext = result.existingLocker?.plaintextPayload() ?: byteArrayOf()
                         parentVersion = result.version
                         retry()
@@ -716,6 +812,8 @@ class LockerClient(
                         // server failed (e.g. a fan-out error), so a blind retry with the same
                         // parentVersion would just bounce off UPDATE_LOCAL_VERSION and burn two
                         // attempts per round trip. Rebase on the server's current state first.
+                        if (supportsReceipts) throw LockerWriteException("write rejected: ${result.result}")
+                        submitted = null
                         fetchLocker(roomId, lockerId)?.let { fetched ->
                             currentPlaintext = fetched.locker?.plaintextPayload() ?: byteArrayOf()
                             parentVersion = fetched.version
@@ -731,12 +829,7 @@ class LockerClient(
                 }
             }
         } catch (e: RetryLimitExceeded) {
-            // Transient (transport / ownership routing) exhaustion: log-and-return-null rather than
-            // throw. Callers routinely fire writes from long-lived scopes with no handler, where a
-            // throw is an app crash (seen in prod: NOT_OWNER x8 on a routing/claim mismatch took
-            // the app down). Terminal rejections (signature, authorization) above still throw.
-            log.error { "locker update dropped after $WRITE_RETRY_LIMIT attempts ($writeContext)" }
-            null
+            throw LockerWriteException("locker update failed after $WRITE_RETRY_LIMIT attempts ($writeContext): $e")
         }
 
         val result = updatedLocker ?: return null
@@ -744,8 +837,7 @@ class LockerClient(
             lockKeySource?.onRatcheted(roomId, lockerId, pendingRatchetKey)
         }
         val update = result.toUpdate(roomId)
-        lockerStore.saveLocker(update.toStored())
-        internalChanges.emit(update)
+        accept(update)
 
         return result.locker
     }
@@ -857,7 +949,7 @@ class LockerClient(
         )
 }
 
-private fun RoomId.toLogString() = "r+" + (this?.rawValue?.toBase64String()?.substring(0..5) ?: "(nul)")
+private fun RoomId.toLogString() = "r+" + (this?.rawValue?.toBase64String()?.take(6) ?: "(nul)")
 
-private fun LockerId?.toLogString() = "l+" + (this?.rawValue?.toBase64String()?.substring(0..5) ?: "(nul)") +
+private fun LockerId?.toLogString() = "l+" + (this?.rawValue?.toBase64String()?.take(6) ?: "(nul)") +
     "/ks" + (this?.keyspace?.value?.toString() ?: "0")

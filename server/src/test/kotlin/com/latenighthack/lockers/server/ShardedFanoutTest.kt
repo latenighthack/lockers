@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.server
 
+import com.latenighthack.lockers.session.v1.PostEventsRequest
+import com.latenighthack.lockers.session.v1.PostEventsResponse
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isEqualTo
@@ -47,6 +49,7 @@ import kotlin.test.Test
 class ShardedFanoutTest {
 
     private class RecordingSessionGatewayServer(val node: NodeId, val hits: MutableList<NodeId>) : SessionGatewayServer {
+        override suspend fun postEvents(context: GrpcRequestContext, request: PostEventsRequest) = PostEventsResponse(request.groups.map { postEvent(context, it) })
         override suspend fun postEvent(context: GrpcRequestContext, request: PostEventRequest): PostEventResponse {
             hits.add(node)
             return PostEventResponse { }
@@ -54,6 +57,7 @@ class ShardedFanoutTest {
     }
 
     private class RecordingSessionGateway(val node: NodeId, val hits: MutableList<NodeId>) : SessionGatewayService {
+        override suspend fun postEvents(request: PostEventsRequest) = PostEventsResponse(request.groups.map { postEvent(it) })
         override suspend fun postEvent(request: PostEventRequest): PostEventResponse {
             hits.add(node)
             return PostEventResponse { }

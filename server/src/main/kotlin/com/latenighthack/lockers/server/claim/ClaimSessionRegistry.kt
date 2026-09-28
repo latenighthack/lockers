@@ -27,6 +27,15 @@ class ClaimSessionRegistry(
     private val logger = LoggerFactory.getLogger(ClaimSessionRegistry::class.java)
     private val attached = ConcurrentHashMap.newKeySet<SessionId>()
 
+    override suspend fun attachBeforeSnapshot(sessionId: ServerSessionId) {
+        val id = SessionId(sessionId.rawValue)
+        store.upsert(id, nodeId, advertiseAddr, ttlMs)
+        attached.add(id)
+    }
+
+    override suspend fun remoteSessions(sessionIds: List<SessionId>): Set<SessionId> =
+        store.lookupMany(sessionIds).filterValues { it.nodeId != nodeId }.keys
+
     override fun attach(sessionId: ServerSessionId) {
         val id = SessionId(rawValue = sessionId.rawValue)
         attached.add(id)
@@ -48,8 +57,12 @@ class ClaimSessionRegistry(
     /** Batched renew + re-upsert of any local session the renew did not confirm. */
     suspend fun renewRound() {
         val renewed = store.renewAll(nodeId, ttlMs)
-        for (id in attached) {
-            if (id !in renewed) store.upsert(id, nodeId, advertiseAddr, ttlMs)
+        val missing = attached.filter { it !in renewed }
+        val rows = store.lookupMany(missing)
+        for (id in missing) {
+            // A migrated session belongs to its new gateway; never steal it back on renewal.
+            if (rows[id]?.nodeId?.let { it != nodeId } == true) attached.remove(id)
+            else store.upsert(id, nodeId, advertiseAddr, ttlMs)
         }
     }
 

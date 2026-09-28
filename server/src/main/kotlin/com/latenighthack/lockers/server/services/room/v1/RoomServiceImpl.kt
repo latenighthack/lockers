@@ -1,5 +1,6 @@
 package com.latenighthack.lockers.server.services.room.v1
 
+import com.latenighthack.ktcrypto.*
 import com.latenighthack.ktbuf.net.GrpcRequestContext
 import com.latenighthack.ktbuf.net.ServerDescriptor
 import com.latenighthack.lockers.common.v1.*
@@ -23,6 +24,7 @@ import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
 import org.slf4j.LoggerFactory
 import kotlin.random.Random
+import kotlinx.coroutines.async
 
 /** Query-param stamp on east-west forwarded writes; its presence means "do not forward again". */
 private const val FORWARDED_PARAM = "fwd"
@@ -53,8 +55,11 @@ class RoomServiceImpl(
     private val agentRegistry: LockerAgentRegistry,
     private val meterRegistry: MeterRegistry,
     private val config: LockersConfig,
+    private val deliveryOutbox: DeliveryOutboxStore? = null,
 ) : BaseServiceImpl(), RoomServer {
     private val logger = LoggerFactory.getLogger(RoomServiceImpl::class.java)
+    private val deliveryWorker = if (config.deliveryOutboxEnabled && config.deliveryWorkerEnabled)
+        DeliveryWorker(requireNotNull(deliveryOutbox), sessionGatewayDiscovery).also { it.start() } else null
     private val lockVerifier = LockVerifier(lockStore)
     private val dispatchers = ShardedDispatcher<RoomId>(config.shardCount, "room-shard") {
         it.rawValue.contentHashCode()
@@ -198,6 +203,160 @@ class RoomServiceImpl(
         return sessions
     }
 
+    override suspend fun capabilities(context: GrpcRequestContext, request: CapabilitiesRequest) = CapabilitiesResponse(
+        subscribeAndSnapshot = config.deliveryOutboxEnabled, getLockers = true,
+        postLockerChanges = config.deliveryOutboxEnabled, writeReceipts = config.deliveryOutboxEnabled,
+        maxBatchItems = 64, maxBatchBytes = minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)
+    )
+
+    override suspend fun getLockers(context: GrpcRequestContext, request: GetLockersRequest): GetLockersResponse {
+        require(request.lockerIds.size <= 64 && request.toByteArray().size <= 8 * 1024 * 1024)
+        val room = requireNotNull(request.roomId)
+        val all = lockerStore.getLockers(ServerRoomId(room.rawValue), request.lockerIds.map { (it.keyspace?.value ?: 0L) to ServerLockerId(it.rawValue) }).associateBy {
+            LockerId(requireNotNull(it.lockerId).rawValue, LockerKeyspace(it.keyspace))
+        }
+        return GetLockersResponse(request.lockerIds.map { id ->
+            all[id.copy(keyspace = id.keyspace ?: LockerKeyspace(0))]?.let { stored -> GetLockerResponse(result = GetLockerResponse.Result.OK,
+                locker = IdentifiedLocker(id, Locker.fromByteArray(stored.locker), stored.version, lockStateFor(room, id))) }
+                ?: GetLockerResponse(result = GetLockerResponse.Result.UNKNOWN_ERROR)
+        })
+    }
+
+    override suspend fun subscribeAndSnapshot(context: GrpcRequestContext, request: SubscribeAndSnapshotRequest): SubscribeAndSnapshotResponse {
+        require(request.keyspaces.size <= 64)
+        val room = requireNotNull(request.roomId)
+        val session = requireNotNull(request.sessionId)
+        check(config.deliveryOutboxEnabled)
+        return requireNotNull(deliveryOutbox).atomic {
+            subscriptionStore.addSubscription(ServerSessionId(session.rawValue), ServerRoomId(room.rawValue))
+            roomToSessionCache.invalidate(room)
+            val spaces = request.keyspaces.map { it.value }.toSet()
+            val lockers = lockerStore.getAllLockers(ServerRoomId(room.rawValue)).filter { spaces.isEmpty() || it.keyspace in spaces }.map {
+                val id = LockerId(requireNotNull(it.lockerId).rawValue, LockerKeyspace(it.keyspace))
+                IdentifiedLocker(id, if (it.deleted) null else Locker.fromByteArray(it.locker), it.version, lockStateFor(room, id))
+            }
+            SubscribeAndSnapshotResponse(result = SubscriptionResponse.Result.OK, lockers = lockers,
+                roomSequence = requireNotNull(deliveryOutbox).watermark(room))
+        }
+    }
+
+    private class BatchRejected(val response: PostLockerChangesResponse) : RuntimeException()
+
+    override suspend fun postLockerChanges(context: GrpcRequestContext, request: PostLockerChangesRequest): PostLockerChangesResponse {
+        val trace = WriteTrace(request.writeRequestId.take(8).joinToString("") { "%02x".format(it) }, meterRegistry)
+        trace.requestBytes = request.toByteArray().size
+        return trace.run { postLockerChangesTraced(context, request, trace).also { trace.result = it.result.toString() } }
+    }
+
+    private suspend fun postLockerChangesTraced(context: GrpcRequestContext, request: PostLockerChangesRequest, trace: WriteTrace): PostLockerChangesResponse {
+        val room = request.roomId ?: return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.INVALID)
+        val changes = request.changes
+        if (!config.deliveryOutboxEnabled || changes.isEmpty() || changes.size > 64 ||
+            request.writeRequestId.size !in 16..64 || changes.any { it.lockerId == null || it.locker == null || (it.roomId != null && it.roomId != room) } ||
+            changes.map { it.lockerId }.distinct().size != changes.size ||
+            request.toByteArray().size > minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)) {
+            return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.INVALID)
+        }
+        for (space in changes.map { it.lockerId?.keyspace?.value ?: 0L }.distinct()) {
+            trace.phase("ownership") { redirectIfNotOwner(space, room) }?.let { redirect ->
+                trace.phase("forward") { forwardToOwnerOrNull(context, redirect) { it.postLockerChanges(request) } }?.let { return it }
+                return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_OWNER, redirect = redirect)
+            }
+        }
+        if (!rateLimiter.tryAcquire(room)) return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.UNKNOWN_ERROR)
+        val outbox = requireNotNull(deliveryOutbox)
+        val digest = com.latenighthack.ktcrypto.SHA256.digest(request.toByteArray())
+        val queuedAt = System.nanoTime()
+        return dispatchers.runOnDispatcher(room) {
+            meterRegistry.timer("lockers.write.phase", "phase", "room_queue").record(System.nanoTime() - queuedAt, java.util.concurrent.TimeUnit.NANOSECONDS)
+            val events = mutableListOf<Event>()
+            var replay: PostLockerChangesResponse? = null
+            var pending: PostLockerChangesResponse? = null
+            val normalized = changes.map { it.copy(roomId = room) }
+            val recipients = mutableListOf<SessionId>()
+            try {
+                trace.phase("source_validation_commit") { outbox.commit(room, recipients, events) {
+                    recipients.addAll(subscriptionStore.getAllSessions(ServerRoomId(room.rawValue)).map { SessionId(it.rawValue) })
+                    val old = outbox.receipt(room, request.writeRequestId)
+                    if (old != null) {
+                        replay = if (old.requestDigest.contentEquals(digest)) PostLockerChangesResponse.fromByteArray(old.encodedOutcome)
+                            else PostLockerChangesResponse(result = PostLockerChangesResponse.Result.REQUEST_ID_REUSED)
+                        return@commit
+                    }
+                    var lockState: LockState? = null
+                    request.initialLock?.let { grant ->
+                        when (val outcome = lockVerifier.applyLock(room, grant, request.parentLockVersion)) {
+                            is LockVerifier.LockOutcome.Ok -> { lockState = outcome.state; roomHasLocksCache.put(room, true) }
+                            is LockVerifier.LockOutcome.Stale -> throw BatchRejected(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.CONFLICT, lockState = outcome.state))
+                            else -> throw BatchRejected(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_AUTHORIZED))
+                        }
+                    }
+                    val existing = lockerStore.getLockers(ServerRoomId(room.rawValue), normalized.map { (it.lockerId!!.keyspace?.value ?: 0L) to ServerLockerId(it.lockerId!!.rawValue) })
+                        .associateBy { LockerId(it.lockerId!!.rawValue, LockerKeyspace(it.keyspace)) }
+                    val roomLocks = lockStore.getAllLocksInRoom(ServerRoomId(room.rawValue))
+                    val sourceWrites = mutableListOf<ServerLocker>()
+                    val results = normalized.map { change ->
+                        val id = change.lockerId!!
+                        val effective = roomLocks.filter { lock ->
+                            lock.scopeKind == LockVerifier.SCOPE_ROOM ||
+                                (lock.keyspace == (id.keyspace?.value ?: 0L) && (lock.scopeKind == LockVerifier.SCOPE_KEYSPACE || lock.lockerId?.rawValue.contentEquals(id.rawValue)))
+                        }.minByOrNull { it.scopeKind }
+                        performLockerChange(change, events, sourceWrites, existing[id.copy(keyspace = id.keyspace ?: LockerKeyspace(0))], effective,
+                            prefetchLocks = normalized.none { it.ratchet != null })
+                    }
+                    if (results.any { !it.result.isOk() }) throw BatchRejected(PostLockerChangesResponse(
+                        result = PostLockerChangesResponse.Result.CONFLICT, changes = results, lockState = lockState))
+                    lockerStore.updateLockers(sourceWrites)
+                    pending = PostLockerChangesResponse(result = PostLockerChangesResponse.Result.OK, changes = results,
+                        lockState = lockState, agentPending = true)
+                    outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
+                        request.writeRequestId, ServerRoomId(room.rawValue), digest, pending!!.toByteArray()))
+                }
+                }
+                trace.recipients = recipients.size
+            } catch (e: BatchRejected) {
+                roomHasLocksCache.invalidate(room)
+                return@runOnDispatcher e.response
+            }
+            replay?.let { return@runOnDispatcher it }
+            // The durable pending receipt prevents an ambiguous retry from executing an agent twice.
+            // After a crash here, the client sees committed/pending, not an invitation to replay a move.
+            var failed = false
+            try {
+                val writes = linkedMapOf<LockerId, ServerLocker>()
+                val derivedEvents = mutableListOf<Event>()
+                for (change in normalized) {
+                    for (derived in trace.phase("agent") { agentRegistry.processPayload(room, change.lockerId!!, change.locker!!) }) {
+                        val id = derived.lockerId
+                        val existing = writes[id] ?: lockerStore.getLocker(ServerRoomId(room.rawValue), id.keyspace?.value ?: 0L, ServerLockerId(id.rawValue))
+                        val version = (existing?.version ?: 0L) + 1
+                        writes[id] = ServerLocker(ServerRoomId(room.rawValue), id.keyspace?.value ?: 0L,
+                            ServerLockerId(id.rawValue), derived.locker.toByteArray(), version)
+                        derivedEvents.add(Event(roomId = room, eventId = EventId(Random.nextBytes(32)),
+                            locker = IdentifiedLocker(id, derived.locker, version)))
+                    }
+                }
+                val complete = pending!!.copy(agentPending = false)
+                trace.phase("derived_commit") { outbox.commit(room, recipients, derivedEvents) {
+                    recipients.clear()
+                    recipients.addAll(subscriptionStore.getAllSessions(ServerRoomId(room.rawValue)).map { SessionId(it.rawValue) })
+                    lockerStore.updateLockers(writes.values.toList())
+                    outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
+                        request.writeRequestId, ServerRoomId(room.rawValue), digest, complete.toByteArray()))
+                }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) {
+                failed = true
+                agentFailureCounter.increment()
+                logger.error("agent processing failed after batch commit", e)
+                outbox.atomic { outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
+                    request.writeRequestId, ServerRoomId(room.rawValue), digest, pending!!.copy(agentPending = false, agentFailed = true).toByteArray())) }
+            }
+            pending!!.copy(agentPending = false, agentFailed = failed)
+        }
+    }
+
     override suspend fun subscription(
         context: GrpcRequestContext,
         request: SubscriptionRequest
@@ -247,7 +406,7 @@ class RoomServiceImpl(
         }
 
         val storedLocker = lockerStore.getLocker(ServerRoomId(roomId.rawValue), lockerId.keyspace?.value ?: 0L, ServerLockerId(lockerId.rawValue))
-        val lockerPayload = storedLocker?.locker?.let { Locker.fromByteArray(it) }
+        val lockerPayload = storedLocker?.takeUnless { it.deleted }?.locker?.let { Locker.fromByteArray(it) }
         
         if (lockerPayload == null) {
             getLockerTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
@@ -287,14 +446,14 @@ class RoomServiceImpl(
         getAllLockersTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
 
         // Resolve lock state up front: the builder lambdas below are not suspend contexts.
-        val identified = storedLockers.map { storedLocker ->
+        val identified = storedLockers.filterNot { it.deleted }.map { storedLocker ->
             val storedLockerId = LockerId(
                 rawValue = storedLocker.lockerId?.rawValue!!,
                 keyspace = LockerKeyspace { value = storedLocker.keyspace }
             )
             IdentifiedLocker(
                 lockerId = storedLockerId,
-                locker = Locker.fromByteArray(storedLocker.locker),
+                locker = if (storedLocker.deleted) null else Locker.fromByteArray(storedLocker.locker),
                 version = storedLocker.version,
                 lockState = lockStateFor(roomId, storedLockerId),
             )
@@ -310,6 +469,13 @@ class RoomServiceImpl(
         context: GrpcRequestContext,
         request: PostLockerChangeRequest
     ) = meterRegistry.trackResponse("lockers.room.locker.postlockerchange", PostLockerChangeResponse::result) {
+        if (config.deliveryOutboxEnabled) {
+            val batch = postLockerChanges(context, PostLockerChangesRequest(roomId = request.roomId,
+                changes = listOf(request.copy(writeRequestId = byteArrayOf())), writeRequestId = request.writeRequestId.takeIf { it.isNotEmpty() } ?: Random.nextBytes(32)))
+            return@trackResponse batch.changes.firstOrNull()?.copy(agentFailed = batch.agentFailed, agentPending = batch.agentPending)
+                ?: PostLockerChangeResponse(result = if (batch.result is PostLockerChangesResponse.Result.NOT_OWNER)
+                    PostLockerChangeResponse.Result.NOT_OWNER else PostLockerChangeResponse.Result.UNKNOWN_ERROR, redirect = batch.redirect)
+        }
         val requestRoomId = request.roomId ?: return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
         val requestEventId = EventId(Random.nextBytes(32))
         val updatedLocker = request.locker ?: return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
@@ -343,13 +509,26 @@ class RoomServiceImpl(
         return@trackResponse dispatchers.runOnDispatcher(requestRoomId) {
             dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
 
-            val storedLocker = lockerStore.getLocker(
+            performLockerChange(request)
+        }
+    }
+
+    private suspend fun performLockerChange(request: PostLockerChangeRequest, pendingEvents: MutableList<Event>? = null,
+        pendingWrites: MutableList<ServerLocker>? = null, prefetchedLocker: ServerLocker? = null,
+        prefetchedLock: ServerLock? = null, prefetchLocks: Boolean = false): PostLockerChangeResponse {
+        val requestRoomId = requireNotNull(request.roomId)
+        val requestLockerId = requireNotNull(request.lockerId)
+        val updatedLocker = requireNotNull(request.locker)
+        val encodedLocker = updatedLocker.toByteArray()
+        val requestEventId = EventId(Random.nextBytes(32))
+        val requestVersion = request.parentVersion
+            val storedLocker = if (pendingWrites != null) prefetchedLocker else lockerStore.getLocker(
                 ServerRoomId(requestRoomId.rawValue),
                 (requestLockerId.keyspace?.value ?: 0L),
                 ServerLockerId(requestLockerId.rawValue)
             )
 
-            val effectiveLock = effectiveLockOrNull(requestRoomId, requestLockerId)
+            val effectiveLock = if (prefetchLocks) prefetchedLock else effectiveLockOrNull(requestRoomId, requestLockerId)
             var effectiveState = effectiveLock?.let { lockVerifier.stateOf(it) }
 
             val updatedLockerVersion = if (storedLocker == null) {
@@ -358,10 +537,10 @@ class RoomServiceImpl(
                 storedLocker.version + 1
             } else {
                 reshardCasConflictsCounter.increment()
-                return@runOnDispatcher PostLockerChangeResponse {
+                return PostLockerChangeResponse {
                     result = PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION
                     version = storedLocker.version
-                    existingLocker = Locker.fromByteArray(storedLocker.locker)
+                    existingLocker = if (storedLocker.deleted) null else Locker.fromByteArray(storedLocker.locker)
                     lockState = effectiveState
                 }
             }
@@ -372,7 +551,7 @@ class RoomServiceImpl(
             if (effectiveLock != null) {
                 val enclosure = updatedLocker.sealed?.payload?.enclosure
                 if (enclosure == null) {
-                    return@runOnDispatcher PostLockerChangeResponse {
+                    return PostLockerChangeResponse {
                         result = PostLockerChangeResponse.Result.SIGNATURE_REQUIRED
                         lockState = effectiveState
                     }
@@ -380,17 +559,17 @@ class RoomServiceImpl(
                 val hash = lockVerifier.contentHash(enclosure.innerPayload)
                 val checksum = updatedLocker.sealed?.payload?.checksum
                 if (checksum != null && checksum.isNotEmpty() && !checksum.contentEquals(hash)) {
-                    return@runOnDispatcher PostLockerChangeResponse {
+                    return PostLockerChangeResponse {
                         result = PostLockerChangeResponse.Result.SIGNATURE_INVALID
                         lockState = effectiveState
                     }
                 }
                 when (lockVerifier.verifyWrite(effectiveLock, requestRoomId, requestLockerId, requestVersion, hash, request.writeSignature)) {
-                    LockVerifier.WriteVerdict.REQUIRED -> return@runOnDispatcher PostLockerChangeResponse {
+                    LockVerifier.WriteVerdict.REQUIRED -> return PostLockerChangeResponse {
                         result = PostLockerChangeResponse.Result.SIGNATURE_REQUIRED
                         lockState = effectiveState
                     }
-                    LockVerifier.WriteVerdict.INVALID -> return@runOnDispatcher PostLockerChangeResponse {
+                    LockVerifier.WriteVerdict.INVALID -> return PostLockerChangeResponse {
                         result = PostLockerChangeResponse.Result.SIGNATURE_INVALID
                         lockState = effectiveState
                     }
@@ -399,7 +578,7 @@ class RoomServiceImpl(
                 val ratchet = request.ratchet
                 if (ratchet != null) {
                     when (val outcome = lockVerifier.applyRatchet(effectiveLock, requestRoomId, requestLockerId, requestVersion, ratchet)) {
-                        is LockVerifier.RatchetOutcome.Invalid -> return@runOnDispatcher PostLockerChangeResponse {
+                        is LockVerifier.RatchetOutcome.Invalid -> return PostLockerChangeResponse {
                             result = PostLockerChangeResponse.Result.SIGNATURE_INVALID
                             lockState = effectiveState
                         }
@@ -418,57 +597,28 @@ class RoomServiceImpl(
                 keyspace = (requestLockerId.keyspace?.value ?: 0L)
                 version = updatedLockerVersion
             }
-            lockerStore.updateLocker(serverLocker)
-
-            // The write above is durable: from here on, fan-out is best-effort per session and
-            // must never fail the RPC — a failure response after the persist point sends the
-            // client into a version ping-pong it can't win (retry → UPDATE_LOCAL_VERSION →
-            // rebase → persist again → fail again, until its retry budget drops the write).
-            val sessionIds = lookupSessions(requestRoomId)
-            for (sessionId in sessionIds) {
-                val gatewayServiceRpc = sessionGatewayDiscovery.findServer(sessionId)
-                if (gatewayServiceRpc == null) {
-                    // Ring/local modes only (claim-mode discovery falls back locally):
-                    // the session's gateway is unreachable; it re-hydrates on reconnect.
-                    gatewayLookupFailureCounter.increment()
-                    continue
-                }
-
-                try {
-                    val postEventResponse = gatewayServiceRpc.postEvent(PostEventRequest {
-                        event {
-                            roomId = requestRoomId
-                            eventId = requestEventId
-                            locker {
-                                locker = updatedLocker
-                                lockerId = requestLockerId
-                                version = updatedLockerVersion
-                                lockState = effectiveState
-                            }
-                            notification {
-                                push = request.notification?.push
-                                payload = request.notification?.payload
-                            }
-                        }
-                        sessionIds {
-                            addSessionId {
-                                rawValue = sessionId.rawValue
-                            }
-                        }
-                    })
-
-                    if (!postEventResponse.result.isOk()) {
-                        postEventFailureCounter.increment()
-                    } else {
-                        postEventSuccessCounter.increment()
-                    }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    postEventFailureCounter.increment()
-                    logger.warn("postEvent to session gateway failed; continuing fan-out", e)
-                }
+            val sessionIds = if (pendingEvents != null) mutableListOf() else lookupSessions(requestRoomId).toMutableList()
+            val sourceEvent = Event {
+                roomId = requestRoomId
+                eventId = requestEventId
+                locker { locker = updatedLocker; lockerId = requestLockerId; version = updatedLockerVersion; lockState = effectiveState }
+                notification = request.notification
             }
+            if (pendingEvents != null) {
+                requireNotNull(pendingWrites).add(serverLocker)
+                pendingEvents.add(sourceEvent)
+                return PostLockerChangeResponse(result = PostLockerChangeResponse.Result.OK, version = updatedLockerVersion, lockState = effectiveState)
+            } else if (config.deliveryOutboxEnabled) {
+                requireNotNull(deliveryOutbox).commit(requestRoomId, sessionIds, listOf(sourceEvent)) {
+                    sessionIds.clear()
+                    sessionIds.addAll(subscriptionStore.getAllSessions(ServerRoomId(requestRoomId.rawValue)).map { SessionId(it.rawValue) })
+                    lockerStore.updateLocker(serverLocker)
+                }
+            } else {
+                lockerStore.updateLocker(serverLocker)
+                deliver(listOf(sourceEvent), sessionIds)
+            }
+            var agentFailed = false
 
             // let the pluggable agent derive additional lockers; write + broadcast them.
             // Keyspaces stay opaque to the core — the agent decides what to act on.
@@ -478,51 +628,53 @@ class RoomServiceImpl(
             try {
                 val frameLockers = agentRegistry.processPayload(requestRoomId, requestLockerId, updatedLocker)
 
-                for (frameLocker in frameLockers) {
-                    val existingDerivedLocker = lockerStore.getLocker(
-                        ServerRoomId(requestRoomId.rawValue),
-                        frameLocker.lockerId.keyspace?.value ?: 0L,
-                        ServerLockerId(frameLocker.lockerId.rawValue)
-                    )
-                    val frameLockerVersion = (existingDerivedLocker?.version ?: 0L) + 1
-
-                    lockerStore.updateLocker(ServerLocker {
-                        lockerId = ServerLockerId(frameLocker.lockerId.rawValue)
-                        roomId = ServerRoomId(requestRoomId.rawValue)
-                        locker = frameLocker.locker.toByteArray()
-                        keyspace = frameLocker.lockerId.keyspace?.value ?: 0L
-                        version = frameLockerVersion
-                    })
-
-                    val frameEventId = EventId(Random.nextBytes(32))
-                    for (sessionId in sessionIds) {
-                        val gatewayServiceRpc = sessionGatewayDiscovery.findServer(sessionId) ?: continue
-                        gatewayServiceRpc.postEvent(PostEventRequest {
-                            event {
-                                roomId = requestRoomId
-                                eventId = frameEventId
-                                locker {
-                                    locker = frameLocker.locker
-                                    lockerId = frameLocker.lockerId
-                                    version = frameLockerVersion
-                                }
-                            }
-                            sessionIds {
-                                addSessionId { rawValue = sessionId.rawValue }
-                            }
-                        })
+                val derived = frameLockers.map { frameLocker ->
+                    val existing = lockerStore.getLocker(ServerRoomId(requestRoomId.rawValue), frameLocker.lockerId.keyspace?.value ?: 0L, ServerLockerId(frameLocker.lockerId.rawValue))
+                    val version = (existing?.version ?: 0L) + 1
+                    val stored = ServerLocker(ServerRoomId(requestRoomId.rawValue), frameLocker.lockerId.keyspace?.value ?: 0L,
+                        ServerLockerId(frameLocker.lockerId.rawValue), frameLocker.locker.toByteArray(), version)
+                    val event = Event {
+                        roomId = requestRoomId; eventId = EventId(Random.nextBytes(32))
+                        locker { locker = frameLocker.locker; lockerId = frameLocker.lockerId; this.version = version }
+                    }
+                    stored to event
+                }
+                if (derived.isNotEmpty()) {
+                    if (config.deliveryOutboxEnabled) requireNotNull(deliveryOutbox).commit(requestRoomId, sessionIds, derived.map { it.second }) {
+                        lockerStore.updateLockers(derived.map { it.first })
+                    } else {
+                        lockerStore.updateLockers(derived.map { it.first })
+                        deliver(derived.map { it.second }, sessionIds)
                     }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e
             } catch (e: Exception) {
+                agentFailed = true
                 agentFailureCounter.increment()
                 logger.error("agent processing failed for locker change (keyspace=${requestLockerId.keyspace?.value})", e)
             }
 
-            PostLockerChangeResponse {
+            return PostLockerChangeResponse {
                 result = PostLockerChangeResponse.Result.OK
                 version = updatedLockerVersion
                 lockState = effectiveState
+                this.agentFailed = agentFailed
             }
+    }
+
+    private suspend fun deliver(events: List<Event>, sessionIds: List<SessionId>) {
+        val groups = sessionGatewayDiscovery.resolveGroups(sessionIds)
+        for (event in events) kotlinx.coroutines.coroutineScope {
+            val permits = kotlinx.coroutines.sync.Semaphore(4)
+            groups.map { group -> async {
+                permits.acquire()
+                try {
+                    val response = group.service.postEvent(PostEventRequest(group.sessionIds, event))
+                    if (response.result.isOk()) postEventSuccessCounter.increment() else postEventFailureCounter.increment()
+                } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (e: Exception) { postEventFailureCounter.increment(); logger.warn("gateway delivery failed", e) }
+                finally { permits.release() }
+            } }.forEach { it.await() }
         }
     }
 
@@ -573,7 +725,7 @@ class RoomServiceImpl(
                 return@runOnDispatcher DeleteLockerResponse {
                     result = DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION
                     version = storedLocker.version
-                    existingLocker = Locker.fromByteArray(storedLocker.locker)
+                    existingLocker = if (storedLocker.deleted) null else Locker.fromByteArray(storedLocker.locker)
                     lockState = effectiveState
                 }
             }
@@ -594,55 +746,17 @@ class RoomServiceImpl(
                 }
             }
 
-            lockerStore.deleteLocker(
-                ServerRoomId(requestRoomId.rawValue),
-                (requestLockerId.keyspace?.value ?: 0L),
-                ServerLockerId(requestLockerId.rawValue)
-            )
-
-            // Delete is durable above; fan-out is best-effort per session (see postLockerChange).
-            val sessionIds = lookupSessions(requestRoomId)
-
-            // notify change event
-            for (sessionId in sessionIds) {
-                val gatewayServiceRpc = sessionGatewayDiscovery.findServer(sessionId)
-                if (gatewayServiceRpc == null) {
-                    gatewayLookupFailureCounter.increment()
-                    continue
-                }
-
-                try {
-                    val postEventResponse = gatewayServiceRpc.postEvent(PostEventRequest {
-                        event {
-                            roomId = requestRoomId
-                            eventId = requestEventId
-                            locker {
-                                lockerId = requestLockerId
-                                version = updatedLockerVersion
-                            }
-                            notification {
-                                push = request.notification?.push
-                                payload = request.notification?.payload
-                            }
-                        }
-                        sessionIds {
-                            addSessionId {
-                                rawValue = sessionId.rawValue
-                            }
-                        }
-                    })
-
-                    if (!postEventResponse.result.isOk()) {
-                        postEventFailureCounter.increment()
-                    } else {
-                        postEventSuccessCounter.increment()
-                    }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    postEventFailureCounter.increment()
-                    logger.warn("postEvent to session gateway failed; continuing fan-out", e)
-                }
+            val tombstone = ServerLocker(ServerRoomId(requestRoomId.rawValue), requestLockerId.keyspace?.value ?: 0L,
+                ServerLockerId(requestLockerId.rawValue), byteArrayOf(), updatedLockerVersion, deleted = true)
+            val event = Event(roomId = requestRoomId, eventId = requestEventId,
+                locker = IdentifiedLocker(requestLockerId, version = updatedLockerVersion, lockState = effectiveState), notification = request.notification)
+            val recipients = mutableListOf<SessionId>()
+            if (config.deliveryOutboxEnabled) requireNotNull(deliveryOutbox).commit(requestRoomId, recipients, listOf(event)) {
+                recipients.addAll(subscriptionStore.getAllSessions(ServerRoomId(requestRoomId.rawValue)).map { SessionId(it.rawValue) })
+                lockerStore.updateLocker(tombstone)
+            } else {
+                lockerStore.updateLocker(tombstone)
+                deliver(listOf(event), lookupSessions(requestRoomId).toList())
             }
 
             DeleteLockerResponse {
@@ -733,6 +847,7 @@ class RoomServiceImpl(
     }
 
     fun close() {
+        deliveryWorker?.close()
         dispatchers.close()
     }
 }

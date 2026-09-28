@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.server
 
+import com.latenighthack.lockers.session.v1.PostEventsRequest
+import com.latenighthack.lockers.session.v1.PostEventsResponse
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isEqualTo
@@ -60,6 +62,7 @@ class ShardCountReshardTest {
     ) : SessionGatewayDiscovery {
         override suspend fun findServer(sessionId: SessionId): SessionGatewayService =
             object : SessionGatewayService {
+                override suspend fun postEvents(request: PostEventsRequest) = PostEventsResponse(request.groups.map { postEvent(it) })
                 override suspend fun postEvent(request: PostEventRequest): PostEventResponse {
                     deliveries.add(node to sessionId.rawValue.decodeToString())
                     return PostEventResponse { }

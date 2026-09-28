@@ -8,6 +8,7 @@ import com.latenighthack.lockers.push.v1.PushGatewayServiceRpc
 import com.latenighthack.lockers.server.cluster.PeerConnectionPool
 import com.latenighthack.lockers.server.services.push.v1.PushGatewayDiscovery
 import com.latenighthack.lockers.server.services.session.v1.SessionGatewayDiscovery
+import com.latenighthack.lockers.server.services.session.v1.SessionGatewayGroup
 import com.latenighthack.lockers.session.v1.LocalSessionGatewayServiceRpc
 import com.latenighthack.lockers.session.v1.SessionGatewayServer
 import com.latenighthack.lockers.session.v1.SessionGatewayService
@@ -66,7 +67,7 @@ internal class SessionGatewayLookup(
  */
 class RegistrySessionGatewayDiscovery(
     private val local: SessionGatewayServer,
-    store: SessionGatewayStore,
+    private val store: SessionGatewayStore,
     private val pool: PeerConnectionPool,
     private val selfNodeId: String,
     meters: ClaimMetrics,
@@ -81,6 +82,16 @@ class RegistrySessionGatewayDiscovery(
         } else {
             SessionGatewayServiceRpc(pool.clientFor(parsePeerAddress(row.nodeAddr)))
         }
+    }
+
+    override suspend fun resolveGroups(sessionIds: List<SessionId>): List<SessionGatewayGroup> {
+        val ids = sessionIds.distinct()
+        val rows = store.lookupMany(ids)
+        return ids.groupBy { rows[it]?.takeUnless { row -> row.nodeId == selfNodeId }?.nodeAddr }
+            .map { (address, recipients) ->
+                SessionGatewayGroup(recipients, if (address == null) LocalSessionGatewayServiceRpc(local)
+                    else SessionGatewayServiceRpc(pool.clientFor(parsePeerAddress(address))))
+            }
     }
 
     companion object {

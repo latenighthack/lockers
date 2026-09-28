@@ -42,8 +42,14 @@ annotation class ServerCoreScope
 @Component
 abstract class ServerCore(
     @get:Provides val config: LockersConfig,
-    private val storageDelegate: StoreDelegate
+    storageDelegate: StoreDelegate
 ) {
+    private val storageDelegate = com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(storageDelegate)
+    private val pushDeliveryImpl by lazy { com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore(storageDelegate) }
+    @get:Provides val pushDelivery: com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore? get() = pushDeliveryImpl
+    private val deliveryOutboxImpl by lazy { com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStore(storageDelegate) }
+    @get:Provides val deliveryOutbox: com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStore? get() = deliveryOutboxImpl
+
     private val sessionStoreImpl by lazy { SessionStoreImpl(storageDelegate) }
     private val sessionInboxStoreImpl by lazy { SessionInboxStoreImpl(storageDelegate) }
     private val subscriptionStoreImpl by lazy { SubscriptionStoreImpl(storageDelegate) }
@@ -83,6 +89,8 @@ abstract class ServerCore(
     @get:Provides val agentRegistry: LockerAgentRegistry get() = _agentRegistry
 
     suspend fun setup() {
+        deliveryOutboxImpl.prepareStores()
+        pushDeliveryImpl.outbox.prepareStores()
         sessionStoreImpl.prepare()
         sessionInboxStoreImpl.prepare()
         subscriptionStoreImpl.prepare()

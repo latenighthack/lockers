@@ -22,8 +22,12 @@ import java.util.concurrent.atomic.AtomicInteger
  * in-memory stores — the same router production uses. Consumed by the connector
  * integration tests via `runTestWithServer(Application::attachTestServices)`.
  */
-suspend fun Application.attachTestServices() {
-    val core = ServerCore::class.create(LockersConfig.defaults(), InMemoryStoreDelegate())
+suspend fun Application.attachTestServices() = attachTestServicesWithConfig(LockersConfig.defaults())
+
+suspend fun Application.attachFastpathTestServices() = attachTestServicesWithConfig(LockersConfig.defaults().copy(deliveryOutboxEnabled = true))
+
+suspend fun Application.attachTestServicesWithConfig(config: LockersConfig) {
+    val core = ServerCore::class.create(config, InMemoryStoreDelegate())
 
     core.setup()
 

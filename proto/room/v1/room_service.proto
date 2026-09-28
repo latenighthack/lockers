@@ -7,6 +7,10 @@ option java_package = "com.latenighthack.lockers.room.v1";
 import "common/v1/model.proto";
 
 service Room {
+  rpc Capabilities(CapabilitiesRequest) returns (CapabilitiesResponse);
+  rpc SubscribeAndSnapshot(SubscribeAndSnapshotRequest) returns (SubscribeAndSnapshotResponse);
+  rpc GetLockers(GetLockersRequest) returns (GetLockersResponse);
+  rpc PostLockerChanges(PostLockerChangesRequest) returns (PostLockerChangesResponse);
   rpc Subscription(SubscriptionRequest) returns (SubscriptionResponse);
   rpc GetLocker(GetLockerRequest) returns (GetLockerResponse);
   rpc GetAllLockers(GetAllLockersRequest) returns (GetAllLockersResponse);
@@ -41,6 +45,7 @@ message SubscriptionResponse {
 }
 
 message PostLockerChangeRequest {
+  bytes write_request_id = 7;
   common.v1.RoomId room_id = 1;
   common.v1.LockerId locker_id = 2;
   common.v1.Locker locker = 3;
@@ -65,6 +70,9 @@ message PostLockerChangeRequest {
 }
 
 message PostLockerChangeResponse {
+  // Source write committed; the synchronous agent failed separately. Do not replay as a new move.
+  bool agent_failed = 6;
+  bool agent_pending = 7;
   Result result = 1;
   enum Result {
     OK = 0;
@@ -186,4 +194,45 @@ message GetLockerResponse {
   }
 
   common.v1.IdentifiedLocker locker = 2;
+}
+
+message CapabilitiesRequest {}
+message CapabilitiesResponse {
+  bool subscribe_and_snapshot = 1;
+  bool get_lockers = 2;
+  bool post_locker_changes = 3;
+  bool write_receipts = 4;
+  int32 max_batch_items = 5;
+  int32 max_batch_bytes = 6;
+}
+message SubscribeAndSnapshotRequest {
+  common.v1.RoomId room_id = 1;
+  common.v1.SessionId session_id = 2;
+  repeated common.v1.LockerKeyspace keyspaces = 3;
+}
+message SubscribeAndSnapshotResponse {
+  SubscriptionResponse.Result result = 1;
+  repeated common.v1.IdentifiedLocker lockers = 2;
+  int64 room_sequence = 3;
+}
+message GetLockersRequest {
+  common.v1.RoomId room_id = 1;
+  repeated common.v1.LockerId locker_ids = 2;
+}
+message GetLockersResponse { repeated GetLockerResponse results = 1; }
+message PostLockerChangesRequest {
+  common.v1.RoomId room_id = 1;
+  common.v1.LockGrant initial_lock = 2;
+  int64 parent_lock_version = 3;
+  repeated PostLockerChangeRequest changes = 4;
+  bytes write_request_id = 5;
+}
+message PostLockerChangesResponse {
+  enum Result { OK = 0; CONFLICT = 1; INVALID = 2; NOT_AUTHORIZED = 3; NOT_OWNER = 4; REQUEST_ID_REUSED = 5; UNKNOWN_ERROR = 10; }
+  Result result = 1;
+  repeated PostLockerChangeResponse changes = 2;
+  common.v1.LockState lock_state = 3;
+  common.v1.ShardRedirect redirect = 4;
+  bool agent_failed = 5;
+  bool agent_pending = 6;
 }

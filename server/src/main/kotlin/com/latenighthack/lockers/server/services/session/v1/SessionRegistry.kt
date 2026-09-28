@@ -8,10 +8,12 @@ import com.latenighthack.lockers.server.storage.v1.ServerSessionId
  * a registry that publishes rows to the `session_gateway` table so peers can discover this node for
  * fan-out. The monolith and ring modes use [Noop] — zero behavior change.
  *
- * Implementations must not block the WebSocket path: publishing may be asynchronous, and a missed
- * publish only degrades delivery to the push-queue path until the next registry renew round.
+ * Claim gateways publish through attachBeforeSnapshot before opening the inbox snapshot. This
+ * ordering plus remoteSessions detection lets late deliveries follow a migrated socket safely.
  */
 interface SessionRegistry {
+    suspend fun attachBeforeSnapshot(sessionId: ServerSessionId) { attach(sessionId) }
+    suspend fun remoteSessions(sessionIds: List<com.latenighthack.lockers.common.v1.SessionId>): Set<com.latenighthack.lockers.common.v1.SessionId> = emptySet()
     fun attach(sessionId: ServerSessionId)
     fun detach(sessionId: ServerSessionId)
 

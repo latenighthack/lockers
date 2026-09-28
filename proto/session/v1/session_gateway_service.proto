@@ -7,6 +7,7 @@ option java_package = "com.latenighthack.lockers.session.v1";
 import "common/v1/model.proto";
 
 service SessionGateway {
+    rpc PostEvents(PostEventsRequest) returns (PostEventsResponse);
     rpc PostEvent(PostEventRequest) returns (PostEventResponse);
 }
 
@@ -19,6 +20,11 @@ message PostEventResponse {
     Result result = 1;
     enum Result {
         OK = 0;
+        RETRY_ROUTING = 1;
         UNKNOWN_ERROR = 10;
     }
 }
+
+// Groups are ordered; each response means the group's inbox inserts are durable.
+message PostEventsRequest { repeated PostEventRequest groups = 1; }
+message PostEventsResponse { repeated PostEventResponse results = 1; }

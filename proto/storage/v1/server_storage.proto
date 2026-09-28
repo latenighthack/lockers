@@ -37,6 +37,7 @@ message ServerSessionEvent {
     ServerEventId event_id = 3;
     bytes encoded_payload = 4;
     bytes encoded_locker = 5;
+    int64 room_sequence = 6;
 }
 
 message ServerLocker {
@@ -45,6 +46,7 @@ message ServerLocker {
     ServerLockerId locker_id = 3;
     bytes locker = 4;
     int64 version = 5;
+    bool deleted = 6;
 }
 
 // A lock at some scope of a room. scope_kind: 0 = locker, 1 = keyspace, 2 = room.
@@ -102,4 +104,28 @@ message ServerPushRegistration {
 message ServerPushInfo {
     ServerSessionId session_id = 1;
     repeated ServerPushRegistration registrations = 2;
+}
+
+// Immutable event and recipient snapshot, plus recoverable delivery progress.
+message ServerDeliveryIntent {
+    ServerEventId event_id = 1;
+    ServerRoomId room_id = 2;
+    int64 room_sequence = 3;
+    bytes encoded_event = 4;
+    repeated ServerSessionId pending_sessions = 5;
+    string lease_owner = 6;
+    int64 lease_until = 7;
+    int64 retry_after = 8;
+    int32 attempts = 9;
+}
+message ServerRoomSequence {
+    ServerRoomId room_id = 1;
+    int64 sequence = 2;
+}
+
+message ServerWriteReceipt {
+    bytes request_id = 1;
+    ServerRoomId room_id = 2;
+    bytes request_digest = 3;
+    bytes encoded_outcome = 4;
 }

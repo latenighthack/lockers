@@ -28,7 +28,7 @@ class BroadcastServiceTest {
 
     // Records the sessions a push was sent to; every session is reachable.
     private class RecordingPushGateway : PushGatewayDiscovery, PushGatewayService {
-        val sent = mutableListOf<ByteArray>()
+        val sent = java.util.concurrent.CopyOnWriteArrayList<ByteArray>()
         override suspend fun findServer(sessionId: SessionId): PushGatewayService = this
         override suspend fun sendPush(request: SendPushRequest): SendPushResponse {
             request.sessionId?.rawValue?.let { sent += it }
@@ -94,6 +94,7 @@ class BroadcastServiceTest {
             assertThat(events[0].encodedPayload.toList()).isEqualTo(payload.toList())
         }
 
+        kotlinx.coroutines.withTimeout(2_000) { while (h.push.sent.size < 2) kotlinx.coroutines.delay(5) }
         assertThat(h.push.sent.map { it.toList() })
             .containsExactlyInAnyOrder(a.toList(), b.toList())
 

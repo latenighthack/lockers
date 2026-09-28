@@ -6,9 +6,13 @@ import com.latenighthack.ktstore.StoreDelegate
 import com.latenighthack.lockers.server.storage.v1.*
 
 interface LockerStore {
+    suspend fun getLockers(roomId: ServerRoomId, ids: List<Pair<Long, ServerLockerId>>): List<ServerLocker> =
+        ids.mapNotNull { (space, id) -> getLocker(roomId, space, id) }
+
     suspend fun getAllLockers(roomId: ServerRoomId): List<ServerLocker>
     suspend fun getAllLockersInKeyspace(roomId: ServerRoomId, keyspace: Long): List<ServerLocker>
     suspend fun getLocker(roomId: ServerRoomId, keyspace: Long, lockerId: ServerLockerId): ServerLocker?
+    suspend fun updateLockers(lockers: List<ServerLocker>) { lockers.forEach { updateLocker(it) } }
     suspend fun updateLocker(locker: ServerLocker)
     suspend fun deleteLocker(roomId: ServerRoomId, keyspace: Long, lockerId: ServerLockerId)
 }
@@ -55,7 +59,16 @@ class LockerStoreImpl(delegate: StoreDelegate) : LockerStore, Store<ServerLocker
         )
     ))
 
+    override suspend fun getLockers(roomId: ServerRoomId, ids: List<Pair<Long, ServerLockerId>>) = getMany(ids.map { (space, id) ->
+        roomIdAndKeyspaceAndLockerIdKey.eq(listOf(
+            BoundStoreKey.SerializedKey(roomIdKey.name, roomId.toByteArray()),
+            BoundStoreKey.LongKey(keyspaceKey.name, space),
+            BoundStoreKey.SerializedKey(lockerIdKey.name, id.toByteArray())
+        ))
+    })
+
     override suspend fun updateLocker(locker: ServerLocker) = save(locker)
+    override suspend fun updateLockers(lockers: List<ServerLocker>) = saveAll(lockers)
 
     override suspend fun deleteLocker(roomId: ServerRoomId, keyspace: Long, lockerId: ServerLockerId) = delete(roomIdAndKeyspaceAndLockerIdKey.eq(
         listOf(

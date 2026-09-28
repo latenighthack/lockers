@@ -31,7 +31,9 @@ interface SessionStore {
     suspend fun getNextSequenceBytes(): ByteArray?
     suspend fun updateNextSequenceBytes(rawBytes: ByteArray?)
 
+    suspend fun hasReceived(ack: StoredAck): Boolean = getPendingAcks().any { it.roomIdRawValue.contentEquals(ack.roomIdRawValue) && it.eventIdRawValue.contentEquals(ack.eventIdRawValue) }
     suspend fun getPendingAcks(): List<StoredAck>
+    suspend fun addAcks(acks: List<StoredAck>) { acks.forEach { addAck(it) } }
     suspend fun addAck(ack: StoredAck)
     suspend fun clearAck(ack: StoredAck)
 }
@@ -65,14 +67,17 @@ class SessionStoreImpl(private val keyValueStore: KeyValueStore, delegate: Store
         keyValueStore.save(NEXT_SEQUENCE_KEY, rawBytes, ::byteArrayIdentity)
     } ?: keyValueStore.delete<ByteArray>(NEXT_SEQUENCE_KEY)
 
-    override suspend fun getPendingAcks(): List<StoredAck> = getAll()
-
-    override suspend fun addAck(ack: StoredAck) = save(ack)
-
-    override suspend fun clearAck(ack: StoredAck) = delete(roomIdEventIdKey.eq(listOf(
+    override suspend fun getPendingAcks(): List<StoredAck> = getAll().filterNot { it.confirmed }
+    override suspend fun hasReceived(ack: StoredAck): Boolean = get(roomIdEventIdKey.eq(listOf(
         BoundStoreKey.SerializedKey(roomIdKey.name, ack.roomIdRawValue),
         BoundStoreKey.SerializedKey(eventIdKey.name, ack.eventIdRawValue)
-    )))
+    ))) != null
+
+    override suspend fun addAck(ack: StoredAck) = save(ack)
+    override suspend fun addAcks(acks: List<StoredAck>) = saveAll(acks)
+
+    override suspend fun clearAck(ack: StoredAck) = save(ack.copy(confirmed = true))
+
 }
 
 interface AuthenticationKeySource {
@@ -117,12 +122,15 @@ class SubscriptionController(
     private val controllerScope = CoroutineScope(Dispatchers.Default + controllerJob)
     private val roomService = ShardedRoomServiceRpc(rpcClient)
 
+    internal var hydrateSubscription: (suspend (RoomId, SessionId) -> Unit)? = null
+
     suspend fun resendSubscriptions() {
+        reconciledSubscriptions.value = emptySet()
         val changes = mutableListOf<SubscriptionChange>()
         for (subscription in subscriptionStore.getAllSubscriptions()) {
             if (subscription.isPendingAdd || !subscription.isPendingRemove) {
                 // resend
-                changes.add(SubscriptionChange.Subscribed(RoomId(subscription.roomIdRawValue)))
+                changes.add(SubscriptionChange.Subscribed(RoomId(subscription.roomIdRawValue), force = true))
             } else {
                 // clear
                 subscriptionStore.deleteSubscription(RoomId(subscription.roomIdRawValue))
@@ -142,7 +150,9 @@ class SubscriptionController(
         repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
             val sessionId = sessionIdSource.filter { it != null }.first()
 
-            roomService.subscription(SubscriptionRequest {
+            if (subscriptionChange is SubscriptionChange.Subscribed && hydrateSubscription != null) {
+                hydrateSubscription!!.invoke(subscriptionChange.roomId, requireNotNull(sessionId))
+            } else roomService.subscription(SubscriptionRequest {
                 this.sessionId = sessionId
 
                 when (subscriptionChange) {
@@ -198,7 +208,7 @@ class SubscriptionController(
                             val existingSubscription = subscriptionStore.getSubscription(it.roomId)
 
                             if (existingSubscription != null) {
-                                if (existingSubscription.isPendingAdd || !existingSubscription.isPendingRemove) {
+                                if (!it.force && (existingSubscription.isPendingAdd || !existingSubscription.isPendingRemove)) {
                                     // we already know about this
                                     return@mapNotNull null
                                 }
@@ -298,7 +308,7 @@ class SubscriptionController(
 
     private sealed class SubscriptionChange {
         abstract val roomId: RoomId
-        data class Subscribed(override val roomId: RoomId) : SubscriptionChange()
+        data class Subscribed(override val roomId: RoomId, val force: Boolean = false) : SubscriptionChange()
         data class Unsubscribed(override val roomId: RoomId) : SubscriptionChange()
     }
 
@@ -392,6 +402,10 @@ class Stream(
     private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource)
     private val outgoingAcks = MutableSharedFlow<List<StoredAck>>()
 
+    internal var hydrateSubscription: (suspend (RoomId, SessionId) -> Unit)?
+        get() = subscriptionController.hydrateSubscription
+        set(value) { subscriptionController.hydrateSubscription = value }
+    internal var acceptEvent: (suspend (Event) -> Boolean)? = null
     private val incomingEvents = MutableSharedFlow<Event>()
     val events: Flow<Event>
         get() {
@@ -496,12 +510,7 @@ class Stream(
                 })
 
                 emitAll(
-                    merge(outgoingAcks
-                        .onEach {
-                            for (ack in it) {
-                                sessionStore.addAck(ack)
-                            }
-                        }
+                    merge(outgoingAcks.batchedAcks()
                         .onStart {
                             val storedAcks = sessionStore.getPendingAcks()
 
@@ -635,15 +644,20 @@ class Stream(
 
     private suspend fun processIncomingEvents(queuedEvents: List<Event>) {
         for (event in queuedEvents) {
-            processEvent(event)
+            val ack = StoredAck(event.roomId!!.rawValue, event.eventId!!.rawValue)
+            if (!sessionStore.hasReceived(ack)) {
+                processEvent(event)
+                sessionStore.addAck(ack)
+            }
         }
 
-        outgoingAcks.emit(queuedEvents.map { event ->
-            StoredAck(event.roomId!!.rawValue, event.eventId!!.rawValue)
-        })
+        val acks = queuedEvents.map { event -> StoredAck(event.roomId!!.rawValue, event.eventId!!.rawValue) }
+        sessionStore.addAcks(acks)
+        outgoingAcks.emit(acks)
     }
 
     private suspend fun processEvent(event: Event) {
+        check(acceptEvent?.invoke(event) != false) { "Local event acceptance failed" }
         incomingEvents.emit(event)
     }
 
@@ -663,4 +677,23 @@ class Stream(
         subscriptionController.stop()
         streamJob.cancel()
     }
+}
+
+/** Bounded batching without debounce: the oldest ACK waits at most 20 ms. */
+private fun Flow<List<StoredAck>>.batchedAcks(): Flow<List<StoredAck>> = kotlinx.coroutines.flow.channelFlow {
+    val pending = kotlinx.coroutines.channels.Channel<StoredAck>(64)
+    val collector = launch {
+        try { collect { batch -> batch.forEach { pending.send(it) } } }
+        finally { pending.close() }
+    }
+    try {
+        while (true) {
+            val first = pending.receiveCatching().getOrNull() ?: break
+            val batch = mutableListOf(first)
+            kotlinx.coroutines.withTimeoutOrNull(20) {
+                while (batch.size < 64) batch.add(pending.receiveCatching().getOrNull() ?: return@withTimeoutOrNull)
+            }
+            send(batch.distinct())
+        }
+    } finally { collector.cancel() }
 }
