@@ -348,7 +348,8 @@ class LockerClient(
 
     private suspend fun hydrateRoom(room: RoomId, session: SessionId? = stream.sessionId.value): List<IdentifiedLocker> {
         val capabilities = capabilities()
-        return sync.read(room) {
+        // A replacement session must register itself even while an older hydration is in flight.
+        return sync.read(room to session) {
         var watermark = 0L
         val lockers = if (capabilities.subscribeAndSnapshot && session != null) {
             val response = roomService.subscribeAndSnapshot(SubscribeAndSnapshotRequest(roomId = room, sessionId = session))
