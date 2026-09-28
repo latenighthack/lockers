@@ -66,10 +66,12 @@ jobs:
     # Publishes :api and :connector to Maven Central. Runs on macOS because the
     # iOS Kotlin/Native targets can only be compiled there — an ubuntu run would
     # silently skip them and publish an incomplete artifact set.
-    # main push  -> "<baseVersion>-SNAPSHOT" (Central snapshot repo)
+    # main push  -> optional "<baseVersion>-SNAPSHOT" (Central snapshot repo)
+    # Enable snapshots for the namespace in Central first, then set the repository
+    # variable CENTRAL_SNAPSHOTS_ENABLED=true. Releases need no snapshot permission.
     # v* tag     -> release <version> (auto-promoted on the Central Portal)
     needs: build
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && vars.CENTRAL_SNAPSHOTS_ENABLED == 'true'))
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
