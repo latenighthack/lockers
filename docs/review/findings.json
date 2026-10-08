@@ -1,0 +1,796 @@
+[
+  {
+    "id": "F01",
+    "priority": "P1",
+    "title": "An unsigned child lock can override an existing parent authority",
+    "locations": [
+      "[LockVerifier.kt:90](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:90)",
+      "[LockVerifier.kt:104](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:104)",
+      "[LockVerifier.kt:49](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:49)"
+    ],
+    "problem": "In an opaque room, applyLock resolves the parent key but the unsigned TOFU branch checks only whether the room ID embeds a public key. It does not reject an existing room or keyspace parent. Anyone who knows the room and locker IDs can establish their own more-specific key; resolveEffective then selects that key ahead of the legitimate parent. A room lock therefore does not secure its descendants.",
+    "evidence": "Reproduced by unsignedChildOverridesAnExistingRoomAuthority: establish a room lock with the owner's key, establish an unsigned locker lock with an unrelated key, and observe the attacker's key becoming the effective authority.",
+    "fix": "Permit unsigned establishment only when the relevant authority hierarchy is genuinely unclaimed. Require a valid parent grant whenever an ancestor governs the scope, and perform establishment atomically with that ancestor state. Cover room-to-keyspace, room-to-locker, and keyspace-to-locker delegation in both TOFU and public-keyed rooms.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F02",
+    "priority": "P1",
+    "title": "A valid sealed signature can carry an unauthenticated open payload",
+    "locations": [
+      "[model.proto:128](/Users/mikeroberts/workspace/latenighthack/kitkit/proto/common/v1/model.proto:128)",
+      "[RoomServiceImpl.kt:548](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:548)",
+      "[LockerClient.kt:32](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:32)"
+    ],
+    "problem": "Locker.open and Locker.sealed are independent protobuf fields. The server hashes and verifies only sealed.payload.enclosure.innerPayload, then stores the entire Locker. The client extracts open.encodedPayload first. Appending or replacing an open field does not change the signed context, yet it changes the bytes applications consume. The same ambiguity reaches agents that read open.",
+    "evidence": "Reproduced by unsignedOpenFieldSurvivesValidationOfSignedSealedPayload: a signature for payload 10 is accepted with an additional open payload 99, and both representations survive the subsequent read. The normal client accessor selects 99.",
+    "fix": "Reject every invalid or ambiguous envelope before signature verification and persistence; require exactly one supported representation. Share that validator across single writes, batches, reads, and extension outputs. Define which metadata is authenticated: notifications and ratchet.newSharedKeys are also outside the current signing contexts. Introduce any changed signing preimage through an explicit protocol version, while retaining the existing wire compatibility path.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F03",
+    "priority": "P1",
+    "title": "Old unlock and delegation signatures remain reusable",
+    "locations": [
+      "[LockerSigning.kt:47](/Users/mikeroberts/workspace/latenighthack/kitkit/api/src/commonMain/kotlin/com/latenighthack/lockers/common/LockerSigning.kt:47)",
+      "[LockerSigning.kt:56](/Users/mikeroberts/workspace/latenighthack/kitkit/api/src/commonMain/kotlin/com/latenighthack/lockers/common/LockerSigning.kt:56)",
+      "[LockVerifier.kt:110](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:110)",
+      "[LockVerifier.kt:143](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:143)"
+    ],
+    "problem": "unlockContext contains no lock version or incarnation. Unlock deletes the row, and re-establishment resets its version to 1. An old unlock signed by a key reused for a later lock therefore removes that later lock as well. Changing the unsigned parentLockVersion to the current version also allows reuse after a key returns. Grant contexts likewise lack parent epoch/version, and applyLock ignores parentLockVersion.",
+    "evidence": "Reproduced by oldUnlockSignatureRemovesAReestablishedLock: lock, signed unlock, recreate with the same key, then replay the original signature and version. The second unlock succeeds.",
+    "fix": "Retain a monotonic authority incarnation even when a scope becomes unlocked. Bind that incarnation and the expected authority version into grants, unlocks, and ratchets, and compare them atomically. Decide explicitly whether ancestor revocation invalidates existing descendants. Migrate the signing domain rather than silently changing V1 bytes.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F04",
+    "priority": "P1",
+    "title": "Internal event and push gateways are exposed without peer authentication",
+    "locations": [
+      "[MonolithComponent.kt:135](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/MonolithComponent.kt:135)",
+      "[Server.kt:19](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/Server.kt:19)",
+      "[SessionServiceImpl.kt:380](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:380)",
+      "[PushServiceImpl.kt:374](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:374)"
+    ],
+    "problem": "clientServices deliberately mounts SessionGateway and PushGateway on the public listener. Their implementations accept caller-selected session IDs and events or pushes without authenticating a peer or checking room write authority or subscriptions. A caller with a target session ID can inject locker bodies and arbitrary versions directly into its inbox, bypassing RoomService signature checks; the client trusts those events. Arbitrary push traffic and durable queue growth are also possible.",
+    "evidence": "Confirmed by the public route composition and gateway implementations. This requires access to the public listener and the relevant session identifier; no session private key or locker signing key is required.",
+    "fix": "Give trusted peer RPCs their own transport boundary and authenticate peer identity. Keep in-process discovery usable without exposing equivalent public endpoints. Validate sender authority and event identity at that boundary; an internal port alone is insufficient if callers can reach it. Preserve the extension API while requiring an explicit decision about which of its routes are public.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F05",
+    "priority": "P1",
+    "title": "Web Push endpoints allow server requests to private HTTP destinations",
+    "locations": [
+      "[PushServiceImpl.kt:301](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:301)",
+      "[WebPushProvider.kt:48](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/providers/WebPushProvider.kt:48)"
+    ],
+    "problem": "A Web Push registration accepts an arbitrary endpoint. The provider checks only that it is nonempty before handing it to an HTTP client. With Web Push configured, the public registration and send gateway can be combined to make the server POST to loopback, private network, or other unintended destinations. The encryption of the request body does not prevent the outbound connection.",
+    "evidence": "Reproduced by webPushAllowsLoopbackHttpEndpoint: a valid synthetic registration reached a temporary HTTP endpoint on 127.0.0.1 and the provider treated its 201 response as Accepted. The diagnostic contacted only a local test server.",
+    "fix": "Validate endpoints at registration and at send time. Require HTTPS, validate host and port against the supported push-service policy, reject private and special IP destinations after DNS resolution, and constrain redirects and outbound network access. Authenticate registration ownership independently. Apply length and public-key/auth-secret validation before persisting credentials.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F06",
+    "priority": "P1",
+    "title": "Session proof does not protect subscription or push credential mutations",
+    "locations": [
+      "[RoomServiceImpl.kt:360](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:360)",
+      "[RoomServiceImpl.kt:225](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:225)",
+      "[PushServiceImpl.kt:301](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:301)",
+      "[PushServiceImpl.kt:339](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:339)",
+      "[SessionServiceImpl.kt:147](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:147)"
+    ],
+    "problem": "Session opening verifies a private-key signature, but the unary subscription and push registration RPCs use a bare caller-supplied sessionId. Knowing an ID is sufficient to add or remove its subscriptions, replace its push destination, or unregister a backend. This can suppress delivery or redirect push information to another device. destroySession additionally returns OK without revoking anything.",
+    "evidence": "Confirmed by direct request handling: these methods never derive an authenticated session principal from GrpcRequestContext. README's intentionally unfinished room read authorization does not justify bypassing ownership of an established session.",
+    "fix": "Bind unary mutations to an authenticated session context or a signed, scoped session capability with expiry and replay protection. Define whether identifiers are public names or secret capabilities; the current API mixes those models. Implement authenticated revocation that closes live sockets and removes or expires session routing, subscription, inbox, and push state, with a documented deletion policy.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F07",
+    "priority": "P1",
+    "title": "A stale negative lock cache can disable signature enforcement",
+    "locations": [
+      "[RoomServiceImpl.kt:75](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:75)",
+      "[RoomServiceImpl.kt:408](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:408)",
+      "[RoomServiceImpl.kt:790](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:790)",
+      "[ClaimRoomOwnership.kt:46](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimRoomOwnership.kt:46)"
+    ],
+    "problem": "roomHasLocksCache stores false without an expiry or authority epoch. Reads on a non-owner can populate it. A different owner may subsequently establish a lock, after which the reader can acquire the room with its old negative cache intact. effectiveLockOrNull then skips all lock resolution. This affects the default legacy write/delete path and paths that choose cached resolution rather than batch lock prefetch. Reads can also report incorrect lock state.",
+    "evidence": "Reproduced by staleNegativeReadCacheBypassesNewRoomLock using two services over one store: one caches an unlocked read, the other locks the room, and the first accepts an unsigned write. Claim acquisition has no callback that invalidates that cache; demotion-only eviction does not cover a previously non-owning reader.",
+    "fix": "Make authorization reads authoritative inside the mutation transaction. If caching is retained, key it by a proven ownership/authority epoch and invalidate before acquiring or resuming authority, with distributed lock-change invalidation. A TTL alone cannot establish the security invariant.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F08",
+    "priority": "P1",
+    "title": "The default mutation path has no database version CAS or commit fence",
+    "locations": [
+      "[RoomServiceImpl.kt:485](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:485)",
+      "[RoomServiceImpl.kt:534](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:534)",
+      "[LockerStore.kt:50](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockerStore.kt:50)",
+      "[RoomServiceImpl.kt:710](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:710)",
+      "[AdvisoryLockCoordinator.kt:28](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/AdvisoryLockCoordinator.kt:28)"
+    ],
+    "problem": "Legacy writes compare a fetched version and then perform an unconditional save under a process-local room mutex. Two coordinators can both read version N and both commit N+1. Ownership is checked before queueing and database work, with no owner epoch checked at commit, so a paused or draining former owner can continue after takeover. Deletes validate before their outbox transaction; standalone lock operations also lack a shared mutation transaction. The advisory lease's so-called fencing token is the stable shard hash, not a monotonically increasing token enforced by storage.",
+    "evidence": "Reproduced by twoCoordinatorsAcceptTheSameVersionWithoutStorageCAS: two services read version 3 and both return successful version 4. The fast batch source path does serialize its read/validation/write transaction, which improves version races, but still lacks a commit-time ownership fence.",
+    "fix": "Require the storage mutation to atomically compare both expected locker/authority version and the current owner incarnation. Include content, lock changes, receipts, and delivery intents in the same transaction. Apply that invariant to writes, deletes, lock/unlock, and derived writes. Remove comments and metrics claiming that an ordinary read-and-save is a database CAS.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F09",
+    "priority": "P1",
+    "title": "The default example agent can overwrite an independently locked keyspace",
+    "locations": [
+      "[ServerCore.kt:87](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/ServerCore.kt:87)",
+      "[ExampleLockerAgent.kt:26](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/agents/ExampleLockerAgent.kt:26)",
+      "[RoomServiceImpl.kt:633](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:633)"
+    ],
+    "problem": "ServerCore installs ExampleLockerAgent whenever the embedder supplies no override. That agent mirrors a write in keyspace 31 into keyspace 30, and derived writes bypass the target's lock verification. An unsigned write to an open input keyspace can therefore overwrite a locked output keyspace. Shipping this demo as the default also assigns implicit meaning to otherwise opaque keyspaces.",
+    "evidence": "Reproduced by defaultExampleAgentOverwritesAnIndependentlyLockedKeyspace using the actual ServerCore default. A direct unsigned write to keyspace 30 is rejected, while the same bytes written to keyspace 31 replace its locked output.",
+    "fix": "Use a no-op registry by default and require explicit installation of trusted authoritative agents. Preserve their ability to produce privileged derived state, but declare and enforce their permitted input/output scopes and validation policy. Put the demonstration behind an explicit sample configuration.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F10",
+    "priority": "P1",
+    "title": "A legacy ratchet can commit before its associated content write fails",
+    "locations": [
+      "[RoomServiceImpl.kt:578](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:578)",
+      "[LockVerifier.kt:171](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:171)",
+      "[RoomServiceImpl.kt:618](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:618)"
+    ],
+    "problem": "In the legacy path, applyRatchet saves the new lock key before the locker is saved or delivery is accepted. A storage exception or cancellation between those operations leaves the new authority committed with no successful content write. A client retry using the old key then fails verification, despite never receiving a successful ratchet response.",
+    "evidence": "Reproduced by legacyRatchetCommitsEvenWhenLockerPersistenceFails: inject a locker-save failure, submit a correctly signed ratchet write, and observe the new public key persisted while the locker remains absent. Fast batch source transactions avoid this particular partial commit.",
+    "fix": "Commit ratchet, locker, receipt, and delivery intent in one transaction on every supported path. Make success and ambiguous-response recovery refer to the complete transaction outcome. Do not advertise atomic ratcheting on a path that can persist only its authority half.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F11",
+    "priority": "P1",
+    "title": "The client can discard a successfully committed ratchet key",
+    "locations": [
+      "[LockerClient.kt:754](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:754)",
+      "[LockerClient.kt:788](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:788)",
+      "[LockerClient.kt:836](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:836)",
+      "[LockerClient.kt:436](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:436)"
+    ],
+    "problem": "A new ratchet private key lives only in a local variable until onRatcheted runs. The client throws on agentFailed or agentPending before adopting that key or accepting the committed source. The server may already have committed both source and ratchet. A response lost across process death has the same problem: a write receipt preserves the server outcome, but it cannot reconstruct the client's discarded private key. Subsequent writes may be permanently locked out.",
+    "evidence": "Confirmed by the ordering of the success, agent-status, and key-adoption branches. This is distinct from F10: even a fully atomic successful server commit can leave the client holding the previous authority.",
+    "fix": "Persist a pending ratchet key and immutable request identity before submission. Resolve a committed outcome and adopt that key even when derived agent work is pending or failed. Return a typed outcome separating source commit from agent completion; reserve an ordinary write-failed exception for a source mutation that did not commit. Recover pending key transitions on startup.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F12",
+    "priority": "P2",
+    "title": "Session creation and challenge rotation are not atomic",
+    "locations": [
+      "[SessionServiceImpl.kt:597](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:597)",
+      "[SessionServiceImpl.kt:611](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:611)",
+      "[SessionServiceImpl.kt:521](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:521)",
+      "[SessionServiceImpl.kt:559](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:559)",
+      "[SessionStore.kt:23](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionStore.kt:23)"
+    ],
+    "problem": "Create checks for absence and then unconditionally saves the session. Concurrent creates for the same identifier can both succeed with different authorization keys, leaving one persisted authority. Open similarly reads a challenge, verifies it, and unconditionally rotates it; concurrent uses of the same valid challenge can both succeed. The create path does not use the session owner gate or a database put-if-absent.",
+    "evidence": "Reproduced by concurrentSessionCreatesBothSucceedAndOverwriteAuthority: two services both observe an absent session, both return OK with different public keys, and only one authority row remains. The equivalent open race follows the same read/verify/save structure.",
+    "fix": "Add atomic create-if-absent and challenge compare-and-rotate operations. Tie the winning socket/registry attachment to the committed session incarnation, and reject competing admissions before publishing live state. Test both same-node and cross-node races; serialization of event ACKs does not serialize session admission.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F13",
+    "priority": "P2",
+    "title": "Creating a locker does not advance its version",
+    "locations": [
+      "[RoomServiceImpl.kt:534](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:534)",
+      "[RoomServiceImpl.kt:719](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:719)"
+    ],
+    "problem": "When no stored locker exists, the server assigns request.parentVersion as the new version. With the usual parent 0, creation returns 0; a second stale parent-0 request is then accepted and returns 1. The first existence transition does not invalidate optimistic concurrency. The same initial rule applies to deletion of an absent locker.",
+    "evidence": "Reproduced by sameInitialParentVersionCommitsTwice: identical requests using parent 0 both succeed, first at version 0 and then at version 1. This also interacts with client watchers that ignore equal-version state changes.",
+    "fix": "Define one initial parent sentinel, reject inappropriate parents for absence, and advance the version on every committed state transition. Include first-create races and deletion/recreation in the protocol's version tests. Guard negative values and overflow, and plan how legacy version-0 rows are interpreted during migration.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F14",
+    "priority": "P2",
+    "title": "Null and zero keyspace aliases bypass duplicate and serialization checks",
+    "locations": [
+      "[RoomServiceImpl.kt:255](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:255)",
+      "[RoomServiceImpl.kt:294](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:294)",
+      "[LockerClient.kt:386](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:386)",
+      "[LockerClient.kt:740](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:740)"
+    ],
+    "problem": "Duplicate detection uses the raw LockerId, while storage and signing canonicalize a missing keyspace to zero. A batch can contain both representations of the same locker. Both changes validate against the same prefetched version, two conflicting events are created, and one row wins persistence. Client mutation locks likewise use unnormalized IDs, allowing nominally serialized writes to the same stored locker to take different locks.",
+    "evidence": "Reproduced by nullAndZeroKeyspaceAliasesPassAtomicBatchDistinctness: the atomic batch succeeds with two version-0 outcomes, one stored locker, and two delivery intents.",
+    "fix": "Define a canonical identity type for room, keyspace, and locker bytes. Normalize at API entry before distinctness checks, mutation-lock acquisition, receipt construction, storage lookup, and routing. Keep the existing signed equivalence of omitted and zero keyspace; enforce it consistently rather than changing its meaning.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F15",
+    "priority": "P2",
+    "title": "Bulk reads represent a tombstone as a live empty locker",
+    "locations": [
+      "[RoomServiceImpl.kt:212](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:212)",
+      "[RoomServiceImpl.kt:235](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:235)",
+      "[RoomServiceImpl.kt:449](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:449)",
+      "[LockerClient.kt:645](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:645)"
+    ],
+    "problem": "getLockers decodes stored.locker regardless of stored.deleted. Deleted rows contain an empty byte array, which decodes to a non-null empty Locker and is returned as OK. getLocker hides the deleted row, getAllLockers filters it out, and subscribeAndSnapshot correctly returns a versioned identified tombstone. The client bulk-read path treats any non-null locker body as present.",
+    "evidence": "Reproduced by bulkReadReturnsDeletedLockerAsPresent: getLocker returns null after deletion, while getLockers returns a non-null Locker for the same ID.",
+    "fix": "Use one versioned tombstone representation across every read, snapshot, event, and write-conflict response. Teach clients to preserve the tombstone version while removing the visible value. Add parity tests for all read APIs, including an empty but genuinely present payload.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F16",
+    "priority": "P2",
+    "title": "Legacy revalidation cannot remove cached deletions",
+    "locations": [
+      "[LockerClient.kt:349](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:349)",
+      "[LockerClient.kt:363](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:363)",
+      "[LockerClient.kt:651](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:651)",
+      "[RoomServiceImpl.kt:449](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:449)"
+    ],
+    "problem": "Legacy hydration merges only lockers returned by getAllLockers, which omits deleted rows. fetchLocker accepts only a non-null response. Neither operation removes a previously cached locker when the server reports absence. A disconnected client that misses a delete, or creates a replacement session after an inbox gap, can keep the deleted value indefinitely despite repeated successful revalidation.",
+    "evidence": "Confirmed by the absence-only branches and the default capabilities path. The fast subscribeAndSnapshot path includes tombstones and can repair this specific gap; its behavior is not available when deliveryOutboxEnabled is false.",
+    "fix": "Return versioned tombstones on legacy-compatible reads, or reconcile a complete authoritative snapshot with its boundary/watermark. Do not infer an unversioned delete from absence while a newer live event may race hydration. Make reconciliation repair deletions as well as additions.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F17",
+    "priority": "P2",
+    "title": "Subscription changes on one node do not refresh another node's fanout cache",
+    "locations": [
+      "[RoomServiceImpl.kt:188](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:188)",
+      "[RoomServiceImpl.kt:360](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:360)",
+      "[RoomServiceImpl.kt:388](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:388)",
+      "[RoomServiceImpl.kt:96](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:96)"
+    ],
+    "problem": "Subscriptions are deliberately allowed on non-owner nodes, but each RoomService caches its own room-to-session set without expiry or distributed invalidation. A writing owner that has already cached recipients does not learn a subscription added elsewhere, and can continue delivering to a session removed elsewhere. The legacy path can therefore miss live and offline inbox delivery until eviction or takeover.",
+    "evidence": "Confirmed by the shared subscription store, process-local cache, and local-only cache updates. Fast outbox commits query durable recipients and avoid this cached-recipient path.",
+    "fix": "Resolve recipients from authoritative storage at the event's commit boundary, or maintain an observed subscription revision tied to a coherent distributed cache. Keep subscribe-and-snapshot atomicity and unsubscribe semantics explicit. Do not rely on requests happening to land on the writer.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F18",
+    "priority": "P2",
+    "title": "The default delivery mode can acknowledge a write whose event has no recovery path",
+    "locations": [
+      "[LockersConfig.kt:125](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/LockersConfig.kt:125)",
+      "[RoomServiceImpl.kt:615](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:615)",
+      "[RoomServiceImpl.kt:666](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:666)"
+    ],
+    "problem": "deliveryOutboxEnabled defaults to false. The legacy path persists a locker and then sends events directly to gateways. Gateway lookup, RPC failure, or a crash between persistence and inbox acceptance can leave no durable delivery intent. deliver records failures and the write still returns OK. A durable session inbox helps only after the gateway has accepted an event.",
+    "evidence": "Confirmed by the default configuration and post-persistence direct delivery. The optional outbox path provides the missing durable intent, so the reliability contract currently changes materially with configuration.",
+    "fix": "Make durable delivery the supported invariant for production writes, deletes, and derived state, after resolving its scaling issues in F33. If a weaker legacy mode remains, expose its guarantee explicitly and provide snapshot repair that includes deletions. Treat local Flow wakeups as hints to recoverable work.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F19",
+    "priority": "P2",
+    "title": "Persisted push work can become invisible to a running worker",
+    "locations": [
+      "[PushServiceImpl.kt:107](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:107)",
+      "[PushServiceImpl.kt:139](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:139)",
+      "[PushServiceImpl.kt:150](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:150)",
+      "[PushServiceImpl.kt:401](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:401)"
+    ],
+    "problem": "The push worker reads the durable queue once in onStart, then consumes only this instance's replay-zero SharedFlow. Work enqueued by an API-only replica emits into a different instance and is never discovered by the running worker. An enqueue between the startup query and actual subscription can also be missed. A startup storage failure terminates the collector with no recovery loop.",
+    "evidence": "Reproduced by APIReplicaEnqueueIsInvisibleToRunningWorkerReplica: the worker sends its startup row, another instance enqueues a new row into the same store, and the row remains pending with no second send. Structurally, there is no polling or distributed observation that can discover it later.",
+    "fix": "Use durable queue claims with a bounded worker pool and a store-driven observation or notification seam, plus periodic recovery scanning. Subscribe to wakeups before scanning, and rescan after errors or restarts. The queue row must determine whether work exists; an in-process emission cannot be its only discovery mechanism.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F20",
+    "priority": "P2",
+    "title": "Push drain can duplicate in-flight sends and does not bound queued coroutines",
+    "locations": [
+      "[PushServiceImpl.kt:157](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:157)",
+      "[PushServiceImpl.kt:208](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:208)",
+      "[PushServiceImpl.kt:446](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:446)"
+    ],
+    "problem": "Each emitted queue row creates another coroutine. drainQueue re-emits all rows, including those already being sent, without a row lease or in-flight guard. A semaphore bounds vendor calls but not the number of jobs waiting behind it. Multiple worker replicas have the same duplicate-send risk, while a large backlog can create an arbitrarily large coroutine set.",
+    "evidence": "Reproduced by drainingQueueDuplicatesAnInFlightSend: hold the first provider send open, invoke drainQueue, and observe a second concurrent send for the same row.",
+    "fix": "Claim rows atomically with lease identity, expected state, and a persisted next-attempt time. Use a fixed number of consumers over bounded claims. Make drain a request to accelerate discovery rather than a second delivery stream. Preserve at-least-once semantics for ambiguous provider acceptance and make duplicates observable.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F21",
+    "priority": "P2",
+    "title": "Push registration failures are not retried on ordinary reconnects",
+    "locations": [
+      "[PushRegistration.kt:103](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:103)",
+      "[PushRegistration.kt:108](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:108)",
+      "[PushRegistration.kt:165](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:165)",
+      "[Stream.kt:273](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:273)"
+    ],
+    "problem": "sendRegister catches transport failures and returns while leaving the row pending. Reconciliation is triggered by a distinct session ID, not a successful connection epoch. Stream keeps the same session ID through an ordinary reconnect, so no retry occurs. This contradicts the controller and facade documentation, and awaitRegistered can wait forever after a transient outage.",
+    "evidence": "Reproduced by registrationTransportFailureIsNotRetriedForSameSession: one failed registration remains pending; publishing an equal session ID makes no second RPC. The source has no independent retry loop.",
+    "fix": "Reconcile persisted desired registrations against a session state containing connection incarnation and readiness. Retry recoverable failures with bounded backoff while that desired state remains current. Represent terminal failure and closed state explicitly so callers can await a real outcome.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F22",
+    "priority": "P2",
+    "title": "Late push acknowledgements can restore obsolete or removed credentials",
+    "locations": [
+      "[PushRegistration.kt:118](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:118)",
+      "[PushRegistration.kt:141](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:141)",
+      "[PushRegistration.kt:173](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:173)"
+    ],
+    "problem": "Two controller jobs and direct unregister calls mutate the same registration state without a serialized generation check. An older register response can overwrite a newer credential or recreate a row after unregister. It can also confirm a backend for a superseded session. Read-modify-write updates of reconciled.value can lose concurrent changes. Unregister removes local intent even if the server call failed, leaving no durable revoke to retry.",
+    "evidence": "Reproduced by lateRegistrationResponseResurrectsUnregisteredCredential: block register, complete unregister and local deletion, then release the register response; the credential is recreated and reported registered.",
+    "fix": "Use a serialized reducer with desired credential revision, session incarnation, and durable pending removal. Apply acknowledgements only when all three still match. SubscriptionController's generation-checked confirmations provide a useful local pattern, with bounded commands and explicit lifecycle outcomes.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F23",
+    "priority": "P2",
+    "title": "A watcher publishes partial history as its initial snapshot",
+    "locations": [
+      "[LockerClient.kt:469](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:469)",
+      "[LockerClient.kt:479](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:479)",
+      "[LockerClient.kt:489](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:489)"
+    ],
+    "problem": "watchSnapshot calls merge for each cached locker, and merge emits immediately. Its first value therefore represents only the first historical item rather than the room/keyspace snapshot. Live events may interleave those partial histories. SharingStarted.WhileSubscribed also retains replay across idle periods while a restarted producer rebuilds its local map. The state.isEmpty check reads the mutable map outside stateMutex.",
+    "evidence": "Reproduced by cachedWatchFirstEmissionContainsOnlyOneOfThreeLockers: three stored lockers yield a first list of size one. The higher-level watchAll documentation describes initial history as one snapshot.",
+    "fix": "Load and reduce a complete snapshot before one initial emission, buffering and version-ordering live events around a snapshot boundary. Expose an immutable state with loading/freshness metadata when cached state is intentionally emitted early. Keep all state access serialized, and define replay reset and watcher eviction.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F24",
+    "priority": "P2",
+    "title": "Application Flow collectors can block acceptance and ACKs for unrelated rooms",
+    "locations": [
+      "[LockerClient.kt:318](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:318)",
+      "[LockerClient.kt:459](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:459)",
+      "[LockerClient.kt:531](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:531)",
+      "[Stream.kt:522](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:522)"
+    ],
+    "problem": "accept holds a client-wide mutex while saving and emitting to internalChanges. Once its 64-item buffer fills, one slow collector blocks every room's acceptance and writers waiting on that mutex. Notification emission and raw stream-event emission also happen before ACK persistence. Cancellation after save but before emission can leave an active watcher behind the store; a replay of equal content is suppressed by the stored-version guard. With no collectors, replay-zero change and notification emissions are instead ephemeral.",
+    "evidence": "Confirmed by the save/emit/mutex ordering and Flow buffers. SharedFlow buffering does not persist values without subscribers, and suspending overflow can make producers wait for collectors. These are documented contracts, rather than unusual runtime failures. [Kotlin SharedFlow API](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-shared-flow/)",
+    "fix": "Commit accepted state and dedup/ACK intent independently of application multicast. Observe committed state through a transaction-aware storage Flow or a reducer that reloads from storage after conflated wakeups. Give state snapshots conflation and give events requiring delivery a persisted cursor or inbox. Move emission outside correctness mutexes; blindly dropping changes would introduce another delivery gap.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F25",
+    "priority": "P2",
+    "title": "Cancellation is retried or converted into application failure",
+    "locations": [
+      "[LockerClient.kt:255](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:255)",
+      "[LockerClient.kt:832](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:832)",
+      "[PushRegistration.kt:166](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:166)",
+      "[PushServiceImpl.kt:210](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:210)",
+      "[LockVerifier.kt:205](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:205)"
+    ],
+    "problem": "WRITE_EXCEPTION_HANDLER treats CancellationException as retryable through its catch-all branch. The retry helper eventually produces RetryLimitExceeded, which the client wraps as LockerWriteException. Push registration runCatching and several provider/server catch(Exception) branches also catch coroutine cancellation and classify it as an ordinary failure or retry. This weakens cancellation propagation and can run failure-side persistence while a component is stopping.",
+    "evidence": "Reproduced by cancelledWriteIsConvertedToLockerWriteFailure: cancel an in-flight update and observe LockerWriteException instead of the cancellation signal. Other identified catch sites were established by source inspection.",
+    "fix": "Rethrow CancellationException before transient-error classification. Use narrowly scoped NonCancellable cleanup only for necessary resource release or completion of an already-defined transaction boundary. Review the pinned retry helper's exception contract, including its use of CancellationException for retry exhaustion, and distinguish exhaustion from actual caller cancellation.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F26",
+    "priority": "P2",
+    "title": "Background ownership and shutdown are detached from the caller's lifecycle",
+    "locations": [
+      "[LockerClient.kt:282](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:282)",
+      "[Stream.kt:106](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:106)",
+      "[Stream.kt:271](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:271)",
+      "[PushRegistration.kt:96](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:96)",
+      "[LockersClient.kt:81](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockersClient.kt:81)",
+      "[ServerExtension.kt:22](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/ServerExtension.kt:22)"
+    ],
+    "problem": "The connector components construct separate root SupervisorJobs; LockerClient uses GlobalScope plus such a job. Server workers also own independent root scopes. Parent cancellation cannot propagate into them, dispatchers are fixed, and most stop/close methods cancel without joining. Several start methods can create duplicate loops, and partial factory startup has no rollback. A supervisor isolates a failed child but does not restart a failed collector or expose its failure to callers.",
+    "evidence": "Confirmed by constructors and lifecycle methods. SupervisorJob supports a parent job, and its failure isolation requires an explicit child-failure policy. [Kotlin SupervisorJob API](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-supervisor-job.html)",
+    "fix": "Give each client/server component one explicit lifecycle scope with a supplied parent, owned child jobs, and injected execution contexts. Keep deliberately shared reads owned by that client scope so one waiter cannot cancel everyone. Make start idempotent or reject duplicate starts, clean up partial initialization, and provide suspending close/stop that cancels and joins. Add an equivalent awaitable lifecycle seam for extensions.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F27",
+    "priority": "P2",
+    "title": "Connection state can remain true during failure and awaiters can hang after closure",
+    "locations": [
+      "[Stream.kt:293](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:293)",
+      "[Stream.kt:315](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:315)",
+      "[Stream.kt:343](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:343)",
+      "[Stream.kt:553](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:553)",
+      "[LockersClient.kt:43](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockersClient.kt:43)"
+    ],
+    "problem": "onConnected is cleared around the outer connection loop and normal completion, but an exception retried inside repeatWithBackoff can leave it true throughout retries. Fatal failure and stop do not consistently clear it. sessionIdSource also remains populated through disconnection or abandoned sessions. awaitConnected waits only for true and never observes fatal or closed state; subscription and push waiters have similar missing lifecycle outcomes.",
+    "evidence": "Confirmed by the distinct updates to isConnected, fatalError, sessionId, and stop. A previously connected client can report a stale true value, while a never-connected terminal client can leave awaitConnected suspended indefinitely unless its caller supplies cancellation.",
+    "fix": "Publish one StateFlow describing Connecting, Connected(session, connectionEpoch), Retrying, Failed, and Closed. Derive compatibility properties from it. Transition in connection-level try/finally and make await APIs complete with a typed terminal outcome. Use its connection epoch for registration/subscription reconciliation.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F28",
+    "priority": "P2",
+    "title": "The session ping branch never emits its pong and there is no heartbeat deadline",
+    "locations": [
+      "[SessionServiceImpl.kt:219](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:219)",
+      "[Stream.kt:513](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:513)"
+    ],
+    "problem": "The server constructs StreamControlEvent.Message(Pong) in the ping branch but never emits it. The client ignores pong responses and has no matching receive deadline. Sending periodic pings alone therefore cannot detect an unresponsive application session or provide a working ping/pong contract.",
+    "evidence": "Reproduced by sessionPingDoesNotEmitPong: open a valid test stream, send ping, and receive no response. The stream remains otherwise active. This probe also showed that an empty session public key is accepted, covered in F38.",
+    "fix": "Emit the pong, track heartbeat identity or a monotonic deadline, and reconnect when the expected response does not arrive. Distinguish transport liveness from slow application processing so an observer cannot monopolize the heartbeat path. Test half-open connections, clean closes, and cancellation of heartbeat jobs.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F29",
+    "priority": "P2",
+    "title": "Failure during session publication leaks local state and can block the next open",
+    "locations": [
+      "[SessionServiceImpl.kt:204](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:204)",
+      "[SessionServiceImpl.kt:212](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:212)",
+      "[SessionServiceImpl.kt:356](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:356)",
+      "[ClaimSessionRegistry.kt:48](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimSessionRegistry.kt:48)"
+    ],
+    "problem": "A new socket is placed in openStreamCancellationChannels and activeStreamsCount is incremented before attachBeforeSnapshot completes. If that database operation fails, openState is never completed, so onCompletion skips cleanup. The next open can replace the stale channel and then suspend forever sending cancellation to a channel whose collector has already disappeared. Separately, ClaimSessionRegistry's asynchronous node-only delete can remove a newer attachment on the same node if it runs after reattach.",
+    "evidence": "Confirmed by publication and cleanup ordering. The registration failure case needs a deterministic fault-injection regression test; the resulting map/count leak and unmatched channel send follow directly from the current branches.",
+    "fix": "Use explicit registration ownership and try/finally from the first local mutation. Cancel the prior socket by job or a nonblocking close signal. Attach and detach registry rows using a socket/attachment incarnation so cleanup cannot erase a successor; monitor and await required publication before announcing connection success.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F30",
+    "priority": "P2",
+    "title": "A denied ring lease is never retried while the shard map stays unchanged",
+    "locations": [
+      "[OwnerLifecycle.kt:71](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/OwnerLifecycle.kt:71)",
+      "[OwnerLifecycle.kt:83](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/OwnerLifecycle.kt:83)",
+      "[OwnerLifecycle.kt:108](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/OwnerLifecycle.kt:108)",
+      "[AdvisoryLockCoordinator.kt:28](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/AdvisoryLockCoordinator.kt:28)"
+    ],
+    "problem": "OwnerLifecycle acquires only initially or for shards whose map owner changed, then records the map even when acquire returned null. Reconciliation of the same map cannot acquire a missing lease, and a failed/expired lease is not restored independently. PostgreSQL advisory locks cannot preempt a live old holder merely because the desired epoch is higher, so a normal handoff race can leave the new owner unavailable indefinitely.",
+    "evidence": "Reproduced by deniedLeaseIsNeverRetriedAtTheSameMap: deny the first acquire, later allow it, reconcile the same map, and observe one attempt and zero held leases.",
+    "fix": "Continuously reconcile desired shards against actual valid leases, with bounded retry and cancellation on topology change. Make ownership state and retry failures observable. Test the real advisory-lock handoff protocol rather than relying only on the in-memory coordinator's stronger preemption behavior.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F31",
+    "priority": "P2",
+    "title": "Ring mode does not maintain authority for nonzero keyspaces",
+    "locations": [
+      "[ClusterContext.kt:28](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/ClusterContext.kt:28)",
+      "[BlueprintV.kt:88](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/BlueprintV.kt:88)",
+      "[RoomServiceImpl.kt:779](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:779)"
+    ],
+    "problem": "ClusterContext defaults roomKeyspaces to only zero, and BlueprintV does not override that list. With a real ownership coordinator, writes to nonzero keyspaces have no maintained lease and can be redirected back toward the same node indefinitely. Even if more leases are configured, room-wide locks and agents span keyspaces while ring ownership splits them; room-wide authority changes and atomic batches can require coordination across different owners.",
+    "evidence": "Confirmed by production wiring and RingRoomOwnership's leaseFor(keyspace, shard) gate. This applies to the retained ring mode; claim mode intentionally owns an entire room and avoids the keyspace split.",
+    "fix": "Make the supported ownership unit match the authority unit. Prefer whole-room claim ownership for room locks, batches, and agents. If ring mode remains supported, wire its actual keyspace set and define how room-wide operations are serialized across those shards, or reject unsupported combinations explicitly.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F32",
+    "priority": "P2",
+    "title": "Shutdown releases authority before requests and workers have drained",
+    "locations": [
+      "[Main.kt:256](/Users/mikeroberts/workspace/latenighthack/kitkit/server/run/src/main/kotlin/com/latenighthack/lockers/server/Main.kt:256)",
+      "[MonolithComponent.kt:189](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/MonolithComponent.kt:189)",
+      "[ClaimRenewalService.kt:98](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimRenewalService.kt:98)",
+      "[DeliveryWorker.kt:102](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/DeliveryWorker.kt:102)",
+      "[ClaimJdbcPool.kt:57](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:57)"
+    ],
+    "problem": "The shutdown hook closes coordination and calls component.stop before stopping the public listener. component.stop releases shard leases or claim rows first, then cancels workers and closes dispatchers without awaiting all work. A successor can acquire authority while an existing handler continues on this node; the listener can still admit requests during part of that interval. This amplifies the missing commit fence in F08. ClaimJdbcPool.close also treats a successfully received null slot as an empty channel and stops draining: a normal partially initialized queue such as [null, openConnection] leaves the connection unclosed.",
+    "evidence": "Confirmed by the shutdown order. stopAndRelease also cancels its renewal job without joining before deleting rows, permitting an in-flight renewal or publication to overlap release.",
+    "fix": "First reject new traffic and mark the component draining; then stop claiming work, cancel or finish handlers and join worker/renewal jobs. Release ownership only after authoritative work has stopped, then close providers, dispatchers, stores, and transports. Use one suspending shutdown path with bounded grace and preserve commit fencing as the final defense. Drain nullable pool slots by checking ChannelResult success separately from its nullable value, and await or close borrowed connections under a defined policy.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F33",
+    "priority": "P2",
+    "title": "Retention and queue discovery grow without a bound",
+    "locations": [
+      "[Stream.kt:60](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:60)",
+      "[Stream.kt:69](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:69)",
+      "[LockerSyncCoordinator.kt:11](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerSyncCoordinator.kt:11)",
+      "[LockerClient.kt:286](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:286)",
+      "[DeliveryOutboxStore.kt:45](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/DeliveryOutboxStore.kt:45)",
+      "[DeliveryOutboxStore.kt:90](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/DeliveryOutboxStore.kt:90)"
+    ],
+    "problem": "Confirmed ACK rows are retained forever, while getPendingAcks scans all rows before filtering. Write receipts, locker tombstones, and sessions have no defined reclamation policy. Watcher and mutation-lock maps retain every key encountered. SubscriptionController's command channel is unlimited. DeliveryOutbox.claim reads and groups the entire backlog inside one database lock shared with all room commits; four lanes repeat that scan, so independent room lanes still contend at storage.",
+    "evidence": "Confirmed by storage queries, map insertion without removal, and the single outbox transaction key. This is a workload-dependent scaling risk rather than a measured performance claim.",
+    "fix": "Define deduplication and idempotency horizons before pruning ACKs, receipts, or tombstones. Add indexed due-work/head-of-room queries with bounded results and safe row claims instead of full scans under a global lock. Use observer reference counts and lock entry lifetimes, bound or coalesce persisted-intent wakeups, and measure backlog age, query size, lock wait, active jobs, and storage growth.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F34",
+    "priority": "P2",
+    "title": "Notification codec context does not survive delivery",
+    "locations": [
+      "[NotificationCodec.kt:11](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/NotificationCodec.kt:11)",
+      "[SessionServiceImpl.kt:453](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:453)",
+      "[SessionServiceImpl.kt:340](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:340)",
+      "[LockerClient.kt:523](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:523)"
+    ],
+    "problem": "Encoding supplies notification title/body to NotificationContext, but the session inbox serializes only notification.payload and the locker. Both live responses and replay reconstruct the notification without push title/body, so decoding sees null values. A consumer codec that binds its payload to those context fields cannot reliably round-trip.",
+    "evidence": "Confirmed by the inbox event shape and reconstruction. Existing simple codec tests do not exercise a context-dependent codec through persistence and session replay.",
+    "fix": "Persist and replay the metadata that is part of the codec contract, or explicitly narrow encode/decode context to values guaranteed on both sides. Version storage/wire changes as needed. Test context-dependent authentication and transformation through both live and offline delivery.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F35",
+    "priority": "P2",
+    "title": "The high-level client ACKs broadcasts without surfacing their payload",
+    "locations": [
+      "[SessionServiceImpl.kt:428](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:428)",
+      "[LockerClient.kt:518](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:518)",
+      "[LockersClient.kt:58](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockersClient.kt:58)"
+    ],
+    "problem": "Broadcast creates an event with an empty room ID and no locker ID. LockerClient emits notifications only when lockerId is non-null, so broadcast payloads never reach its notification Flow. Stream still accepts and ACKs the event. The facade does not expose raw Stream.events as an alternative broadcast channel.",
+    "evidence": "Confirmed by the broadcast event shape and the notification branch. A caller using Stream directly can observe raw events; the standard LockersClient API cannot consume these broadcast notifications.",
+    "fix": "Expose a session-level event/notification Flow with explicit room notification and broadcast variants. Decode and acknowledge each variant under a documented delivery policy. Keep locker-scoped codecs scoped, and provide a separate broadcast codec context rather than inventing a locker identity.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F36",
+    "priority": "P2",
+    "title": "The documented JVM routing factory receives incompatible addresses",
+    "locations": [
+      "[RoutingRpcClient.kt:28](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/RoutingRpcClient.kt:28)",
+      "[RoutingRpcClient.kt:115](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/RoutingRpcClient.kt:115)",
+      "[RoutingRpcClient.kt:82](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/RoutingRpcClient.kt:82)",
+      "[RoutingRpcClient.kt:109](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/RoutingRpcClient.kt:109)"
+    ],
+    "problem": "RoutingRpcClient's default normalizer prefixes bare owners with http://, while the pinned ktbuf JVM HttpRpcClient prepends http:// itself for non-HTTPS input. The documented factory therefore builds a double-scheme HTTP URL after a normal redirect. The server peer pool explicitly works around this same transport requirement. The owner cache also conflates room and session key namespaces, and concurrent client creation can allocate a losing transport that is never closed.",
+    "evidence": "Confirmed by routing code and inspection of the pinned JVM transport; server RemoteGateway.kt documents and avoids the double-prefix issue. Fake routing tests do not exercise a real HttpRpcClient destination.",
+    "fix": "Make address adaptation an explicit platform transport contract and add real transport tests for bare, HTTP, HTTPS, and redirected endpoints. Namespace room/session routing keys, including keyspace if ring mode requires it. Serialize client creation or close losing instances, and provide bounded cache/resource disposal.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F37",
+    "priority": "P2",
+    "title": "An agentPending receipt can remain pending permanently",
+    "locations": [
+      "[RoomServiceImpl.kt:310](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:310)",
+      "[RoomServiceImpl.kt:321](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:321)",
+      "[RoomServiceImpl.kt:348](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:348)",
+      "[LockerClient.kt:436](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:436)"
+    ],
+    "problem": "The batch source transaction saves an agentPending receipt, then runs the agent outside that transaction. A crash or cancellation in between leaves that receipt pending. Retries correctly avoid executing the agent again, but there is no recovery worker or completion protocol to resume or resolve the pending task. Applications receive a committed source with indefinitely missing derived state.",
+    "evidence": "Confirmed by the source receipt, replay branch, and synchronous post-commit hook. Avoiding blind replay is intentional and protects an at-most-once extension; the unresolved gap is how pending work reaches a final state.",
+    "fix": "Define agent completion as a first-class durable workflow with a completion/status Flow. Give recoverable agents immutable request identity and an idempotent effect/derived-write contract before permitting replay. For arbitrary non-idempotent extensions, expose an explicit indeterminate outcome and reconciliation hook. Always preserve the committed source result, as required by F11.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F38",
+    "priority": "P2",
+    "title": "Malformed identity and authority data are persisted and resource limits are incomplete",
+    "locations": [
+      "[SessionServiceImpl.kt:581](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:581)",
+      "[SessionServiceImpl.kt:546](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:546)",
+      "[LockVerifier.kt:76](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:76)",
+      "[LockVerifier.kt:196](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:196)",
+      "[RoomServiceImpl.kt:501](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:501)",
+      "[SessionServiceImpl.kt:401](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:401)"
+    ],
+    "problem": "Session create checks only null key/ID values and accepts empty or undecodable public keys; open decodes the stored key outside its verification try block. Lock establishment does not validate the new key or scope enum. A structurally public-keyed room with invalid key bytes falls back to TOFU rather than rejection. Initial versions accept arbitrary signed values and later increments can overflow. Legacy writes cap the locker body but not the complete request/notification; single gateway posts, aggregate room snapshots, and inbox-open responses lack a consistently bounded or paged envelope.",
+    "evidence": "The ping diagnostic created a session with an empty public key and received OK. The other malformed-input and unbounded aggregate paths were established by inspection. No particular transport frame ceiling or dependency CVE is assumed here.",
+    "fix": "Validate canonical IDs, key encodings, known scopes, supported envelopes, versions, and complete encoded sizes at the trust boundary. Reject invalid public-keyed room encodings explicitly. Bound recipients, sessions, notification bytes, and global admission/storage consumption, and paginate snapshots/inbox replay with stable cursor semantics. Return precise protocol errors rather than poisoning persisted state or throwing decoder exceptions.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F39",
+    "priority": "P2",
+    "title": "Build reproducibility and target tests do not cover the published contract",
+    "locations": [
+      "[libs.versions.toml:1](/Users/mikeroberts/workspace/latenighthack/kitkit/gradle/libs.versions.toml:1)",
+      "[build.gradle.kts:30](/Users/mikeroberts/workspace/latenighthack/kitkit/api/build.gradle.kts:30)",
+      "[fh-workspace.settings.gradle:17](/Users/mikeroberts/workspace/latenighthack/kitkit/gradle/fh-workspace.settings.gradle:17)",
+      "[Dockerfile:6](/Users/mikeroberts/workspace/latenighthack/kitkit/Dockerfile:6)",
+      "[build.gradle.kts:55](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/build.gradle.kts:55)",
+      "[ci.yml:50](/Users/mikeroberts/workspace/latenighthack/kitkit/.github/workflows/ci.yml:50)"
+    ],
+    "problem": "The reviewed working tree cannot resolve ktstore-library:0.2.0 from its configured released repositories. Explicit Fullhouse workspace substitution made validation possible, but is a different dependency coordinate. In workspace mode, PREFER_SETTINGS suppresses Kotlin's Node distribution Ivy repository and jsNodeTest cannot resolve org.nodejs:node:24.9.0. The Docker build installs neither Go nor protoc-gen-kt even though a clean build needs that generator. Local generation uses whichever executable is on PATH, whereas CI pins a version. Connector test dependencies and cases live only in jvmTest; the Apple test task has no sources, and fake transport/storage tests do not validate every published platform.",
+    "evidence": "Recorded dependency and Node resolution failures, followed by successful JVM/PostgreSQL tests and JS/Android/Apple compilation using the explicit pinned ktstore workspace dependency. Docker generator absence and platform test coverage were established by inspection.",
+    "fix": "Complete the dependency publication/version transition and verify released-mode resolution before release. Preserve isolated workspace repositories while allowing toolchain distribution resolution. Pin and provision the same generator in local, CI, and container builds; include all generator/compiler inputs in caching. Move portable protocol/reducer tests to commonTest and add real platform storage/transport tests plus Fullhouse consumer checks for affected variants.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F40",
+    "priority": "P2",
+    "title": "A topology priming error terminates polling while readiness can later report success",
+    "locations": [
+      "[PostgresShardMapSource.kt:120](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/PostgresShardMapSource.kt:120)",
+      "[BlueprintV.kt:57](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/BlueprintV.kt:57)"
+    ],
+    "problem": "PostgresShardMapSource.bind calls its first refresh outside the retrying loop. A transient database or table-read failure on that call ends the job permanently. Later database recovery cannot restart polling. BlueprintV readiness checks only database connectivity, so it can return ready while the router stays on its synthetic bootstrap map and never adopts control-plane updates.",
+    "evidence": "Confirmed by the unguarded first refresh, subsequent loop, and database-only readiness predicate. This concerns ring mode; claim ownership has a different coordination source.",
+    "fix": "Put initial loading and later refreshes in the same cancellation-aware recovery pipeline. Publish Loaded, Retrying, and Failed/stale source state alongside the map, and derive readiness from the required initial load and its freshness policy. Test an initial read failure followed by recovery without a membership change.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F41",
+    "priority": "P2",
+    "title": "Resolved JDBC and network dependencies need security patching and version alignment",
+    "locations": [
+      "[libs.versions.toml:19](/Users/mikeroberts/workspace/latenighthack/kitkit/gradle/libs.versions.toml:19)",
+      "[Library runtime dependencies](/Users/mikeroberts/workspace/latenighthack/kitkit-review-2026-10-08/evidence/server-runtime-dependencies.log)",
+      "[Application runtime dependencies](/Users/mikeroberts/workspace/latenighthack/kitkit-review-2026-10-08/evidence/server-app-runtime-dependencies.log)"
+    ],
+    "problem": "The server application resolves PostgreSQL JDBC 42.7.3, while the library graph alone resolves 42.3.1 through the workspace ktstore dependency. Both are in the affected range for the SCRAM authentication CPU-exhaustion advisory fixed in 42.7.11. Exploitation requires SCRAM and a malicious or impersonated database endpoint; loginTimeout does not necessarily stop the worker's CPU work. [Maintainer SCRAM advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-98qh-xjc8-98pq)\n\nThe library's 42.3.1 also predates the fix for CVE-2024-1597. That SQL injection requires non-default simple query mode and a specific user-controlled negated numeric/string query pattern. The application override to 42.7.3 contains that fix, and this review does not establish an exploitable default SQL path. [Maintainer SQL injection advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-24rp-q3w6-vc56)\n\nNetty resolves a mix of 4.1.104.Final modules, including HTTP/2, and 4.1.116.Final core/handler modules. The HTTP/2 version falls in the range for a maintained server frame-flood advisory; this service uses CIO for its public listener and Netty for outgoing dependencies, so the server-side advisory is not evidence of an exposed Netty HTTP/2 listener here. [Maintainer HTTP/2 advisory](https://github.com/netty/netty/security/advisories/GHSA-w9fj-cfpg-grvv)",
+    "evidence": "Established from both resolved Gradle runtime graphs and the maintainers' affected-version/condition statements. The graph also resolves coroutines core 1.10.1 despite the catalog's 1.9.0 request; review and test the resolved versions rather than assuming catalog pins win.",
+    "fix": "Update the JDBC dependency at its owning library boundary and retain an appropriate application constraint, using a currently patched supported release that covers applicable advisories. Align related Netty modules and update their parent dependencies with protocol tests. Add resolved-artifact advisory checks with documented reachability conditions; do not treat every transitive advisory as an exploitable application defect.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  },
+  {
+    "id": "F42",
+    "priority": "P3",
+    "title": "Documentation and quality gates disagree with the implementation",
+    "locations": [
+      "[README.md:137](/Users/mikeroberts/workspace/latenighthack/kitkit/README.md:137)",
+      "[README.md:148](/Users/mikeroberts/workspace/latenighthack/kitkit/README.md:148)",
+      "[gradle.properties:15](/Users/mikeroberts/workspace/latenighthack/kitkit/gradle.properties:15)",
+      "[build.gradle.kts:26](/Users/mikeroberts/workspace/latenighthack/kitkit/build.gradle.kts:26)",
+      "[LockerSigning.kt:10](/Users/mikeroberts/workspace/latenighthack/kitkit/api/src/commonMain/kotlin/com/latenighthack/lockers/common/LockerSigning.kt:10)"
+    ],
+    "problem": "README describes room/locker authorization as entirely pending and the connector/API as currently JVM-only, despite lock authority and additional targets being implemented. The repository license is MIT, while publication metadata says Apache 2.0 and retains a comment claiming no LICENSE file exists. Detekt is explicitly advisory and can never fail the build. These inconsistencies make the real supported/security contract difficult for consumers to determine. LockerSigning's documentation specifies four-byte length prefixes, while Writer.bytes actually uses an eight-byte long, which can mislead external protocol implementations.",
+    "evidence": "Confirmed against current build configuration, LICENSE, README, and POM properties. The licensing discrepancy is a factual metadata inconsistency; this review does not choose a license on the owner's behalf.",
+    "fix": "Align README and publication metadata with the intended current contract, including lock semantics, read access, delivery modes, supported targets, and extension trust. Adopt a reviewed static-analysis baseline and enforce important checks over actual KMP source sets. Document transform purity/retry behavior; the single-write retry path currently reevaluates transform and codecs even when reusing a frozen submitted request. Publish exact canonical signing vectors and correct the length-prefix specification.",
+    "status": "open",
+    "commits": [],
+    "reproduction": null,
+    "regression": null,
+    "verification": null
+  }
+]
