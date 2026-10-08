@@ -20,7 +20,7 @@ internal class WebPushEndpointPolicy(
             return "web push endpoint requires HTTPS on port 443 without credentials or fragment"
         if (allowedHosts.none { trusted -> host == trusted || (trusted.startsWith("*.") && host.endsWith(trusted.substring(1)) && host != trusted.substring(2)) })
             return "web push endpoint host is not a trusted push service"
-        val addresses = try { resolve(host) } catch (_: Exception) { return "web push endpoint DNS unavailable" }
+        val addresses = resolve(host)
         if (addresses.isEmpty() || addresses.any { !isPublic(it) }) return "web push endpoint resolves to a non-public address"
         return null
     }

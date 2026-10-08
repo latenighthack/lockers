@@ -9,6 +9,7 @@ import com.eatthepath.pushy.apns.util.TokenUtil
 import com.latenighthack.lockers.common.v1.Push
 import com.latenighthack.lockers.push.v1.PushRegistration
 import com.latenighthack.lockers.server.ApnsConfig
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.future.await
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -48,7 +49,8 @@ class ApnsPushProvider(private val config: ApnsConfig) : PushProvider {
                 .setSigningKey(signingKey)
                 .build()
                 .also { logger.info("APNS client initialized (production=$production)") }
-        } catch (e: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
             logger.error("Failed to initialize APNS client (production=$production)", e)
             null
         }
@@ -82,7 +84,8 @@ class ApnsPushProvider(private val config: ApnsConfig) : PushProvider {
                     tokenInvalid = response.tokenInvalidationTimestamp.isPresent,
                 )
             }
-        } catch (e: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
             PushResult.Retryable(e.message ?: e::class.simpleName ?: "APNS send failed")
         }
     }

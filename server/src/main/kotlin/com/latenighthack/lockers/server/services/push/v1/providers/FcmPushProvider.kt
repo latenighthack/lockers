@@ -11,6 +11,8 @@ import com.google.firebase.messaging.Notification
 import com.latenighthack.lockers.common.v1.Push
 import com.latenighthack.lockers.push.v1.PushRegistration
 import com.latenighthack.lockers.server.FcmConfig
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
@@ -43,7 +45,8 @@ class FcmPushProvider(private val config: FcmConfig) : PushProvider {
                 FirebaseApp.initializeApp(options, APP_NAME)
             }
             FirebaseMessaging.getInstance(app).also { logger.info("FCM messaging initialized") }
-        } catch (e: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
             logger.error("Failed to initialize FCM", e)
             null
         }
@@ -69,13 +72,14 @@ class FcmPushProvider(private val config: FcmConfig) : PushProvider {
             )
             .build()
 
-        return withContext(Dispatchers.IO) {
+        return runInterruptible(Dispatchers.IO) {
             try {
                 client.send(message)
                 PushResult.Accepted
             } catch (e: FirebaseMessagingException) {
                 mapError(e)
-            } catch (e: Exception) {
+            } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
                 PushResult.Retryable(e.message ?: "FCM send failed")
             }
         }

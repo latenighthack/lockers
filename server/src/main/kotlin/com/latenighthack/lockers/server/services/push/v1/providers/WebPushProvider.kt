@@ -7,6 +7,8 @@ import com.interaso.webpush.WebPushService
 import com.latenighthack.lockers.common.v1.Push
 import com.latenighthack.lockers.push.v1.PushRegistration
 import com.latenighthack.lockers.server.WebPushConfig
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
@@ -16,7 +18,7 @@ import org.slf4j.LoggerFactory
  * VAPID), using the pure-Kotlin `com.interaso:webpush` library (JDK crypto, no
  * BouncyCastle). The blocking `send` runs on [Dispatchers.IO].
  */
-class WebPushProvider(private val config: WebPushConfig) : PushProvider {
+class WebPushProvider(private val config: WebPushConfig, private val resolveEndpoint: (String) -> List<java.net.InetAddress> = { java.net.InetAddress.getAllByName(it).toList() }) : PushProvider {
     private val logger = LoggerFactory.getLogger(WebPushProvider::class.java)
 
     override val backend = PushBackendKind.WEB_PUSH
@@ -32,7 +34,8 @@ class WebPushProvider(private val config: WebPushConfig) : PushProvider {
         }
         try {
             VapidKeys.Factory.fromUncompressedBytes(config.vapidPublicKey!!, config.vapidPrivateKey!!)
-        } catch (e: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
             logger.error("Failed to load VAPID keys", e)
             null
         }
@@ -49,13 +52,16 @@ class WebPushProvider(private val config: WebPushConfig) : PushProvider {
         val web = registration.backend?.let { (it as? PushRegistration.OneOfBackend.webPush)?.value }
             ?: return PushResult.Rejected("registration is not web push", tokenInvalid = false)
 
-        val rejection = withContext(Dispatchers.IO) { WebPushEndpointPolicy(config.endpointHosts).rejection(web.endpoint) }
+        val rejection = try {
+            runInterruptible(Dispatchers.IO) { WebPushEndpointPolicy(config.endpointHosts, resolveEndpoint).rejection(web.endpoint) }
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (failure: Exception) { return PushResult.Retryable(failure.message ?: "web push endpoint DNS unavailable") }
         if (rejection != null) return PushResult.Rejected(rejection, tokenInvalid = true)
 
         val client = service ?: return PushResult.Retryable("web push service unavailable")
         val payload = encodePayload(push).encodeToByteArray()
 
-        return withContext(Dispatchers.IO) {
+        return runInterruptible(Dispatchers.IO) {
             try {
                 when (client.send(payload, web.endpoint, web.p256Dh, web.auth)) {
                     WebPush.SubscriptionState.ACTIVE -> PushResult.Accepted
@@ -63,7 +69,8 @@ class WebPushProvider(private val config: WebPushConfig) : PushProvider {
                 }
             } catch (e: WebPushException) {
                 PushResult.Retryable(e.message ?: "web push send failed")
-            } catch (e: Exception) {
+            } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
                 PushResult.Retryable(e.message ?: "web push send failed")
             }
         }

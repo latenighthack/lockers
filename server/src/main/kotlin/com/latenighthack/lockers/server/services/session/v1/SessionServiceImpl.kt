@@ -172,7 +172,9 @@ class SessionServiceImpl(
         val openState = CompletableDeferred<OpenState?>()
         val openSent = CompletableDeferred<Unit>()
 
-        return merge(flow {
+        return flow { coroutineScope {
+        val streamJob = currentCoroutineContext()[Job]!!
+        merge(flow {
             try {
                 request.collectFirst({ openOrCreate ->
                 // attempt to handle the open OR create
@@ -288,6 +290,10 @@ class SessionServiceImpl(
                     }
                 }
             }
+            } catch (cancelled: CancellationException) {
+                // A cancelled source must end every merge branch, including unopened waiters.
+                streamJob.cancel(cancelled)
+                throw cancelled
             } catch (e: StreamRejected) {
                 // Rejection response and Close already emitted; end this branch normally.
             }
@@ -380,7 +386,8 @@ class SessionServiceImpl(
                 }
             }
             cancellationChannel.close()
-        }
+        }.collect { emit(it) }
+        } }
     }
 
     /** Immediately closes this node's stream; shared-store revocation also closes remote streams. */
@@ -596,7 +603,8 @@ class SessionServiceImpl(
             nextSequenceKey = session.nextKeyMaterial
             meterRegistry.counter("lockers.session.opens", "result", "INVALID_SEQUENCE").increment()
             return null
-        } catch (ex: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (ex: Exception) {
             logger.warn("session open failed unexpectedly", ex)
             result = WatchSessionResponse.Open.Result.UNKNOWN_ERROR
             meterRegistry.counter("lockers.session.opens", "result", "UNKNOWN_ERROR").increment()
@@ -647,7 +655,8 @@ class SessionServiceImpl(
             result = WatchSessionResponse.Open.Result.OK
             nextSequenceKey = updatedSession.nextKeyMaterial
             meterRegistry.counter("lockers.session.creates", "result", "OK").increment()
-        } catch (ex: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (ex: Exception) {
             logger.warn("session create failed unexpectedly", ex)
             result = WatchSessionResponse.Open.Result.SESSION_EXISTS
             meterRegistry.counter("lockers.session.creates", "result", "SESSION_EXISTS").increment()

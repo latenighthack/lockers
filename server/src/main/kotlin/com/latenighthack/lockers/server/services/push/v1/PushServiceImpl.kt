@@ -363,7 +363,8 @@ class PushServiceImpl(
             counter("lockers.push.registrations", backend).increment()
 
             RegisterSessionResponse { result = RegisterSessionResponse.Result.OK }
-        } catch (e: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
             logger.error("Failed to register session", e)
             RegisterSessionResponse { result = RegisterSessionResponse.Result.UNKNOWN_ERROR }
         }
@@ -382,7 +383,8 @@ class PushServiceImpl(
                 return@trackResponse UnregisterSessionResponse { result = UnregisterSessionResponse.Result.UNKNOWN_ERROR }
             }
             UnregisterSessionResponse { result = UnregisterSessionResponse.Result.OK }
-        } catch (e: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
             logger.error("Failed to unregister session", e)
             UnregisterSessionResponse { result = UnregisterSessionResponse.Result.UNKNOWN_ERROR }
         }
@@ -445,7 +447,8 @@ class PushServiceImpl(
             }
 
             SendPushResponse { result = SendPushResponse.Result.OK }
-        } catch (e: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
             logger.error("Failed to send push", e)
             SendPushResponse { result = SendPushResponse.Result.UNKNOWN_ERROR }
         }

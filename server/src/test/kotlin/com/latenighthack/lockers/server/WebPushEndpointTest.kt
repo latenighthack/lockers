@@ -29,4 +29,9 @@ class WebPushEndpointTest {
             assertIs<PushResult.Rejected>(provider.send(registration, Push { title = "secret" }), endpoint)
         }
     }
+    @Test fun `DNS outages remain retryable without invalidating the credential`(): Unit = runBlocking {
+        val provider = WebPushProvider(WebPushConfig(null, null, null)) { throw java.net.UnknownHostException("temporary DNS outage") }
+        assertIs<PushResult.Retryable>(provider.send(PushRegistration { backend.webPush { endpoint = "https://fcm.googleapis.com/send/token" } }, Push { title = "secret" }))
+    }
+
 }
