@@ -1,6 +1,7 @@
 package com.latenighthack.lockers.server.services.room.v1
 
 import com.latenighthack.ktcrypto.*
+import com.latenighthack.lockers.common.LockerEnvelope
 import com.latenighthack.ktbuf.net.GrpcRequestContext
 import com.latenighthack.ktbuf.net.ServerDescriptor
 import com.latenighthack.lockers.common.v1.*
@@ -540,6 +541,7 @@ class RoomServiceImpl(
         val requestRoomId = requireNotNull(request.roomId)
         val requestLockerId = requireNotNull(request.lockerId)
         val updatedLocker = requireNotNull(request.locker)
+        if (!LockerEnvelope.isSupported(updatedLocker)) return PostLockerChangeResponse(result = PostLockerChangeResponse.Result.NOT_AUTHORIZED)
         val encodedLocker = updatedLocker.toByteArray()
         val requestEventId = EventId(Random.nextBytes(32))
         val requestVersion = request.parentVersion
