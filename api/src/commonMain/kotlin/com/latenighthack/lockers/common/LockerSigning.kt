@@ -4,6 +4,9 @@ import com.latenighthack.lockers.common.v1.LockScope
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.RoomId
 import com.latenighthack.lockers.common.v1.Secp256R1Key
+import com.latenighthack.lockers.common.v1.Notification
+import com.latenighthack.lockers.common.v1.SharedKey
+import com.latenighthack.lockers.common.v1.toByteArray
 
 /**
  * Canonical, domain-separated byte encodings that are signed/verified for locked
@@ -20,6 +23,30 @@ object LockerSigning {
     const val DOMAIN_RATCHET = "lockers/v1/ratchet"
     const val DOMAIN_GRANT = "lockers/v1/grant"
     const val DOMAIN_UNLOCK = "lockers/v1/unlock"
+
+    /** V1 functions remain byte-for-byte stable. V2 binds the authority incarnation. */
+    fun writeContextV2(roomId: RoomId, lockerId: LockerId, parentVersion: Long, lockVersion: Long,
+        contentHash: ByteArray, notification: Notification?): ByteArray =
+        Writer("lockers/v2/write").bytes(roomId.rawValue).bytes(lockerId.rawValue)
+            .long(lockerId.keyspace?.value ?: 0L).long(parentVersion).long(lockVersion)
+            .bytes(contentHash).bytes(notification?.toByteArray() ?: byteArrayOf()).finish()
+
+    fun ratchetContextV2(roomId: RoomId, lockerId: LockerId, parentVersion: Long, lockVersion: Long,
+        newPublicKey: ByteArray, newSharedKeys: List<SharedKey>): ByteArray {
+        val writer = Writer("lockers/v2/ratchet").bytes(roomId.rawValue).bytes(lockerId.rawValue)
+            .long(lockerId.keyspace?.value ?: 0L).long(parentVersion).long(lockVersion).bytes(newPublicKey)
+            .long(newSharedKeys.size.toLong())
+        for (key in newSharedKeys) writer.bytes(key.toByteArray())
+        return writer.finish()
+    }
+
+    fun grantContextV2(roomId: RoomId, scope: LockScope, childPublicKey: ByteArray,
+        authorityVersion: Long, scopeVersion: Long): ByteArray =
+        Writer("lockers/v2/grant").bytes(roomId.rawValue).scope(scope).bytes(childPublicKey)
+            .long(authorityVersion).long(scopeVersion).finish()
+
+    fun unlockContextV2(roomId: RoomId, scope: LockScope, lockVersion: Long): ByteArray =
+        Writer("lockers/v2/unlock").bytes(roomId.rawValue).scope(scope).long(lockVersion).finish()
 
     /** Signed by the locker's current key for a content write (or delete, with an empty hash). */
     fun writeContext(roomId: RoomId, lockerId: LockerId, version: Long, contentHash: ByteArray): ByteArray =

@@ -101,6 +101,9 @@ message LockGrant {
     LockScope scope = 1;
     Secp256r1Key.PublicKey public_key = 2;
     Signature parent_signature = 3;
+    // V2 expected governing authority and target incarnation, both signed.
+    int64 authority_version = 4;
+    int64 scope_version = 5;
 }
 
 // The lock status returned on every get and event (present even when unlocked,
