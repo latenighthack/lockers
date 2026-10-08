@@ -7,9 +7,8 @@ import com.latenighthack.lockers.sharding.ShardId
 import com.latenighthack.lockers.sharding.ShardMap
 import com.latenighthack.lockers.sharding.spi.OwnershipCoordinator
 import com.latenighthack.lockers.sharding.spi.ShardLease
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
@@ -51,6 +50,7 @@ class OwnerLifecycle(
 
     @Volatile
     private var last: ShardMap? = null
+    private var watchJob: Job? = null
 
     /** The valid lease this node holds for `(keyspace, shard)`, or null (none / revoked). */
     fun leaseFor(keyspace: Keyspace, shard: ShardId): ShardLease? =
@@ -60,52 +60,65 @@ class OwnerLifecycle(
     fun heldLeaseCount(): Int = leases.values.count { it.isValid }
 
     /** Begins tracking the ring's [ShardMap] stream. Reconciles once for the initial map. */
+    @Synchronized
     fun start(scope: CoroutineScope, watch: kotlinx.coroutines.flow.Flow<ShardMap>) {
-        watch.onEach { reconcile(it) }.launchIn(scope)
+        check(watchJob == null) { "Owner lifecycle already started" }
+        watchJob = scope.launch {
+            coroutineScope {
+                launch {
+                    watch.collect { map ->
+                        try { reconcile(map) }
+                        catch (cancelled: CancellationException) { throw cancelled }
+                        catch (error: Exception) { logger.warn("owner reconcile failed; retrying desired map", error) }
+                    }
+                }
+                while (isActive) {
+                    delay(250)
+                    last?.let { map ->
+                        try { reconcile(map) }
+                        catch (cancelled: CancellationException) { throw cancelled }
+                        catch (error: Exception) { logger.warn("owner acquisition retry failed", error) }
+                    }
+                }
+            }
+        }
     }
 
-    /**
-     * Brings the held-lease set in line with [map]: acquire newly-owned shards, release dropped
-     * ones (after evicting their caches). Idempotent — re-emitting the same map is a no-op.
-     */
+    /** Desired routing and acquired leases are reconciled independently, including denied acquires. */
     suspend fun reconcile(map: ShardMap) = mutex.withLock {
         val prev = last
-        val prevEpoch = prev?.epoch
         val startNanos = System.nanoTime()
+        last = map // Keep the desired map even if this acquire round fails.
         var changed = false
         for (keyspace in keyspaces) {
             val ownedNow = ownedShards(map, keyspace)
-            if (prev == null) {
-                for (shard in ownedNow) { acquire(keyspace, shard, map.epoch, prevEpoch); changed = true }
-                continue
+            val held = leases.keys.filter { it.first == keyspace }.map { it.second }.toSet()
+            val dropped = held - ownedNow
+            val refresh = ownedNow.filter { shard ->
+                leases[keyspace to shard]?.let { !it.isValid || it.epoch != map.epoch } ?: true
             }
-            // Shards whose owner changed between prev and map, within this keyspace.
-            val moved = map.movedShards(prev, keyspace)
-            val dropped = LinkedHashSet<ShardId>()
-            val gained = LinkedHashSet<ShardId>()
-            for (shard in moved) {
-                val ownedBefore = leases.containsKey(keyspace to shard)
-                val ownedAfter = shard in ownedNow
-                if (ownedBefore && !ownedAfter) dropped.add(shard)
-                if (!ownedBefore && ownedAfter) gained.add(shard)
-            }
-            if (dropped.isNotEmpty() || gained.isNotEmpty()) changed = true
-            metrics.onHandoffDelta(dropped.size + gained.size)
+            if (dropped.isNotEmpty() || refresh.isNotEmpty()) changed = true
+            metrics.onHandoffDelta(dropped.size + refresh.size)
             try {
                 if (dropped.isNotEmpty()) {
-                    // Quiesce: evict caches for dropped shards BEFORE releasing, so a redirected
-                    // client that reconnects to the new owner never reads this node's stale routing.
-                    runCatching { onShardsDropped(dropped) }
-                        .onFailure { logger.warn("cache eviction for dropped shards failed", it) }
-                    for (shard in dropped) release(keyspace, shard, prevEpoch, map.epoch)
+                    onShardsDropped(dropped)
+                    for (shard in dropped) release(keyspace, shard, prev?.epoch, map.epoch)
                 }
-                for (shard in gained) acquire(keyspace, shard, map.epoch, prevEpoch)
-            } finally {
-                metrics.onHandoffDelta(-(dropped.size + gained.size))
-            }
+                for (shard in refresh) {
+                    // PostgreSQL advisory leases cannot be preempted. Release our earlier-epoch
+                    // handle before acquiring its replacement; denied acquisitions remain desired.
+                    if (leases.containsKey(keyspace to shard)) release(keyspace, shard, prev?.epoch, map.epoch)
+                    acquire(keyspace, shard, map.epoch, prev?.epoch)
+                }
+            } finally { metrics.onHandoffDelta(-(dropped.size + refresh.size)) }
         }
         if (changed && prev != null) metrics.onReshardDuration(System.nanoTime() - startNanos)
-        last = map
+    }
+
+    suspend fun stopAndRelease() {
+        watchJob?.cancelAndJoin()
+        watchJob = null
+        releaseAll()
     }
 
     private suspend fun acquire(keyspace: Keyspace, shard: ShardId, epoch: Epoch, fromEpoch: Epoch?) {
