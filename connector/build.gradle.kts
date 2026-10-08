@@ -26,8 +26,8 @@ kotlin {
     iosX64()
     iosSimulatorArm64()
     js(IR) {
-        browser()
-        nodejs()
+        browser { testTask { useKarma { useChromeHeadless() } } }
+        nodejs { testTask { filter.excludeTestsMatching("*BrowserStorageContractTest*") } }
         binaries.library()
     }
 
@@ -44,6 +44,18 @@ kotlin {
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.coroutines.core)
                 api(libs.kmLogger)
+            }
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.coroutines.test)
+        }
+        val androidInstrumentedTest by getting {
+            kotlin.srcDir("src/commonTest/kotlin")
+            dependencies {
+                implementation(kotlin("test-junit"))
+                implementation("androidx.test:runner:1.6.2")
+                implementation(libs.coroutines.test)
             }
         }
         val jvmTest by getting {
@@ -69,6 +81,8 @@ android {
     namespace = "com.latenighthack.lockers.connector"
     compileSdk = 35
     defaultConfig {
-        minSdk = 24
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // ktcrypto 0.0.8 requires API 26; publish the actual transitive platform floor.
+        minSdk = 26
     }
 }

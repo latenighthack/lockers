@@ -22,7 +22,7 @@ mavenPublishing {
 // this became a real multi-target KMP module, bound to per-Android-variant tasks
 // instead of producing one shared commonMain output. A single protoc invocation is
 // target-agnostic. protoc is resolved as a pinned artifact; `protoc-gen-kt` (the
-// ktbuf Kotlin codegen plugin, a Go binary) is discovered on PATH (~/go/bin fallback).
+// ktbuf Kotlin codegen plugin, a Go binary) is installed by the build at a pinned version.
 val protocVersion = "4.33.0"
 
 val protocClassifier: String = run {
@@ -46,12 +46,20 @@ dependencies {
     protocExecutable("com.google.protobuf:protoc:$protocVersion:$protocClassifier@exe")
 }
 
-val protocGenKt: File = run {
-    val onPath = System.getenv("PATH").orEmpty()
-        .split(File.pathSeparator)
-        .map { File(it, "protoc-gen-kt") }
-        .firstOrNull { it.canExecute() }
-    onPath ?: File(System.getProperty("user.home"), "go/bin/protoc-gen-kt")
+// Bootstrap Go may come from PATH; GOTOOLCHAIN pins the compiler used to build
+// the plugin. The generator itself is private to this checkout, never global.
+val protocGenKtVersion = providers.gradleProperty("protocGenKtVersion").get()
+val codegenGoVersion = providers.gradleProperty("codegenGoVersion").get()
+val protocGenKt = layout.buildDirectory.file("tools/protoc-gen-kt${if (System.getProperty("os.name").lowercase().contains("win")) ".exe" else ""}")
+val installProtocGenKt by tasks.registering(Exec::class) {
+    group = "build"
+    description = "Install the pinned Kotlin protobuf generator into this build"
+    inputs.property("module", "latenighthack.com/protoc-gen-kt@$protocGenKtVersion")
+    inputs.property("goToolchain", codegenGoVersion)
+    outputs.file(protocGenKt)
+    environment("GOBIN", protocGenKt.get().asFile.parentFile.absolutePath)
+    environment("GOTOOLCHAIN", "go$codegenGoVersion")
+    commandLine("go", "install", "latenighthack.com/protoc-gen-kt@$protocGenKtVersion")
 }
 
 val generateProto by tasks.registering(Exec::class) {
@@ -63,7 +71,11 @@ val generateProto by tasks.registering(Exec::class) {
     val outDir = layout.buildDirectory.dir("generated/ktproto/kotlin")
 
     inputs.files(protoFiles)
+    dependsOn(installProtocGenKt)
     inputs.file(protocGenKt)
+    inputs.files(protocExecutable)
+    inputs.property("protocVersion", protocVersion)
+    inputs.property("protocClassifier", protocClassifier)
     outputs.dir(outDir)
 
     doFirst {
@@ -75,7 +87,7 @@ val generateProto by tasks.registering(Exec::class) {
         commandLine(
             buildList {
                 add(protoc.absolutePath)
-                add("--plugin=protoc-gen-kt=${protocGenKt.absolutePath}")
+                add("--plugin=protoc-gen-kt=${protocGenKt.get().asFile.absolutePath}")
                 add("--kt_out=${out.absolutePath}")
                 add("-I")
                 add(protoRoot.absolutePath)
@@ -100,6 +112,10 @@ kotlin {
     }
 
     sourceSets {
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.coroutines.test)
+        }
         val commonMain by getting {
             // Passing the task provider wires the generateProto dependency into every
             // compilation that reads commonMain (metadata klib + each per-target compile)

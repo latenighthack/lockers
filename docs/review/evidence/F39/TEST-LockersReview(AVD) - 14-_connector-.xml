@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.latenighthack.lockers.connector.AndroidStorageContractTest" tests="3" failures="0" errors="0" skipped="0" time="1.34" timestamp="2026-10-08T23:13:48" hostname="localhost">
+  <properties>
+    <property name="device" value="LockersReview(AVD) - 14" />
+    <property name="flavor" value="" />
+    <property name="project" value=":connector" />
+  </properties>
+  <testcase name="sqliteConnectorStoreSurvivesCloseAndReopen" classname="com.latenighthack.lockers.connector.AndroidStorageContractTest" time="0.417" />
+  <testcase name="composedStorageIndexesRoundTripOnEveryTarget" classname="com.latenighthack.lockers.connector.PortableContractTest" time="0.001" />
+  <testcase name="scopedCodecCompositionUnwrapsInReverseAndStopsAtDrop" classname="com.latenighthack.lockers.connector.PortableContractTest" time="0.0" />
+</testsuite>

@@ -1,0 +1,43 @@
+go: downloading latenighthack.com/protoc-gen-kt v0.0.0-20251214023608-0fa742406fbf
+go: downloading github.com/lyft/protoc-gen-star v0.6.2
+go: downloading github.com/Masterminds/sprig v2.22.0+incompatible
+go: downloading golang.org/x/text v0.3.7
+go: downloading github.com/Masterminds/goutils v1.1.1
+go: downloading github.com/google/uuid v1.6.0
+go: downloading github.com/Masterminds/semver v1.5.0
+go: downloading github.com/huandu/xstrings v1.5.0
+go: downloading github.com/imdario/mergo v0.3.16
+go: downloading github.com/mitchellh/copystructure v1.2.0
+go: downloading golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+go: downloading github.com/mitchellh/reflectwalk v1.0.2
+go: downloading github.com/spf13/afero v1.3.3
+go: downloading github.com/golang/protobuf v1.5.2
+go: downloading google.golang.org/protobuf v1.26.0
+/tmp/bin/protoc-gen-kt: go1.26.1
+	path	latenighthack.com/protoc-gen-kt
+	mod	latenighthack.com/protoc-gen-kt	v0.0.0-20251214023608-0fa742406fbf	h1:n4X7W58fyEy1Y1wxaRCpI0yY8rixAeb9AgmhINWXjMY=
+	dep	github.com/Masterminds/goutils	v1.1.1	h1:5nUrii3FMTL5diU80unEVvNevw1nH4+ZV4DSLVJLSYI=
+	dep	github.com/Masterminds/semver	v1.5.0	h1:H65muMkzWKEuNDnfl9d70GUjFniHKHRbFPGBuZ3QEww=
+	dep	github.com/Masterminds/sprig	v2.22.0+incompatible	h1:z4yfnGrZ7netVz+0EDJ0Wi+5VZCSYp4Z0m2dk6cEM60=
+	dep	github.com/golang/protobuf	v1.5.2	h1:ROPKBNFfQgOUMifHyP+KYbvpjbdoFNs+aK7DXlji0Tw=
+	dep	github.com/google/uuid	v1.6.0	h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
+	dep	github.com/huandu/xstrings	v1.5.0	h1:2ag3IFq9ZDANvthTwTiqSSZLjDc+BedvHPAp5tJy2TI=
+	dep	github.com/imdario/mergo	v0.3.16	h1:wwQJbIsHYGMUyLSPrEq1CT16AhnhNJQ51+4fdHUnCl4=
+	dep	github.com/lyft/protoc-gen-star	v0.6.2	h1:DgqBrh0Q/JGHXDZjJaYCWKD/EXLczxplIC0JeElY2iU=
+	dep	github.com/mitchellh/copystructure	v1.2.0	h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
+	dep	github.com/mitchellh/reflectwalk	v1.0.2	h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zxSIeXaQ=
+	dep	github.com/spf13/afero	v1.3.3	h1:p5gZEKLYoL7wh8VrJesMaYeNxdEd1v3cb4irOk9zB54=
+	dep	golang.org/x/crypto	v0.0.0-20210921155107-089bfa567519	h1:7I4JAnoQBe7ZtJcBaYHi5UtiO8tQHbUSXxL+pnGRANg=
+	dep	golang.org/x/text	v0.3.7	h1:olpwvP2KacW1ZWvsR7uQhoyTYvKAupfQrRGBFM352Gk=
+	dep	google.golang.org/protobuf	v1.26.0	h1:bxAC2xTBsZGibn2RTntX0oH50xLsqy1OxA9tTL3p/lk=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	DefaultGODEBUG=asynctimerchan=1,containermaxprocs=0,cryptocustomrand=1,decoratemappings=0,gotestjsonbuildtext=1,gotypesalias=0,httpcookiemaxnum=0,httpservecontentkeepheaders=1,multipathtcp=0,randseednop=0,rsa1024min=0,tls3des=1,tlsmlkem=0,tlssecpmlkem=0,tlssha1=1,updatemaxprocs=0,urlmaxqueryparams=0,urlstrictcolons=0,winreadlinkvolume=0,winsymlink=0,x509keypairleaf=0,x509negativeserial=1,x509rsacrt=0,x509sha256skid=0,x509usepolicies=0
+	build	CGO_ENABLED=1
+	build	CGO_CFLAGS=
+	build	CGO_CPPFLAGS=
+	build	CGO_CXXFLAGS=
+	build	CGO_LDFLAGS=
+	build	GOARCH=arm64
+	build	GOOS=linux
+	build	GOARM64=v8.0

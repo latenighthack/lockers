@@ -1,0 +1,175 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Type-safe project accessors is an incubating feature.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://github.com/yarnpkg/yarn/releases/download' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :kotlinKotlinNpmCachesSetup
+> Task :kotlinNodeJsSetup UP-TO-DATE
+> Task :kotlinRestoreYarnLock UP-TO-DATE
+> Task :kotlinYarnSetup UP-TO-DATE
+> Task :api:jsPackageJson UP-TO-DATE
+> Task :api:jsTestPackageJson UP-TO-DATE
+> Task :observability-api:jsPackageJson UP-TO-DATE
+> Task :connector:jsPackageJson UP-TO-DATE
+> Task :connector:jsTestPackageJson UP-TO-DATE
+> Task :observability-api:jsTestPackageJson UP-TO-DATE
+> Task :observability-connector:jsPackageJson UP-TO-DATE
+> Task :observability-connector:jsTestPackageJson UP-TO-DATE
+> Task :api:jsPublicPackageJson UP-TO-DATE
+> Task :api:jsTestPublicPackageJson
+> Task :connector:jsPublicPackageJson UP-TO-DATE
+> Task :connector:jsTestPublicPackageJson
+> Task :observability-api:jsPublicPackageJson UP-TO-DATE
+> Task :observability-api:jsTestPublicPackageJson UP-TO-DATE
+> Task :observability-connector:jsPublicPackageJson UP-TO-DATE
+> Task :observability-connector:jsTestPublicPackageJson UP-TO-DATE
+> Task :kotlinPackageJsonUmbrella
+> Task :rootPackageJson UP-TO-DATE
+> Task :kotlinNpmInstall UP-TO-DATE
+> Task :kotlinStoreYarnLock UP-TO-DATE
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileKotlinJs UP-TO-DATE
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:compileKotlinJs UP-TO-DATE
+> Task :connector:compileKotlinJs UP-TO-DATE
+> Task :connector:jsProcessResources NO-SOURCE
+> Task :connector:jsMainClasses UP-TO-DATE
+> Task :connector:jsTestProcessResources NO-SOURCE
+> Task :connector:kotlinNodeJsSetup UP-TO-DATE
+> Task :connector:compileTestKotlinJs
+> Task :api:downloadKotlinNativeDistribution UP-TO-DATE
+> Task :connector:jsTestClasses
+> Task :connector:compileTestDevelopmentExecutableKotlinJs
+> Task :api:compileKotlinIosSimulatorArm64 UP-TO-DATE
+> Task :connector:jsTestTestDevelopmentExecutableCompileSync
+
+> Task :connector:jsBrowserTest
+> Task :connector:downloadKotlinNativeDistribution UP-TO-DATE
+> Task :observability-api:downloadKotlinNativeDistribution UP-TO-DATE
+> Task :observability-api:compileKotlinIosSimulatorArm64 UP-TO-DATE
+> Task :connector:compileKotlinIosSimulatorArm64 UP-TO-DATE
+> Task :connector:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :connector:iosSimulatorArm64MainKlibrary UP-TO-DATE
+> Task :connector:compileTestKotlinIosSimulatorArm64
+
+> Task :connector:linkDebugTestIosSimulatorArm64
+warning: /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/Foundation-26APARFLUI2TQ.pcm: No such file or directory
+note: while processing /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/Foundation-26APARFLUI2TQ.pcm
+note: Linking a static library that was built with -gmodules, but the module cache was not found.  Redistributable static libraries should never be built with module debugging enabled.  The debug experience will be degraded due to incomplete debug information.
+warning: /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/_SwiftConcurrencyShims-1O6J4FRGOX9K.pcm: No such file or directory
+note: while processing /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/_SwiftConcurrencyShims-1O6J4FRGOX9K.pcm
+
+> Task :connector:iosSimulatorArm64Test
+> Task :api:preBuild UP-TO-DATE
+> Task :api:preDebugBuild UP-TO-DATE
+> Task :api:generateDebugResValues
+> Task :api:generateDebugResources
+> Task :api:packageDebugResources
+> Task :api:processDebugNavigationResources
+> Task :connector:preBuild UP-TO-DATE
+> Task :connector:preDebugBuild UP-TO-DATE
+> Task :connector:generateDebugResValues
+> Task :api:javaPreCompileDebug
+> Task :connector:generateDebugResources
+> Task :connector:packageDebugResources
+> Task :connector:processDebugNavigationResources
+> Task :observability-api:preBuild UP-TO-DATE
+> Task :observability-api:preDebugBuild UP-TO-DATE
+> Task :observability-api:generateDebugResValues
+> Task :observability-api:generateDebugResources
+> Task :observability-api:packageDebugResources
+> Task :observability-api:processDebugNavigationResources
+> Task :observability-api:javaPreCompileDebug
+> Task :connector:javaPreCompileDebug
+> Task :observability-api:parseDebugLocalResources
+> Task :api:parseDebugLocalResources
+> Task :connector:parseDebugLocalResources
+> Task :api:compileDebugLibraryResources
+> Task :connector:preDebugAndroidTestBuild UP-TO-DATE
+> Task :connector:writeDebugAarMetadata
+> Task :api:writeDebugAarMetadata
+> Task :observability-api:writeDebugAarMetadata
+> Task :observability-api:generateDebugRFile
+> Task :api:generateDebugRFile
+> Task :connector:processDebugAndroidTestNavigationResources
+> Task :connector:generateDebugRFile
+> Task :connector:checkDebugAndroidTestAarMetadata FAILED
+> Task :observability-api:compileDebugKotlinAndroid
+
+> Task :api:compileDebugKotlinAndroid
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:996:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2296:93 Redundant call of conversion method.
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':connector:checkDebugAndroidTestAarMetadata' (registered by plugin 'com.android.internal.library').
+> Configuration `:connector:debugAndroidTestRuntimeClasspath` contains AndroidX dependencies, but the `android.useAndroidX` property is not enabled, which may cause runtime issues.
+  Set `android.useAndroidX=true` in the `gradle.properties` file and retry.
+  The following AndroidX dependencies are detected:
+  :connector:debugAndroidTestRuntimeClasspath -> androidx.test:runner:1.6.2
+  :connector:debugAndroidTestRuntimeClasspath -> androidx.test:runner:1.6.2 -> androidx.annotation:annotation:1.7.0-beta01
+  :connector:debugAndroidTestRuntimeClasspath -> androidx.test:runner:1.6.2 -> androidx.annotation:annotation:1.7.0-beta01 -> androidx.annotation:annotation-jvm:1.7.0-beta01
+  :connector:debugAndroidTestRuntimeClasspath -> androidx.test:runner:1.6.2 -> androidx.test.services:storage:1.5.0
+  :connector:debugAndroidTestRuntimeClasspath -> androidx.test:runner:1.6.2 -> androidx.test:monitor:1.7.2
+  :connector:debugAndroidTestRuntimeClasspath -> androidx.test:runner:1.6.2 -> androidx.tracing:tracing:1.1.0
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 50s
+75 actionable tasks: 42 executed, 33 up-to-date

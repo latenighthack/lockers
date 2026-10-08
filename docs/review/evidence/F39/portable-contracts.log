@@ -1,0 +1,191 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Type-safe project accessors is an incubating feature.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://github.com/yarnpkg/yarn/releases/download' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :api:jvmTestProcessResources NO-SOURCE
+> Task :api:processJvmTestResources SKIPPED
+> Task :kotlinKotlinNpmCachesSetup
+> Task :api:compileTestKotlinJvm
+> Task :kotlinNodeJsSetup UP-TO-DATE
+> Task :api:compileJvmTestJava NO-SOURCE
+> Task :api:jvmTestClasses
+> Task :api:jvmTest
+> Task :kotlinRestoreYarnLock UP-TO-DATE
+> Task :kotlinYarnSetup UP-TO-DATE
+> Task :api:jsPackageJson UP-TO-DATE
+> Task :api:jsTestPackageJson UP-TO-DATE
+> Task :observability-api:jsPackageJson UP-TO-DATE
+> Task :connector:jsPackageJson UP-TO-DATE
+> Task :connector:jsTestPackageJson UP-TO-DATE
+> Task :observability-api:jsTestPackageJson UP-TO-DATE
+> Task :observability-connector:jsPackageJson UP-TO-DATE
+> Task :observability-connector:jsTestPackageJson UP-TO-DATE
+> Task :api:jsPublicPackageJson UP-TO-DATE
+> Task :api:jsTestPublicPackageJson
+> Task :connector:jsPublicPackageJson UP-TO-DATE
+> Task :connector:jsTestPublicPackageJson UP-TO-DATE
+> Task :observability-api:jsPublicPackageJson UP-TO-DATE
+> Task :observability-api:jsTestPublicPackageJson UP-TO-DATE
+> Task :observability-connector:jsPublicPackageJson UP-TO-DATE
+> Task :observability-connector:jsTestPublicPackageJson UP-TO-DATE
+> Task :kotlinPackageJsonUmbrella
+> Task :rootPackageJson UP-TO-DATE
+> Task :kotlinNpmInstall UP-TO-DATE
+> Task :kotlinStoreYarnLock UP-TO-DATE
+> Task :api:compileKotlinJs UP-TO-DATE
+> Task :api:jsProcessResources NO-SOURCE
+> Task :api:jsMainClasses UP-TO-DATE
+> Task :api:jsTestProcessResources NO-SOURCE
+> Task :api:compileTestKotlinJs
+> Task :api:kotlinNodeJsSetup
+> Task :api:jsTestClasses
+> Task :api:compileTestDevelopmentExecutableKotlinJs
+> Task :api:downloadKotlinNativeDistribution UP-TO-DATE
+> Task :api:jsTestTestDevelopmentExecutableCompileSync
+> Task :api:jsNodeTest
+> Task :api:compileKotlinIosSimulatorArm64 UP-TO-DATE
+> Task :api:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :api:iosSimulatorArm64MainKlibrary UP-TO-DATE
+> Task :api:compileTestKotlinIosSimulatorArm64
+> Task :api:linkDebugTestIosSimulatorArm64
+> Task :api:iosSimulatorArm64Test
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:compileKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :observability-api:jvmMainClasses UP-TO-DATE
+> Task :observability-api:jvmJar UP-TO-DATE
+> Task :connector:jvmProcessResources NO-SOURCE
+> Task :connector:processJvmMainResources SKIPPED
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:processResources NO-SOURCE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:processResources NO-SOURCE
+> Task :connector:jvmTestProcessResources NO-SOURCE
+> Task :connector:processJvmTestResources SKIPPED
+> Task :observability-api:compileKotlinJs UP-TO-DATE
+> Task :connector:compileKotlinJs UP-TO-DATE
+> Task :connector:jsProcessResources NO-SOURCE
+> Task :connector:jsMainClasses UP-TO-DATE
+> Task :connector:jsTestProcessResources NO-SOURCE
+> Task :connector:kotlinNodeJsSetup UP-TO-DATE
+> Task :connector:downloadKotlinNativeDistribution UP-TO-DATE
+> Task :observability-api:downloadKotlinNativeDistribution UP-TO-DATE
+> Task :observability-api:compileKotlinIosSimulatorArm64 UP-TO-DATE
+> Task :connector:compileKotlinIosSimulatorArm64 UP-TO-DATE
+> Task :connector:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :connector:iosSimulatorArm64MainKlibrary UP-TO-DATE
+> Task :connector:compileTestKotlinJs
+> Task :sharding-core:compileKotlin
+> Task :connector:compileTestKotlinIosSimulatorArm64
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :sharding-core:jar
+> Task :connector:jsTestClasses
+
+> Task :connector:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:287:35 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:517:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:962:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+
+> Task :connector:compileJvmMainJava NO-SOURCE
+> Task :connector:jvmMainClasses
+> Task :connector:jvmJar
+> Task :connector:compileTestDevelopmentExecutableKotlinJs
+> Task :server:kspKotlin
+
+> Task :connector:linkDebugTestIosSimulatorArm64
+warning: /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/Foundation-26APARFLUI2TQ.pcm: No such file or directory
+note: while processing /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/Foundation-26APARFLUI2TQ.pcm
+note: Linking a static library that was built with -gmodules, but the module cache was not found.  Redistributable static libraries should never be built with module debugging enabled.  The debug experience will be degraded due to incomplete debug information.
+warning: /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/_SwiftConcurrencyShims-1O6J4FRGOX9K.pcm: No such file or directory
+note: while processing /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/_SwiftConcurrencyShims-1O6J4FRGOX9K.pcm
+
+> Task :server:processResources NO-SOURCE
+> Task :connector:jsTestTestDevelopmentExecutableCompileSync
+> Task :connector:jsNodeTest
+> Task :connector:iosSimulatorArm64Test
+
+> Task :server:compileKotlin
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:38:51 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Connection'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:60:31 Unnecessary safe call on a non-null receiver of type 'Connection'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:141:44 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:334:93 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangesResponse'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:347:45 Unnecessary safe call on a non-null receiver of type 'ServerSessionEvent'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:354:45 Unnecessary safe call on a non-null receiver of type 'ServerSessionEvent'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/server/src/main/kotlin/com/latenighthack/lockers/server/tools/WriteTrace.kt:67:46 Unnecessary non-null assertion (!!) on a non-null receiver of type 'String'.
+
+> Task :server:compileJava NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar
+> Task :server:test:compileKotlin
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar
+> Task :connector:compileTestKotlinJvm
+> Task :connector:compileJvmTestJava NO-SOURCE
+> Task :connector:jvmTestClasses
+> Task :connector:jvmTest
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 41s
+71 actionable tasks: 33 executed, 38 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html
