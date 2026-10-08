@@ -99,4 +99,17 @@ class ReviewRegressionTest {
         } finally { service.close() }
     }
 
+    @Test fun oldUnlockProofCannotAuthorizeALaterIncarnation(): Unit = runBlocking {
+        val s = stores(); val v = LockVerifier(s.locks); val key = Secp256r1KeyPair.generate()
+        val scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM)
+        val grant = LockGrant(scope, Secp256R1Key.PublicKey(key.publicKey.encode()))
+        val sig = Signature(Secp256R1Key.PublicKey(key.publicKey.encode()), key.privateKey.sign(LockerSigning.unlockContext(room, scope)))
+        v.applyLock(room, grant, 0)
+        assertIs<LockVerifier.UnlockOutcome.Ok>(v.applyUnlock(room, scope, sig, 1))
+        val replacement = assertIs<LockVerifier.LockOutcome.Ok>(v.applyLock(room, grant, 2))
+        assertIs<LockVerifier.UnlockOutcome.Stale>(v.applyUnlock(room, scope, sig, 1))
+        assertIs<LockVerifier.UnlockOutcome.SignatureInvalid>(v.applyUnlock(room, scope, sig, replacement.state.lockVersion))
+        assertTrue(v.roomHasLocks(room))
+    }
+
 }

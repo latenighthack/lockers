@@ -43,14 +43,23 @@ class LockVerifier(private val lockStore: LockStore) {
 
     /** Cheap gate for the common open case: skip resolution entirely when a room has no locks. */
     suspend fun roomHasLocks(roomId: RoomId): Boolean =
-        lockStore.getAllLocksInRoom(ServerRoomId(roomId.rawValue)).isNotEmpty()
+        lockStore.getAllLocksInRoom(ServerRoomId(roomId.rawValue)).any { stateOf(it).locked }
+
+    suspend fun scopeState(roomId: RoomId, scope: LockScope): LockState? = lockStore.getLock(
+        ServerRoomId(roomId.rawValue), scope.kind.value.toLong(),
+        if (scope.kind.value.toLong() == SCOPE_ROOM) 0 else scope.keyspace?.value ?: 0,
+        if (scope.kind.value.toLong() == SCOPE_LOCKER) ServerLockerId(scope.lockerRawValue) else EMPTY_LOCKER,
+    )?.let(::stateOf)
+
+    suspend fun parentState(roomId: RoomId, scope: LockScope): LockState? =
+        resolveParent(roomId, scope.kind.value.toLong(), scope.keyspace?.value ?: 0)?.let(::stateOf)
 
     /** The most-specific lock covering a write to (keyspace, lockerRaw), or null if open. */
     suspend fun resolveEffective(roomId: RoomId, keyspace: Long, lockerRaw: ByteArray): ServerLock? {
         val sr = ServerRoomId(roomId.rawValue)
-        lockStore.getLock(sr, SCOPE_LOCKER, keyspace, ServerLockerId(lockerRaw))?.let { return it }
-        lockStore.getLock(sr, SCOPE_KEYSPACE, keyspace, EMPTY_LOCKER)?.let { return it }
-        lockStore.getLock(sr, SCOPE_ROOM, 0L, EMPTY_LOCKER)?.let { return it }
+        active(lockStore.getLock(sr, SCOPE_LOCKER, keyspace, ServerLockerId(lockerRaw)))?.let { return it }
+        active(lockStore.getLock(sr, SCOPE_KEYSPACE, keyspace, EMPTY_LOCKER))?.let { return it }
+        active(lockStore.getLock(sr, SCOPE_ROOM, 0L, EMPTY_LOCKER))?.let { return it }
         return null
     }
 
@@ -63,11 +72,19 @@ class LockVerifier(private val lockStore: LockStore) {
         parentVersion: Long,
         contentHash: ByteArray,
         signature: Signature?,
+        notification: Notification? = null,
     ): WriteVerdict {
         val pub = stateOf(lock).publicKey?.rawValue ?: return WriteVerdict.INVALID
         val sig = signature?.signature
         if (sig == null || sig.isEmpty()) return WriteVerdict.REQUIRED
-        val ctx = LockerSigning.writeContext(roomId, lockerId, parentVersion, contentHash)
+        val ctx = when (signature.signingVersion) {
+            0, 1 -> {
+                if (lock.version != 1L || notification != null) return WriteVerdict.INVALID
+                LockerSigning.writeContext(roomId, lockerId, parentVersion, contentHash)
+            }
+            2 -> LockerSigning.writeContextV2(roomId, lockerId, parentVersion, lock.version, contentHash, notification)
+            else -> return WriteVerdict.INVALID
+        }
         return if (verifySig(pub, ctx, sig)) WriteVerdict.OK else WriteVerdict.INVALID
     }
 
@@ -82,17 +99,29 @@ class LockVerifier(private val lockStore: LockStore) {
         val sr = ServerRoomId(roomId.rawValue)
 
         val existing = lockStore.getLock(sr, scopeKind, keyspace, lockerId)
-        if (existing != null) {
+        if (existing != null && stateOf(existing).locked) {
             // Establishment only; rotate an existing lock via a ratchet on a write.
             return LockOutcome.Stale(stateOf(existing))
+        }
+        val scopeVersion = existing?.version ?: 0L
+        if (parentLockVersion != scopeVersion || scopeVersion == Long.MAX_VALUE) {
+            return LockOutcome.Stale(existing?.let(::stateOf) ?: LockState(scope = scope))
         }
 
         val roomKey = publicKeyedRoom(roomId)
         val parentLock = resolveParent(roomId, scopeKind, keyspace)
         val parentState = parentLock?.let { stateOf(it) }
         val parentKey = parentState?.publicKey?.rawValue
-        val ctx = LockerSigning.grantContext(roomId, scope, grantKey.rawValue)
         val sig = grant.parentSignature?.signature
+        val authorityVersion = parentState?.lockVersion ?: 0L
+        val ctx = if (grant.parentSignature?.signingVersion == 2) {
+            if (grant.authorityVersion != authorityVersion || grant.scopeVersion != scopeVersion) return LockOutcome.NotAuthorized
+            LockerSigning.grantContextV2(roomId, scope, grantKey.rawValue, authorityVersion, scopeVersion)
+        } else {
+            if (sig != null && sig.isNotEmpty() && (scopeVersion != 0L || authorityVersion > 1L ||
+                grant.authorityVersion != 0L || grant.scopeVersion != 0L || grant.parentSignature?.signingVersion !in listOf(0, 1))) return LockOutcome.NotAuthorized
+            LockerSigning.grantContext(roomId, scope, grantKey.rawValue)
+        }
 
         val chain: List<LockGrant>
         if (sig != null && sig.isNotEmpty()) {
@@ -110,7 +139,7 @@ class LockVerifier(private val lockStore: LockStore) {
             chain = listOf(grant)
         }
 
-        val newVersion = 1L
+        val newVersion = scopeVersion + 1L
         val state = LockState(
             locked = true,
             scope = scope,
@@ -145,13 +174,27 @@ class LockVerifier(private val lockStore: LockStore) {
 
         val existing = lockStore.getLock(sr, scopeKind, keyspace, lockerId) ?: return UnlockOutcome.Ok
         if (existing.version != parentLockVersion) return UnlockOutcome.Stale
+        if (!stateOf(existing).locked) return UnlockOutcome.Ok
+        if (existing.version == Long.MAX_VALUE) return UnlockOutcome.Stale
 
         val pub = stateOf(existing).publicKey?.rawValue ?: return UnlockOutcome.SignatureInvalid
         val sig = signature?.signature
-        val ctx = LockerSigning.unlockContext(roomId, scope)
+        val ctx = when (signature?.signingVersion) {
+            0, 1 -> {
+                if (existing.version != 1L) return UnlockOutcome.SignatureInvalid
+                LockerSigning.unlockContext(roomId, scope)
+            }
+            2 -> LockerSigning.unlockContextV2(roomId, scope, parentLockVersion)
+            else -> return UnlockOutcome.SignatureInvalid
+        }
         if (sig == null || sig.isEmpty() || !verifySig(pub, ctx, sig)) return UnlockOutcome.SignatureInvalid
 
-        lockStore.deleteLock(sr, scopeKind, keyspace, lockerId)
+        retire(existing)
+        // Revoking a parent also revokes delegated descendants. Keep every incarnation.
+        for (child in lockStore.getAllLocksInRoom(sr)) {
+            val descendant = child.scopeKind < scopeKind && (scopeKind == SCOPE_ROOM || child.keyspace == keyspace)
+            if (descendant && stateOf(child).locked) retire(child)
+        }
         return UnlockOutcome.Ok
     }
 
@@ -168,7 +211,15 @@ class LockVerifier(private val lockStore: LockStore) {
         val sig = ratchet.signature?.signature
         if (sig == null || sig.isEmpty()) return RatchetOutcome.Invalid
 
-        val ctx = LockerSigning.ratchetContext(roomId, lockerId, parentVersion, newKey.rawValue)
+        if (lock.version == Long.MAX_VALUE) return RatchetOutcome.Invalid
+        val ctx = when (ratchet.signature?.signingVersion) {
+            0, 1 -> {
+                if (lock.version != 1L || ratchet.newSharedKeys.isNotEmpty()) return RatchetOutcome.Invalid
+                LockerSigning.ratchetContext(roomId, lockerId, parentVersion, newKey.rawValue)
+            }
+            2 -> LockerSigning.ratchetContextV2(roomId, lockerId, parentVersion, lock.version, newKey.rawValue, ratchet.newSharedKeys)
+            else -> return RatchetOutcome.Invalid
+        }
         if (!verifySig(oldKey, ctx, sig)) return RatchetOutcome.Invalid
 
         val newState = state.copy(
@@ -184,11 +235,19 @@ class LockVerifier(private val lockStore: LockStore) {
         val sr = ServerRoomId(roomId.rawValue)
         return when (scopeKind) {
             SCOPE_LOCKER ->
-                lockStore.getLock(sr, SCOPE_KEYSPACE, keyspace, EMPTY_LOCKER)
-                    ?: lockStore.getLock(sr, SCOPE_ROOM, 0L, EMPTY_LOCKER)
-            SCOPE_KEYSPACE -> lockStore.getLock(sr, SCOPE_ROOM, 0L, EMPTY_LOCKER)
+                active(lockStore.getLock(sr, SCOPE_KEYSPACE, keyspace, EMPTY_LOCKER))
+                    ?: active(lockStore.getLock(sr, SCOPE_ROOM, 0L, EMPTY_LOCKER))
+            SCOPE_KEYSPACE -> active(lockStore.getLock(sr, SCOPE_ROOM, 0L, EMPTY_LOCKER))
             else -> null
         }
+    }
+
+    private fun active(lock: ServerLock?): ServerLock? = lock?.takeIf { stateOf(it).locked }
+
+    private suspend fun retire(lock: ServerLock) {
+        check(lock.version < Long.MAX_VALUE) { "Authority incarnation exhausted" }
+        val version = lock.version + 1L
+        lockStore.saveLock(lock.copy(version = version, lockState = LockState(scope = stateOf(lock).scope, lockVersion = version).toByteArray()))
     }
 
     /**

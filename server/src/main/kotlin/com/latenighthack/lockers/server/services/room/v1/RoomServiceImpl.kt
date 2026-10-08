@@ -209,10 +209,17 @@ class RoomServiceImpl(
     }
 
     override suspend fun capabilities(context: GrpcRequestContext, request: CapabilitiesRequest) = meterRegistry.trackRpc(TelemetryOperation.ROOM_CAPABILITIES, telemetry) { CapabilitiesResponse(
+        authorityV2 = true,
         subscribeAndSnapshot = config.deliveryOutboxEnabled, getLockers = true,
         postLockerChanges = config.deliveryOutboxEnabled, writeReceipts = config.deliveryOutboxEnabled,
         maxBatchItems = 64, maxBatchBytes = minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)
     ) }
+
+    override suspend fun getLockScope(context: GrpcRequestContext, request: GetLockScopeRequest): GetLockScopeResponse {
+        val room = request.roomId ?: return GetLockScopeResponse(GetLockScopeResponse.Result.INVALID)
+        val scope = request.scope ?: return GetLockScopeResponse(GetLockScopeResponse.Result.INVALID)
+        return GetLockScopeResponse(scopeState = lockVerifier.scopeState(room, scope), parentState = lockVerifier.parentState(room, scope))
+    }
 
     override suspend fun getLockers(context: GrpcRequestContext, request: GetLockersRequest): GetLockersResponse = meterRegistry.trackRpc(TelemetryOperation.ROOM_GET_MANY, telemetry) { observedGetLockers(context, request) }
 
@@ -304,7 +311,7 @@ class RoomServiceImpl(
                     }
                     val existing = lockerStore.getLockers(ServerRoomId(room.rawValue), normalized.map { (it.lockerId!!.keyspace?.value ?: 0L) to ServerLockerId(it.lockerId!!.rawValue) })
                         .associateBy { LockerId(it.lockerId!!.rawValue, LockerKeyspace(it.keyspace)) }
-                    val roomLocks = lockStore.getAllLocksInRoom(ServerRoomId(room.rawValue))
+                    val roomLocks = lockStore.getAllLocksInRoom(ServerRoomId(room.rawValue)).filter { lockVerifier.stateOf(it).locked }
                     val sourceWrites = mutableListOf<ServerLocker>()
                     val results = normalized.map { change ->
                         val id = change.lockerId!!
@@ -420,7 +427,7 @@ class RoomServiceImpl(
         
         if (storedLocker == null) {
             getLockerTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
-            return@trackResponse GetLockerResponse(result = GetLockerResponse.Result.UNKNOWN_ERROR)
+            return@trackResponse GetLockerResponse(result = GetLockerResponse.Result.OK, locker = IdentifiedLocker(lockerId, version = 0, lockState = lockStateFor(roomId, lockerId)))
         }
 
         getLockerTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
@@ -575,7 +582,7 @@ class RoomServiceImpl(
                         lockState = effectiveState
                     }
                 }
-                when (lockVerifier.verifyWrite(effectiveLock, requestRoomId, requestLockerId, requestVersion, hash, request.writeSignature)) {
+                when (lockVerifier.verifyWrite(effectiveLock, requestRoomId, requestLockerId, requestVersion, hash, request.writeSignature, request.notification)) {
                     LockVerifier.WriteVerdict.REQUIRED -> return PostLockerChangeResponse {
                         result = PostLockerChangeResponse.Result.SIGNATURE_REQUIRED
                         lockState = effectiveState
@@ -743,7 +750,7 @@ class RoomServiceImpl(
             // Locked lockers: deletes must be signed by the effective lock key over the
             // write context with an empty content hash.
             if (effectiveLock != null) {
-                when (lockVerifier.verifyWrite(effectiveLock, requestRoomId, requestLockerId, requestVersion, ByteArray(0), request.writeSignature)) {
+                when (lockVerifier.verifyWrite(effectiveLock, requestRoomId, requestLockerId, requestVersion, ByteArray(0), request.writeSignature, request.notification)) {
                     LockVerifier.WriteVerdict.REQUIRED -> return@runOnDispatcher DeleteLockerResponse {
                         result = DeleteLockerResponse.Result.SIGNATURE_REQUIRED
                         lockState = effectiveState
