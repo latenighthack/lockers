@@ -3,9 +3,11 @@ package com.latenighthack.lockers.server
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.RoomKeying
+import com.latenighthack.lockers.common.LockerSigning
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.server.services.room.v1.LockStoreImpl
 import com.latenighthack.lockers.server.services.room.v1.LockVerifier
+import com.latenighthack.lockers.server.services.room.v1.publicKeyOf
 import com.latenighthack.lockers.server.storage.v1.ServerLock
 import com.latenighthack.lockers.server.storage.v1.ServerLockerId
 import com.latenighthack.lockers.server.storage.v1.ServerRoomId
@@ -21,6 +23,29 @@ import kotlin.test.assertTrue
  * authorization), independent of the streaming stack the integration tests use.
  */
 class LockVerifierTest {
+    @Test
+    fun `unsigned descendants cannot replace room or keyspace authority`() = runTest {
+        val owner = Secp256r1KeyPair.generate()
+        val attacker = Secp256r1KeyPair.generate()
+        val keyspaceScope = LockScope(kind = LockScopeKind.LOCK_SCOPE_KEYSPACE, keyspace = LockerKeyspace(5))
+        val lockerScope = LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER, keyspace = LockerKeyspace(5), lockerRawValue = byteArrayOf(9))
+        for ((parent, child) in listOf(
+            LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM) to keyspaceScope,
+            LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM) to lockerScope,
+            keyspaceScope to lockerScope,
+        )) {
+            val (_, verifier) = newVerifier()
+            val room = RoomId(Random.nextBytes(16))
+            assertTrue(verifier.applyLock(room, LockGrant(parent, publicKeyOf(owner.publicKey.encode())), 0) is LockVerifier.LockOutcome.Ok)
+            assertTrue(verifier.applyLock(room, LockGrant(child, publicKeyOf(attacker.publicKey.encode())), 0) is LockVerifier.LockOutcome.NotAuthorized)
+            assertContentEquals(owner.publicKey.encode(), verifier.stateOf(verifier.resolveEffective(room, 5, byteArrayOf(9))!!).publicKey!!.rawValue)
+            val signed = LockGrant(child, publicKeyOf(attacker.publicKey.encode()), Signature(
+                signature = owner.privateKey.sign(LockerSigning.grantContext(room, child, attacker.publicKey.encode())),
+            ))
+            assertTrue(verifier.applyLock(room, signed, 1) is LockVerifier.LockOutcome.Ok)
+        }
+    }
+
     private suspend fun newVerifier(): Pair<LockStoreImpl, LockVerifier> {
         val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
         val store = LockStoreImpl(delegate)

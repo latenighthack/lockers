@@ -11,11 +11,11 @@
     "problem": "In an opaque room, applyLock resolves the parent key but the unsigned TOFU branch checks only whether the room ID embeds a public key. It does not reject an existing room or keyspace parent. Anyone who knows the room and locker IDs can establish their own more-specific key; resolveEffective then selects that key ahead of the legitimate parent. A room lock therefore does not secure its descendants.",
     "evidence": "Reproduced by unsignedChildOverridesAnExistingRoomAuthority: establish a room lock with the owner's key, establish an unsigned locker lock with an unrelated key, and observe the attacker's key becoming the effective authority.",
     "fix": "Permit unsigned establishment only when the relevant authority hierarchy is genuinely unclaimed. Require a valid parent grant whenever an ancestor governs the scope, and perform establishment atomically with that ancestor state. Cover room-to-keyspace, room-to-locker, and keyspace-to-locker delegation in both TOFU and public-keyed rooms.",
-    "status": "open",
+    "status": "partial",
     "commits": [],
-    "reproduction": null,
-    "regression": null,
-    "verification": null
+    "reproduction": "LockVerifierTest: unsigned descendants cannot replace room or keyspace authority (baseline assertion failure)",
+    "regression": "LockVerifierTest (5 passing)",
+    "verification": "Hierarchy guard passed; atomicity depends on F08"
   },
   {
     "id": "F02",

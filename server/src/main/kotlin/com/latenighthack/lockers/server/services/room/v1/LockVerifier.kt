@@ -97,13 +97,16 @@ class LockVerifier(private val lockStore: LockStore) {
         val chain: List<LockGrant>
         if (sig != null && sig.isNotEmpty()) {
             when {
-                parentKey != null && verifySig(parentKey, ctx, sig) -> chain = parentState.chain + grant
+                parentKey != null -> {
+                    if (!verifySig(parentKey, ctx, sig)) return LockOutcome.NotAuthorized
+                    chain = parentState.chain + grant
+                }
                 roomKey != null && verifyWith(roomKey, ctx, sig) -> chain = listOf(grant)
                 else -> return LockOutcome.NotAuthorized
             }
         } else {
-            // TOFU root: only when the room is not public-keyed.
-            if (roomKey != null) return LockOutcome.NotAuthorized
+            // Unsigned establishment is possible only in an unclaimed hierarchy.
+            if (roomKey != null || parentLock != null) return LockOutcome.NotAuthorized
             chain = listOf(grant)
         }
 
