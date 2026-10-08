@@ -9,13 +9,17 @@
       "[LockVerifier.kt:49](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:49)"
     ],
     "problem": "In an opaque room, applyLock resolves the parent key but the unsigned TOFU branch checks only whether the room ID embeds a public key. It does not reject an existing room or keyspace parent. Anyone who knows the room and locker IDs can establish their own more-specific key; resolveEffective then selects that key ahead of the legitimate parent. A room lock therefore does not secure its descendants.",
-    "evidence": "Reproduced by unsignedChildOverridesAnExistingRoomAuthority: establish a room lock with the owner's key, establish an unsigned locker lock with an unrelated key, and observe the attacker's key becoming the effective authority.",
+    "evidence": [
+      "docs/review/F01.md"
+    ],
     "fix": "Permit unsigned establishment only when the relevant authority hierarchy is genuinely unclaimed. Require a valid parent grant whenever an ancestor governs the scope, and perform establishment atomically with that ancestor state. Cover room-to-keyspace, room-to-locker, and keyspace-to-locker delegation in both TOFU and public-keyed rooms.",
     "status": "partial",
-    "commits": [],
+    "commits": [
+      "0ea9f0cc47de5df6d54a43b13eae83385bf994b8"
+    ],
     "reproduction": "LockVerifierTest: unsigned descendants cannot replace room or keyspace authority (baseline assertion failure)",
     "regression": "LockVerifierTest (5 passing)",
-    "verification": "Hierarchy guard passed; atomicity depends on F08"
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F02",
@@ -27,13 +31,18 @@
       "[LockerClient.kt:32](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:32)"
     ],
     "problem": "Locker.open and Locker.sealed are independent protobuf fields. The server hashes and verifies only sealed.payload.enclosure.innerPayload, then stores the entire Locker. The client extracts open.encodedPayload first. Appending or replacing an open field does not change the signed context, yet it changes the bytes applications consume. The same ambiguity reaches agents that read open.",
-    "evidence": "Reproduced by unsignedOpenFieldSurvivesValidationOfSignedSealedPayload: a signature for payload 10 is accepted with an additional open payload 99, and both representations survive the subsequent read. The normal client accessor selects 99.",
+    "evidence": [
+      "docs/review/F02.md"
+    ],
     "fix": "Reject every invalid or ambiguous envelope before signature verification and persistence; require exactly one supported representation. Share that validator across single writes, batches, reads, and extension outputs. Define which metadata is authenticated: notifications and ratchet.newSharedKeys are also outside the current signing contexts. Introduce any changed signing preimage through an explicit protocol version, while retaining the existing wire compatibility path.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "13a6d1fa151e24ba43fe011ed48022c0936c5ea7",
+      "8e0d9d86e0ae4e9a3dfa6df65e28d2ce1ae926d1"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F03",
@@ -46,13 +55,19 @@
       "[LockVerifier.kt:143](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:143)"
     ],
     "problem": "unlockContext contains no lock version or incarnation. Unlock deletes the row, and re-establishment resets its version to 1. An old unlock signed by a key reused for a later lock therefore removes that later lock as well. Changing the unsigned parentLockVersion to the current version also allows reuse after a key returns. Grant contexts likewise lack parent epoch/version, and applyLock ignores parentLockVersion.",
-    "evidence": "Reproduced by oldUnlockSignatureRemovesAReestablishedLock: lock, signed unlock, recreate with the same key, then replay the original signature and version. The second unlock succeeds.",
+    "evidence": [
+      "docs/review/F03.md"
+    ],
     "fix": "Retain a monotonic authority incarnation even when a scope becomes unlocked. Bind that incarnation and the expected authority version into grants, unlocks, and ratchets, and compare them atomically. Decide explicitly whether ancestor revocation invalidates existing descendants. Migrate the signing domain rather than silently changing V1 bytes.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "189eee14055eb625317cd2dfcae93681c19de371",
+      "4ca4d43baa02a98015fd7d4697d631a4c698664e",
+      "c1d6f2151b683da18f7bbdcfe5c62879dec758a9"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F04",
@@ -65,13 +80,17 @@
       "[PushServiceImpl.kt:374](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:374)"
     ],
     "problem": "clientServices deliberately mounts SessionGateway and PushGateway on the public listener. Their implementations accept caller-selected session IDs and events or pushes without authenticating a peer or checking room write authority or subscriptions. A caller with a target session ID can inject locker bodies and arbitrary versions directly into its inbox, bypassing RoomService signature checks; the client trusts those events. Arbitrary push traffic and durable queue growth are also possible.",
-    "evidence": "Confirmed by the public route composition and gateway implementations. This requires access to the public listener and the relevant session identifier; no session private key or locker signing key is required.",
+    "evidence": [
+      "docs/review/F04-runtime.md"
+    ],
     "fix": "Give trusted peer RPCs their own transport boundary and authenticate peer identity. Keep in-process discovery usable without exposing equivalent public endpoints. Validate sender authority and event identity at that boundary; an internal port alone is insufficient if callers can reach it. Preserve the extension API while requiring an explicit decision about which of its routes are public.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "670ecd591ee19bb93612502b4d267b237f9c6090"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F05",
@@ -82,13 +101,17 @@
       "[WebPushProvider.kt:48](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/providers/WebPushProvider.kt:48)"
     ],
     "problem": "A Web Push registration accepts an arbitrary endpoint. The provider checks only that it is nonempty before handing it to an HTTP client. With Web Push configured, the public registration and send gateway can be combined to make the server POST to loopback, private network, or other unintended destinations. The encryption of the request body does not prevent the outbound connection.",
-    "evidence": "Reproduced by webPushAllowsLoopbackHttpEndpoint: a valid synthetic registration reached a temporary HTTP endpoint on 127.0.0.1 and the provider treated its 201 response as Accepted. The diagnostic contacted only a local test server.",
+    "evidence": [
+      "docs/review/F05-runtime.md"
+    ],
     "fix": "Validate endpoints at registration and at send time. Require HTTPS, validate host and port against the supported push-service policy, reject private and special IP destinations after DNS resolution, and constrain redirects and outbound network access. Authenticate registration ownership independently. Apply length and public-key/auth-secret validation before persisting credentials.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "cf38a3d9556ea5c50f645f63abfffe855a6626f8"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F06",
@@ -102,13 +125,19 @@
       "[SessionServiceImpl.kt:147](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:147)"
     ],
     "problem": "Session opening verifies a private-key signature, but the unary subscription and push registration RPCs use a bare caller-supplied sessionId. Knowing an ID is sufficient to add or remove its subscriptions, replace its push destination, or unregister a backend. This can suppress delivery or redirect push information to another device. destroySession additionally returns OK without revoking anything.",
-    "evidence": "Confirmed by direct request handling: these methods never derive an authenticated session principal from GrpcRequestContext. README's intentionally unfinished room read authorization does not justify bypassing ownership of an established session.",
+    "evidence": [
+      "docs/review/F06.md"
+    ],
     "fix": "Bind unary mutations to an authenticated session context or a signed, scoped session capability with expiry and replay protection. Define whether identifiers are public names or secret capabilities; the current API mixes those models. Implement authenticated revocation that closes live sockets and removes or expires session routing, subscription, inbox, and push state, with a documented deletion policy.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "01c53db97726118f96991163981c9d247bd0d98e",
+      "77c07c693d075eb6fc19ed16ea8720a4c2043125",
+      "c0593e7863dd5518396a8999ff3a1e078a633848"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F07",
@@ -121,13 +150,17 @@
       "[ClaimRoomOwnership.kt:46](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimRoomOwnership.kt:46)"
     ],
     "problem": "roomHasLocksCache stores false without an expiry or authority epoch. Reads on a non-owner can populate it. A different owner may subsequently establish a lock, after which the reader can acquire the room with its old negative cache intact. effectiveLockOrNull then skips all lock resolution. This affects the default legacy write/delete path and paths that choose cached resolution rather than batch lock prefetch. Reads can also report incorrect lock state.",
-    "evidence": "Reproduced by staleNegativeReadCacheBypassesNewRoomLock using two services over one store: one caches an unlocked read, the other locks the room, and the first accepts an unsigned write. Claim acquisition has no callback that invalidates that cache; demotion-only eviction does not cover a previously non-owning reader.",
+    "evidence": [
+      "docs/review/F07.md"
+    ],
     "fix": "Make authorization reads authoritative inside the mutation transaction. If caching is retained, key it by a proven ownership/authority epoch and invalidate before acquiring or resuming authority, with distributed lock-change invalidation. A TTL alone cannot establish the security invariant.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "4c0b7dcdd50bd16052cc4724ad19cf84835b9d03"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F08",
@@ -159,13 +192,17 @@
       "[RoomServiceImpl.kt:633](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:633)"
     ],
     "problem": "ServerCore installs ExampleLockerAgent whenever the embedder supplies no override. That agent mirrors a write in keyspace 31 into keyspace 30, and derived writes bypass the target's lock verification. An unsigned write to an open input keyspace can therefore overwrite a locked output keyspace. Shipping this demo as the default also assigns implicit meaning to otherwise opaque keyspaces.",
-    "evidence": "Reproduced by defaultExampleAgentOverwritesAnIndependentlyLockedKeyspace using the actual ServerCore default. A direct unsigned write to keyspace 30 is rejected, while the same bytes written to keyspace 31 replace its locked output.",
+    "evidence": [
+      "docs/review/F09-runtime.md"
+    ],
     "fix": "Use a no-op registry by default and require explicit installation of trusted authoritative agents. Preserve their ability to produce privileged derived state, but declare and enforce their permitted input/output scopes and validation policy. Put the demonstration behind an explicit sample configuration.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "f28f0afce95ffdbf04b5ccb0461c77ac9812cb19"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F10",
@@ -196,13 +233,17 @@
       "[LockerClient.kt:436](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:436)"
     ],
     "problem": "A new ratchet private key lives only in a local variable until onRatcheted runs. The client throws on agentFailed or agentPending before adopting that key or accepting the committed source. The server may already have committed both source and ratchet. A response lost across process death has the same problem: a write receipt preserves the server outcome, but it cannot reconstruct the client's discarded private key. Subsequent writes may be permanently locked out.",
-    "evidence": "Confirmed by the ordering of the success, agent-status, and key-adoption branches. This is distinct from F10: even a fully atomic successful server commit can leave the client holding the previous authority.",
+    "evidence": [
+      "docs/review/F11-connector.md"
+    ],
     "fix": "Persist a pending ratchet key and immutable request identity before submission. Resolve a committed outcome and adopt that key even when derived agent work is pending or failed. Return a typed outcome separating source commit from agent completion; reserve an ordinary write-failed exception for a source mutation that did not commit. Recover pending key transitions on startup.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "f41db2c4cc217fb283e4ec9688042f84955386d2"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F12",
@@ -216,13 +257,17 @@
       "[SessionStore.kt:23](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionStore.kt:23)"
     ],
     "problem": "Create checks for absence and then unconditionally saves the session. Concurrent creates for the same identifier can both succeed with different authorization keys, leaving one persisted authority. Open similarly reads a challenge, verifies it, and unconditionally rotates it; concurrent uses of the same valid challenge can both succeed. The create path does not use the session owner gate or a database put-if-absent.",
-    "evidence": "Reproduced by concurrentSessionCreatesBothSucceedAndOverwriteAuthority: two services both observe an absent session, both return OK with different public keys, and only one authority row remains. The equivalent open race follows the same read/verify/save structure.",
+    "evidence": [
+      "docs/review/F12-runtime.md"
+    ],
     "fix": "Add atomic create-if-absent and challenge compare-and-rotate operations. Tie the winning socket/registry attachment to the committed session incarnation, and reject competing admissions before publishing live state. Test both same-node and cross-node races; serialization of event ACKs does not serialize session admission.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "b7768ab3338f8324d45bb611b4c6b1023ce565de"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F13",
@@ -233,13 +278,17 @@
       "[RoomServiceImpl.kt:719](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:719)"
     ],
     "problem": "When no stored locker exists, the server assigns request.parentVersion as the new version. With the usual parent 0, creation returns 0; a second stale parent-0 request is then accepted and returns 1. The first existence transition does not invalidate optimistic concurrency. The same initial rule applies to deletion of an absent locker.",
-    "evidence": "Reproduced by sameInitialParentVersionCommitsTwice: identical requests using parent 0 both succeed, first at version 0 and then at version 1. This also interacts with client watchers that ignore equal-version state changes.",
+    "evidence": [
+      "docs/review/F13.md"
+    ],
     "fix": "Define one initial parent sentinel, reject inappropriate parents for absence, and advance the version on every committed state transition. Include first-create races and deletion/recreation in the protocol's version tests. Guard negative values and overflow, and plan how legacy version-0 rows are interpreted during migration.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "987e85bc7ebcde69be0250d0add16564ab1d1125"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F14",
@@ -252,13 +301,19 @@
       "[LockerClient.kt:740](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:740)"
     ],
     "problem": "Duplicate detection uses the raw LockerId, while storage and signing canonicalize a missing keyspace to zero. A batch can contain both representations of the same locker. Both changes validate against the same prefetched version, two conflicting events are created, and one row wins persistence. Client mutation locks likewise use unnormalized IDs, allowing nominally serialized writes to the same stored locker to take different locks.",
-    "evidence": "Reproduced by nullAndZeroKeyspaceAliasesPassAtomicBatchDistinctness: the atomic batch succeeds with two version-0 outcomes, one stored locker, and two delivery intents.",
+    "evidence": [
+      "docs/review/F14-connector.md",
+      "docs/review/F14.md"
+    ],
     "fix": "Define a canonical identity type for room, keyspace, and locker bytes. Normalize at API entry before distinctness checks, mutation-lock acquisition, receipt construction, storage lookup, and routing. Keep the existing signed equivalence of omitted and zero keyspace; enforce it consistently rather than changing its meaning.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "a15c0ac4129157b029799df1a8d9d8523da3640f",
+      "14b4a3238b66b49d53bde6e400e425b57bec228a"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F15",
@@ -271,13 +326,17 @@
       "[LockerClient.kt:645](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:645)"
     ],
     "problem": "getLockers decodes stored.locker regardless of stored.deleted. Deleted rows contain an empty byte array, which decodes to a non-null empty Locker and is returned as OK. getLocker hides the deleted row, getAllLockers filters it out, and subscribeAndSnapshot correctly returns a versioned identified tombstone. The client bulk-read path treats any non-null locker body as present.",
-    "evidence": "Reproduced by bulkReadReturnsDeletedLockerAsPresent: getLocker returns null after deletion, while getLockers returns a non-null Locker for the same ID.",
+    "evidence": [
+      "docs/review/F15.md"
+    ],
     "fix": "Use one versioned tombstone representation across every read, snapshot, event, and write-conflict response. Teach clients to preserve the tombstone version while removing the visible value. Add parity tests for all read APIs, including an empty but genuinely present payload.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "99379f6c0a7092cef994a81b564812239e6d5479"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F16",
@@ -403,11 +462,13 @@
     "problem": "Two controller jobs and direct unregister calls mutate the same registration state without a serialized generation check. An older register response can overwrite a newer credential or recreate a row after unregister. It can also confirm a backend for a superseded session. Read-modify-write updates of reconciled.value can lose concurrent changes. Unregister removes local intent even if the server call failed, leaving no durable revoke to retry.",
     "evidence": "Reproduced by lateRegistrationResponseResurrectsUnregisteredCredential: block register, complete unregister and local deletion, then release the register response; the credential is recreated and reported registered.",
     "fix": "Use a serialized reducer with desired credential revision, session incarnation, and durable pending removal. Apply acknowledgements only when all three still match. SubscriptionController's generation-checked confirmations provide a useful local pattern, with bounded commands and explicit lifecycle outcomes.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "4374c3c0dfec508614f51f48b317a3a1badd8e16"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F23",
@@ -419,13 +480,17 @@
       "[LockerClient.kt:489](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:489)"
     ],
     "problem": "watchSnapshot calls merge for each cached locker, and merge emits immediately. Its first value therefore represents only the first historical item rather than the room/keyspace snapshot. Live events may interleave those partial histories. SharingStarted.WhileSubscribed also retains replay across idle periods while a restarted producer rebuilds its local map. The state.isEmpty check reads the mutable map outside stateMutex.",
-    "evidence": "Reproduced by cachedWatchFirstEmissionContainsOnlyOneOfThreeLockers: three stored lockers yield a first list of size one. The higher-level watchAll documentation describes initial history as one snapshot.",
+    "evidence": [
+      "docs/review/F23-connector.md"
+    ],
     "fix": "Load and reduce a complete snapshot before one initial emission, buffering and version-ordering live events around a snapshot boundary. Expose an immutable state with loading/freshness metadata when cached state is intentionally emitted early. Keep all state access serialized, and define replay reset and watcher eviction.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "fe7b93a8695ce45f605039fadc3bdf0e6893da0d"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F24",
@@ -438,13 +503,17 @@
       "[Stream.kt:522](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:522)"
     ],
     "problem": "accept holds a client-wide mutex while saving and emitting to internalChanges. Once its 64-item buffer fills, one slow collector blocks every room's acceptance and writers waiting on that mutex. Notification emission and raw stream-event emission also happen before ACK persistence. Cancellation after save but before emission can leave an active watcher behind the store; a replay of equal content is suppressed by the stored-version guard. With no collectors, replay-zero change and notification emissions are instead ephemeral.",
-    "evidence": "Confirmed by the save/emit/mutex ordering and Flow buffers. SharedFlow buffering does not persist values without subscribers, and suspending overflow can make producers wait for collectors. These are documented contracts, rather than unusual runtime failures. [Kotlin SharedFlow API](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-shared-flow/)",
+    "evidence": [
+      "docs/review/F24-connector.md"
+    ],
     "fix": "Commit accepted state and dedup/ACK intent independently of application multicast. Observe committed state through a transaction-aware storage Flow or a reducer that reloads from storage after conflated wakeups. Give state snapshots conflation and give events requiring delivery a persisted cursor or inbox. Move emission outside correctness mutexes; blindly dropping changes would introduce another delivery gap.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "a321be6b160d281dc9df355a4e77ec785880677d"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F25",
@@ -458,13 +527,17 @@
       "[LockVerifier.kt:205](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:205)"
     ],
     "problem": "WRITE_EXCEPTION_HANDLER treats CancellationException as retryable through its catch-all branch. The retry helper eventually produces RetryLimitExceeded, which the client wraps as LockerWriteException. Push registration runCatching and several provider/server catch(Exception) branches also catch coroutine cancellation and classify it as an ordinary failure or retry. This weakens cancellation propagation and can run failure-side persistence while a component is stopping.",
-    "evidence": "Reproduced by cancelledWriteIsConvertedToLockerWriteFailure: cancel an in-flight update and observe LockerWriteException instead of the cancellation signal. Other identified catch sites were established by source inspection.",
+    "evidence": [
+      "docs/review/F25-connector.md"
+    ],
     "fix": "Rethrow CancellationException before transient-error classification. Use narrowly scoped NonCancellable cleanup only for necessary resource release or completion of an already-defined transaction boundary. Review the pinned retry helper's exception contract, including its use of CancellationException for retry exhaustion, and distinguish exhaustion from actual caller cancellation.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "ea56134dbfdd7851fba5020c092f9caf04f31290"
+    ],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Issue-specific evidence committed; final integration and dependency gates pending"
   },
   {
     "id": "F26",
