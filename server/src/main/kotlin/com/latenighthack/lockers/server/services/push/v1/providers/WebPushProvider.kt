@@ -49,9 +49,8 @@ class WebPushProvider(private val config: WebPushConfig) : PushProvider {
         val web = registration.backend?.let { (it as? PushRegistration.OneOfBackend.webPush)?.value }
             ?: return PushResult.Rejected("registration is not web push", tokenInvalid = false)
 
-        if (web.endpoint.isEmpty()) {
-            return PushResult.Rejected("empty web push endpoint", tokenInvalid = true)
-        }
+        val rejection = withContext(Dispatchers.IO) { WebPushEndpointPolicy(config.endpointHosts).rejection(web.endpoint) }
+        if (rejection != null) return PushResult.Rejected(rejection, tokenInvalid = true)
 
         val client = service ?: return PushResult.Retryable("web push service unavailable")
         val payload = encodePayload(push).encodeToByteArray()

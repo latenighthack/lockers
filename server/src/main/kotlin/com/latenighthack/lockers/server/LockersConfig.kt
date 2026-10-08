@@ -34,6 +34,8 @@ data class WebPushConfig(
     val vapidPublicKey: String?,
     val vapidPrivateKey: String?,
     val subject: String?,
+    /** Operator-trusted push provider hosts. Subdomain wildcard allowed only as a leading '*.'. */
+    val endpointHosts: Set<String> = setOf("fcm.googleapis.com", "updates.push.services.mozilla.com", "web.push.apple.com", "*.notify.windows.com"),
 ) {
     val isConfigured: Boolean
         get() = !vapidPublicKey.isNullOrBlank() && !vapidPrivateKey.isNullOrBlank() && !subject.isNullOrBlank()
@@ -172,6 +174,8 @@ data class LockersConfig(
                     vapidPublicKey = env("WEBPUSH_VAPID_PUBLIC_KEY"),
                     vapidPrivateKey = env("WEBPUSH_VAPID_PRIVATE_KEY"),
                     subject = env("WEBPUSH_SUBJECT"),
+                    endpointHosts = env("WEBPUSH_ENDPOINT_HOSTS")?.split(',')?.map { it.trim().lowercase() }?.filter { it.isNotEmpty() }?.toSet()
+                        ?: WebPushConfig(null, null, null).endpointHosts,
                 ),
                 sharding = ShardingConfig(
                     nodeId = env("LOCKERS_NODE_ID")?.takeIf { it.isNotBlank() },
