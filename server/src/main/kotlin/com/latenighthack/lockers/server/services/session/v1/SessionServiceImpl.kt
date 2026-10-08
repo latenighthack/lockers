@@ -40,7 +40,7 @@ abstract class SessionServiceModule(
 ): GrpcRouteProvider<SessionServer> {
     abstract val serverImpl: SessionServiceImpl
 
-    override val server: SessionServer get() = serverImpl
+    override val server: SessionServer get() = AuthorizedSessionServer(serverImpl, serverCore.sessionProofVerifier)
     override val descriptor: ServerDescriptor = SessionServer.Descriptor
 }
 

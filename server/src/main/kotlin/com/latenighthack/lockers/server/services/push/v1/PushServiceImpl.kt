@@ -32,7 +32,7 @@ import kotlin.random.Random
 abstract class PushServiceModule(@Component val serverCore: ServerCore) : GrpcRouteProvider<PushServer> {
     abstract val serverImpl: PushServiceImpl
 
-    override val server: PushServer get() = serverImpl
+    override val server: PushServer get() = com.latenighthack.lockers.server.services.session.v1.AuthorizedPushServer(serverImpl, serverCore.sessionProofVerifier)
     override val descriptor: ServerDescriptor = PushServer.Descriptor
 
     suspend fun start() {

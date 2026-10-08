@@ -41,7 +41,7 @@ abstract class RoomServiceModule(
 ): GrpcRouteProvider<RoomServer> {
     abstract val serverImpl: RoomServiceImpl
 
-    override val server: RoomServer get() = serverImpl
+    override val server: RoomServer get() = com.latenighthack.lockers.server.services.session.v1.AuthorizedRoomServer(serverImpl, serverCore.sessionProofVerifier)
     override val descriptor: ServerDescriptor = RoomServer.Descriptor
 }
 

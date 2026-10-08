@@ -59,6 +59,7 @@ abstract class ServerCore(
     private val pushQueueStoreImpl by lazy { PushQueueStoreImpl(storageDelegate) }
     private val pushDeadLetterStoreImpl by lazy { PushDeadLetterStoreImpl(storageDelegate) }
 
+    @get:Provides val sessionProofVerifier by lazy { com.latenighthack.lockers.server.services.session.v1.SessionProofVerifier(storageDelegate, sessionStore) }
     @get:Provides val sessionStore: SessionStore = sessionStoreImpl
     @get:Provides val sessionInboxStore: SessionInboxStore = sessionInboxStoreImpl
     @get:Provides val subscriptionStore: SubscriptionStore = subscriptionStoreImpl

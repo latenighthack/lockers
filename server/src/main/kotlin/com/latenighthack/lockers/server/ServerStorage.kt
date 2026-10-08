@@ -7,7 +7,7 @@ import com.latenighthack.ktstore.*
 
 /** Complete schemas must be composed before any shared handle is opened. */
 object ServerStorage {
-    val definitions: List<StoreDefinition<*>> = listOf(
+    val legacyDefinitionsV3: List<StoreDefinition<*>> = listOf(
         com.latenighthack.lockers.server.services.session.v1.SessionStoreImplDefinitionV1,
         com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreImplDefinitionV1,
         com.latenighthack.lockers.server.services.push.v1.PushSessionStoreImplDefinitionV1,
@@ -23,8 +23,18 @@ object ServerStorage {
         com.latenighthack.lockers.server.services.room.v1.LockStoreImplDefinitionV1,
         com.latenighthack.lockers.server.services.room.v1.SubscriptionStoreImplDefinitionV1,
     )
-    fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()) =
-        definitionDatabaseConfiguration(identity, definitions + additional)
+    val additionsV4: List<StoreDefinition<*>> = listOf(
+        com.latenighthack.lockers.server.services.session.v1.UsedSessionProofDefinitionV2,
+    )
+    val definitions = legacyDefinitionsV3 + additionsV4
+    fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()): DatabaseConfiguration {
+        val historical = definitionDatabaseConfiguration(identity, legacyDefinitionsV3 + additional)
+        val declarations = (definitions + additional).map { it.declaration }
+        return historical.copy(version = 4, stores = declarations, migrations = historical.migrations +
+            DatabaseMigration.configured(3, 4, historical.stores, declarations) {
+                for (definition in additionsV4) createStore(definition.declaration)
+            })
+    }
     fun inMemory(identity: String = "ServerStorage-test", meterRegistry: MeterRegistry? = null, telemetry: LockersTelemetry = LockersTelemetry.NONE) =
         Database(configuration(identity + "-${kotlin.random.Random.nextLong()}"), com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(InMemoryStoreDelegate(), meterRegistry, telemetry))
     fun postgres(location: String, additional: List<StoreDefinition<*>> = emptyList(), meterRegistry: MeterRegistry? = null, telemetry: LockersTelemetry = LockersTelemetry.NONE) =
