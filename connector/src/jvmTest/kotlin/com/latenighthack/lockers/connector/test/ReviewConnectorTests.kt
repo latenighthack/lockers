@@ -101,4 +101,19 @@ class ReviewConnectorTests {
         } finally { client.stop() }
     }
 
+    @Test fun `transport cancellation escapes a write without retry or wrapping`() = runBlocking {
+        var calls = 0
+        val cancellation = CancellationException("transport cancelled")
+        val client = reviewClient(ReviewRpc { method, _ -> when (method.methodName) {
+            "Capabilities" -> CapabilitiesResponse(writeReceipts = true).toByteArray()
+            "PostLockerChange" -> { calls++; throw cancellation }
+            else -> error(method.methodName)
+        } })
+        try {
+            val failure = assertFailsWith<CancellationException> { client.updateLocker(RoomId(byteArrayOf(1)), LockerId(byteArrayOf(2))) { byteArrayOf(3) } }
+            assertSame(cancellation, failure)
+            assertEquals(1, calls)
+        } finally { client.stop() }
+    }
+
 }

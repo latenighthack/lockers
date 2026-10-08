@@ -258,6 +258,7 @@ private const val WRITE_RETRY_LIMIT = 8
  * budget before surfacing. RPC errors keep their usual transient/terminal split.
  */
 private val WRITE_EXCEPTION_HANDLER: (Throwable) -> Boolean = { e ->
+    if (e is CancellationException) throw e
     writeRetryLog.debug { "locker write attempt failed (${e::class.simpleName}: ${e.message})\n${e.stackTraceToString()}" }
     when (e) {
         is LockerWriteException -> false

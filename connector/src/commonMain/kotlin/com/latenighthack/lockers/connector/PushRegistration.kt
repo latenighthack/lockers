@@ -9,6 +9,7 @@ import com.latenighthack.lockers.connector.storage.v1.StoredPushRegistration
 import com.latenighthack.lockers.connector.storage.v1.fromByteArray
 import com.latenighthack.lockers.connector.storage.v1.toByteArray
 import com.latenighthack.lockers.push.v1.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -150,7 +151,7 @@ class PushRegistrationController(
                     this.sessionId = sessionId
                     this.backend = PushBackend.fromInt(backend.protoValue)
                 }) }
-            }
+            }.onFailure { if (it is CancellationException) throw it }
         }
         store.deleteRegistration(backend.protoValue)
         reconciled.value = reconciled.value - backend.protoValue
@@ -171,7 +172,7 @@ class PushRegistrationController(
                 this.sessionId = sessionId
                 this.registration = registration
             }) }
-        }.getOrNull() ?: return
+        }.onFailure { if (it is CancellationException) throw it }.getOrNull() ?: return
 
         if (response.result is RegisterSessionResponse.Result.OK) {
             store.saveRegistration(StoredPushRegistration {
