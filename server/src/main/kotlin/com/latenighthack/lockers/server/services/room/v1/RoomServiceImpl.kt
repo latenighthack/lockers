@@ -76,7 +76,7 @@ class RoomServiceImpl(
     }
 
     private val deliveryWorker = if (config.deliveryWorkerEnabled)
-        DeliveryWorker(requireNotNull(deliveryOutbox), sessionGatewayDiscovery, meterRegistry, telemetry).also { it.start() } else null
+        DeliveryWorker(requireNotNull(this.deliveryOutbox), sessionGatewayDiscovery, meterRegistry, telemetry).also { it.start() } else null
     private val lockVerifier = LockVerifier(lockStore)
     private val dispatchers = ShardedDispatcher<RoomId>(config.shardCount, "room-shard") {
         it.rawValue.contentHashCode()

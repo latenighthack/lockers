@@ -8,6 +8,8 @@ import com.latenighthack.lockers.server.services.session.v1.SessionGatewayDiscov
 import com.latenighthack.lockers.session.v1.*
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -35,6 +37,7 @@ class SubscriptionFreshnessTest {
             a.postLockerChange(request(1)) // Cache the empty recipient set on A.
             b.subscription(SubscriptionRequest { roomId = room; sessionId = sid; kind.subscribe {} })
             a.postLockerChange(request(2))
+            withTimeout(3000) { while (delivered.isEmpty()) delay(10) }
             assertEquals(listOf(sid), delivered)
             delivered.clear()
             b.subscription(SubscriptionRequest { roomId = room; sessionId = sid; kind.unsubscribe {} })
