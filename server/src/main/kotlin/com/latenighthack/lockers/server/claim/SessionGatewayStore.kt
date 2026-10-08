@@ -3,7 +3,7 @@ package com.latenighthack.lockers.server.claim
 import com.latenighthack.lockers.common.v1.SessionId
 
 /** The `session_gateway` row for a live session: which node holds its WebSocket, and where. */
-data class SessionGatewayRow(val nodeId: String, val nodeAddr: String)
+data class SessionGatewayRow(val nodeId: String, val nodeAddr: String, val attachmentId: String = "")
 
 /**
  * Fan-out discovery registry: one TTL-renewed row per live WebSocket session, written by the node
@@ -16,6 +16,15 @@ interface SessionGatewayStore {
 
     /** Registers/moves the session to [nodeId] unconditionally and (re)starts its TTL. */
     suspend fun upsert(sessionId: SessionId, nodeId: String, nodeAddr: String, ttlMs: Long)
+
+    /** An attachment incarnation prevents a late close from deleting a replacement socket. */
+    suspend fun upsert(sessionId: SessionId, nodeId: String, nodeAddr: String, ttlMs: Long, attachmentId: String) {
+        throw UnsupportedOperationException("SessionGatewayStore requires attachment fencing")
+    }
+
+    suspend fun delete(sessionId: SessionId, nodeId: String, attachmentId: String) {
+        throw UnsupportedOperationException("SessionGatewayStore requires attachment fencing")
+    }
 
     /** Batched TTL extension for every unexpired row owned by [nodeId]; returns the renewed set. */
     suspend fun renewAll(nodeId: String, ttlMs: Long): Set<SessionId>
@@ -38,18 +47,23 @@ class JdbcSessionGatewayStore(private val pool: ClaimJdbcPool) : SessionGatewayS
         pool.withConnection { conn ->
             conn.createStatement().use { st ->
                 st.execute(TABLE_DDL)
+                st.execute("ALTER TABLE session_gateway ADD COLUMN IF NOT EXISTS attachment_id TEXT NOT NULL DEFAULT ''")
                 st.execute(INDEX_DDL)
             }
         }
     }
 
-    override suspend fun upsert(sessionId: SessionId, nodeId: String, nodeAddr: String, ttlMs: Long) {
+    override suspend fun upsert(sessionId: SessionId, nodeId: String, nodeAddr: String, ttlMs: Long) =
+        upsert(sessionId, nodeId, nodeAddr, ttlMs, "")
+
+    override suspend fun upsert(sessionId: SessionId, nodeId: String, nodeAddr: String, ttlMs: Long, attachmentId: String) {
         pool.withConnection { conn ->
             conn.prepareStatement(UPSERT_SQL).use { st ->
                 st.setBytes(1, sessionId.rawValue)
                 st.setString(2, nodeId)
                 st.setString(3, nodeAddr)
                 st.setDouble(4, ttlMs.toDouble())
+                st.setString(5, attachmentId)
                 st.executeUpdate()
             }
         }
@@ -78,6 +92,17 @@ class JdbcSessionGatewayStore(private val pool: ClaimJdbcPool) : SessionGatewayS
         }
     }
 
+    override suspend fun delete(sessionId: SessionId, nodeId: String, attachmentId: String) {
+        pool.withConnection { conn ->
+            conn.prepareStatement("DELETE FROM session_gateway WHERE session_id = ? AND node_id = ? AND attachment_id = ?").use { st ->
+                st.setBytes(1, sessionId.rawValue)
+                st.setString(2, nodeId)
+                st.setString(3, attachmentId)
+                st.executeUpdate()
+            }
+        }
+    }
+
     override suspend fun releaseAll(nodeId: String) {
         pool.withConnection { conn ->
             conn.prepareStatement(RELEASE_ALL_SQL).use { st ->
@@ -92,7 +117,7 @@ class JdbcSessionGatewayStore(private val pool: ClaimJdbcPool) : SessionGatewayS
             conn.prepareStatement(LOOKUP_SQL).use { st ->
                 st.setBytes(1, sessionId.rawValue)
                 st.executeQuery().use { rs ->
-                    if (rs.next()) SessionGatewayRow(rs.getString("node_id"), rs.getString("node_addr")) else null
+                    if (rs.next()) SessionGatewayRow(rs.getString("node_id"), rs.getString("node_addr"), rs.getString("attachment_id")) else null
                 }
             }
         }
@@ -103,10 +128,10 @@ class JdbcSessionGatewayStore(private val pool: ClaimJdbcPool) : SessionGatewayS
             buildMap {
                 for (ids in sessionIds.distinct().chunked(512)) {
                     val placeholders = ids.joinToString(",") { "?" }
-                    conn.prepareStatement("SELECT session_id, node_id, node_addr FROM session_gateway WHERE session_id IN ($placeholders) AND expires_at >= now()").use { st ->
+                    conn.prepareStatement("SELECT session_id, node_id, node_addr, attachment_id FROM session_gateway WHERE session_id IN ($placeholders) AND expires_at >= now()").use { st ->
                         ids.forEachIndexed { index, id -> st.setBytes(index + 1, id.rawValue) }
                         st.executeQuery().use { rs ->
-                            while (rs.next()) put(SessionId(rs.getBytes("session_id")), SessionGatewayRow(rs.getString("node_id"), rs.getString("node_addr")))
+                            while (rs.next()) put(SessionId(rs.getBytes("session_id")), SessionGatewayRow(rs.getString("node_id"), rs.getString("node_addr"), rs.getString("attachment_id")))
                         }
                     }
                 }
@@ -120,7 +145,8 @@ class JdbcSessionGatewayStore(private val pool: ClaimJdbcPool) : SessionGatewayS
                 session_id  BYTEA PRIMARY KEY,
                 node_id     TEXT        NOT NULL,
                 node_addr   TEXT        NOT NULL,
-                expires_at  TIMESTAMPTZ NOT NULL
+                expires_at  TIMESTAMPTZ NOT NULL,
+                attachment_id TEXT NOT NULL DEFAULT ''
             )
         """
 
@@ -129,12 +155,13 @@ class JdbcSessionGatewayStore(private val pool: ClaimJdbcPool) : SessionGatewayS
         """
 
         private const val UPSERT_SQL = """
-            INSERT INTO session_gateway (session_id, node_id, node_addr, expires_at)
-            VALUES (?, ?, ?, now() + (? * interval '1 millisecond'))
+            INSERT INTO session_gateway (session_id, node_id, node_addr, expires_at, attachment_id)
+            VALUES (?, ?, ?, now() + (? * interval '1 millisecond'), ?)
             ON CONFLICT (session_id) DO UPDATE
                SET node_id = EXCLUDED.node_id,
                    node_addr = EXCLUDED.node_addr,
-                   expires_at = EXCLUDED.expires_at
+                   expires_at = EXCLUDED.expires_at,
+                   attachment_id = EXCLUDED.attachment_id
         """
 
         private const val RENEW_SQL = """
@@ -150,6 +177,6 @@ class JdbcSessionGatewayStore(private val pool: ClaimJdbcPool) : SessionGatewayS
             "DELETE FROM session_gateway WHERE node_id = ?"
 
         private const val LOOKUP_SQL =
-            "SELECT node_id, node_addr FROM session_gateway WHERE session_id = ? AND expires_at >= now()"
+            "SELECT node_id, node_addr, attachment_id FROM session_gateway WHERE session_id = ? AND expires_at >= now()"
     }
 }

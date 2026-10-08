@@ -80,7 +80,7 @@ class InMemoryRoomClaimStore(
 class InMemorySessionGatewayStore(
     private val clock: () -> Long = System::currentTimeMillis,
 ) : SessionGatewayStore {
-    private data class Entry(val nodeId: String, val nodeAddr: String, val expiresAt: Long)
+    private data class Entry(val nodeId: String, val nodeAddr: String, val expiresAt: Long, val attachmentId: String = "")
 
     private val mutex = Mutex()
     private val rows = HashMap<SessionId, Entry>()
@@ -88,7 +88,17 @@ class InMemorySessionGatewayStore(
     override suspend fun prepare() {}
 
     override suspend fun upsert(sessionId: SessionId, nodeId: String, nodeAddr: String, ttlMs: Long) {
-        mutex.withLock { rows[sessionId] = Entry(nodeId, nodeAddr, clock() + ttlMs) }
+        upsert(sessionId, nodeId, nodeAddr, ttlMs, "")
+    }
+
+    override suspend fun upsert(sessionId: SessionId, nodeId: String, nodeAddr: String, ttlMs: Long, attachmentId: String) {
+        mutex.withLock { rows[sessionId] = Entry(nodeId, nodeAddr, clock() + ttlMs, attachmentId) }
+    }
+
+    override suspend fun delete(sessionId: SessionId, nodeId: String, attachmentId: String) {
+        mutex.withLock {
+            rows[sessionId]?.takeIf { it.nodeId == nodeId && it.attachmentId == attachmentId }?.let { rows.remove(sessionId) }
+        }
     }
 
     override suspend fun renewAll(nodeId: String, ttlMs: Long): Set<SessionId> = mutex.withLock {
@@ -114,6 +124,6 @@ class InMemorySessionGatewayStore(
     }
 
     override suspend fun lookup(sessionId: SessionId): SessionGatewayRow? = mutex.withLock {
-        rows[sessionId]?.takeIf { it.expiresAt >= clock() }?.let { SessionGatewayRow(it.nodeId, it.nodeAddr) }
+        rows[sessionId]?.takeIf { it.expiresAt >= clock() }?.let { SessionGatewayRow(it.nodeId, it.nodeAddr, it.attachmentId) }
     }
 }

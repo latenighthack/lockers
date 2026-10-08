@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory
 import com.latenighthack.lockers.server.LockersConfig
 import java.security.SignatureException
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.atomic.AtomicInteger as AtomicInt
 import kotlin.random.Random
 
@@ -171,7 +172,8 @@ class SessionServiceImpl(
         context: GrpcRequestContext,
         request: Flow<WatchSessionRequest>
     ): Flow<StreamControlEvent<WatchSessionResponse>> {
-        val cancellationChannel = Channel<Unit>()
+        val cancellationChannel = Channel<Unit>(Channel.CONFLATED)
+        val registeredSession = AtomicReference<ServerSessionId?>()
         val openState = CompletableDeferred<OpenState?>()
         val openSent = CompletableDeferred<Unit>()
 
@@ -209,15 +211,32 @@ class SessionServiceImpl(
 
                 val open = openBuilder.build()
 
-                openStreamCancellationChannels.put(sessionId, cancellationChannel)?.let {
-                    streamCancellationCounter.increment()
-                    it.send(Unit)
+                // Attachment must still belong to the accepted challenge. A later open may
+                // already have rotated it, or destruction may have revoked the session.
+                val attached = sessionStore.atomic(sessionId) {
+                    val current = sessionStore.getSessionById(sessionId)
+                    if (current == null || !current.nextKeyMaterial.contentEquals(open.nextSequenceKey)) {
+                        openBuilder.result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
+                        openBuilder.nextSequenceKey = current?.nextKeyMaterial ?: byteArrayOf()
+                        false
+                    } else {
+                        openStreamCancellationChannels.put(sessionId, cancellationChannel)?.let {
+                            streamCancellationCounter.increment()
+                            it.trySend(Unit)
+                        }
+                        activeStreamsCount.incrementAndGet()
+                        registeredSession.set(sessionId)
+                        sessionRegistry.attachBeforeSnapshot(sessionId)
+                        true
+                    }
                 }
-
-                activeStreamsCount.incrementAndGet()
-                // Publish routing before the inbox snapshot: a stale gateway can then request
-                // re-resolution instead of accepting an event invisible to the new socket.
-                sessionRegistry.attachBeforeSnapshot(sessionId)
+                if (!attached) {
+                    emit(StreamControlEvent.Message(WatchSessionResponse { response.open = openBuilder.build() }))
+                    emit(StreamControlEvent.Close())
+                    openState.complete(null)
+                    cancellationChannel.close()
+                    throw StreamRejected()
+                }
                 openState.complete(OpenState(sessionId, open))
 
                 sessionId
@@ -279,6 +298,15 @@ class SessionServiceImpl(
             }
         }, cancellationChannel.receiveAsFlow().map {
             StreamControlEvent.Close()
+        }, flow {
+            val os = openState.await() ?: return@flow
+            while (currentCoroutineContext().isActive) {
+                delay(1000)
+                if (sessionStore.getSessionById(os.sessionId) == null) {
+                    cancellationChannel.trySend(Unit)
+                    return@flow
+                }
+            }
         }, flow {
             val os = openState.await() ?: return@flow
             val sessionId = os.sessionId
@@ -365,21 +393,19 @@ class SessionServiceImpl(
                 }
             )
         }).onCompletion {
-            // A rejected open completes openState with null: nothing was registered, so there is
-            // nothing to unwind (and activeStreamsCount was never incremented).
-            if (openState.isCompleted) {
-                openState.await()?.let { os ->
-                    activeStreamsCount.decrementAndGet()
-                    // Only drop the entry if it is still this stream's channel — a newer
-                    // stream for the same session may have replaced it.
-                    if (openStreamCancellationChannels.remove(os.sessionId, cancellationChannel)) {
-                        // Same guard for the gateway registry: never unregister a session whose
-                        // socket a replacing stream (possibly on this node) still holds.
-                        sessionRegistry.detach(os.sessionId)
-                    }
+            registeredSession.getAndSet(null)?.let { sessionId ->
+                activeStreamsCount.decrementAndGet()
+                if (openStreamCancellationChannels.remove(sessionId, cancellationChannel)) {
+                    sessionRegistry.detach(sessionId)
                 }
             }
+            cancellationChannel.close()
         }
+    }
+
+    /** Immediately closes this node's stream; shared-store revocation also closes remote streams. */
+    fun closeSessionStream(sessionId: ServerSessionId) {
+        openStreamCancellationChannels[sessionId]?.trySend(Unit)
     }
 
     fun close() {
