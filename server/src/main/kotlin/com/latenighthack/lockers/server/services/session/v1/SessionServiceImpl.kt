@@ -25,6 +25,7 @@ import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
 import org.slf4j.LoggerFactory
 import com.latenighthack.lockers.server.LockersConfig
+import com.latenighthack.lockers.server.ProtocolValidation
 import java.security.SignatureException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
@@ -542,7 +543,7 @@ class SessionServiceImpl(
             return null
         }
 
-        if (serverSessionId == null) {
+        if (serverSessionId == null || !ProtocolValidation.identity(serverSessionId.rawValue)) {
             result = WatchSessionResponse.Open.Result.INVALID_SESSION_ID
             meterRegistry.counter("lockers.session.opens", "result", "INVALID_SESSION_ID").increment()
             return null
@@ -573,9 +574,12 @@ class SessionServiceImpl(
             }
         }
 
-        val authorizedPublicKey = Secp256r1PublicKey.decode(session.authorizedPublicKey)
-
+        if (!ProtocolValidation.publicKey(session.authorizedPublicKey)) {
+            result = WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY
+            return null
+        }
         try {
+            val authorizedPublicKey = Secp256r1PublicKey.decode(session.authorizedPublicKey)
             if (!authorizedPublicKey.verify(session.nextKeyMaterial, requestSequenceSignature)) {
                 result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
                 // Recovery contract: hand back the material the client must sign. It is a nonce
@@ -620,13 +624,13 @@ class SessionServiceImpl(
         val serverSessionId = create.sessionId?.rawValue?.let { ServerSessionId(it) }
         val requestPublicKey = create.publicKey?.rawValue
 
-        if (requestPublicKey == null) {
+        if (!ProtocolValidation.publicKey(requestPublicKey)) {
             result = WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY
             meterRegistry.counter("lockers.session.creates", "result", "INVALID_PUBLIC_KEY").increment()
             return null
         }
 
-        if (serverSessionId == null) {
+        if (serverSessionId == null || !ProtocolValidation.identity(serverSessionId.rawValue)) {
             result = WatchSessionResponse.Open.Result.INVALID_SESSION_ID
             meterRegistry.counter("lockers.session.creates", "result", "INVALID_SESSION_ID").increment()
             return null
@@ -644,7 +648,7 @@ class SessionServiceImpl(
             val updatedSession = ServerSession {
                 sessionId = serverSessionId
                 nextKeyMaterial = Random.nextBytes(32)
-                authorizedPublicKey = requestPublicKey
+                authorizedPublicKey = requireNotNull(requestPublicKey)
             }
             if (!sessionStore.createIfAbsent(updatedSession)) {
                 result = WatchSessionResponse.Open.Result.SESSION_EXISTS
