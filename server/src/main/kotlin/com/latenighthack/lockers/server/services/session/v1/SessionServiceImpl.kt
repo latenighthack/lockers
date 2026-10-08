@@ -173,6 +173,7 @@ class SessionServiceImpl(
     ): Flow<StreamControlEvent<WatchSessionResponse>> {
         val cancellationChannel = Channel<Unit>()
         val openState = CompletableDeferred<OpenState?>()
+        val openSent = CompletableDeferred<Unit>()
 
         return merge(flow {
             try {
@@ -221,12 +222,14 @@ class SessionServiceImpl(
 
                 sessionId
             }) { sessionId, nextRequest ->
+                // The opening snapshot precedes every subsequent response, including heartbeat.
+                openSent.await()
                 when (val message = nextRequest.request) {
                     // ping, pong rally's on
                     is WatchSessionRequest.OneOfRequest.ping -> {
-                        StreamControlEvent.Message(WatchSessionResponse {
+                        emit(StreamControlEvent.Message(WatchSessionResponse {
                             response.pong {}
-                        })
+                        }))
                     }
 
                     // handle ack
@@ -324,6 +327,7 @@ class SessionServiceImpl(
                     }
 
                     emit(StreamControlEvent.Message(response))
+                    openSent.complete(Unit)
                 }
                 .filter {
                     it.event?.sessionId?.rawValue.contentEquals(sessionId.rawValue)
