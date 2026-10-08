@@ -97,6 +97,46 @@ class PushServiceTest {
             this.registration = registration
         })
 
+    @Test fun `late credential revisions cannot overwrite or unregister newer registration`(): Unit = runBlocking {
+        val h = harness(emptyList())
+        val sid = sessionId(70)
+        h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = apns("new"), credentialRevision = 5))
+        val late = h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = apns("old"), credentialRevision = 4))
+        assertThat(late.result).isEqualTo(RegisterSessionResponse.Result.UNKNOWN_ERROR)
+        val unregister = h.client.unregisterSession(UnregisterSessionRequest(sessionId = sid, backend = PushBackend.fromInt(1), credentialRevision = 3))
+        assertThat(unregister.result).isEqualTo(UnregisterSessionResponse.Result.UNKNOWN_ERROR)
+        val registration = h.sessionStore.getPushInfo(ServerSessionId(sid.rawValue))!!.registrations.single()
+        assertThat(PushRegistration.fromByteArray(registration.encodedRegistration).backend!!.getApns()!!.deviceToken.decodeToString()).isEqualTo("new")
+    }
+
+    @Test fun `credential tombstone rejects late registration and revision payload conflicts`(): Unit = runBlocking {
+        val h = harness(emptyList())
+        val sid = sessionId(71)
+        val registration = RegisterSessionRequest(sessionId = sid, registration = apns("first"), credentialRevision = 1)
+        assertThat(h.client.registerSession(registration).result).isEqualTo(RegisterSessionResponse.Result.OK)
+        assertThat(h.client.registerSession(registration).result).isEqualTo(RegisterSessionResponse.Result.OK)
+        assertThat(h.client.registerSession(registration.copy(registration = apns("conflict"))).result).isEqualTo(RegisterSessionResponse.Result.UNKNOWN_ERROR)
+        val unregister = UnregisterSessionRequest(sessionId = sid, backend = PushBackend.fromInt(1), credentialRevision = 2)
+        assertThat(h.client.unregisterSession(unregister).result).isEqualTo(UnregisterSessionResponse.Result.OK)
+        assertThat(h.client.unregisterSession(unregister).result).isEqualTo(UnregisterSessionResponse.Result.OK)
+        assertThat(h.client.registerSession(registration).result).isEqualTo(RegisterSessionResponse.Result.UNKNOWN_ERROR)
+        assertThat(h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = apns("legacy"))).result).isEqualTo(RegisterSessionResponse.Result.UNKNOWN_ERROR)
+        assertThat(h.sessionStore.getPushInfo(ServerSessionId(sid.rawValue))).isEqualTo(null)
+    }
+
+    @Test fun `provider rejection cannot remove rotated credential`(): Unit = runBlocking {
+        val h = harness(emptyList())
+        val sid = sessionId(72)
+        val old = apns("old").toByteArray()
+        val fresh = apns("fresh")
+        h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = apns("old"), credentialRevision = 1))
+        h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = fresh, credentialRevision = 2))
+        kotlin.test.assertFalse(h.sessionStore.removeCredentialIfCurrent(ServerSessionId(sid.rawValue), 1, old))
+        kotlin.test.assertTrue(h.sessionStore.removeCredentialIfCurrent(ServerSessionId(sid.rawValue), 1, fresh.toByteArray()))
+        assertThat(h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = fresh, credentialRevision = 2)).result).isEqualTo(RegisterSessionResponse.Result.UNKNOWN_ERROR)
+        assertThat(h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = apns("repaired"), credentialRevision = 3)).result).isEqualTo(RegisterSessionResponse.Result.OK)
+    }
+
     @Test
     fun `registerSession upserts per backend`() = runBlocking {
         val h = harness(listOf(RecordingPushProvider(PushBackendKind.APNS), RecordingPushProvider(PushBackendKind.FCM)))

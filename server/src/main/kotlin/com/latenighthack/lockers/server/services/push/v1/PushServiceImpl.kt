@@ -249,10 +249,8 @@ class PushServiceImpl(
         }
 
         val serverSessionId = push.sessionId ?: run { dequeue(claim, backend); return }
-        val registration = pushSessionStore.getPushInfo(serverSessionId)
-            ?.registrations
-            ?.firstOrNull { it.backend == push.backend }
-            ?.let { PushRegistration.fromByteArray(it.encodedRegistration) }
+        val storedRegistration = pushSessionStore.getPushInfo(serverSessionId)?.registrations?.firstOrNull { it.backend == push.backend }
+        val registration = storedRegistration?.let { PushRegistration.fromByteArray(it.encodedRegistration) }
         if (registration == null) {
             logger.debug("No ${backend.name} registration for session, dropping push")
             dequeue(claim, backend)
@@ -279,7 +277,7 @@ class PushServiceImpl(
             is PushResult.Rejected -> {
                 counter("lockers.push.rejected", backend).increment()
                 if (result.tokenInvalid) {
-                    removeRegistration(serverSessionId, push.backend)
+                    pushSessionStore.removeCredentialIfCurrent(serverSessionId, push.backend, requireNotNull(storedRegistration).encodedRegistration)
                     dequeue(claim, backend)
                 } else {
                     // A permanent, non-token failure (bad payload, etc.): park it.
@@ -341,19 +339,6 @@ class PushServiceImpl(
         }
     }
 
-    private suspend fun removeRegistration(sessionId: ServerSessionId, backend: Int) {
-        val info = pushSessionStore.getPushInfo(sessionId) ?: return
-        val remaining = info.registrations.filter { it.backend != backend }
-        if (remaining.isEmpty()) {
-            pushSessionStore.deletePushInfo(sessionId)
-        } else {
-            pushSessionStore.savePushInfo(ServerPushInfo {
-                this.sessionId = sessionId
-                this.registrations = remaining
-            })
-        }
-    }
-
     override suspend fun registerSession(
         context: GrpcRequestContext,
         request: RegisterSessionRequest,
@@ -372,17 +357,9 @@ class PushServiceImpl(
             }
 
             val serverSessionId = ServerSessionId(rawSessionId)
-            val existing = pushSessionStore.getPushInfo(serverSessionId)?.registrations.orEmpty()
-            // Upsert by backend: replace any prior credential for the same backend.
-            val updated = existing.filter { it.backend != backend.protoValue } + ServerPushRegistration {
-                this.backend = backend.protoValue
-                this.encodedRegistration = registration.toByteArray()
+            if (!pushSessionStore.applyCredential(serverSessionId, backend.protoValue, registration.toByteArray(), request.credentialRevision)) {
+                return@trackResponse RegisterSessionResponse { result = RegisterSessionResponse.Result.UNKNOWN_ERROR }
             }
-
-            pushSessionStore.savePushInfo(ServerPushInfo {
-                this.sessionId = serverSessionId
-                this.registrations = updated
-            })
             counter("lockers.push.registrations", backend).increment()
 
             RegisterSessionResponse { result = RegisterSessionResponse.Result.OK }
@@ -401,7 +378,9 @@ class PushServiceImpl(
             if (rawSessionId == null || rawSessionId.isEmpty()) {
                 return@trackResponse UnregisterSessionResponse { result = UnregisterSessionResponse.Result.UNKNOWN_ERROR }
             }
-            removeRegistration(ServerSessionId(rawSessionId), request.backend.value)
+            if (!pushSessionStore.applyCredential(ServerSessionId(rawSessionId), request.backend.value, null, request.credentialRevision)) {
+                return@trackResponse UnregisterSessionResponse { result = UnregisterSessionResponse.Result.UNKNOWN_ERROR }
+            }
             UnregisterSessionResponse { result = UnregisterSessionResponse.Result.OK }
         } catch (e: Exception) {
             logger.error("Failed to unregister session", e)
