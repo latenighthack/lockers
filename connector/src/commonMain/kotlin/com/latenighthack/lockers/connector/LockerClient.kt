@@ -293,6 +293,7 @@ class LockerClient(
     internal val log: KmLog = logging(),
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
     coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default,
+    private val broadcastCodecs: BroadcastCodecs = BroadcastCodecs.identity(),
 ) {
     private val codecs = codecs.withTelemetry(telemetry)
     private val processingJob = SupervisorJob(coroutineContext[Job])
@@ -351,6 +352,19 @@ class LockerClient(
         get() {
             return lockerStore.liveChanges().filter { it.kind == 1 }.map { it.toChange() }
         }
+
+    /** Durable broadcasts; decoding happens in the collector, after transport acceptance and ACK. */
+    fun broadcastsAfter(cursor: Long): Flow<IncomingBroadcast> = stream.eventsAfter(cursor).mapNotNull { accepted ->
+        val event = accepted.event
+        if (event.locker?.lockerId != null) return@mapNotNull null
+        val room = event.roomId ?: return@mapNotNull null
+        val id = event.eventId ?: return@mapNotNull null
+        val payload = event.notification?.payload?.rawValue ?: return@mapNotNull null
+        val context = BroadcastContext(room, id, event.notification?.push?.title, event.notification?.push?.body)
+        val decoded = broadcastCodecs.decode(context, payload) ?: return@mapNotNull null
+        IncomingBroadcast(accepted.cursor, context, decoded)
+    }
+    val broadcasts: Flow<IncomingBroadcast> get() = broadcastsAfter(0)
 
     val notifications: Flow<IncomingNotification>
         get() {

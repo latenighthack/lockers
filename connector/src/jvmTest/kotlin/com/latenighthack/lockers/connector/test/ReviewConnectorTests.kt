@@ -21,7 +21,7 @@ internal class ReviewRpc(val response: suspend (RpcMethodSpecifier, ByteArray) -
     override suspend fun serverStreamingCall(method: RpcMethodSpecifier, block: suspend RpcServerStream.() -> Unit, readyCallback: () -> Unit) = error("not used")
 }
 
-internal suspend fun reviewClient(rpc: RpcClient, keys: LockKeySource? = null, db: Database = ConnectorStorage.inMemory(), codecs: NotificationCodecs = NotificationCodecs.identity()): LockerClient {
+internal suspend fun reviewClient(rpc: RpcClient, keys: LockKeySource? = null, db: Database = ConnectorStorage.inMemory(), codecs: NotificationCodecs = NotificationCodecs.identity(), broadcastCodecs: BroadcastCodecs = BroadcastCodecs.identity()): LockerClient {
     db.open()
     val key = Secp256r1KeyPair.generate()
     val auth = object : AuthenticationKeySource {
@@ -32,7 +32,7 @@ internal suspend fun reviewClient(rpc: RpcClient, keys: LockKeySource? = null, d
     }
     val session = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), db).also { it.prepare() }
     val subscriptions = SubscriptionStoreImpl(db).also { it.prepare() }
-    return LockerClient(rpc, Stream(rpc, auth, session, subscriptions, Version()), LockerStoreImpl(db).also { it.prepare() }, keys, codecs)
+    return LockerClient(rpc, Stream(rpc, auth, session, subscriptions, Version()), LockerStoreImpl(db).also { it.prepare() }, keys, codecs, broadcastCodecs = broadcastCodecs)
 }
 
 class ReviewConnectorTests {

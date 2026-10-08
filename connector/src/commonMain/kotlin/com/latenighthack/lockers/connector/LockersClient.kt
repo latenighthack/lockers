@@ -67,6 +67,8 @@ class LockersClient private constructor(
     fun lockerChangesAfter(cursor: Long): Flow<AcceptedLockerChange> = lockers.changesAfter(cursor)
     /** Raw accepted session events, including notification metadata, for durable consumption. */
     fun eventsAfter(cursor: Long): Flow<AcceptedSessionEvent> = stream.eventsAfter(cursor)
+    val broadcasts: Flow<IncomingBroadcast> get() = lockers.broadcasts
+    fun broadcastsAfter(cursor: Long): Flow<IncomingBroadcast> = lockers.broadcastsAfter(cursor)
 
     /**
      * Registers (or rotates) this device's push credential for its backend. The
@@ -120,6 +122,7 @@ class LockersClient private constructor(
             codecs: NotificationCodecs = NotificationCodecs.identity(),
             telemetry: LockersTelemetry = LockersTelemetry.NONE,
             coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
+            broadcastCodecs: BroadcastCodecs = BroadcastCodecs.identity(),
         ): LockersClient {
             database.open()
             val sessionStore = SessionStoreImpl(keyValueStore, database)
@@ -136,7 +139,7 @@ class LockersClient private constructor(
             val clientJob = SupervisorJob(parentContext[Job])
             val ownedContext = parentContext + clientJob
             val stream = Stream(rpcClient, keySource, sessionStore, subscriptionStore, appVersion, telemetry, ownedContext)
-            val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs, telemetry = telemetry, coroutineContext = ownedContext)
+            val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs, telemetry = telemetry, coroutineContext = ownedContext, broadcastCodecs = broadcastCodecs)
             val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId, telemetry, ownedContext, stream.connection, stream::signSessionRequest)
             try {
                 lockerClient.start()
