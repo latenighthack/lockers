@@ -10,6 +10,7 @@ import com.latenighthack.lockers.connector.storage.v1.fromByteArray
 import com.latenighthack.lockers.connector.storage.v1.toByteArray
 import com.latenighthack.lockers.push.v1.*
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -96,15 +97,19 @@ class PushRegistrationController(
     private val store: PushRegistrationStore,
     private val sessionIdSource: StateFlow<SessionId?>,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
+    coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default,
 ) {
-    private val job = SupervisorJob()
-    private val scope = CoroutineScope(Dispatchers.Default + job)
+    private val job = SupervisorJob(coroutineContext[Job])
+    private val scope = CoroutineScope(coroutineContext + job)
+    private val started = MutableStateFlow(false)
     private val pushService = PushServiceRpc(rpcClient)
 
     private val registrationChanges = MutableSharedFlow<PushRegistration>(extraBufferCapacity = 16)
     private val reconciled = MutableStateFlow<Set<Int>>(emptySet())
 
     fun start() {
+        check(job.isActive) { "PushRegistrationController is closed" }
+        if (!started.compareAndSet(false, true)) return
         // Resend every stored registration whenever a session opens; a new session
         // id needs the token relearned, a resumed one is an idempotent no-op.
         scope.launch {
@@ -183,6 +188,8 @@ class PushRegistrationController(
             reconciled.value = reconciled.value + backend
         }
     }
+
+    suspend fun closeAndJoin() { stop(); job.join() }
 
     fun stop() {
         job.cancel()

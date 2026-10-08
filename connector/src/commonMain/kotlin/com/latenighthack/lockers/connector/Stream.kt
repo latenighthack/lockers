@@ -129,9 +129,11 @@ class SubscriptionController(
     private val sessionIdSource: Flow<SessionId?>,
     private val log: KmLog = logging(),
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
+    coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default,
 ) {
-    private val controllerJob = SupervisorJob()
-    private val controllerScope = CoroutineScope(Dispatchers.Default + controllerJob)
+    private val controllerJob = SupervisorJob(coroutineContext[Job])
+    private val controllerScope = CoroutineScope(coroutineContext + controllerJob)
+    private val started = MutableStateFlow(false)
     private val roomService = ShardedRoomServiceRpc(rpcClient)
 
     internal var hydrateSubscription: (suspend (RoomId, SessionId) -> Unit)? = null
@@ -157,6 +159,8 @@ class SubscriptionController(
     }
 
     suspend fun startWatchingSubscriptions() {
+        check(controllerJob.isActive) { "SubscriptionController is closed" }
+        if (!started.compareAndSet(false, true)) return
         val desired = subscriptionStore.getAllSubscriptions().associate {
             RoomId(it.roomIdRawValue) to !it.isPendingRemove
         }.toMutableMap()
@@ -255,6 +259,8 @@ class SubscriptionController(
         changes.send(Change.Desired(roomId, false))
     }
 
+    suspend fun closeAndJoin() { stop(); controllerJob.join() }
+
     fun stop() {
         controllerJob.cancel()
         changes.close()
@@ -284,6 +290,7 @@ class Stream(
     private val subscriptionStore: SubscriptionStore,
     private val appVersion: Version,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
+    coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default,
 ) {
     companion object {
         val PING_TIMEOUT = 60_000L
@@ -298,8 +305,9 @@ class Stream(
     // Consecutive INVALID_SEQUENCE count across reconnects; reset by a successful open.
     private var invalidSequenceStreak = 0
 
-    private val streamJob = SupervisorJob()
-    private val streamScope = CoroutineScope(Dispatchers.Default + streamJob)
+    private val streamJob = SupervisorJob(coroutineContext[Job])
+    private val streamScope = CoroutineScope(coroutineContext + streamJob)
+    private val started = MutableStateFlow(false)
     private val sessionIdSource = MutableStateFlow<SessionId?>(null)
     private val sessionService = ShardedSessionServiceRpc(rpcClient)
 
@@ -307,7 +315,7 @@ class Stream(
     // recorded here so the reconnect re-targets the owning node. A plain client (monolith) never
     // sees EPOCH_STALE, so this stays a no-op.
     private val routing = rpcClient as? RoutingRpcClient
-    private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource, telemetry = telemetry)
+    private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource, telemetry = telemetry, coroutineContext = streamScope.coroutineContext)
     private val outgoingAcks = MutableSharedFlow<List<StoredAck>>()
 
     internal var hydrateSubscription: (suspend (RoomId, SessionId) -> Unit)?
@@ -374,7 +382,10 @@ class Stream(
     }
 
     suspend fun start() {
-        subscriptionController.startWatchingSubscriptions()
+        check(streamJob.isActive) { "Stream is closed" }
+        if (!started.compareAndSet(false, true)) return
+        try { subscriptionController.startWatchingSubscriptions() }
+        catch (failure: Throwable) { stop(); throw failure }
 
         streamScope.launch {
             // connect() throws on fatal errors and on retry exhaustion; either way the
@@ -577,6 +588,8 @@ class Stream(
     suspend fun unsubscribe(roomId: RoomId) {
         subscriptionController.unsubscribe(roomId)
     }
+
+    suspend fun closeAndJoin() { stop(); streamJob.join(); subscriptionController.closeAndJoin() }
 
     fun stop() {
         subscriptionController.stop()

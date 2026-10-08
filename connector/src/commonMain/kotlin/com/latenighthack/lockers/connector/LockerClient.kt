@@ -22,11 +22,9 @@ import com.latenighthack.lockers.room.v1.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.plus
 import kotlin.reflect.KFunction1
 
 /**
@@ -291,10 +289,12 @@ class LockerClient(
     codecs: NotificationCodecs = NotificationCodecs.identity(),
     internal val log: KmLog = logging(),
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
+    coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default,
 ) {
     private val codecs = codecs.withTelemetry(telemetry)
-    private val processingJob = SupervisorJob()
-    private val processingScope = GlobalScope + processingJob
+    private val processingJob = SupervisorJob(coroutineContext[Job])
+    private val processingScope = CoroutineScope(coroutineContext + processingJob)
+    private val started = MutableStateFlow(false)
     private val sync = LockerSyncCoordinator(processingScope, telemetry)
     private val acceptance = Mutex()
     private class AcceptanceContext(val client: LockerClient) : kotlin.coroutines.AbstractCoroutineContextElement(Key) {
@@ -366,6 +366,8 @@ class LockerClient(
     }
 
     suspend fun start() {
+        check(processingJob.isActive) { "LockerClient is closed" }
+        if (!started.compareAndSet(false, true)) return
         stream.acceptEvent = { processEvent(it) }
         stream.acceptanceBoundary = { action -> withAcceptance { action() } }
 
@@ -603,6 +605,8 @@ class LockerClient(
     fun stop() {
         processingJob.cancel()
     }
+
+    suspend fun closeAndJoin() { stop(); processingJob.join() }
 
     suspend fun subscribeToRoom(roomId: RoomId, waitForSubscription: Boolean = true) {
         stream.subscribe(roomId, waitForSubscription)

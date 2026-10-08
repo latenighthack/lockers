@@ -11,6 +11,7 @@ import com.latenighthack.lockers.common.v1.Version
 import com.latenighthack.lockers.connector.internal.LockerStoreImpl
 import com.latenighthack.lockers.push.v1.PushConfig
 import com.latenighthack.lockers.push.v1.PushRegistration
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filter
@@ -32,6 +33,7 @@ class LockersClient private constructor(
     private val stream: Stream,
     val lockers: LockerClient,
     private val pushRegistrations: PushRegistrationController,
+    private val clientJob: Job,
 ) {
     /** Emits `true` while the session stream is connected. */
     val isConnected: Flow<Boolean> get() = stream.isConnected
@@ -90,7 +92,11 @@ class LockersClient private constructor(
         pushRegistrations.stop()
         lockers.stop()
         stream.stop()
+        clientJob.cancel()
     }
+
+    /** Suspends until transports, reducers and pending owned work have stopped. */
+    suspend fun closeAndJoin() { close(); clientJob.join() }
 
     companion object {
         /**
@@ -107,6 +113,7 @@ class LockersClient private constructor(
             lockKeySource: LockKeySource? = null,
             codecs: NotificationCodecs = NotificationCodecs.identity(),
             telemetry: LockersTelemetry = LockersTelemetry.NONE,
+            coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
         ): LockersClient {
             database.open()
             val sessionStore = SessionStoreImpl(keyValueStore, database)
@@ -119,15 +126,24 @@ class LockersClient private constructor(
             lockerStore.prepare()
             pushRegistrationStore.prepare()
 
-            val stream = Stream(rpcClient, keySource, sessionStore, subscriptionStore, appVersion, telemetry)
-            val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs, telemetry = telemetry)
-            val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId, telemetry)
-
-            lockerClient.start()
-            stream.start()
-            pushRegistrations.start()
-
-            return LockersClient(stream, lockerClient, pushRegistrations)
+            val parentContext = currentCoroutineContext() + coroutineContext
+            val clientJob = SupervisorJob(parentContext[Job])
+            val ownedContext = parentContext + clientJob
+            val stream = Stream(rpcClient, keySource, sessionStore, subscriptionStore, appVersion, telemetry, ownedContext)
+            val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs, telemetry = telemetry, coroutineContext = ownedContext)
+            val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId, telemetry, ownedContext)
+            try {
+                lockerClient.start()
+                stream.start()
+                pushRegistrations.start()
+                return LockersClient(stream, lockerClient, pushRegistrations, clientJob)
+            } catch (failure: Throwable) {
+                withContext(NonCancellable) {
+                    pushRegistrations.stop(); lockerClient.stop(); stream.stop()
+                    clientJob.cancelAndJoin()
+                }
+                throw failure
+            }
         }
     }
 }

@@ -184,4 +184,31 @@ class ReviewConnectorTests {
         assertEquals(70, store.getPendingAcks().size)
     }
 
+    @Test fun `starting a stream twice opens only one transport`() = runBlocking {
+        val database = ConnectorStorage.inMemory(); database.open()
+        val entered = CompletableDeferred<Unit>()
+        val calls = java.util.concurrent.atomic.AtomicInteger()
+        val parent = SupervisorJob()
+        val stopped = CompletableDeferred<Unit>()
+        val rpc = object : RpcClient {
+            override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray) = error("not used")
+            override suspend fun serverStreamingCall(method: RpcMethodSpecifier, block: suspend RpcServerStream.() -> Unit, readyCallback: () -> Unit) {
+                calls.incrementAndGet(); entered.complete(Unit)
+                try { awaitCancellation() } finally { stopped.complete(Unit) }
+            }
+        }
+        val key = Secp256r1KeyPair.generate()
+        val auth = object : AuthenticationKeySource {
+            override suspend fun getSessionKeyPair() = key
+            override suspend fun hasSessionKeyPair() = true
+            override suspend fun generateSessionKeyPair() {}
+            override suspend fun revokeKeys() {}
+        }
+        val stream = Stream(rpc, auth, SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), database), SubscriptionStoreImpl(database), Version(), coroutineContext = Dispatchers.Default + parent)
+        try {
+            stream.start(); stream.start(); entered.await(); delay(200); assertEquals(1, calls.get())
+            parent.cancelAndJoin(); assertTrue(stopped.isCompleted)
+        } finally { stream.closeAndJoin(); parent.cancelAndJoin() }
+    }
+
 }
