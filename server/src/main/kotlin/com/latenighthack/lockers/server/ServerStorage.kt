@@ -27,6 +27,7 @@ object ServerStorage {
     val additionsV4: List<StoreDefinition<*>> = listOf(
         com.latenighthack.lockers.server.services.session.v1.SessionInboxMetadataDefinitionV2,
         com.latenighthack.lockers.server.services.session.v1.UsedSessionProofDefinitionV2,
+        com.latenighthack.lockers.server.services.session.v1.RevokedSessionDefinitionV2,
     )
     val definitions = legacyDefinitionsV3 + additionsV4
     fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()): DatabaseConfiguration {

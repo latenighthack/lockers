@@ -148,9 +148,12 @@ class SessionServiceImpl(
         context: GrpcRequestContext,
         request: DestroySessionRequest
     ): DestroySessionResponse {
-        return DestroySessionResponse {
-            result = DestroySessionResponse.Result.OK
-        }
+        val id = request.sessionId ?: return DestroySessionResponse(result = DestroySessionResponse.Result.INVALID_SEQUENCE)
+        if (id.rawValue.size !in 1..128) return DestroySessionResponse(result = DestroySessionResponse.Result.INVALID_SEQUENCE)
+        val storedId = ServerSessionId(id.rawValue)
+        sessionStore.destroySession(storedId)
+        closeSessionStream(storedId)
+        return DestroySessionResponse(result = DestroySessionResponse.Result.OK)
     }
 
     private data class OpenState(val sessionId: ServerSessionId, val open: WatchSessionResponse.Open)
