@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>MagicNumber:LockerSigning.kt$LockerSigning.Writer$0xFF</ID>
+    <ID>MagicNumber:LockerSigning.kt$LockerSigning.Writer$64</ID>
+    <ID>MagicNumber:LockerSigning.kt$LockerSigning.Writer$7</ID>
+    <ID>MagicNumber:LockerSigning.kt$LockerSigning.Writer$8</ID>
+    <ID>MaxLineLength:SigningGoldenTest.kt$SigningGoldenTest$assertEquals("00000000000000106c6f636b6572732f76312f6772616e74000000000000000101000000000000000200000000000000000000000000000000000000000000000105", hex(LockerSigning.grantContext(room, scope, byteArrayOf(5))))</ID>
+    <ID>MaxLineLength:SigningGoldenTest.kt$SigningGoldenTest$assertEquals("00000000000000106c6f636b6572732f76312f77726974650000000000000001010000000000000002020300000000000000050000000000000007000000000000000104", hex(LockerSigning.writeContext(room, locker, 7, byteArrayOf(4))))</ID>
+    <ID>MaxLineLength:SigningGoldenTest.kt$SigningGoldenTest$assertEquals("00000000000000116c6f636b6572732f76312f756e6c6f636b000000000000000101000000000000000200000000000000000000000000000000", hex(LockerSigning.unlockContext(room, scope)))</ID>
+    <ID>MaxLineLength:SigningGoldenTest.kt$SigningGoldenTest$assertEquals("00000000000000126c6f636b6572732f76312f726174636865740000000000000001010000000000000002020300000000000000050000000000000007000000000000000105", hex(LockerSigning.ratchetContext(room, locker, 7, byteArrayOf(5))))</ID>
+    <ID>MayBeConst:Dummy.kt$// Placeholder so the commonMain source set exists before proto generation. internal val lockersApiModule = "lockers"</ID>
+    <ID>ReturnCount:RoomKeying.kt$RoomKeying$fun authorityKey(roomId: RoomId): ByteArray?</ID>
+    <ID>WildcardImport:ProtocolPortabilityTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:SigningGoldenTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>MatchingDeclarationName:Output.kt$OutputFormat</ID>
+    <ID>MaxLineLength:PushCommands.kt$emitRows(config.output, results.map { (node, r) -&gt; listOf&lt;Pair&lt;String, Any?&gt;&gt;("node" to node, field to count(r)) })</ID>
+    <ID>TooGenericExceptionCaught:Main.kt$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:PushCommands.kt$t: Throwable</ID>
+  </CurrentIssues>
+</SmellBaseline>

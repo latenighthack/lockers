@@ -1,0 +1,81 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>EmptyElseBlock:LockersMonitoring.kt$LockersMonitoring.Companion.&lt;no name provided&gt;.&lt;no name provided&gt;$if (outcome == TelemetryOutcome.ERROR) span.setStatus(StatusCode.ERROR)</ID>
+    <ID>LongParameterList:LockersMonitoring.kt$LockersMonitoring.Companion$(core: ServerCore, meterRegistry: MeterRegistry, prometheusRegistry: PrometheusMeterRegistry, openTelemetry: OpenTelemetry = OpenTelemetry.noop(), options: MonitoringOptions = MonitoringOptions(), spanExporter: ClientSpanExporter? = null)</ID>
+    <ID>MagicNumber:LockersMonitoring.kt$LockersMonitoring$1000</ID>
+    <ID>MagicNumber:LockersMonitoring.kt$LockersMonitoring$1000.0</ID>
+    <ID>MagicNumber:LockersMonitoring.kt$LockersMonitoring.Companion.&lt;no name provided&gt;$1_000_000_000.0</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester$Aggregate</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester$Key</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester$batch.losses.forEach { loss -&gt; val key = batch.platform to loss.reason; losses[key] = (losses[key] ?: 0.0) + loss.count }</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester$else</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester$val aggregate = measurements.getOrPut(Key(measurement.operation, measurement.outcome, batch.platform)) { Aggregate() }</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$MetricFamilySamples("lockers_connector_diagnostics_dropped", Type.COUNTER, "Client spans received without a configured exporter.", diagnostics)</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$MetricFamilySamples("lockers_connector_duration_seconds", Type.HISTOGRAM, "Received connector operation duration distributions in seconds.", duration)</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$MetricFamilySamples("lockers_connector_telemetry_batches", Type.COUNTER, "Accepted connector monitoring batches.", batches)</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$MetricFamilySamples("lockers_connector_telemetry_dropped", Type.COUNTER, "Client-reported monitoring loss.", dropped)</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$duration += MetricFamilySamples.Sample("lockers_connector_duration_seconds_bucket", labels + "le", values + bound, cumulative)</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$duration += MetricFamilySamples.Sample("lockers_connector_duration_seconds_count", labels, values, aggregate.count)</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$duration += MetricFamilySamples.Sample("lockers_connector_duration_seconds_sum", labels, values, aggregate.sum)</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$listOf</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$operations += MetricFamilySamples.Sample("lockers_connector_operations_total", labels, values, aggregate.count)</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$val batches = received.map { (platform, count) -&gt; MetricFamilySamples.Sample("lockers_connector_telemetry_batches_total", listOf("platform", "service_name", "environment"), listOf(platform.name.lowercase(), serviceName, environment), count) }</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$val diagnostics = droppedDiagnostics.map { (platform, count) -&gt; MetricFamilySamples.Sample("lockers_connector_diagnostics_dropped_total", listOf("platform", "service_name", "environment"), listOf(platform.name.lowercase(), serviceName, environment), count) }</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$val dropped = losses.map { (key, count) -&gt; MetricFamilySamples.Sample("lockers_connector_telemetry_dropped_total", listOf("platform", "reason", "service_name", "environment"), listOf(key.first.name.lowercase(), key.second.name.lowercase(), serviceName, environment), count) }</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$val operations = mutableListOf&lt;MetricFamilySamples.Sample&gt;()</ID>
+    <ID>MaxLineLength:ClientTelemetryIngester.kt$ClientTelemetryIngester.&lt;no name provided&gt;$val values = listOf(key.operation.operation, key.outcome.name.lowercase(), key.platform.name.lowercase(), serviceName, environment)</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$"lockers_outcome" to event.outcome.name.lowercase()</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring$"push_worker" to config.pushWorkerEnabled</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring$.</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring$backlog.forEach { (queue, value) -&gt; gauge("lockers.backlog.pending", value, "queue", queue, "storage", options.storageId) }</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring$catch (_: Exception) { snapshotHealthy.set(0); meters.counter("lockers.backlog.refresh.failures", "storage", options.storageId).increment() }</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring$gauge("lockers.monitoring.info", AtomicLong(1), "contract_version", TelemetryContract.VERSION.toString(), "library_version", options.libraryVersion, "client_service_name", options.clientServiceName)</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring$override fun close()</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring$ownedMeters += Gauge.builder("lockers.claim.renew.interval.seconds", config) { it.claimRenewMs / 1000.0 }.strongReference(true).register(meters)</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring$ownedMeters += Gauge.builder(name, value) { it.get().toDouble() }.tags(*tags).strongReference(true).register(meters)</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring.Companion$TelemetryOperation.entries.filter { it.component in setOf("room", "session", "push") &amp;&amp; it != TelemetryOperation.PUSH_SEND }</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring.Companion$TelemetryOutcome.entries.forEach { outcome -&gt; meterRegistry.counter("lockers.rpc.requests", "service", operation.component, "operation", operation.operation, "outcome", outcome.name.lowercase()) }</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring.Companion$check(meterRegistry.meters.none { it.id.name.startsWith("lockers.") }) { "Attach monitoring before constructing services or registering Lockers meters" }</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring.Companion$for (backend in listOf("apns", "fcm", "web_push")) meterRegistry.counter("lockers.push.sent", "backend", backend)</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring.Companion$val ingester = ClientTelemetryIngester(prometheusRegistry, options.serviceName, options.environment, spanExporter)</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring.Companion.&lt;no name provided&gt;$.</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring.Companion.&lt;no name provided&gt;$if</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring.Companion.&lt;no name provided&gt;$override fun map(id: Meter.Id): Meter.Id</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring.Companion.&lt;no name provided&gt;$val</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$LockersMonitoring.Companion.&lt;no name provided&gt;.&lt;no name provided&gt;$override fun finish(outcome: TelemetryOutcome)</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$MonitoringOptions$data</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$MonitoringOptions$init { require(listOf(storageId, serviceName, environment, clientServiceName, libraryVersion).all { it.matches(Regex("[A-Za-z0-9_.-]{1,128}")) }); require(snapshotIntervalMillis &gt; 0) }</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$try</ID>
+    <ID>MaxLineLength:LockersMonitoring.kt$val</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$ClientTelemetryIngester(registry,"sample","test").use { assertFalse(registry.scrape().contains("lockers_connector_operations_total{")) }</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$Files.createDirectories(Path.of("build/monitoring"))</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$assertEquals(1.0,registry.get("lockers.storage.operations").tags("store","delivery_outbox","operation","read","outcome","ok").counter().count())</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$assertFailsWith&lt;CancellationException&gt; { composite.trackRpc(TelemetryOperation.ROOM_WRITE, core.telemetry) { throw CancellationException() } }</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$assertFailsWith&lt;IllegalStateException&gt; { composite.trackRpc(TelemetryOperation.ROOM_WRITE, core.telemetry) { error("failure") } }</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$assertFailsWith&lt;IllegalStateException&gt; { diagnostics.observe(TelemetryOperation.STORAGE_READ) { error("secret failure") } }</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$diagnostics.observe(TelemetryOperation.ROOM_WRITE) { diagnostics.observe(TelemetryOperation.AGENT_EXECUTE) { 42 } }</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$for (outcome in listOf("ok", "error", "cancelled")) assertEquals(1.0, composite.get("lockers.rpc.requests").tags("service","room","operation","write","outcome",outcome).counter().count())</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$val exporter=InMemorySpanExporter.create()</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$val monitoring = LockersMonitoring.attach(core, composite, prometheus, options = MonitoringOptions(serviceName = "sample", environment = "test"))</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$val monitoring = LockersMonitoring.attach(core, registry, registry, options = MonitoringOptions(snapshotIntervalMillis = 60_000))</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$val room=spans.single { it.name=="lockers.room.write" }</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$val sample = ClientMeasurement(TelemetryOperation.CONNECTOR_WRITE,TelemetryOutcome.OK,2,.11,List(15) { if(it==2||it==5) 1 else 0 })</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest$val thrown = assertFailsWith&lt;IllegalStateException&gt; { registry.trackRpc(TelemetryOperation.ROOM_WRITE) { throw failure } }</ID>
+    <ID>MaxLineLength:MonitoringTest.kt$MonitoringTest.&lt;no name provided&gt;$override fun map(id: io.micrometer.core.instrument.Meter.Id): io.micrometer.core.instrument.Meter.Id</ID>
+    <ID>SpreadOperator:LockersMonitoring.kt$LockersMonitoring.Companion.&lt;no name provided&gt;$(*TelemetryContract.latencyBucketsSeconds.map { it * 1_000_000_000.0 }.toDoubleArray())</ID>
+    <ID>WildcardImport:ClientTelemetryIngester.kt$import com.latenighthack.lockers.observability.*</ID>
+    <ID>WildcardImport:LockersMonitoring.kt$import com.latenighthack.lockers.observability.*</ID>
+    <ID>WildcardImport:LockersMonitoring.kt$import io.micrometer.core.instrument.*</ID>
+    <ID>WildcardImport:LockersMonitoring.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:LockersMonitoring.kt$import kotlinx.serialization.json.*</ID>
+    <ID>WildcardImport:MonitoringTest.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:MonitoringTest.kt$import com.latenighthack.lockers.observability.*</ID>
+    <ID>WildcardImport:MonitoringTest.kt$import com.latenighthack.lockers.server.*</ID>
+    <ID>WildcardImport:MonitoringTest.kt$import com.latenighthack.lockers.server.tools.*</ID>
+    <ID>WildcardImport:MonitoringTest.kt$import io.micrometer.prometheus.*</ID>
+    <ID>WildcardImport:MonitoringTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:MonitoringTest.kt$import kotlinx.coroutines.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

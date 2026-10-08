@@ -14,7 +14,7 @@ import com.latenighthack.lockers.common.v1.toByteArray
  * (which signs) and the server (which verifies) run through the signature — proto
  * wire encoding is not canonical, so we build the pre-image explicitly here.
  *
- * Every element is length-prefixed (4-byte big-endian) and every scalar is a
+ * Every byte-array element is length-prefixed (8-byte big-endian) and every scalar is a
  * fixed 8-byte big-endian long, so no two distinct inputs can collide on the same
  * byte string.
  */

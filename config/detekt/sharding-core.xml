@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>LongParameterList:ShardRouter.kt$ShardRouter.Companion$( roomMembership: Membership, roomSource: ShardMapSource, sessionMembership: Membership, sessionSource: ShardMapSource, locator: PeerLocator, scope: CoroutineScope, )</ID>
+    <ID>MagicNumber:Hashing.kt$0xFF</ID>
+    <ID>MagicNumber:Hashing.kt$27</ID>
+    <ID>MagicNumber:Hashing.kt$3</ID>
+    <ID>MagicNumber:Hashing.kt$30</ID>
+    <ID>MagicNumber:Hashing.kt$31</ID>
+    <ID>MagicNumber:Hashing.kt$4</ID>
+    <ID>MagicNumber:Hashing.kt$7</ID>
+    <ID>MagicNumber:Hashing.kt$8</ID>
+    <ID>MaxLineLength:SimCluster.kt$SimCluster$InMemoryShardMapSource(sessionMembershipFor(self), sessionCountsFlow.value, vnodes, countsChanges = sessionCountsFlow)</ID>
+    <ID>ReturnCount:InMemoryOwnershipCoordinator.kt$InMemoryOwnershipCoordinator.NodeCoordinator$override suspend fun acquire(keyspace: Keyspace, shard: ShardId, epoch: Epoch): ShardLease?</ID>
+    <ID>TooManyFunctions:SimCluster.kt$SimCluster</ID>
+    <ID>VariableNaming:ShardCountChangeTest.kt$ShardCountChangeTest$private val K = Keyspace(1L)</ID>
+    <ID>VariableNaming:ShardCountChangeTest.kt$ShardCountChangeTest$private val OTHER = Keyspace(2L)</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,0 +1,253 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ComplexCondition:LockerClient.kt$LockerClient$previous == null || update.version &gt; previous.version || (update.version == previous.version &amp;&amp; update.deleted &amp;&amp; !previous.deleted)</ID>
+    <ID>ComplexCondition:LockerClient.kt$LockerClient$stored != null &amp;&amp; (stored.version &gt; update.version || (stored.roomSequence &gt; 0 &amp;&amp; update.roomSequence &gt; 0 &amp;&amp; stored.roomSequence &gt;= update.roomSequence) || (stored.version == update.version &amp;&amp; (stored.deleted || stored.lockerPayload.contentEquals(update.payload))))</ID>
+    <ID>CyclomaticComplexMethod:LockerClient.kt$LockerClient$private suspend fun updateLockerSerialized( roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.(Locker?) -&gt; Unit = {}, ratchet: Boolean = false, transform: suspend (ByteArray) -&gt; ByteArray, ): Locker?</ID>
+    <ID>CyclomaticComplexMethod:LockerClient.kt$LockerClient$private suspend fun updateLockersObserved(roomId: RoomId, changes: List&lt;Change&gt;, initialKey: Secp256r1KeyPair?)</ID>
+    <ID>CyclomaticComplexMethod:Stream.kt$Stream$private suspend fun connectInternal()</ID>
+    <ID>CyclomaticComplexMethod:Stream.kt$SubscriptionController$suspend fun startWatchingSubscriptions()</ID>
+    <ID>EmptyFunctionBlock:FastpathClientTests.kt$FastpathClientTests.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:LargePayloadTests.kt$LargePayloadTests.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:LockerClientTests.kt$LockerClientTests.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:LockerSyncCoordinatorTest.kt$SharedReadTelemetryTest.&lt;no name provided&gt;.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:NotificationCodecTests.kt$NotificationCodecTests.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:PushRegistrationTests.kt$PushRegistrationTests.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:RoutingRpcClientTests.kt$RoutingRpcClientTests.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:StreamTests.kt$StreamTests.&lt;no name provided&gt;${ }</ID>
+    <ID>EmptyFunctionBlock:StreamTests.kt$StreamTests.FixedKeySource${}</ID>
+    <ID>LargeClass:LockerClientTests.kt$LockerClientTests</ID>
+    <ID>LongMethod:LockerClient.kt$LockerClient$private suspend fun updateLockerSerialized( roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.(Locker?) -&gt; Unit = {}, ratchet: Boolean = false, transform: suspend (ByteArray) -&gt; ByteArray, ): Locker?</ID>
+    <ID>LongMethod:LockerClient.kt$LockerClient$private suspend fun updateLockersObserved(roomId: RoomId, changes: List&lt;Change&gt;, initialKey: Secp256r1KeyPair?)</ID>
+    <ID>LongMethod:Stream.kt$Stream$private suspend fun connectInternal()</ID>
+    <ID>LongParameterList:LockerClient.kt$LockerClient$( rpcClient: RpcClient, private val stream: Stream, private val lockerStore: LockerStore, private val lockKeySource: LockKeySource? = null, codecs: NotificationCodecs = NotificationCodecs.identity(), internal val log: KmLog = logging(), private val telemetry: LockersTelemetry = LockersTelemetry.NONE, )</ID>
+    <ID>LongParameterList:LockersClient.kt$LockersClient.Companion$( rpcClient: RpcClient, database: Database, keyValueStore: KeyValueStore, keySource: AuthenticationKeySource, appVersion: Version, lockKeySource: LockKeySource? = null, codecs: NotificationCodecs = NotificationCodecs.identity(), telemetry: LockersTelemetry = LockersTelemetry.NONE, )</ID>
+    <ID>LoopWithTooManyJumpStatements:Stream.kt$SubscriptionController$for</ID>
+    <ID>MagicNumber:LockerClient.kt$6</ID>
+    <ID>MagicNumber:LockerClient.kt$LockerClient$1024</ID>
+    <ID>MagicNumber:LockerClient.kt$LockerClient$32</ID>
+    <ID>MagicNumber:LockerClient.kt$LockerClient$5_000</ID>
+    <ID>MagicNumber:LockerClient.kt$LockerClient$64</ID>
+    <ID>MagicNumber:LockerClient.kt$LockerClient$8</ID>
+    <ID>MagicNumber:LockerSyncCoordinator.kt$LockerSyncCoordinator$4</ID>
+    <ID>MagicNumber:PushRegistration.kt$PushBackendType.WEB_PUSH$3</ID>
+    <ID>MagicNumber:PushRegistrationDefinitionsV1.kt$16</ID>
+    <ID>MagicNumber:PushRegistrationDefinitionsV1.kt$24</ID>
+    <ID>MagicNumber:PushRegistrationDefinitionsV1.kt$8</ID>
+    <ID>MagicNumber:Stream.kt$20</ID>
+    <ID>MagicNumber:Stream.kt$64</ID>
+    <ID>MagicNumber:Stream.kt$Stream$32</ID>
+    <ID>MaxLineLength:FastpathClientTests.kt$FastpathClientTests$@Test</ID>
+    <ID>MaxLineLength:FastpathClientTests.kt$FastpathClientTests$return</ID>
+    <ID>MaxLineLength:FastpathClientTests.kt$FastpathClientTests.&lt;no name provided&gt;$override suspend</ID>
+    <ID>MaxLineLength:FastpathClientTests.kt$FastpathClientTests.&lt;no name provided&gt;$}</ID>
+    <ID>MaxLineLength:LargePayloadTests.kt$LargePayloadTests$LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER, keyspace = KEYSPACE, lockerRawValue = lockerId.rawValue)</ID>
+    <ID>MaxLineLength:LargePayloadTests.kt$LargePayloadTests$assertContentEquals(payload, read?.locker?.let { l -&gt; l.open?.encodedPayload ?: l.sealed?.payload?.enclosure?.innerPayload })</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$(stored.version == update.version &amp;&amp; (stored.deleted || stored.lockerPayload.contentEquals(update.payload)))</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$)</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$LockGrant(scope, Secp256R1Key.PublicKey(public), signatureOf(key, LockerSigning.grantContext(roomId, scope, public)))</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$accept(LockerUpdate(roomId, change.lockerId!!, result.version, change.locker!!.plaintextPayload()))</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$accept(LockerUpdate(roomId, lockerId, version, body!!.plaintextPayload(), deleted = false, roomSequence = event.roomSequence))</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$accept(LockerUpdate(roomId, lockerId, version, byteArrayOf(), deleted = true, roomSequence = event.roomSequence))</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$changes.filter { it.roomId == roomId &amp;&amp; it.lockerId.keyspaceOrDefault() == keyspace }.collect { merge(it) }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$current[changes[index].lockerId] = item.version to (item.existingLocker?.plaintextPayload() ?: byteArrayOf())</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$else</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$if (!caps.getLockers) return coroutineScope { lockerIds.map { id -&gt; async { fetchLocker(roomId, id) } }.awaitAll() }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$if (e.code == com.latenighthack.ktbuf.proto.Codes.UNIMPLEMENTED || e.code == com.latenighthack.ktbuf.proto.Codes.NOT_FOUND) CapabilitiesResponse() else throw e</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$if (response.agentFailed || response.agentPending) throw LockerWriteException("batch committed; agent ${if (response.agentPending) "pending" else "failed"}")</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$if (result.agentFailed || result.agentPending) throw LockerWriteException("source write committed, but game agent failed ($writeContext)")</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$is PostLockerChangesResponse.Result.NOT_OWNER -&gt; { recordRoomRedirect(roomId, response.redirect); retry() }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$log.debug { "updated locker=${lockerId.toLogString()} result=${result.result} version=${result.version}" }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$private suspend</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$require(changes.isNotEmpty() &amp;&amp; changes.size &lt;= 64 &amp;&amp; changes.map { it.lockerId }.distinct().size == changes.size)</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$suspend</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$sync.mutate(roomId to lockerId) { telemetry.observe(TelemetryOperation.CONNECTOR_DELETE) { deleteLockerSerialized(roomId, lockerId, notificationBuilder) } }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$val lock = lockLocker(roomId, LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM), initialKey, initialKey)</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$val response = roomService.subscribeAndSnapshot(SubscribeAndSnapshotRequest(roomId = room, sessionId = session))</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient.LockerUpdate(roomId, lockerId!!, version, locker?.plaintextPayload() ?: byteArrayOf(), deleted = locker == null, roomSequence = roomSequence)</ID>
+    <ID>MaxLineLength:LockerClient.kt$TypedLockerClient$"LockerId keyspace ${existing?.value} does not match this client's keyspace ${this@TypedLockerClient.keyspace.value}"</ID>
+    <ID>MaxLineLength:LockerClient.kt$TypedLockerClient$fun</ID>
+    <ID>MaxLineLength:LockerClient.kt$TypedLockerClient$private</ID>
+    <ID>MaxLineLength:LockerClient.kt$writeRetryLog.debug { "locker write attempt failed (${e::class.simpleName}: ${e.message})\n${e.stackTraceToString()}" }</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$.</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$assertEquals("locked", owner.typedClient.updateLocker(roomId, inKeyspace) { it.copy { title = "locked" } }?.title)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$assertTrue(a.typedClient.lockLocker(roomId, lockerScope(lockerId), keyPair).result is LockLockerResponse.Result.OK)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$assertTrue(fetched == null || fetched.locker == null || fetched.locker?.open?.encodedPayload?.isEmpty() != false)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$assertTrue(owner.typedClient.lockLocker(roomId, keyspaceScope, keyspaceKey, parentKeyPair = roomKey).result is LockLockerResponse.Result.OK)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$assertTrue(owner.typedClient.lockLocker(roomId, lockerScope(lockedId), keyPair).result is LockLockerResponse.Result.OK)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$assertTrue(owner.typedClient.lockLocker(roomId, lockerScope(lockerId), keyPair).result is LockLockerResponse.Result.OK)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$assertTrue(owner.typedClient.lockLocker(roomId, lockerScope(lockerId), lockerKey, parentKeyPair = keyspaceKey).result is LockLockerResponse.Result.OK)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$assertTrue(owner.typedClient.lockLocker(roomId, lockerScope(lockerId), oldKey).result is LockLockerResponse.Result.OK)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$assertTrue(owner.typedClient.lockLocker(roomId, lockerScope(lockerId), ownerKey).result is LockLockerResponse.Result.OK)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$fun</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$if (method.methodName == "PostLockerChange" &amp;&amp; attempt &lt;= 2) throw FaultInjectingRpcClient.rpcError(Codes.UNAVAILABLE)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$val gameClient = TypedLockerClient(ctx.client, GAME_KEYSPACE, ExampleLocker::toByteArray, ExampleLocker.Companion::fromByteArray)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$val gameClient = ctx.lockers.typed(GAME_KEYSPACE, ExampleLocker::toByteArray, ExampleLocker.Companion::fromByteArray)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$val gameTyped = owner.lockers.typed(GAME_KEYSPACE, ExampleLocker::toByteArray, ExampleLocker.Companion::fromByteArray)</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$val result = ctx.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "change-test"; sequenceNumber = 42 } }</ID>
+    <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$val typedClient = lockers.typed(DEFAULT_KEYSPACE, ExampleLocker::toByteArray, ExampleLocker.Companion::fromByteArray)</ID>
+    <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$override suspend</ID>
+    <ID>MaxLineLength:LockerStoreDefinitionsV1.kt$LockerStoreImplDefinitionV1$val lockerIdKey = bytesIndex(IndexName("lockerIdRawValuebyteArrayIdentity"), StoredLocker::lockerIdKeyStorage, "byteArrayIdentity-v1")</ID>
+    <ID>MaxLineLength:LockerStoreDefinitionsV1.kt$LockerStoreImplDefinitionV1$val roomIdKey = bytesIndex(IndexName("roomIdRawValuebyteArrayIdentity"), StoredLocker::roomIdKeyStorage, "byteArrayIdentity-v1")</ID>
+    <ID>MaxLineLength:LockerStoreDefinitionsV1.kt$LockerStoreImplDefinitionV1$val roomIdLockerIdLockerKeyspaceKey = compositeIndex(IndexName("composite_roomIdRawValuebyteArrayIdentity_lockerIdRawValuebyteArrayIdentity_lockerKeyspace"), roomIdKey, lockerIdKey, lockerKeyspaceKey).also { primaryKey(it) }</ID>
+    <ID>MaxLineLength:LockerStoreDefinitionsV1.kt$LockerStoreImplDefinitionV1$val roomIdLockerKeyspaceKey = compositeIndex(IndexName("composite_roomIdRawValuebyteArrayIdentity_lockerKeyspace"), roomIdKey, lockerKeyspaceKey)</ID>
+    <ID>MaxLineLength:LockerSyncCoordinator.kt$LockerSyncCoordinator$internal</ID>
+    <ID>MaxLineLength:LockerSyncCoordinator.kt$LockerSyncCoordinator$suspend fun &lt;T&gt; network(interactive: Boolean = true, operation: suspend () -&gt; T): T</ID>
+    <ID>MaxLineLength:LockerSyncCoordinator.kt$PriorityNetworkGate$val next = if (writes.isNotEmpty()) writes.removeFirst() else if (reads.isNotEmpty()) reads.removeFirst() else null</ID>
+    <ID>MaxLineLength:LockerSyncCoordinatorTest.kt$LockerSyncCoordinatorTest$(0 until 20).map { async { coordinator.mutate("locker") { val read = version; yield(); version = read + 1 } } }.awaitAll()</ID>
+    <ID>MaxLineLength:LockerSyncCoordinatorTest.kt$LockerSyncCoordinatorTest$val occupied = (0 until 4).map { async(start = CoroutineStart.UNDISPATCHED) { coordinator.network(false) { release.receive() } } }</ID>
+    <ID>MaxLineLength:LockerSyncCoordinatorTest.kt$LockerSyncCoordinatorTest$val second = async(start = CoroutineStart.UNDISPATCHED) { coordinator.read&lt;Int&gt;("room") { error("duplicate hydration") } }</ID>
+    <ID>MaxLineLength:LockerSyncCoordinatorTest.kt$SharedReadTelemetryTest$val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)</ID>
+    <ID>MaxLineLength:LockerSyncCoordinatorTest.kt$SharedReadTelemetryTest.&lt;no name provided&gt;$override suspend</ID>
+    <ID>MaxLineLength:LockersClient.kt$LockersClient.Companion$val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs, telemetry = telemetry)</ID>
+    <ID>MaxLineLength:LockersClient.kt$LockersClient.Companion$val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId, telemetry)</ID>
+    <ID>MaxLineLength:NotificationCodec.kt$NotificationCodecs$suspend</ID>
+    <ID>MaxLineLength:NotificationCodecTests.kt$NotificationCodecTests$fun</ID>
+    <ID>MaxLineLength:NotificationCodecTests.kt$NotificationCodecTests$typed.updateLocker(roomId, randomLockerId(KEYSPACE), { payload { rawValue = byteArrayOf(0x00, 0x63) } }) { it.copy { } }</ID>
+    <ID>MaxLineLength:NotificationCodecTests.kt$NotificationCodecTests$typed.updateLocker(roomId, randomLockerId(KEYSPACE), { payload { rawValue = byteArrayOf(0x01, 0x6B) } }) { it.copy { } }</ID>
+    <ID>MaxLineLength:NotificationCodecTests.kt$NotificationCodecTests$typedDefault.notifications.onStart { ready.complete(Unit) }.first().let { defaultPayload.complete(it.payload) }</ID>
+    <ID>MaxLineLength:NotificationCodecTests.kt$NotificationCodecTests$typedDefault.updateLocker(roomId, randomLockerId(KEYSPACE), { payload { rawValue = byteArrayOf(0x10) } }) { it.copy { } }</ID>
+    <ID>MaxLineLength:NotificationCodecTests.kt$NotificationCodecTests$typedOther.updateLocker(roomId, randomLockerId(OTHER_KEYSPACE), { payload { rawValue = byteArrayOf(0x10) } }) { it.copy { } }</ID>
+    <ID>MaxLineLength:NotificationCodecTests.kt$NotificationCodecTests$val typedOther = client.typed(OTHER_KEYSPACE, ExampleLocker::toByteArray, ExampleLocker.Companion::fromByteArray)</ID>
+    <ID>MaxLineLength:PortableContractTest.kt$PortableContractTest$val context = NotificationContext(RoomId(byteArrayOf(1)), LockerId(byteArrayOf(2), space), space, "title", "body")</ID>
+    <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$sendRegister(sessionId, stored.backend, PushRegistration.fromByteArray(stored.encodedRegistration))</ID>
+    <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$telemetry</ID>
+    <ID>MaxLineLength:PushRegistration.kt$PushRegistrationStoreImpl$class</ID>
+    <ID>MaxLineLength:PushRegistration.kt$PushRegistrationStoreImpl$override suspend fun getRegistration(backend: Int): StoredPushRegistration?</ID>
+    <ID>MaxLineLength:PushRegistrationDefinitionsV1.kt$PushRegistrationStoreImplDefinitionV1$StoreName("push_registrations")</ID>
+    <ID>MaxLineLength:PushRegistrationDefinitionsV1.kt$PushRegistrationStoreImplDefinitionV1$val backendKey = bytesIndex(IndexName("backendintToBytes"), StoredPushRegistration::backendKeyStorage, "intToBytes-v1").also { primaryKey(it) }</ID>
+    <ID>MaxLineLength:RoutingRpcClientTests.kt$RoutingRpcClientTests$clientFactory = { address -&gt; owners.getOrPut(address) { FakeNode(address, ownerHits) { _, _ -&gt; okBytes } } }</ID>
+    <ID>MaxLineLength:StorageAdoptionTest.kt$StorageAdoptionTest$"acks" to StoreRow(hex("0a0101120102a00607"), listOf(BoundStoreKey.SerializedKey("roomIdRawValuebyteArrayIdentity", hex("01")), BoundStoreKey.SerializedKey("eventIdRawValuebyteArrayIdentity", hex("02"))))</ID>
+    <ID>MaxLineLength:StorageAdoptionTest.kt$StorageAdoptionTest$"lockers" to StoreRow(hex("0a01011201021803220104a00607"), listOf(BoundStoreKey.SerializedKey("roomIdRawValuebyteArrayIdentity", hex("01")), BoundStoreKey.SerializedKey("lockerIdRawValuebyteArrayIdentity", hex("02")), BoundStoreKey.LongKey("lockerKeyspace", 3L)))</ID>
+    <ID>MaxLineLength:StorageAdoptionTest.kt$StorageAdoptionTest$"push_registrations" to StoreRow(hex("08011201041801a00607"), listOf(BoundStoreKey.SerializedKey("backendintToBytes", hex("00000001"))))</ID>
+    <ID>MaxLineLength:StorageAdoptionTest.kt$StorageAdoptionTest$"subscriptions" to StoreRow(hex("0a01011801a00607"), listOf(BoundStoreKey.SerializedKey("roomIdRawValuebyteArrayIdentity", hex("01"))))</ID>
+    <ID>MaxLineLength:StorageAdoptionTest.kt$StorageAdoptionTest$assertContentEquals(expected.data as ByteArray, get(StoreName(table), StoreRelation.Eq(key)) as ByteArray)</ID>
+    <ID>MaxLineLength:Stream.kt$SessionStore$suspend fun hasReceived(ack: StoredAck): Boolean</ID>
+    <ID>MaxLineLength:Stream.kt$SessionStoreImpl$class</ID>
+    <ID>MaxLineLength:Stream.kt$SessionStoreImpl$override suspend fun getSessionId(): SessionId?</ID>
+    <ID>MaxLineLength:Stream.kt$Stream$private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource, telemetry = telemetry)</ID>
+    <ID>MaxLineLength:Stream.kt$Stream$telemetry.safeEvent(TelemetryEvent(TelemetryOperation.CONNECTOR_OPEN, TelemetryOutcome.OK, tracing?.traceId, tracing?.spanId))</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionStoreImpl$class</ID>
+    <ID>MaxLineLength:StreamDefinitionsV1.kt$SessionStoreImplDefinitionV1$val eventIdKey = bytesIndex(IndexName("eventIdRawValuebyteArrayIdentity"), StoredAck::eventIdKeyStorage, "byteArrayIdentity-v1")</ID>
+    <ID>MaxLineLength:StreamDefinitionsV1.kt$SessionStoreImplDefinitionV1$val roomIdEventIdKey = compositeIndex(IndexName("composite_roomIdRawValuebyteArrayIdentity_eventIdRawValuebyteArrayIdentity"), roomIdKey, eventIdKey).also { primaryKey(it) }</ID>
+    <ID>MaxLineLength:StreamDefinitionsV1.kt$SessionStoreImplDefinitionV1$val roomIdKey = bytesIndex(IndexName("roomIdRawValuebyteArrayIdentity"), StoredAck::roomIdKeyStorage, "byteArrayIdentity-v1")</ID>
+    <ID>MaxLineLength:StreamDefinitionsV1.kt$SubscriptionStoreImplDefinitionV1$StoreName("subscriptions")</ID>
+    <ID>MaxLineLength:StreamDefinitionsV1.kt$SubscriptionStoreImplDefinitionV1$val roomIdKey = bytesIndex(IndexName("roomIdRawValuebyteArrayIdentity"), StoredSubscription::roomIdKeyStorage, "byteArrayIdentity-v1").also { primaryKey(it) }</ID>
+    <ID>MaxLineLength:StreamTests.kt$StreamTests$fun</ID>
+    <ID>MaxLineLength:StreamTests.kt$StreamTests$val stream = Stream(faulty, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, Version(0, 0, 1))</ID>
+    <ID>MaxLineLength:StreamTests.kt$StreamTests$val stream1 = Stream(rpcClient, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, version)</ID>
+    <ID>MaxLineLength:StreamTests.kt$StreamTests$val stream2 = Stream(rpcClient, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, version)</ID>
+    <ID>MaxLineLength:SubscriptionRecoveryTests.kt$SubscriptionRecoveryTests.GatedClient$override suspend</ID>
+    <ID>MayBeConst:Stream.kt$SessionStoreImpl.Companion$private val NEXT_SEQUENCE_KEY = "next_sequence_bytes"</ID>
+    <ID>MayBeConst:Stream.kt$SessionStoreImpl.Companion$private val SESSION_ID_KEY = "session_id"</ID>
+    <ID>MayBeConst:Stream.kt$Stream.Companion$val PING_TIMEOUT = 60_000L</ID>
+    <ID>MayBeConst:Stream.kt$Stream.Companion$val RECONNECT_DELAY_MILLIS = 1_000L</ID>
+    <ID>SwallowedException:Stream.kt$Stream$e: Exception</ID>
+    <ID>SwallowedException:Stream.kt$Stream$e: FatalStreamException</ID>
+    <ID>ThrowsCount:LockerClient.kt$LockerClient$private suspend fun deleteLockerSerialized( roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.() -&gt; Unit = {} )</ID>
+    <ID>ThrowsCount:LockerClient.kt$LockerClient$private suspend fun updateLockerSerialized( roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.(Locker?) -&gt; Unit = {}, ratchet: Boolean = false, transform: suspend (ByteArray) -&gt; ByteArray, ): Locker?</ID>
+    <ID>ThrowsCount:LockerClient.kt$LockerClient$private suspend fun updateLockersObserved(roomId: RoomId, changes: List&lt;Change&gt;, initialKey: Secp256r1KeyPair?)</ID>
+    <ID>ThrowsCount:Stream.kt$Stream$private suspend fun connectInternal()</ID>
+    <ID>TooGenericExceptionCaught:LockerClient.kt$LockerClient$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:Stream.kt$Stream$e: Exception</ID>
+    <ID>TooGenericExceptionThrown:Stream.kt$Stream$throw Exception("Failed to open session: ${open.result}")</ID>
+    <ID>TooGenericExceptionThrown:Stream.kt$Stream$throw Exception("Received null response")</ID>
+    <ID>TooManyFunctions:LockerClient.kt$LockerClient</ID>
+    <ID>TooManyFunctions:LockerClient.kt$TypedLockerClient&lt;ValueType&gt;</ID>
+    <ID>UnusedPrivateMember:RoutingRpcClientTests.kt$RoutingRpcClientTests$private fun postRequest(roomId: RoomId, lockerId: LockerId)</ID>
+    <ID>UnusedPrivateProperty:Stream.kt$Stream$private val appVersion: Version</ID>
+    <ID>UnusedPrivateProperty:Stream.kt$SubscriptionController$private val log: KmLog = logging()</ID>
+    <ID>UnusedPrivateProperty:StreamTests.kt$StreamTests$val postResponse = roomRpc.postLockerChange(PostLockerChangeRequest { roomId = testRoomId lockerId = testLockerId parentVersion = 0 locker { open { encodedPayload = byteArrayOf() } } notification { push { title = "This is..." body = "...a test" } payload { rawValue = byteArrayOf(1, 2, 3) } } })</ID>
+    <ID>VariableNaming:LargePayloadTests.kt$LargePayloadTests$private val KEYSPACE = LockerKeyspace { value = 17L }</ID>
+    <ID>VariableNaming:LockerClientTests.kt$LockerClientTests$private val DEFAULT_KEYSPACE = LockerKeyspace { value = 1L }</ID>
+    <ID>VariableNaming:LockerClientTests.kt$LockerClientTests$private val GAME_KEYSPACE = LockerKeyspace { value = 30L }</ID>
+    <ID>VariableNaming:NotificationCodecTests.kt$NotificationCodecTests$private val KEYSPACE = LockerKeyspace { value = 1L }</ID>
+    <ID>VariableNaming:NotificationCodecTests.kt$NotificationCodecTests$private val OTHER_KEYSPACE = LockerKeyspace { value = 30L }</ID>
+    <ID>VariableNaming:PushRegistrationTests.kt$PushRegistrationTests$private val KEYSPACE = LockerKeyspace { value = 1L }</ID>
+    <ID>WildcardImport:ConnectorStorage.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:FastpathClientTests.kt$import com.latenighthack.ktbuf.net.*</ID>
+    <ID>WildcardImport:FastpathClientTests.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:FastpathClientTests.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:FastpathClientTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:FastpathClientTests.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:FastpathClientTests.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:FastpathClientTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:FastpathClientTests.kt$import kotlinx.coroutines.flow.*</ID>
+    <ID>WildcardImport:LockSigningRoundTripTest.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:LockSigningRoundTripTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:LockerClient.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:LockerClient.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:LockerClient.kt$import com.latenighthack.lockers.observability.*</ID>
+    <ID>WildcardImport:LockerClient.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:LockerClient.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:LockerClient.kt$import kotlinx.coroutines.flow.*</ID>
+    <ID>WildcardImport:LockerClientTests.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:LockerClientTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:LockerClientTests.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:LockerClientTests.kt$import com.latenighthack.lockers.example.v1.*</ID>
+    <ID>WildcardImport:LockerClientTests.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:LockerClientTests.kt$import com.latenighthack.lockers.server.*</ID>
+    <ID>WildcardImport:LockerClientTests.kt$import io.ktor.server.application.*</ID>
+    <ID>WildcardImport:LockerClientTests.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:LockerClientTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:LockerClientTests.kt$import kotlinx.coroutines.flow.*</ID>
+    <ID>WildcardImport:LockerStore.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:LockerStoreDefinitionsV1.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:LockerSyncCoordinator.kt$import com.latenighthack.lockers.observability.*</ID>
+    <ID>WildcardImport:LockerSyncCoordinator.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:LockerSyncCoordinatorTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:LockerSyncCoordinatorTest.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:LockersClient.kt$import com.latenighthack.lockers.observability.*</ID>
+    <ID>WildcardImport:NotificationCodec.kt$import com.latenighthack.lockers.observability.*</ID>
+    <ID>WildcardImport:NotificationCodecTests.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:NotificationCodecTests.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:NotificationCodecTests.kt$import com.latenighthack.lockers.example.v1.*</ID>
+    <ID>WildcardImport:NotificationCodecTests.kt$import com.latenighthack.lockers.server.*</ID>
+    <ID>WildcardImport:PersistentStorageContract.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:PersistentStorageContract.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:PortableContractTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:PortableContractTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:PushRegistration.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:PushRegistration.kt$import com.latenighthack.lockers.observability.*</ID>
+    <ID>WildcardImport:PushRegistration.kt$import com.latenighthack.lockers.push.v1.*</ID>
+    <ID>WildcardImport:PushRegistrationDefinitionsV1.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:PushRegistrationDefinitionsV1.kt$import com.latenighthack.lockers.push.v1.*</ID>
+    <ID>WildcardImport:PushRegistrationTests.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:PushRegistrationTests.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:PushRegistrationTests.kt$import com.latenighthack.lockers.example.v1.*</ID>
+    <ID>WildcardImport:PushRegistrationTests.kt$import com.latenighthack.lockers.server.*</ID>
+    <ID>WildcardImport:ShardedRoomServiceRpc.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:StorageAdoptionTest.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:StorageAdoptionTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:Stream.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:Stream.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:Stream.kt$import com.latenighthack.lockers.connector.storage.v1.*</ID>
+    <ID>WildcardImport:Stream.kt$import com.latenighthack.lockers.observability.*</ID>
+    <ID>WildcardImport:Stream.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:Stream.kt$import com.latenighthack.lockers.session.v1.*</ID>
+    <ID>WildcardImport:Stream.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:Stream.kt$import kotlinx.coroutines.flow.*</ID>
+    <ID>WildcardImport:StreamDefinitionsV1.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:StreamDefinitionsV1.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:StreamDefinitionsV1.kt$import com.latenighthack.lockers.connector.storage.v1.*</ID>
+    <ID>WildcardImport:StreamDefinitionsV1.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:StreamDefinitionsV1.kt$import com.latenighthack.lockers.session.v1.*</ID>
+    <ID>WildcardImport:StreamDefinitionsV1.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:StreamDefinitionsV1.kt$import kotlinx.coroutines.flow.*</ID>
+    <ID>WildcardImport:StreamTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:StreamTests.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:StreamTests.kt$import com.latenighthack.lockers.server.*</ID>
+    <ID>WildcardImport:StreamTests.kt$import io.ktor.server.application.*</ID>
+    <ID>WildcardImport:StreamTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:SubscriptionRecoveryTests.kt$import com.latenighthack.ktbuf.net.*</ID>
+    <ID>WildcardImport:SubscriptionRecoveryTests.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:SubscriptionRecoveryTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:SubscriptionRecoveryTests.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:SubscriptionRecoveryTests.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:SubscriptionRecoveryTests.kt$import com.latenighthack.lockers.server.*</ID>
+    <ID>WildcardImport:SubscriptionRecoveryTests.kt$import io.ktor.server.application.*</ID>
+    <ID>WildcardImport:SubscriptionRecoveryTests.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:SubscriptionRecoveryTests.kt$import kotlinx.coroutines.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,0 +1,10 @@
+build:
+  maxIssues: 0
+config:
+  validation: true
+coroutines:
+  active: true
+  GlobalCoroutineUsage:
+    active: true
+  SuspendFunSwallowedCancellation:
+    active: true

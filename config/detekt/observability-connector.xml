@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>MagicNumber:ConnectorTelemetry.kt$ConnectorTelemetry$1_000_000</ID>
+    <ID>MagicNumber:ConnectorTelemetry.kt$ConnectorTelemetry$1_000_000_000.0</ID>
+    <ID>MagicNumber:ConnectorTelemetry.kt$ConnectorTelemetry$256</ID>
+    <ID>MagicNumber:ConnectorTelemetry.kt$ConnectorTelemetry$2_000</ID>
+    <ID>MagicNumber:ConnectorTelemetry.kt$ConnectorTelemetry$5_000</ID>
+    <ID>MagicNumber:ConnectorTelemetry.kt$ConnectorTelemetry$86_400_000_000_000L</ID>
+    <ID>MaxLineLength:ConnectorTelemetry.kt$ConnectorTelemetry$fun offer(span: ClientTelemetrySpan)</ID>
+    <ID>MaxLineLength:ConnectorTelemetry.kt$ConnectorTelemetry$if (TelemetryContract.encode(batch).encodeToByteArray().size &gt; TelemetryContract.MAX_BYTES) { retainLosses(); lost(TelemetryLoss.OVERSIZE); return }</ID>
+    <ID>MaxLineLength:ConnectorTelemetry.kt$ConnectorTelemetry$if (batch.isNotEmpty()) { send(ClientTelemetryBatch(platform = platform, diagnostics = batch)); true } else false</ID>
+    <ID>MaxLineLength:ConnectorTelemetry.kt$ConnectorTelemetry$if (cell.count &gt;= 1_000_000) state else state + (key to cell.copy(count = cell.count + 1, sumSeconds = cell.sumSeconds + seconds, buckets = cell.buckets.mapIndexed { i, n -&gt; if (i == bucket) n + 1 else n }))</ID>
+    <ID>MaxLineLength:ConnectorTelemetry.kt$ConnectorTelemetry$if (drained.isNotEmpty() || lost.isNotEmpty()) send(ClientTelemetryBatch(platform = platform, measurements = drained, losses = lost))</ID>
+    <ID>MaxLineLength:ConnectorTelemetry.kt$ConnectorTelemetry$override fun event(event: TelemetryEvent)</ID>
+    <ID>MaxLineLength:ConnectorTelemetry.kt$ConnectorTelemetry$private fun lost(reason: TelemetryLoss, count: Long = 1)</ID>
+    <ID>MaxLineLength:ConnectorTelemetry.kt$ConnectorTelemetry$private val diagnosticsWorker = workerScope.launch { while (isActive) { delay(diagnosticsIntervalMillis); flushDiagnostics() } }</ID>
+    <ID>MaxLineLength:ConnectorTelemetry.kt$ConnectorTelemetry$val bucket = TelemetryContract.latencyBucketsSeconds.indexOfFirst { seconds &lt;= it }.let { if (it &lt; 0) TelemetryContract.latencyBucketsSeconds.size else it }</ID>
+    <ID>MaxLineLength:ConnectorTelemetry.kt$ConnectorTelemetry$val cell = state[key] ?: ClientMeasurement(operation, outcome, 0, 0.0, List(TelemetryContract.latencyBucketsSeconds.size + 1) { 0 })</ID>
+    <ID>MaxLineLength:ConnectorTelemetry.kt$ConnectorTelemetry$val lost = losses.getAndUpdate { TelemetryLoss.entries.associateWith { 0L } }.filterValues { it &gt; 0 }.map { ClientLoss(it.key, it.value) }</ID>
+    <ID>MaxLineLength:ConnectorTelemetry.kt$ConnectorTelemetry$workerScope.launch { try { withTimeout(2_000) { flushMetrics(); while (flushDiagnostics()) yield() } } finally { job.cancel() } }</ID>
+    <ID>MaxLineLength:ConnectorTelemetryTest.kt$ConnectorTelemetryTest$assertEquals(1000, batches.single().measurements.single().buckets[2])</ID>
+    <ID>MaxLineLength:ConnectorTelemetryTest.kt$ConnectorTelemetryTest$val collector = ConnectorTelemetry(ClientPlatform.ANDROID, ClientTelemetryTransport { active++; peak = maxOf(peak,active); delay(10); active-- }, scope = backgroundScope)</ID>
+    <ID>MaxLineLength:ConnectorTelemetryTest.kt$ConnectorTelemetryTest$val collector = ConnectorTelemetry(ClientPlatform.IOS, ClientTelemetryTransport { awaitCancellation() }, scope = backgroundScope)</ID>
+    <ID>MaxLineLength:ConnectorTelemetryTest.kt$ConnectorTelemetryTest$val collector = ConnectorTelemetry(ClientPlatform.JS, ClientTelemetryTransport { batches += it }, scope = backgroundScope)</ID>
+    <ID>MaxLineLength:ConnectorTelemetryTest.kt$ConnectorTelemetryTest$val collector = ConnectorTelemetry(ClientPlatform.JVM, ClientTelemetryTransport { batches += it; if(fail) error("offline") }, scope = backgroundScope)</ID>
+    <ID>WildcardImport:ConnectorTelemetry.kt$import com.latenighthack.lockers.observability.*</ID>
+    <ID>WildcardImport:ConnectorTelemetry.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:ConnectorTelemetry.kt$import kotlinx.coroutines.flow.*</ID>
+    <ID>WildcardImport:ConnectorTelemetryTest.kt$import com.latenighthack.lockers.observability.*</ID>
+    <ID>WildcardImport:ConnectorTelemetryTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:ConnectorTelemetryTest.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:ConnectorTelemetryTest.kt$import kotlinx.coroutines.test.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

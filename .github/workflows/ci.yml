@@ -54,7 +54,7 @@ jobs:
           name: lockers-monitoring
           path: observability-server/build/distributions/*.zip
 
-      - name: Static analysis (detekt, advisory)
+      - name: Static analysis (detekt, enforced)
         run: ./gradlew detekt
 
   monitoring:
