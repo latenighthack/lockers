@@ -12,6 +12,7 @@ import com.latenighthack.ktbuf.rpc.repeatWithBackoff
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.lockers.common.LockerSigning
 import com.latenighthack.lockers.common.v1.*
+import com.latenighthack.lockers.connector.internal.PendingRatchet
 import com.latenighthack.lockers.connector.internal.LockerStore
 import com.latenighthack.lockers.connector.internal.ShardedRoomServiceRpc
 import com.latenighthack.lockers.connector.storage.v1.StoredLocker
@@ -271,7 +272,11 @@ private val writeRetryLog = com.diamondedge.logging.logging("LockerWriteRetry")
  * exhausted. Distinguishes a failed write from a merely slow one; without it a
  * permanent server error would retry forever.
  */
-class LockerWriteException(message: String, cause: Throwable? = null) : Exception(message, cause)
+open class LockerWriteException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/** The source and authority committed successfully; only derived work is incomplete. */
+class LockerSourceCommittedException(val version: Long, val agentPending: Boolean) :
+    LockerWriteException("Source committed at version $version; agent ${if (agentPending) "pending" else "failed"}")
 
 class LockerClient(
     rpcClient: RpcClient,
@@ -348,6 +353,11 @@ class LockerClient(
         stream.acceptEvent = { processEvent(it) }
 
         stream.hydrateSubscription = { room, session -> hydrateRoom(room, session) }
+        processingScope.launch {
+            repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
+                lockerStore.pendingRatchets().forEach { recoverRatchet(it) }; Unit
+            }
+        }
     }
 
     private suspend fun hydrateRoom(room: RoomId, session: SessionId? = stream.sessionId.value): List<IdentifiedLocker> {
@@ -754,6 +764,7 @@ class LockerClient(
         ratchet: Boolean = false,
         transform: suspend (ByteArray) -> ByteArray,
     ): Locker? {
+        lockerStore.pendingRatchets().filter { it.request.roomId == roomId && it.request.lockerId == lockerId }.forEach { recoverRatchet(it, serialized = true) }
         val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
         var currentPlaintext = cached?.toIdentifiedLocker()?.locker?.plaintextPayload() ?: byteArrayOf()
         var parentVersion = cached?.version ?: 0L
@@ -766,7 +777,9 @@ class LockerClient(
         val writeContext = "room=${roomId.toLogString()} locker=${lockerId.toLogString()} signed=${signingKey != null}"
 
         val supportsReceipts = capabilities().writeReceipts
+        if (pendingRatchetKey != null && !supportsReceipts) throw LockerWriteException("Ratchets require durable server write receipts")
         var submitted: PostLockerChangeRequest? = null
+        var committedAgentStatus: PostLockerChangeResponse? = null
         val updatedLocker = try {
             repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
                 val newPlaintext = transform(currentPlaintext)
@@ -790,16 +803,20 @@ class LockerClient(
                     if (ratchetMsg != null) this.ratchet = ratchetMsg
 
                     this.notification = notif
-                }.also { submitted = it }
+                }.also {
+                    if (pendingRatchetKey != null) lockerStore.saveRatchet(PendingRatchet(it, pendingRatchetKey.privateKey.encode()))
+                    submitted = it
+                }
                 val result = sync.network { roomService.postLockerChange(request) }
 
-                if (result.agentFailed || result.agentPending) throw LockerWriteException("source write committed, but game agent failed ($writeContext)")
+                if (result.result.isOk() && (result.agentFailed || result.agentPending)) committedAgentStatus = result
                 log.debug { "updated locker=${lockerId.toLogString()} result=${result.result} version=${result.version}" }
 
                 val locker = when (result.result) {
                     is PostLockerChangeResponse.Result.OK -> request.locker!!
                     is PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION -> {
                         telemetry.safeRecord(TelemetryOperation.CONNECTOR_CONFLICT, TelemetryOutcome.CONFLICT)
+                        submitted?.let { if (pendingRatchetKey != null) lockerStore.clearRatchet(it) }
                         submitted = null
                         currentPlaintext = result.existingLocker?.plaintextPayload() ?: byteArrayOf()
                         parentVersion = result.version
@@ -845,11 +862,41 @@ class LockerClient(
         val result = updatedLocker ?: return null
         if (pendingRatchetKey != null) {
             lockKeySource?.onRatcheted(roomId, lockerId, pendingRatchetKey)
+            submitted?.let { lockerStore.clearRatchet(it) }
         }
         val update = result.toUpdate(roomId)
         accept(update)
+        committedAgentStatus?.let { throw LockerSourceCommittedException(it.version, it.agentPending) }
 
         return result.locker
+    }
+
+    private suspend fun recoverRatchet(pending: PendingRatchet, serialized: Boolean = false) {
+        val request = pending.request
+        val room = requireNotNull(request.roomId)
+        val id = requireNotNull(request.lockerId)
+        suspend fun resolve() {
+            if (lockerStore.pendingRatchets().none { it.request.writeRequestId.contentEquals(request.writeRequestId) }) return
+            val response = sync.network { roomService.postLockerChange(request) }
+            when (response.result) {
+                is PostLockerChangeResponse.Result.OK -> {
+                    val key = requireNotNull(Secp256r1KeyPair.fromPrivateKey(pending.privateKey)) { "Invalid pending ratchet key" }
+                    requireNotNull(lockKeySource) { "Ratchet recovery requires its LockKeySource" }.onRatcheted(room, id, key)
+                    accept(LockerUpdate(room, id, response.version, requireNotNull(request.locker).plaintextPayload()))
+                    lockerStore.clearRatchet(request)
+                }
+                is PostLockerChangeResponse.Result.NOT_OWNER -> {
+                    recordRoomRedirect(room, response.redirect)
+                    throw IllegalStateException("Ratchet recovery needs current owner")
+                }
+                is PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION,
+                is PostLockerChangeResponse.Result.SIGNATURE_INVALID,
+                is PostLockerChangeResponse.Result.SIGNATURE_REQUIRED,
+                is PostLockerChangeResponse.Result.NOT_AUTHORIZED -> lockerStore.clearRatchet(request)
+                else -> throw IllegalStateException("Unresolved ratchet receipt: ${response.result}")
+            }
+        }
+        if (serialized) resolve() else sync.mutate(room to id) { resolve() }
     }
 
     /** Establish a lock at [scope] with [keyPair]. Sign the grant with [parentKeyPair]

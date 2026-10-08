@@ -9,6 +9,7 @@ object ConnectorStorage {
         com.latenighthack.lockers.connector.SubscriptionStoreImplDefinitionV1,
         com.latenighthack.lockers.connector.SessionStoreImplDefinitionV1,
         com.latenighthack.lockers.connector.internal.LockerStoreImplDefinitionV1,
+        com.latenighthack.lockers.connector.internal.RatchetJournalDefinitionV1,
     )
     fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()) =
         definitionDatabaseConfiguration(identity, definitions + additional)

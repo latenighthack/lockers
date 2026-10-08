@@ -10,6 +10,10 @@ import com.latenighthack.lockers.connector.storage.v1.fromByteArray
 import com.latenighthack.lockers.connector.storage.v1.toByteArray
 
 interface LockerStore {
+    suspend fun pendingRatchets(): List<PendingRatchet> = emptyList()
+    suspend fun saveRatchet(value: PendingRatchet): Unit = throw UnsupportedOperationException("Durable ratchet journal required")
+    suspend fun clearRatchet(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest): Unit = throw UnsupportedOperationException("Durable ratchet journal required")
+
     suspend fun saveLocker(locker: StoredLocker)
 
     suspend fun getAllLockers(): List<StoredLocker>
@@ -24,6 +28,10 @@ interface LockerStore {
 }
 
 class LockerStoreImpl(delegate: Database) : LockerStore, Store<StoredLocker>(delegate, LockerStoreImplDefinitionV1) {
+    private val ratchetJournal = RatchetJournal(delegate)
+    override suspend fun pendingRatchets() = ratchetJournal.pending()
+    override suspend fun saveRatchet(value: PendingRatchet) = ratchetJournal.put(value)
+    override suspend fun clearRatchet(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest) = ratchetJournal.remove(request)
     private val roomIdKey = LockerStoreImplDefinitionV1.roomIdKey
     private val lockerIdKey = LockerStoreImplDefinitionV1.lockerIdKey
     private val lockerKeyspaceKey = LockerStoreImplDefinitionV1.lockerKeyspaceKey
