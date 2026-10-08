@@ -21,6 +21,7 @@ service Room {
 }
 
 message SubscriptionRequest {
+  common.v1.SessionProof proof = 20;
   common.v1.SessionId session_id = 1;
   common.v1.RoomId room_id = 2;
 
@@ -206,6 +207,7 @@ message CapabilitiesResponse {
   int32 max_batch_bytes = 6;
 }
 message SubscribeAndSnapshotRequest {
+  common.v1.SessionProof proof = 20;
   common.v1.RoomId room_id = 1;
   common.v1.SessionId session_id = 2;
   repeated common.v1.LockerKeyspace keyspaces = 3;

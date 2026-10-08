@@ -82,6 +82,7 @@ message WatchSessionResponse {
 }
 
 message DestroySessionRequest {
+  common.v1.SessionProof proof = 20;
     common.v1.SessionId session_id = 1;
     common.v1.Signature sequence_key_signature = 2;
 }
