@@ -25,6 +25,17 @@ import kotlin.test.*
 
 /** Source content and ratchet authority must commit together. */
 class RatchetAtomicityRegressionTest {
+    @Test fun ratchetCannotSucceedWithoutACommittedAuthority(): Unit = runBlocking {
+        val s = stores(); val impl = service(s); val rpc = LocalRoomServiceRpc(impl)
+        val old = Secp256r1KeyPair.generate(); val next = Secp256r1KeyPair.generate()
+        try {
+            val response = rpc.postLockerChange(PostLockerChangeRequest(roomId = room, lockerId = id, locker = body(1),
+                ratchet = PostLockerChangeRequest.Ratchet(newPublicKey = Secp256R1Key.PublicKey(next.publicKey.encode()),
+                    signature = Signature(signature = old.privateKey.sign(LockerSigning.ratchetContext(room, id, 0, next.publicKey.encode()))))))
+            assertFalse(response.result.isOk())
+            assertNull(s.lockers.getLocker(ServerRoomId(room.rawValue), 0, ServerLockerId(id.rawValue)))
+        } finally { impl.close() }
+    }
     private val room = RoomId(byteArrayOf(1))
     private val id = LockerId(byteArrayOf(2), LockerKeyspace(0))
     private fun body(n: Int) = Locker { open { encodedPayload = byteArrayOf(n.toByte()) } }

@@ -512,7 +512,8 @@ class RoomServiceImpl(
             )
 
             val effectiveLock = if (prefetchLocks) prefetchedLock else effectiveLockOrNull(requestRoomId, requestLockerId)
-                var effectiveState = effectiveLock?.let { lockVerifier.stateOf(it) }
+            if (request.ratchet != null && effectiveLock == null) return PostLockerChangeResponse(result = PostLockerChangeResponse.Result.NOT_AUTHORIZED)
+            var effectiveState = effectiveLock?.let { lockVerifier.stateOf(it) }
 
             val updatedLockerVersion = if (storedLocker == null && requestVersion == 0L) {
                 1L
