@@ -7,6 +7,7 @@ option java_package = "com.latenighthack.lockers.room.v1";
 import "common/v1/model.proto";
 
 service Room {
+  rpc GetLockScope(GetLockScopeRequest) returns (GetLockScopeResponse);
   rpc Capabilities(CapabilitiesRequest) returns (CapabilitiesResponse);
   rpc SubscribeAndSnapshot(SubscribeAndSnapshotRequest) returns (SubscribeAndSnapshotResponse);
   rpc GetLockers(GetLockersRequest) returns (GetLockersResponse);
@@ -199,6 +200,7 @@ message GetLockerResponse {
 
 message CapabilitiesRequest {}
 message CapabilitiesResponse {
+  bool authority_v2 = 7;
   bool subscribe_and_snapshot = 1;
   bool get_lockers = 2;
   bool post_locker_changes = 3;
@@ -237,4 +239,16 @@ message PostLockerChangesResponse {
   common.v1.ShardRedirect redirect = 4;
   bool agent_failed = 5;
   bool agent_pending = 6;
+}
+
+// Explicit authority-state discovery for optimistic V2 grant/unlock signing.
+message GetLockScopeRequest {
+  common.v1.RoomId room_id = 1;
+  common.v1.LockScope scope = 2;
+}
+message GetLockScopeResponse {
+  enum Result { OK = 0; INVALID = 1; }
+  Result result = 1;
+  common.v1.LockState scope_state = 2;
+  common.v1.LockState parent_state = 3;
 }
