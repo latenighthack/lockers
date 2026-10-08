@@ -4,6 +4,10 @@ import com.latenighthack.lockers.observability.*
 
 import com.latenighthack.ktstore.*
 import com.latenighthack.ktbuf.net.RpcClient
+import com.latenighthack.ktbuf.net.RpcResponseException
+import com.latenighthack.ktbuf.rpc.repeatWithBackoff
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import com.latenighthack.lockers.common.v1.SessionId
 import com.latenighthack.lockers.connector.storage.v1.StoredPushRegistration
 import com.latenighthack.lockers.connector.storage.v1.fromByteArray
@@ -24,6 +28,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** The push backends a client can register a credential for. */
+class PushRegistrationException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
 enum class PushBackendType(internal val protoValue: Int) {
     APNS(1),
     FCM(2),
@@ -106,6 +112,9 @@ class PushRegistrationController(
 
     private val registrationChanges = MutableSharedFlow<PushRegistration>(extraBufferCapacity = 16)
     private val reconciled = MutableStateFlow<Set<Int>>(emptySet())
+    private val errors = MutableStateFlow<Map<Int, Throwable>>(emptyMap())
+    private val closed = MutableStateFlow(false)
+    init { job.invokeOnCompletion { closed.value = true } }
 
     fun start() {
         check(job.isActive) { "PushRegistrationController is closed" }
@@ -115,7 +124,6 @@ class PushRegistrationController(
         scope.launch {
             sessionIdSource
                 .filterNotNull()
-                .distinctUntilChanged()
                 .collect { sessionId ->
                     reconciled.value = emptySet()
                     for (stored in store.getAllRegistrations()) {
@@ -167,17 +175,30 @@ class PushRegistrationController(
 
     /** Suspends until [backend] has been acknowledged for the current session. */
     suspend fun awaitRegistered(backend: PushBackendType) {
-        if (backend.protoValue in reconciled.value) return
-        reconciled.filter { backend.protoValue in it }.first()
+        combine(reconciled, errors, closed) { registrations, failures, isClosed ->
+            if (isClosed) throw StreamClosedException()
+            failures[backend.protoValue]?.let { throw it }
+            backend.protoValue in registrations
+        }.first { it }
     }
 
     private suspend fun sendRegister(sessionId: SessionId, backend: Int, registration: PushRegistration) {
-        val response = runCatching {
-            telemetry.observe(TelemetryOperation.CONNECTOR_PUSH_REGISTER, { if (it.result.isOk()) TelemetryOutcome.OK else TelemetryOutcome.REJECTED }) { pushService.registerSession(RegisterSessionRequest {
-                this.sessionId = sessionId
-                this.registration = registration
-            }) }
-        }.onFailure { if (it is CancellationException) throw it }.getOrNull() ?: return
+        val response = try {
+            repeatWithBackoff(exceptionHandler = { failure ->
+                if (failure is CancellationException) throw failure
+                when (failure) {
+                    is PushRegistrationException -> false
+                    is RpcResponseException -> failure.retriable()
+                    else -> true
+                }
+            }) {
+                telemetry.observe(TelemetryOperation.CONNECTOR_PUSH_REGISTER, { if (it.result.isOk()) TelemetryOutcome.OK else TelemetryOutcome.REJECTED }) {
+                    pushService.registerSession(RegisterSessionRequest(sessionId = sessionId, registration = registration))
+                }.also { if (!it.result.isOk()) throw PushRegistrationException("Push registration rejected: ${it.result}") }
+            } ?: return
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (failure: Exception) { errors.update { it + (backend to failure) }; return }
+        errors.update { it - backend }
 
         if (response.result is RegisterSessionResponse.Result.OK) {
             store.saveRegistration(StoredPushRegistration {
