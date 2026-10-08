@@ -125,7 +125,12 @@ class RoomServiceImpl(
         // Advertise addresses are schemeless host:port — exactly what JVM HttpRpcClient wants.
         val address = redirect.ownerAddress?.takeIf { it.isNotBlank() } ?: return null
         val stub = forwardStubs.computeIfAbsent(address) {
-            RoomServiceRpc(com.latenighthack.ktbuf.rpc.HttpRpcClient(it)) { _, _ -> mapOf(FORWARDED_PARAM to "1") }
+            val transport = com.latenighthack.ktbuf.rpc.HttpRpcClient(it)
+            val authenticated = object : com.latenighthack.ktbuf.net.RpcClient by transport {
+                override suspend fun unaryCall(method: com.latenighthack.ktbuf.net.RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray) =
+                    transport.unaryCall(method, headers + listOfNotNull(config.peerToken?.let { token -> com.latenighthack.lockers.server.PEER_TOKEN_HEADER to token }).toMap(), request)
+            }
+            RoomServiceRpc(authenticated) { _, _ -> mapOf(FORWARDED_PARAM to "1") }
         }
         return try {
             kotlinx.coroutines.withTimeout(FORWARD_TIMEOUT_MS) { call(stub) }

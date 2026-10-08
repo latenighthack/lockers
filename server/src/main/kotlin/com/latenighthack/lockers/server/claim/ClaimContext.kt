@@ -66,7 +66,7 @@ class ClaimContext(
                 advertiseAddr = advertiseAddr,
                 roomClaims = JdbcRoomClaimStore(jdbcPool).also { it.prepare() },
                 sessionGateways = JdbcSessionGatewayStore(jdbcPool).also { it.prepare() },
-                pool = PeerConnectionPool(),
+                pool = PeerConnectionPool(peerToken = config.peerToken),
                 ttlMs = config.claimTtlMs,
                 renewMs = config.claimRenewMs,
                 meters = ClaimMetrics(meterRegistry),

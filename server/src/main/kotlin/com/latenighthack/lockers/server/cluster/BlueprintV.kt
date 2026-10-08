@@ -85,7 +85,7 @@ object BlueprintV {
 
         val router = ShardRouter.coLocated(membership, source, locator, scope)
 
-        val pool = PeerConnectionPool()
+        val pool = PeerConnectionPool(peerToken = config.peerToken)
         val context = ClusterContext(
             router = router,
             sessionGateways = HttpSessionGateways(pool),

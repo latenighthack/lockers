@@ -135,18 +135,14 @@ class MonolithComponent(
         }
 
     /**
-     * Client- and peer-facing services, mounted on the public port. The gateways
-     * are internal cross-service RPCs but are called in-process here (via local
-     * discovery); they remain in this set to preserve the future split-service
-     * topology.
+     * Public client services. Privileged gateways are available only through local discovery
+     * or the authenticated internal peer router.
      */
     val clientServices: List<GrpcRouteProvider<*>>
         get() = listOf(
             sessionServiceModule,
-            sessionGatewayServiceModule,
             roomServiceModule,
             pushServiceModule,
-            pushGatewayServiceModule,
         ) + extensions.flatMap { it.services }
 
     /**
@@ -164,9 +160,13 @@ class MonolithComponent(
             clusterServiceModule,
         )
 
-    /** Every service (public + admin) — used by the in-process test harness. */
+    /** Internal peer services; never mount these on the public listener. */
+    val peerServices: List<GrpcRouteProvider<*>>
+        get() = listOf(sessionGatewayServiceModule, pushGatewayServiceModule, roomServiceModule)
+
+    /** Every service — used by the in-process test harness. */
     val allServices: List<GrpcRouteProvider<*>>
-        get() = clientServices + adminServices
+        get() = (clientServices + adminServices + peerServices).distinct()
 
     suspend fun start() {
         pushServiceModule.start()

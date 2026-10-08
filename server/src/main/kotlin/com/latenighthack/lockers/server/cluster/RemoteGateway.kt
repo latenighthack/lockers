@@ -27,11 +27,18 @@ fun interface RemoteGateway<S> {
 class PeerConnectionPool(
     private val scheme: String = "http",
     private val clientFactory: (String) -> RpcClient = { HttpRpcClient(it) },
+    private val peerToken: String? = null,
 ) : AutoCloseable {
     private val clients = ConcurrentHashMap<String, RpcClient>()
 
     fun clientFor(address: PeerAddress): RpcClient =
-        clients.computeIfAbsent(url(address), clientFactory)
+        clients.computeIfAbsent(url(address)) { endpoint ->
+            val transport = clientFactory(endpoint)
+            if (peerToken == null) transport else object : RpcClient by transport {
+                override suspend fun unaryCall(method: com.latenighthack.ktbuf.net.RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray) =
+                    transport.unaryCall(method, headers + (com.latenighthack.lockers.server.PEER_TOKEN_HEADER to peerToken), request)
+            }
+        }
 
     fun evict(address: PeerAddress) {
         clients.remove(url(address))

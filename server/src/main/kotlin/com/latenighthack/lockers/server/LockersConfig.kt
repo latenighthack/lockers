@@ -124,6 +124,8 @@ data class LockersConfig(
     val ringMaxConnections: Int,
     val deliveryOutboxEnabled: Boolean = false,
     val deliveryWorkerEnabled: Boolean = true,
+    /** Shared cluster credential for the internal peer listener; never passed to public clients. */
+    val peerToken: String? = null,
 ) {
     val shardCount: Int get() = (Runtime.getRuntime().availableProcessors() * shardMultiplier).coerceAtLeast(1)
 
@@ -144,6 +146,7 @@ data class LockersConfig(
             return LockersConfig(
                 deliveryOutboxEnabled = bool("LOCKERS_DELIVERY_OUTBOX_ENABLED", false),
                 deliveryWorkerEnabled = bool("LOCKERS_DELIVERY_WORKER_ENABLED", true),
+                peerToken = env("LOCKERS_PEER_TOKEN")?.takeIf { it.isNotBlank() },
                 httpPort = int("LOCKERS_HTTP_PORT", 8080),
                 adminPort = int("LOCKERS_ADMIN_PORT", 8081),
                 databaseUrl = env("LOCKERS_DB_URL")?.takeIf { it.isNotBlank() },

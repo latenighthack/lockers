@@ -198,6 +198,9 @@ fun main() {
         val config = LockersConfig.fromEnv()
         validateDbRequirement(config)
         val ownershipMode = validateOwnershipMode(config)
+        require(ownershipMode == "local" || !config.peerToken.isNullOrBlank()) {
+            "Multi-node ownership requires LOCKERS_PEER_TOKEN and an internal LOCKERS_ADVERTISE_ADDR on LOCKERS_ADMIN_PORT"
+        }
 
         val metricsRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
         bindRuntimeMetrics(metricsRegistry)
@@ -274,6 +277,7 @@ fun main() {
             install(WebSockets)
             routing {
                 monolithAdmin(component)
+                config.peerToken?.let { monolithPeer(component, it) }
             }
         }
 
