@@ -1,0 +1,18 @@
+syntax = "proto3";
+package com.latenighthack.lockers.server.storage.v2;
+option java_package = "com.latenighthack.lockers.server.storage.v2";
+
+// Additive app-owned queue metadata; historical v1 queue bytes and indexes remain frozen.
+message ServerPushWork {
+  bytes push_id = 1;
+  bytes session_id = 2;
+  int32 backend = 3;
+  bytes payload_digest = 4;
+  string lease_owner = 5;
+  int64 lease_until = 6;
+  int64 retry_after = 7;
+  int32 attempt = 8;
+  int64 created_at = 9;
+  int64 completed_at = 10;
+  string parked_reason = 11;
+}
