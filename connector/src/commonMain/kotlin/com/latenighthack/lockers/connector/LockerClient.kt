@@ -295,7 +295,8 @@ class LockerClient(
     private val processingScope = GlobalScope + processingJob
     private val sync = LockerSyncCoordinator(processingScope, telemetry)
     private val acceptance = Mutex()
-    private val watched = mutableMapOf<Pair<RoomId, LockerKeyspace>, Flow<List<IdentifiedLocker>>>()
+    private class SnapshotWatch(val revision: MutableStateFlow<Long> = MutableStateFlow(0), var users: Int = 0)
+    private val watched = mutableMapOf<Pair<RoomId, LockerKeyspace>, SnapshotWatch>()
     private val watchMutex = Mutex()
 
     class LockerUpdate(
@@ -482,38 +483,36 @@ class LockerClient(
             (stored.roomSequence > 0 && update.roomSequence > 0 && stored.roomSequence >= update.roomSequence) ||
             (stored.version == update.version && (stored.deleted || stored.lockerPayload.contentEquals(update.payload))))) return@withLock false
         lockerStore.saveLocker(update.toStored())
+        watchMutex.withLock { watched[update.roomId to update.lockerId.keyspaceOrDefault()]?.revision?.update { it + 1 } }
         internalChanges.emit(update)
         true
     }
 
+    /** Complete immutable cache snapshots. Live notifications are conflated wakeups, never state. */
     internal fun watchSnapshot(roomId: RoomId, keyspace: LockerKeyspace): Flow<List<IdentifiedLocker>> = flow {
-        val shared = watchMutex.withLock { watched.getOrPut(roomId to keyspace) {
-            channelFlow {
-                val state = mutableMapOf<LockerId, LockerUpdate>()
-                val stateMutex = Mutex()
-                suspend fun merge(update: LockerUpdate) = stateMutex.withLock {
-                    val previous = state[update.lockerId]
-                    if (previous == null || update.version > previous.version ||
-                        (update.version == previous.version && update.deleted && !previous.deleted)) {
-                        state[update.lockerId] = update
-                        send(state.values.filterNot { it.deleted }.map { value -> IdentifiedLocker(value.lockerId,
-                            Locker { open { encodedPayload = value.payload } }, value.version) })
-                    }
-                }
-                // Install live collector before starting hydration, buffering while the snapshot loads.
-                val live = launch(start = CoroutineStart.UNDISPATCHED) {
-                    changes.filter { it.roomId == roomId && it.lockerId.keyspaceOrDefault() == keyspace }.collect { merge(it) }
+        val identity = roomId to keyspace
+        val entry = watchMutex.withLock { watched.getOrPut(identity) { SnapshotWatch() }.also { it.users++ } }
+        suspend fun snapshot() = acceptance.withLock {
+            lockerStore.getAllLockers(roomId, keyspace).filterNot { it.deleted }.map { it.toIdentifiedLocker() }
+        }
+        try {
+            coroutineScope {
+                val hydration = launch {
+                    try { subscribeToRoom(roomId, false); fetchAllLockers(roomId, keyspace) }
+                    catch (e: CancellationException) { throw e }
+                    catch (e: Exception) { log.error { "watch hydration failed: $e" } }
                 }
                 try {
-                    subscribeToRoom(roomId, false)
-                    getAllLockers(roomId, keyspace).forEach { merge(it.toUpdate(roomId)) }
-                    if (state.isEmpty()) send(emptyList())
-                } catch (e: CancellationException) { throw e }
-                catch (e: Exception) { log.error { "watch hydration failed: $e" } }
-                live.join()
-            }.shareIn(processingScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
-        } }
-        emitAll(shared)
+                    // Cached history is emitted as a whole. If empty, finish initial hydration first.
+                    if (snapshot().isEmpty()) hydration.join()
+                    emitAll(entry.revision.map { snapshot() }.distinctUntilChanged())
+                } finally { hydration.cancel() }
+            }
+        } finally {
+            withContext(NonCancellable) { watchMutex.withLock {
+                if (--entry.users == 0 && watched[identity] === entry) watched.remove(identity)
+            } }
+        }
     }
 
     private suspend fun processEvent(event: Event): Boolean {

@@ -8,6 +8,7 @@ import com.latenighthack.lockers.connector.*
 import com.latenighthack.lockers.connector.internal.*
 import com.latenighthack.lockers.room.v1.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import kotlin.test.*
 
 internal class ReviewRpc(val response: suspend (RpcMethodSpecifier, ByteArray) -> ByteArray) : RpcClient {
@@ -113,6 +114,26 @@ class ReviewConnectorTests {
             val failure = assertFailsWith<CancellationException> { client.updateLocker(RoomId(byteArrayOf(1)), LockerId(byteArrayOf(2))) { byteArrayOf(3) } }
             assertSame(cancellation, failure)
             assertEquals(1, calls)
+        } finally { client.stop() }
+    }
+
+    @Test fun `watch first cached emission contains the whole snapshot`() = runBlocking {
+        val remote = mutableListOf<IdentifiedLocker>()
+        val room = RoomId(byteArrayOf(1))
+        val keyspace = LockerKeyspace(9)
+        val client = reviewClient(ReviewRpc { method, bytes -> when (method.methodName) {
+            "Capabilities" -> CapabilitiesResponse(writeReceipts = true).toByteArray()
+            "PostLockerChange" -> {
+                val request = PostLockerChangeRequest.fromByteArray(bytes)
+                remote += IdentifiedLocker(request.lockerId, request.locker, 1)
+                PostLockerChangeResponse(result = PostLockerChangeResponse.Result.OK, version = 1).toByteArray()
+            }
+            "GetAllLockers" -> GetAllLockersResponse(lockers = remote.toList()).toByteArray()
+            else -> error(method.methodName)
+        } })
+        try {
+            repeat(3) { index -> client.updateLocker(room, LockerId(byteArrayOf(index.toByte()), keyspace)) { byteArrayOf(3) } }
+            assertEquals(3, withTimeout(5_000) { client.watchSnapshot(room, keyspace).first() }.size)
         } finally { client.stop() }
     }
 
