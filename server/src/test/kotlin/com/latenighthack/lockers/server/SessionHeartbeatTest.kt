@@ -12,7 +12,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class SessionHeartbeatTest {
-    @Test fun `ping emits pong after initial open snapshot`() = runBlocking {
+    @Test fun `ping emits pong after initial open snapshot`(): Unit = runBlocking {
         val core = ServerCore::class.create(LockersConfig.defaults(), ServerStorage.inMemory())
         core.setup()
         val component = MonolithComponent(core)
