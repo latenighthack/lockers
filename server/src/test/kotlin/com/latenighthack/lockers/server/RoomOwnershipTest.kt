@@ -131,7 +131,7 @@ class RoomOwnershipTest {
         repeat(300) { i ->
             val roomId = RoomId("room-$i".encodeToByteArray())
             val resolved = ownership.resolve(1L, roomId)
-            val route = router.routeRoom(Keyspace(1), roomId.rawValue)
+            val route = router.routeRoom(Keyspace(0), roomId.rawValue)
             if (route.isLocal) {
                 assertThat(resolved).isEqualTo(RoomOwner.Local())
                 localSeen++

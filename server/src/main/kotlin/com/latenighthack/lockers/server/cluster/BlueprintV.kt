@@ -20,6 +20,9 @@ import java.sql.DriverManager
  */
 private fun ShardingConfig.shardCounts(): ShardCounts {
     val base = ShardCounts.parse(shardCountDefault, keyspaceShardCounts)
+    require(base.perKeyspace.keys.all { it == Keyspace(0) || it == Keyspace.SESSION }) {
+        "Room authority spans all locker keyspaces; configure its shard count under keyspace 0"
+    }
     return ShardCounts(base.default, base.perKeyspace + (Keyspace.SESSION to sessionShardCount))
 }
 

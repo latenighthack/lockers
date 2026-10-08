@@ -57,7 +57,7 @@ import kotlin.test.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class OwnerLifecycleTest {
 
-    private val roomKeyspace = Keyspace(1L)
+    private val roomKeyspace = Keyspace(0L)
     private val shardCount = 32
 
     /** Records every gateway fan-out (which node originated it, for which session). */

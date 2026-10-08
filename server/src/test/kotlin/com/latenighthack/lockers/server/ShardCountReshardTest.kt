@@ -54,7 +54,7 @@ import kotlin.test.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class ShardCountReshardTest {
 
-    private val roomKeyspace = Keyspace(1L)
+    private val roomKeyspace = Keyspace(0L)
 
     private class RecordingGatewayDiscovery(
         private val node: NodeId,
