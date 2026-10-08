@@ -10,6 +10,10 @@ import com.latenighthack.lockers.connector.storage.v1.fromByteArray
 import com.latenighthack.lockers.connector.storage.v1.toByteArray
 
 interface LockerStore {
+    suspend fun acceptLocker(locker: StoredLocker) = saveLocker(locker)
+    fun changesAfter(cursor: Long): kotlinx.coroutines.flow.Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable change journal required")
+    fun liveChanges(): kotlinx.coroutines.flow.Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable change journal required")
+
     suspend fun pendingRatchets(): List<PendingRatchet> = emptyList()
     suspend fun saveRatchet(value: PendingRatchet): Unit = throw UnsupportedOperationException("Durable ratchet journal required")
     suspend fun clearRatchet(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest): Unit = throw UnsupportedOperationException("Durable ratchet journal required")
@@ -27,8 +31,17 @@ interface LockerStore {
     suspend fun deleteLocker(roomId: RoomId, keyspace: LockerKeyspace, lockerId: LockerId)
 }
 
-class LockerStoreImpl(delegate: Database) : LockerStore, Store<StoredLocker>(delegate, LockerStoreImplDefinitionV1) {
-    private val ratchetJournal = RatchetJournal(delegate)
+class LockerStoreImpl(private val database: Database) : LockerStore, Store<StoredLocker>(database, LockerStoreImplDefinitionV1) {
+    private val eventJournal = ConnectorEventJournal(database)
+    override fun changesAfter(cursor: Long) = eventJournal.after(cursor)
+    override fun liveChanges() = eventJournal.live()
+    override suspend fun acceptLocker(locker: StoredLocker) {
+        prepare(); database.transaction("connector-accept") {
+            save(locker)
+            eventJournal.append(1, locker.toByteArray(), kotlin.random.Random.nextBytes(32))
+        }
+    }
+    private val ratchetJournal = RatchetJournal(database)
     override suspend fun pendingRatchets() = ratchetJournal.pending()
     override suspend fun saveRatchet(value: PendingRatchet) = ratchetJournal.put(value)
     override suspend fun clearRatchet(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest) = ratchetJournal.remove(request)

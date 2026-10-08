@@ -9,6 +9,10 @@ import com.latenighthack.lockers.connector.internal.*
 import com.latenighthack.lockers.room.v1.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import com.latenighthack.lockers.connector.storage.v1.StoredLocker
 import kotlin.test.*
 
 internal class ReviewRpc(val response: suspend (RpcMethodSpecifier, ByteArray) -> ByteArray) : RpcClient {
@@ -135,6 +139,49 @@ class ReviewConnectorTests {
             repeat(3) { index -> client.updateLocker(room, LockerId(byteArrayOf(index.toByte()), keyspace)) { byteArrayOf(3) } }
             assertEquals(3, withTimeout(5_000) { client.watchSnapshot(room, keyspace).first() }.size)
         } finally { client.stop() }
+    }
+
+    @Test fun `slow change subscriber cannot block unrelated room commits`() = runBlocking {
+        val client = reviewClient(ReviewRpc { method, _ -> when (method.methodName) {
+            "Capabilities" -> CapabilitiesResponse(writeReceipts = true).toByteArray()
+            "PostLockerChange" -> PostLockerChangeResponse(result = PostLockerChangeResponse.Result.OK, version = 1).toByteArray()
+            else -> error(method.methodName)
+        } })
+        val entered = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) { client.changes.collect { entered.complete(Unit); release.await() } }
+        try {
+            client.updateLocker(RoomId(byteArrayOf(0)), LockerId(byteArrayOf(2))) { byteArrayOf(3) }
+            entered.await()
+            withTimeout(2_000) { repeat(70) { index -> client.updateLocker(RoomId(byteArrayOf((index + 1).toByte())), LockerId(byteArrayOf(2))) { byteArrayOf(3) } } }
+            assertEquals(71, client.getAllKnownLockers().size)
+        } finally { release.complete(Unit); collector.cancelAndJoin(); client.stop() }
+    }
+
+    @Test fun `acceptance failure rolls back cache journal and ACK together`() = runBlocking {
+        val database = ConnectorStorage.inMemory(); database.open()
+        val sessions = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), database)
+        val lockers = LockerStoreImpl(database); lockers.prepare(); sessions.prepare()
+        val event = Event(roomId = RoomId(byteArrayOf(1)), eventId = EventId(byteArrayOf(2)))
+        assertFailsWith<IllegalStateException> {
+            sessions.receive(event) {
+                lockers.acceptLocker(StoredLocker(roomIdRawValue = byteArrayOf(1), lockerIdRawValue = byteArrayOf(2), lockerKeyspace = 0, version = 1))
+                error("failure after cache save before ACK")
+            }
+        }
+        assertTrue(lockers.getAllLockers().isEmpty())
+        assertTrue(sessions.getPendingAcks().isEmpty())
+    }
+
+    @Test fun `events accepted without collectors replay from a persistent cursor`() = runBlocking {
+        val database = ConnectorStorage.inMemory(); database.open()
+        val store = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), database); store.prepare()
+        repeat(70) { index -> store.receive(Event(roomId = RoomId(byteArrayOf(1)), eventId = EventId(byteArrayOf(index.toByte())))) { true } }
+        val replacement = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), database)
+        val replay = withTimeout(5_000) { replacement.eventsAfter(0).take(70).toList() }
+        assertEquals(70, replay.size)
+        assertEquals(70, replay.last().cursor)
+        assertEquals(70, store.getPendingAcks().size)
     }
 
 }

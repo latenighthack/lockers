@@ -60,6 +60,11 @@ class LockersClient private constructor(
     /** The stream of locker changes (adds, updates, deletes) across every keyspace. */
     val lockerChanges: Flow<LockerClient.LockerUpdate> get() = lockers.changes
 
+    /** Recover accepted changes after an application-owned persisted cursor. */
+    fun lockerChangesAfter(cursor: Long): Flow<AcceptedLockerChange> = lockers.changesAfter(cursor)
+    /** Raw accepted session events, including notification metadata, for durable consumption. */
+    fun eventsAfter(cursor: Long): Flow<AcceptedSessionEvent> = stream.eventsAfter(cursor)
+
     /**
      * Registers (or rotates) this device's push credential for its backend. The
      * credential is persisted and re-sent automatically on every reconnect;

@@ -10,11 +10,13 @@ import com.latenighthack.ktbuf.net.RpcResponseException
 import com.latenighthack.ktbuf.rpc.RetryLimitExceeded
 import com.latenighthack.ktbuf.rpc.repeatWithBackoff
 import com.latenighthack.ktcrypto.*
+import com.latenighthack.lockers.common.LockerEnvelope
 import com.latenighthack.lockers.common.LockerSigning
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.internal.PendingRatchet
 import com.latenighthack.lockers.connector.internal.LockerStore
 import com.latenighthack.lockers.connector.internal.ShardedRoomServiceRpc
+import com.latenighthack.lockers.connector.storage.v1.fromByteArray
 import com.latenighthack.lockers.connector.storage.v1.StoredLocker
 import com.latenighthack.lockers.room.v1.*
 import kotlinx.coroutines.*
@@ -33,7 +35,7 @@ import kotlin.reflect.KFunction1
  * the high level never see the envelope — they only ever get these bytes.
  */
 internal fun Locker.plaintextPayload(): ByteArray =
-    open?.encodedPayload ?: sealed?.payload?.enclosure?.innerPayload ?: byteArrayOf()
+    LockerEnvelope.payload(this)
 
 private fun IdentifiedLocker.toUpdate(roomId: RoomId, roomSequence: Long = 0L) =
     LockerClient.LockerUpdate(roomId, lockerId!!, version, locker?.plaintextPayload() ?: byteArrayOf(), deleted = locker == null, roomSequence = roomSequence)
@@ -295,6 +297,12 @@ class LockerClient(
     private val processingScope = GlobalScope + processingJob
     private val sync = LockerSyncCoordinator(processingScope, telemetry)
     private val acceptance = Mutex()
+    private class AcceptanceContext(val client: LockerClient) : kotlin.coroutines.AbstractCoroutineContextElement(Key) {
+        companion object Key : kotlin.coroutines.CoroutineContext.Key<AcceptanceContext>
+    }
+    private suspend fun <T> withAcceptance(action: suspend () -> T): T =
+        if (currentCoroutineContext()[AcceptanceContext]?.client === this) action()
+        else acceptance.withLock { withContext(AcceptanceContext(this)) { action() } }
     private class SnapshotWatch(val revision: MutableStateFlow<Long> = MutableStateFlow(0), var users: Int = 0)
     private val watched = mutableMapOf<Pair<RoomId, LockerKeyspace>, SnapshotWatch>()
     private val watchMutex = Mutex()
@@ -328,17 +336,21 @@ class LockerClient(
         }
     }
 
-    private val internalChanges = MutableSharedFlow<LockerUpdate>(extraBufferCapacity = 64)
-    private val incomingNotifications = MutableSharedFlow<IncomingNotification>(extraBufferCapacity = 64)
+    private fun com.latenighthack.lockers.connector.internal.ConnectorJournalEntry.toChange(): LockerUpdate {
+        val stored = StoredLocker.fromByteArray(payload)
+        return LockerUpdate(RoomId(stored.roomIdRawValue), LockerId(stored.lockerIdRawValue, LockerKeyspace(stored.lockerKeyspace)), stored.version, stored.lockerPayload, stored.deleted, stored.roomSequence)
+    }
+    /** Recoverable changes; persist the cursor only after processing its change. */
+    fun changesAfter(cursor: Long): Flow<AcceptedLockerChange> = lockerStore.changesAfter(cursor).filter { it.kind == 1 }.map { AcceptedLockerChange(it.cursor, it.toChange()) }
 
     val changes: Flow<LockerUpdate>
         get() {
-            return internalChanges.asSharedFlow()
+            return lockerStore.liveChanges().filter { it.kind == 1 }.map { it.toChange() }
         }
 
     val notifications: Flow<IncomingNotification>
         get() {
-            return incomingNotifications.asSharedFlow()
+            return stream.eventsAfter(0).mapNotNull { decodeNotification(it.event) }
         }
 
     private val roomService = ShardedRoomServiceRpc(rpcClient)
@@ -355,6 +367,7 @@ class LockerClient(
 
     suspend fun start() {
         stream.acceptEvent = { processEvent(it) }
+        stream.acceptanceBoundary = { action -> withAcceptance { action() } }
 
         stream.hydrateSubscription = { room, session -> hydrateRoom(room, session) }
         processingScope.launch {
@@ -477,15 +490,16 @@ class LockerClient(
         }
     }
 
-    private suspend fun accept(update: LockerUpdate) = acceptance.withLock {
+    private suspend fun accept(update: LockerUpdate): Boolean = withAcceptance { acceptLocked(update) }
+
+    private suspend fun acceptLocked(update: LockerUpdate): Boolean {
         val stored = lockerStore.getLocker(update.roomId, update.lockerId.keyspaceOrDefault(), update.lockerId)
         if (stored != null && (stored.version > update.version ||
             (stored.roomSequence > 0 && update.roomSequence > 0 && stored.roomSequence >= update.roomSequence) ||
-            (stored.version == update.version && (stored.deleted || stored.lockerPayload.contentEquals(update.payload))))) return@withLock false
-        lockerStore.saveLocker(update.toStored())
+            (stored.version == update.version && (stored.deleted || stored.lockerPayload.contentEquals(update.payload))))) return false
+        lockerStore.acceptLocker(update.toStored())
         watchMutex.withLock { watched[update.roomId to update.lockerId.keyspaceOrDefault()]?.revision?.update { it + 1 } }
-        internalChanges.emit(update)
-        true
+        return true
     }
 
     /** Complete immutable cache snapshots. Live notifications are conflated wakeups, never state. */
@@ -521,8 +535,8 @@ class LockerClient(
         val lockerId = identified?.lockerId
         val version = identified?.version ?: 0L
         val body = identified?.locker
-        val hasBody = body != null && (body.open != null || body.sealed != null)
-        val notificationPayload = event.notification?.payload?.rawValue
+        val hasBody = body != null
+        if (body != null && !LockerEnvelope.isSupported(body)) return false
 
         if (lockerId != null) {
             if (hasBody) {
@@ -534,6 +548,14 @@ class LockerClient(
             }
         }
 
+
+        return true
+    }
+
+    private suspend fun decodeNotification(event: Event): IncomingNotification? {
+        val roomId = event.roomId ?: return null
+        val lockerId = event.locker?.lockerId
+        val notificationPayload = event.notification?.payload?.rawValue
         if (lockerId != null && notificationPayload != null) {
             val keyspace = lockerId.keyspaceOrDefault()
             val decoded = if (codecs.isEmpty(keyspace)) {
@@ -547,11 +569,10 @@ class LockerClient(
             }
             // A codec may drop the notification by returning null.
             if (decoded != null) {
-                incomingNotifications.emit(IncomingNotification(roomId, lockerId, decoded))
+                return IncomingNotification(roomId, lockerId, decoded)
             }
         }
-
-        return true
+        return null
     }
 
     /**
@@ -1012,3 +1033,6 @@ private fun RoomId.toLogString() = "r+" + (this?.rawValue?.toBase64String()?.tak
 
 private fun LockerId?.toLogString() = "l+" + (this?.rawValue?.toBase64String()?.take(6) ?: "(nul)") +
     "/ks" + (this?.keyspace?.value?.toString() ?: "0")
+
+/** Stable local cursor for a committed locker change. */
+data class AcceptedLockerChange(val cursor: Long, val change: LockerClient.LockerUpdate)

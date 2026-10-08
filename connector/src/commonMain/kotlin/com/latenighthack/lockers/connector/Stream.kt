@@ -16,12 +16,22 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlin.random.Random
 import com.latenighthack.lockers.common.v1.*
+import com.latenighthack.lockers.connector.internal.ConnectorEventJournal
+import com.latenighthack.lockers.connector.internal.ConnectorJournalEntry
+import com.latenighthack.lockers.connector.internal.encodeFrames
 import com.latenighthack.lockers.connector.internal.ShardedRoomServiceRpc
 import com.latenighthack.lockers.connector.internal.ShardedSessionServiceRpc
 import com.latenighthack.lockers.connector.storage.v1.*
 import com.latenighthack.lockers.room.v1.*
 
 interface SessionStore {
+    suspend fun receive(event: Event, accept: suspend () -> Boolean) {
+        val ack = StoredAck(requireNotNull(event.roomId).rawValue, requireNotNull(event.eventId).rawValue)
+        if (!hasReceived(ack)) { check(accept()); addAck(ack) }
+    }
+    fun eventsAfter(cursor: Long): Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable session event journal required")
+    fun liveEvents(): Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable session event journal required")
+
     suspend fun getSessionId(): SessionId?
     suspend fun updateSessionId(sessionId: SessionId?)
 
@@ -39,7 +49,21 @@ fun byteArrayIdentity(bytes: ByteArray): ByteArray {
     return bytes
 }
 
-class SessionStoreImpl(private val keyValueStore: KeyValueStore, delegate: Database) : Store<StoredAck>(delegate, SessionStoreImplDefinitionV1), SessionStore {
+class SessionStoreImpl(private val keyValueStore: KeyValueStore, private val database: Database) : Store<StoredAck>(database, SessionStoreImplDefinitionV1), SessionStore {
+    private val eventJournal = ConnectorEventJournal(database)
+    override fun eventsAfter(cursor: Long) = eventJournal.after(cursor).filter { it.kind == 2 }
+    override fun liveEvents() = eventJournal.live().filter { it.kind == 2 }
+    override suspend fun receive(event: Event, accept: suspend () -> Boolean) {
+        prepare()
+        val ack = StoredAck(requireNotNull(event.roomId).rawValue, requireNotNull(event.eventId).rawValue)
+        database.transaction("connector-accept") {
+            if (!hasReceived(ack)) {
+                check(accept()) { "Local event acceptance failed" }
+                eventJournal.append(2, event.toByteArray(), encodeFrames(ack.roomIdRawValue, ack.eventIdRawValue))
+                addAck(ack)
+            }
+        }
+    }
     private val roomIdKey = SessionStoreImplDefinitionV1.roomIdKey
     private val eventIdKey = SessionStoreImplDefinitionV1.eventIdKey
     private val roomIdEventIdKey = SessionStoreImplDefinitionV1.roomIdEventIdKey
@@ -290,11 +314,12 @@ class Stream(
         get() = subscriptionController.hydrateSubscription
         set(value) { subscriptionController.hydrateSubscription = value }
     internal var acceptEvent: (suspend (Event) -> Boolean)? = null
-    private val incomingEvents = MutableSharedFlow<Event>()
-    val events: Flow<Event>
-        get() {
-            return incomingEvents
-        }
+    internal var acceptanceBoundary: (suspend (suspend () -> Unit) -> Unit)? = null
+    /** Live events; use eventsAfter with a persisted application cursor for restart recovery. */
+    val events: Flow<Event> get() = sessionStore.liveEvents().map { Event.fromByteArray(it.payload) }
+    fun eventsAfter(cursor: Long): Flow<AcceptedSessionEvent> = sessionStore.eventsAfter(cursor).map {
+        AcceptedSessionEvent(it.cursor, Event.fromByteArray(it.payload))
+    }
 
     private val onConnected = MutableStateFlow(false)
     val isConnected: Flow<Boolean>
@@ -533,22 +558,12 @@ class Stream(
     }
 
     private suspend fun processIncomingEvents(queuedEvents: List<Event>) {
-        for (event in queuedEvents) {
-            val ack = StoredAck(event.roomId!!.rawValue, event.eventId!!.rawValue)
-            if (!sessionStore.hasReceived(ack)) {
-                processEvent(event)
-                sessionStore.addAck(ack)
-            }
+        queuedEvents.forEach { event ->
+            val accept: suspend () -> Unit = { sessionStore.receive(event) { acceptEvent?.invoke(event) != false } }
+            acceptanceBoundary?.invoke(accept) ?: accept()
         }
-
-        val acks = queuedEvents.map { event -> StoredAck(event.roomId!!.rawValue, event.eventId!!.rawValue) }
-        sessionStore.addAcks(acks)
+        val acks = queuedEvents.map { event -> StoredAck(requireNotNull(event.roomId).rawValue, requireNotNull(event.eventId).rawValue) }
         outgoingAcks.emit(acks)
-    }
-
-    private suspend fun processEvent(event: Event) {
-        check(acceptEvent?.invoke(event) != false) { "Local event acceptance failed" }
-        incomingEvents.emit(event)
     }
 
     suspend fun subscribe(roomId: RoomId, waitForSubscription: Boolean = false) {
@@ -587,3 +602,6 @@ private fun Flow<List<StoredAck>>.batchedAcks(): Flow<List<StoredAck>> = kotlinx
         }
     } finally { collector.cancel() }
 }
+
+/** Application delivery cursor is independent from transport ACKs. */
+data class AcceptedSessionEvent(val cursor: Long, val event: Event)
