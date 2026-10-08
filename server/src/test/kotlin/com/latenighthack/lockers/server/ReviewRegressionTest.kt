@@ -61,4 +61,17 @@ class ReviewRegressionTest {
             assertNull(s.lockers.getLocker(ServerRoomId(room.rawValue), 0, ServerLockerId(id.rawValue)))
         } finally { service.close() }
     }
+    @Test fun newAuthorityIsEnforcedAfterAnotherReplicaReadAnOpenRoom(): Unit = runBlocking {
+        val s = stores(); val a = service(s); val b = service(s)
+        val ra = LocalRoomServiceRpc(a); val rb = LocalRoomServiceRpc(b)
+        try {
+            rb.postLockerChange(PostLockerChangeRequest(roomId = room, lockerId = id, locker = body(1)))
+            ra.getLocker(GetLockerRequest(room, id)) // caches no locks on a non-owning reader
+            val key = Secp256r1KeyPair.generate()
+            assertTrue(rb.lockLocker(LockLockerRequest(roomId = room, grant = LockGrant(
+                scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM), publicKey = Secp256R1Key.PublicKey(key.publicKey.encode())))).result.isOk())
+            assertFalse(ra.postLockerChange(PostLockerChangeRequest(roomId = room, lockerId = id, locker = body(2))).result.isOk())
+        } finally { a.close(); b.close() }
+    }
+
 }

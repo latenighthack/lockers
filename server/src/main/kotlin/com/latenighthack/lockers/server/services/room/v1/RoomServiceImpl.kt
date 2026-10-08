@@ -82,25 +82,9 @@ class RoomServiceImpl(
     }
     private val rateLimiter = RoomRateLimiter(config.roomWritesPerSecond, config.roomWriteBurst)
 
-    // Whether a room has any locks. Lets the common open-locker write/read path skip
-    // effective-lock resolution entirely. Kept fresh by lock/unlock; recomputed on miss.
-    private val roomHasLocksCache = Cache.Builder<RoomId, Boolean>()
-        .maximumCacheSize(config.sessionCacheSize)
-        .build()
-
-    private suspend fun roomHasLocks(roomId: RoomId): Boolean {
-        roomHasLocksCache.get(roomId)?.let { return it }
-        val has = lockVerifier.roomHasLocks(roomId)
-        roomHasLocksCache.put(roomId, has)
-        return has
-    }
-
+    // Authority is always read from storage; a negative replica cache is not a fence.
     private suspend fun effectiveLockOrNull(roomId: RoomId, lockerId: LockerId): ServerLock? =
-        if (roomHasLocks(roomId)) {
-            lockVerifier.resolveEffective(roomId, lockerId.keyspace?.value ?: 0L, lockerId.rawValue)
-        } else {
-            null
-        }
+        lockVerifier.resolveEffective(roomId, lockerId.keyspace?.value ?: 0L, lockerId.rawValue)
 
     private suspend fun lockStateFor(roomId: RoomId, lockerId: LockerId): LockState? =
         effectiveLockOrNull(roomId, lockerId)?.let { lockVerifier.stateOf(it) }
@@ -308,7 +292,7 @@ class RoomServiceImpl(
                     var lockState: LockState? = null
                     request.initialLock?.let { grant ->
                         when (val outcome = lockVerifier.applyLock(room, grant, request.parentLockVersion)) {
-                            is LockVerifier.LockOutcome.Ok -> { lockState = outcome.state; roomHasLocksCache.put(room, true) }
+                            is LockVerifier.LockOutcome.Ok -> { lockState = outcome.state }
                             is LockVerifier.LockOutcome.Stale -> throw BatchRejected(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.CONFLICT, lockState = outcome.state))
                             else -> throw BatchRejected(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_AUTHORIZED))
                         }
@@ -337,7 +321,6 @@ class RoomServiceImpl(
                 }
                 trace.recipients = recipients.size
             } catch (e: BatchRejected) {
-                roomHasLocksCache.invalidate(room)
                 return@runOnDispatcher e.response
             }
             replay?.let { return@runOnDispatcher it }
@@ -607,7 +590,6 @@ class RoomServiceImpl(
                         }
                         is LockVerifier.RatchetOutcome.Ok -> {
                             effectiveState = outcome.state
-                            roomHasLocksCache.put(requestRoomId, true)
                         }
                     }
                 }
@@ -812,7 +794,6 @@ class RoomServiceImpl(
         return@trackResponse dispatchers.runOnDispatcher(requestRoomId) {
             when (val outcome = lockVerifier.applyLock(requestRoomId, grant, request.parentLockVersion)) {
                 is LockVerifier.LockOutcome.Ok -> {
-                    roomHasLocksCache.put(requestRoomId, true)
                     LockLockerResponse {
                         result = LockLockerResponse.Result.OK
                         lockState = outcome.state
@@ -848,7 +829,6 @@ class RoomServiceImpl(
             val outcome = lockVerifier.applyUnlock(requestRoomId, scope, request.signature, request.parentLockVersion)
             when (outcome) {
                 is LockVerifier.UnlockOutcome.Ok -> {
-                    roomHasLocksCache.put(requestRoomId, lockVerifier.roomHasLocks(requestRoomId))
                     UnlockLockerResponse(result = UnlockLockerResponse.Result.OK)
                 }
                 is LockVerifier.UnlockOutcome.Stale -> UnlockLockerResponse(result = UnlockLockerResponse.Result.UPDATE_LOCAL_VERSION)
@@ -866,7 +846,6 @@ class RoomServiceImpl(
      */
     fun evictRoomCaches() {
         roomToSessionCache.invalidateAll()
-        roomHasLocksCache.invalidateAll()
     }
 
     fun close() {
