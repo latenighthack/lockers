@@ -84,6 +84,8 @@ class LockersClient private constructor(
 
     /** Suspends until [backend]'s credential has been acknowledged for the current session. */
     suspend fun awaitPushRegistered(backend: PushBackendType) = pushRegistrations.awaitRegistered(backend)
+    suspend fun awaitPushUnregistered(backend: PushBackendType) = pushRegistrations.awaitUnregistered(backend)
+    val pushRegistrationStates: StateFlow<Map<PushBackendType, PushRegistrationStatus>> get() = pushRegistrations.registrations
 
     /** Server push capabilities — notably the VAPID public key a web client needs to subscribe. */
     suspend fun getPushConfig(): PushConfig? = pushRegistrations.getPushConfig()
