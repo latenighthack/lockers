@@ -14,6 +14,7 @@ import com.latenighthack.lockers.common.LockerEnvelope
 import com.latenighthack.lockers.common.SessionSigning
 import com.latenighthack.lockers.common.LockerSigning
 import com.latenighthack.lockers.common.v1.*
+import com.latenighthack.lockers.connector.internal.ArchivedRatchet
 import com.latenighthack.lockers.connector.internal.PendingRatchet
 import com.latenighthack.lockers.connector.internal.LockerStore
 import com.latenighthack.lockers.connector.internal.ShardedRoomServiceRpc
@@ -75,7 +76,7 @@ private fun LockerClient.LockerUpdate.toStored() = StoredLocker {
 interface LockKeySource {
     suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId): Secp256r1KeyPair?
 
-    /** Called after a ratchet write succeeds so the source can adopt the rotated key. */
+    /** Persist the adopted key before returning. The connector confirms lookup and retains a durable recovery copy. */
     suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) {}
 }
 
@@ -279,8 +280,9 @@ private val writeRetryLog = com.diamondedge.logging.logging("LockerWriteRetry")
 open class LockerWriteException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 /** The source and authority committed successfully; only derived work is incomplete. */
-class LockerSourceCommittedException(val version: Long, val agentPending: Boolean) :
-    LockerWriteException("Source committed at version $version; agent ${if (agentPending) "pending" else "failed"}")
+open class LockerSourceCommittedException(val version: Long, val agentPending: Boolean, message: String = "Source committed at version $version; agent ${if (agentPending) "pending" else "failed"}", cause: Throwable? = null) : LockerWriteException(message, cause)
+
+class RatchetAdoptionPendingException(version: Long, cause: Throwable? = null) : LockerSourceCommittedException(version, false, "Source committed at version $version; signing key adoption is pending", cause)
 
 class LockerClient(
     rpcClient: RpcClient,
@@ -297,6 +299,7 @@ class LockerClient(
     private val processingScope = CoroutineScope(coroutineContext + processingJob)
     private val started = MutableStateFlow(false)
     private val sync = LockerSyncCoordinator(processingScope, telemetry)
+    private val ratchetAdoption = Mutex()
     private val acceptance = Mutex()
     private class AcceptanceContext(val client: LockerClient) : kotlin.coroutines.AbstractCoroutineContextElement(Key) {
         companion object Key : kotlin.coroutines.CoroutineContext.Key<AcceptanceContext>
@@ -375,7 +378,8 @@ class LockerClient(
         stream.hydrateSubscription = { room, session -> hydrateRoom(room, session) }
         processingScope.launch {
             repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
-                lockerStore.pendingRatchets().forEach { recoverRatchet(it) }; Unit
+                lockerStore.pendingRatchets().forEach { recoverRatchet(it) }
+                lockerStore.archivedRatchets().forEach { restoreArchivedRatchet(it) }; Unit
             }
         }
     }
@@ -472,6 +476,7 @@ class LockerClient(
                             writeRequestId = kotlin.random.Random.nextBytes(32), changes = changes.map { change ->
                                 val (version, plaintext) = current.getValue(change.lockerId)
                                 val authority = if (initialKey != null) targetVersion + 1 else authorities[change.lockerId] ?: 0L
+                                restoreArchivedKeyFor(roomId, change.lockerId)
                                 val body = buildWriteBody(initialKey ?: lockKeySource?.writeKeyFor(roomId, change.lockerId),
                                     roomId, change.lockerId, version, change.transform(plaintext), authority, null, caps.authorityV2)
                                 PostLockerChangeRequest(roomId = roomId, lockerId = change.lockerId, locker = body.locker,
@@ -732,6 +737,7 @@ class LockerClient(
     ) {
         val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
         var parentVersion = cached?.version ?: 0L
+        restoreArchivedKeyFor(roomId, lockerId)
         val signingKey = lockKeySource?.writeKeyFor(roomId, lockerId)
 
         val deletedVersion = try {
@@ -814,6 +820,7 @@ class LockerClient(
         var currentPlaintext = cached?.toIdentifiedLocker()?.locker?.plaintextPayload() ?: byteArrayOf()
         var parentVersion = cached?.version ?: 0L
 
+        restoreArchivedKeyFor(roomId, lockerId)
         val signingKey = lockKeySource?.writeKeyFor(roomId, lockerId)
         val pendingRatchetKey = if (ratchet && signingKey != null) Secp256r1KeyPair.generate() else null
 
@@ -826,6 +833,7 @@ class LockerClient(
         if (pendingRatchetKey != null && !supportsReceipts) throw LockerWriteException("Ratchets require durable server write receipts")
         var submitted: PostLockerChangeRequest? = null
         var committedAgentStatus: PostLockerChangeResponse? = null
+        var committedResponse: PostLockerChangeResponse? = null
         val updatedLocker = try {
             repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
                 val request = submitted ?: run {
@@ -849,6 +857,7 @@ class LockerClient(
                 }
                 val result = sync.network { roomService.postLockerChange(request) }
 
+                if (result.result.isOk()) committedResponse = result
                 if (result.result.isOk() && (result.agentFailed || result.agentPending)) committedAgentStatus = result
                 log.debug { "updated locker=${lockerId.toLogString()} result=${result.result} version=${result.version}" }
 
@@ -901,8 +910,8 @@ class LockerClient(
 
         val result = updatedLocker ?: return null
         if (pendingRatchetKey != null) {
-            lockKeySource?.onRatcheted(roomId, lockerId, pendingRatchetKey)
-            submitted?.let { lockerStore.clearRatchet(it) }
+            val request = requireNotNull(submitted)
+            adoptCommittedRatchet(PendingRatchet(request, pendingRatchetKey.privateKey.encode()), requireNotNull(committedResponse))
         }
         val update = result.toUpdate(roomId)
         accept(update)
@@ -920,10 +929,8 @@ class LockerClient(
             val response = sync.network { roomService.postLockerChange(request) }
             when (response.result) {
                 is PostLockerChangeResponse.Result.OK -> {
-                    val key = requireNotNull(Secp256r1KeyPair.fromPrivateKey(pending.privateKey)) { "Invalid pending ratchet key" }
-                    requireNotNull(lockKeySource) { "Ratchet recovery requires its LockKeySource" }.onRatcheted(room, id, key)
+                    adoptCommittedRatchet(pending, response)
                     accept(LockerUpdate(room, id, response.version, requireNotNull(request.locker).plaintextPayload()))
-                    lockerStore.clearRatchet(request)
                 }
                 is PostLockerChangeResponse.Result.NOT_OWNER -> {
                     recordRoomRedirect(room, response.redirect)
@@ -937,6 +944,48 @@ class LockerClient(
             }
         }
         if (serialized) resolve() else sync.mutate(room to id.canonical()) { resolve() }
+    }
+
+    private suspend fun adoptCommittedRatchet(pending: PendingRatchet, response: PostLockerChangeResponse) {
+        val archive = ArchivedRatchet(pending, response.lockState, response.version)
+        lockerStore.archiveRatchet(archive)
+        ratchetAdoption.withLock { adoptKey(archive, requireNotNull(pending.request.lockerId)) }
+        lockerStore.clearRatchet(pending.request)
+    }
+
+    private suspend fun adoptKey(archive: ArchivedRatchet, target: LockerId) {
+        val source = lockKeySource ?: throw RatchetAdoptionPendingException(archive.version)
+        val newKey = requireNotNull(Secp256r1KeyPair.fromPrivateKey(archive.pending.privateKey)) { "Invalid archived ratchet key" }
+        val current = source.writeKeyFor(archive.room, target)?.publicKey?.encode()
+        if (current?.contentEquals(archive.publicKey) == true) return
+        val old = archive.pending.request.writeSignature?.publicKey?.rawValue
+        // Never replace a provider's unrelated/newer key with an old completed transition.
+        if (current != null && old != null && !current.contentEquals(old)) throw RatchetAdoptionPendingException(archive.version)
+        try { source.onRatcheted(archive.room, target, newKey) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (failure: Exception) { throw RatchetAdoptionPendingException(archive.version, failure) }
+        val resolved = source.writeKeyFor(archive.room, target)?.publicKey?.encode()
+        if (resolved?.contentEquals(archive.publicKey) != true) throw RatchetAdoptionPendingException(archive.version)
+    }
+
+    private suspend fun restoreArchivedRatchet(archive: ArchivedRatchet, target: LockerId = requireNotNull(archive.pending.request.lockerId)) {
+        ratchetAdoption.withLock {
+            val caps = capabilities()
+            val current = if (caps.authorityV2) getLockScope(archive.room, archive.scope).scopeState else
+                sync.network { roomService.getLocker(GetLockerRequest(archive.room, target.canonical())) }.locker?.lockState
+            if (current?.publicKey?.rawValue?.contentEquals(archive.publicKey) != true) {
+                // Exact V2 scope history proves this key obsolete; an overridden legacy locker does not.
+                if (caps.authorityV2 && current != null && current.lockVersion >= (archive.state?.lockVersion ?: 0)) lockerStore.forgetArchivedRatchet(archive)
+                return
+            }
+            adoptKey(archive, target)
+        }
+    }
+
+    private suspend fun restoreArchivedKeyFor(room: RoomId, id: LockerId) {
+        if (!lockerStore.hasArchivedRatchet(room)) return
+        val authority = sync.network { roomService.getLocker(GetLockerRequest(room, id.canonical())) }.locker?.lockState?.publicKey?.rawValue ?: return
+        lockerStore.matchingRatchet(room, authority)?.let { restoreArchivedRatchet(it, id) }
     }
 
     /** Establish a lock at [scope] with [keyPair]. Sign the grant with [parentKeyPair]

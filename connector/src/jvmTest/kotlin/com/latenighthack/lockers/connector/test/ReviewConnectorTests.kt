@@ -41,7 +41,7 @@ class ReviewConnectorTests {
         var adopted: Secp256r1KeyPair? = null
         var submitted: PostLockerChangeRequest? = null
         val source = object : LockKeySource {
-            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = old
+            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = adopted ?: old
             override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) { adopted = newKeyPair }
         }
         val rpc = ReviewRpc { method, bytes -> when (method.methodName) {
@@ -73,14 +73,14 @@ class ReviewConnectorTests {
             else -> error(method.methodName)
         } }
         fun source(crash: Boolean) = object : LockKeySource {
-            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = old
+            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = adopted ?: old
             override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) {
                 if (crash) throw IllegalStateException("app terminated before key adoption")
                 adopted = newKeyPair
             }
         }
         val client = reviewClient(rpc, source(true), database)
-        try { assertFailsWith<IllegalStateException> { client.updateLocker(RoomId(byteArrayOf(1)), LockerId(byteArrayOf(2)), ratchet = true) { byteArrayOf(3) } } } finally { client.stop() }
+        try { assertFailsWith<RatchetAdoptionPendingException> { client.updateLocker(RoomId(byteArrayOf(1)), LockerId(byteArrayOf(2)), ratchet = true) { byteArrayOf(3) } } } finally { client.stop() }
         assertEquals(1, LockerStoreImpl(database).pendingRatchets().size)
         val replacement = reviewClient(rpc, source(false), database)
         try {

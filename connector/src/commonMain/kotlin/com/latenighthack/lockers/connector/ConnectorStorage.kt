@@ -10,6 +10,7 @@ object ConnectorStorage {
         com.latenighthack.lockers.connector.SessionStoreImplDefinitionV1,
         com.latenighthack.lockers.connector.internal.LockerStoreImplDefinitionV1,
         com.latenighthack.lockers.connector.internal.RatchetJournalDefinitionV1,
+        com.latenighthack.lockers.connector.internal.RatchetArchiveDefinitionV1,
         com.latenighthack.lockers.connector.internal.ConnectorEventJournalDefinitionV1,
         PushIntentDefinitionV2,
     )

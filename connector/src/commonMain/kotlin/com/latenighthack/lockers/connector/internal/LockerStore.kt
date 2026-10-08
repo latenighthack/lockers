@@ -10,6 +10,11 @@ import com.latenighthack.lockers.connector.storage.v1.fromByteArray
 import com.latenighthack.lockers.connector.storage.v1.toByteArray
 
 interface LockerStore {
+    suspend fun archivedRatchets(): List<ArchivedRatchet> = emptyList()
+    suspend fun hasArchivedRatchet(room: RoomId): Boolean = archivedRatchets().any { it.room == room }
+    suspend fun archiveRatchet(value: ArchivedRatchet): Unit = throw UnsupportedOperationException("Durable ratchet archive required")
+    suspend fun matchingRatchet(room: RoomId, publicKey: ByteArray): ArchivedRatchet? = null
+    suspend fun forgetArchivedRatchet(value: ArchivedRatchet): Unit = throw UnsupportedOperationException("Durable ratchet archive required")
     suspend fun acceptLocker(locker: StoredLocker) = saveLocker(locker)
     fun changesAfter(cursor: Long): kotlinx.coroutines.flow.Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable change journal required")
     fun liveChanges(): kotlinx.coroutines.flow.Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable change journal required")
@@ -32,6 +37,12 @@ interface LockerStore {
 }
 
 class LockerStoreImpl(private val database: Database) : LockerStore, Store<StoredLocker>(database, LockerStoreImplDefinitionV1) {
+    private val archive = RatchetArchive(database)
+    override suspend fun archivedRatchets() = archive.archives()
+    override suspend fun hasArchivedRatchet(room: RoomId) = archive.hasRoom(room)
+    override suspend fun archiveRatchet(value: ArchivedRatchet) = archive.put(value)
+    override suspend fun matchingRatchet(room: RoomId, publicKey: ByteArray) = archive.matching(room, publicKey)
+    override suspend fun forgetArchivedRatchet(value: ArchivedRatchet) = archive.remove(value)
     private val eventJournal = ConnectorEventJournal(database)
     override fun changesAfter(cursor: Long) = eventJournal.after(cursor)
     override fun liveChanges() = eventJournal.live()

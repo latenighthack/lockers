@@ -13,12 +13,16 @@ class ReviewAuthorityV2Tests {
         val key = Secp256r1KeyPair.generate()
         val room = RoomId(byteArrayOf(1)); val id = LockerId(byteArrayOf(2), LockerKeyspace(3))
         var request: PostLockerChangeRequest? = null
+        var activeKey = key
         val client = reviewClient(ReviewRpc { method, bytes -> when (method.methodName) {
             "Capabilities" -> CapabilitiesResponse(authorityV2 = true, writeReceipts = true).toByteArray()
             "GetLocker" -> GetLockerResponse(locker = IdentifiedLocker(id, lockState = LockState(locked = true, lockVersion = 5, publicKey = Secp256R1Key.PublicKey(key.publicKey.encode())))).toByteArray()
             "PostLockerChange" -> { request = PostLockerChangeRequest.fromByteArray(bytes); PostLockerChangeResponse(version = 1).toByteArray() }
             else -> error(method.methodName)
-        } }, object : LockKeySource { override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = key })
+        } }, object : LockKeySource {
+            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = activeKey
+            override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) { activeKey = newKeyPair }
+        })
         try {
             client.updateLocker(room, id, { payload { rawValue = byteArrayOf(9) } }, ratchet = true) { byteArrayOf(4) }
             val written = request!!
