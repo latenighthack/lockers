@@ -5,6 +5,11 @@ import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.RoomId
 
 interface LockerAgentRegistry {
+    /** Safe default: derived writes require explicit installation of trusted server logic. */
+    object None : LockerAgentRegistry {
+        override suspend fun processPayload(roomId: RoomId, lockerId: LockerId, locker: Locker) = emptyList<LockerWrite>()
+    }
+
     data class LockerWrite(val lockerId: LockerId, val locker: Locker)
 
     suspend fun processPayload(roomId: RoomId, lockerId: LockerId, locker: Locker): List<LockerWrite>

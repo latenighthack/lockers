@@ -2,7 +2,6 @@ package com.latenighthack.lockers.server
 
 import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.observability.LockersTelemetry
-import com.latenighthack.lockers.server.agents.ExampleLockerAgent
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
 import com.latenighthack.lockers.server.services.push.v1.PushDeadLetterStore
 import com.latenighthack.lockers.server.services.push.v1.PushDeadLetterStoreImpl
@@ -105,7 +104,7 @@ abstract class ServerCore(
 
     /** Embedder seam: set before [setup] to plug a real agent (mirrors [overridePushProviders]). */
     var overrideAgentRegistry: LockerAgentRegistry? = null
-    private val _agentRegistry by lazy { overrideAgentRegistry ?: ExampleLockerAgent() }
+    private val _agentRegistry by lazy { overrideAgentRegistry ?: LockerAgentRegistry.None }
     @get:Provides val agentRegistry: LockerAgentRegistry get() = _agentRegistry
 
     suspend fun setup() {
