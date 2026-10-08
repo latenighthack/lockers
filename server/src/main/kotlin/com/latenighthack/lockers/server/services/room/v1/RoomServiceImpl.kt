@@ -259,7 +259,7 @@ class RoomServiceImpl(
         val changes = request.changes
         if (!config.deliveryOutboxEnabled || changes.isEmpty() || changes.size > 64 ||
             request.writeRequestId.size !in 16..64 || changes.any { it.lockerId == null || it.locker == null || (it.roomId != null && it.roomId != room) } ||
-            changes.map { it.lockerId }.distinct().size != changes.size ||
+            changes.map { it.lockerId?.let { id -> id.copy(keyspace = id.keyspace ?: LockerKeyspace(0)) } }.distinct().size != changes.size ||
             request.toByteArray().size > minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)) {
             return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.INVALID)
         }
