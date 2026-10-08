@@ -1,6 +1,7 @@
 package com.latenighthack.lockers.server.services.push.v1
 
 import com.latenighthack.ktbuf.net.GrpcRequestContext
+import com.latenighthack.ktcrypto.digest
 import com.latenighthack.ktbuf.net.ServerDescriptor
 import com.latenighthack.lockers.common.v1.Push
 import com.latenighthack.lockers.common.v1.fromByteArray
@@ -109,8 +110,9 @@ class PushServiceImpl(
 
     private val workAvailable = Channel<Unit>(Channel.CONFLATED)
     private val processorScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val inFlight = java.util.concurrent.ConcurrentHashMap.newKeySet<ServerPushId>()
-    private val dispatchSlots = Semaphore(dispatch.sendConcurrencyPerBackend.coerceAtLeast(1) * PushBackendKind.entries.size)
+    private val workerId = java.util.UUID.randomUUID().toString()
+    private val localClaims = java.util.concurrent.ConcurrentHashMap<ServerPushId, PushClaim>()
+    private var processorJob: Job? = null
 
     private val totalQueueGauge = AtomicInteger(0)
     private val queueDepth = PushBackendKind.entries.associateWith { AtomicInteger(0) }
@@ -154,26 +156,40 @@ class PushServiceImpl(
             return
         }
         logger.info("Starting push service processor")
-        processorScope.launch {
-            while (isActive) {
-                try {
-                    val pending = pushQueueStore.getPendingPushes()
-                    seedGaugesFrom(pending, pushDeadLetterStore.getAllDeadLetters())
-                    for (push in pending) {
-                        val id = push.pushId ?: continue
-                        if (!inFlight.add(id)) continue
-                        try { dispatchSlots.acquire() }
-                        catch (cancelled: CancellationException) { inFlight.remove(id); throw cancelled }
-                        processorScope.launch {
-                            try { processPush(push) }
-                            finally { inFlight.remove(id); dispatchSlots.release() }
+        check(pushQueueStore.supportsClaims) { "Push workers require a durable queue with atomic claims" }
+        check(processorJob == null) { "Push processor already started" }
+        processorJob = processorScope.launch {
+            coroutineScope {
+                for (backend in listOf(0) + PushBackendKind.entries.map { it.protoValue }) {
+                    val count = if (backend == 0) 1 else dispatch.sendConcurrencyPerBackend.coerceIn(1, 256)
+                    val slots = Semaphore(count)
+                    val claimed = Channel<PushClaim>(count)
+                    repeat(count) { launch {
+                        for (claim in claimed) {
+                            try {
+                                supervisorScope {
+                                    val task = async { processPush(claim) }
+                                    try { task.await() }
+                                    catch (cancelled: CancellationException) { if (!currentCoroutineContext().isActive) throw cancelled }
+                                    catch (error: Exception) { logger.warn("push attempt failed; claim remains recoverable", error) }
+                                }
+                            } finally { slots.release(); workAvailable.trySend(Unit) }
+                        }
+                    } }
+                    launch {
+                        while (isActive) {
+                            var available = 0
+                            repeat(count) { if (slots.tryAcquire()) available++ }
+                            if (available == 0) { withTimeoutOrNull(250) { workAvailable.receive() }; continue }
+                            val batch = try { pushQueueStore.claim(backend, workerId, System.currentTimeMillis(), available) }
+                                catch (cancelled: CancellationException) { repeat(available) { slots.release() }; throw cancelled }
+                                catch (error: Exception) { repeat(available) { slots.release() }; logger.warn("push claim failed; retrying durable queue", error); delay(250); continue }
+                            repeat(available - batch.size) { slots.release() }
+                            batch.forEach { claim -> localClaims[requireNotNull(claim.push.pushId)] = claim; claimed.send(claim) }
+                            if (batch.isEmpty()) withTimeoutOrNull(250) { workAvailable.receive() }
                         }
                     }
-                } catch (cancelled: CancellationException) { throw cancelled }
-                catch (error: Exception) { logger.warn("push queue scan failed; retrying durable state", error) }
-                // Hints accelerate discovery; periodic durable scans cover remote/API-only replicas,
-                // startup races and transient scan failures. Persisted queue rows are the authority.
-                withTimeoutOrNull(250) { workAvailable.receive() }
+                }
             }
         }
     }
@@ -195,29 +211,51 @@ class PushServiceImpl(
         pushProviders.forEach { runCatching { it.close() } }
     }
 
-    private suspend fun processPush(push: ServerPush) {
+    private suspend fun processPush(claim: PushClaim) {
+        val push = claim.push
+        val pushId = push.pushId ?: return
+        val processing = currentCoroutineContext()[Job]!!
+        val heartbeat = CoroutineScope(currentCoroutineContext()).launch {
+            while (isActive) {
+                delay(10_000)
+                if (!pushQueueStore.renew(claim, System.currentTimeMillis())) processing.cancel(CancellationException("push claim revoked"))
+            }
+        }
+        try {
+            processClaimedPush(claim)
+        } finally {
+            withContext(NonCancellable) {
+                heartbeat.cancelAndJoin()
+                pushQueueStore.release(claim, System.currentTimeMillis() + 250)
+                localClaims.remove(pushId, claim)
+            }
+        }
+    }
+
+    private suspend fun processClaimedPush(claim: PushClaim) {
+        val push = claim.push
         val pushId = push.pushId ?: return
         val backend = PushBackendKind.fromProtoValue(push.backend)
         if (backend == null) {
-            dequeue(pushId, null)
+            dequeue(claim, null)
             return
         }
 
         val provider = providersByBackend[backend]
         if (provider == null || !provider.isConfigured) {
             // Unconfigured backend: drop rather than spin the queue.
-            dequeue(pushId, backend)
+            dequeue(claim, backend)
             return
         }
 
-        val serverSessionId = push.sessionId ?: run { dequeue(pushId, backend); return }
+        val serverSessionId = push.sessionId ?: run { dequeue(claim, backend); return }
         val registration = pushSessionStore.getPushInfo(serverSessionId)
             ?.registrations
             ?.firstOrNull { it.backend == push.backend }
             ?.let { PushRegistration.fromByteArray(it.encodedRegistration) }
         if (registration == null) {
             logger.debug("No ${backend.name} registration for session, dropping push")
-            dequeue(pushId, backend)
+            dequeue(claim, backend)
             return
         }
 
@@ -225,7 +263,8 @@ class PushServiceImpl(
             val startNanos = System.nanoTime()
             val sendResult = try {
                 telemetry.observe(TelemetryOperation.PUSH_SEND, { when (it) { is PushResult.Accepted -> TelemetryOutcome.OK; is PushResult.Rejected -> TelemetryOutcome.REJECTED; is PushResult.Retryable -> TelemetryOutcome.ERROR } }) { provider.send(registration, Push.fromByteArray(push.encodedPush)) }
-            } catch (e: Exception) {
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
                 PushResult.Retryable(e.message ?: "send threw")
             }
             recordSendDuration(backend, sendResult, System.nanoTime() - startNanos)
@@ -234,18 +273,17 @@ class PushServiceImpl(
 
         when (result) {
             is PushResult.Accepted -> {
-                counter("lockers.push.sent", backend).increment()
-                dequeue(pushId, backend)
+                if (dequeue(claim, backend)) counter("lockers.push.sent", backend).increment()
             }
 
             is PushResult.Rejected -> {
                 counter("lockers.push.rejected", backend).increment()
                 if (result.tokenInvalid) {
                     removeRegistration(serverSessionId, push.backend)
-                    dequeue(pushId, backend)
+                    dequeue(claim, backend)
                 } else {
                     // A permanent, non-token failure (bad payload, etc.): park it.
-                    deadLetter(push, backend, result.reason)
+                    deadLetter(claim, backend, result.reason)
                 }
             }
 
@@ -255,14 +293,11 @@ class PushServiceImpl(
                 if (nextAttempt < dispatch.retryPolicy.maxAttempts) {
                     counter("lockers.push.retried", backend).increment()
                     // Persist the attempt so the budget survives a restart.
-                    val advanced = push.copy { attempt = nextAttempt }
-                    pushQueueStore.savePush(advanced)
-                    val shift = push.attempt.coerceAtMost(MAX_BACKOFF_SHIFT)
+                    val shift = push.attempt.coerceIn(0, MAX_BACKOFF_SHIFT)
                     val backoff = minOf(dispatch.retryPolicy.baseDelay * (1 shl shift), dispatch.retryPolicy.maxDelay)
-                    delay(backoff)
-                    processPush(advanced)
+                    pushQueueStore.retry(claim, nextAttempt, System.currentTimeMillis() + backoff.inWholeMilliseconds)
                 } else {
-                    deadLetter(push.copy { attempt = nextAttempt }, backend, result.reason)
+                    deadLetter(claim.copy(push = push.copy(attempt = nextAttempt)), backend, result.reason)
                 }
             }
         }
@@ -278,27 +313,32 @@ class PushServiceImpl(
             .record(durationNanos, TimeUnit.NANOSECONDS)
     }
 
-    private suspend fun dequeue(pushId: ServerPushId, backend: PushBackendKind?) {
-        pushQueueStore.clearPush(pushId)
-        decQueue(backend)
+    private suspend fun dequeue(claim: PushClaim, backend: PushBackendKind?): Boolean {
+        val finished = pushQueueStore.finish(claim)
+        if (finished) decQueue(backend)
+        return finished
     }
 
-    private suspend fun deadLetter(push: ServerPush, backend: PushBackendKind, reason: String) {
+    private suspend fun deadLetter(claim: PushClaim, backend: PushBackendKind, reason: String) {
+        val push = claim.push
         val pushId = push.pushId ?: return
-        pushDeadLetterStore.saveDeadLetter(ServerDeadLetter {
-            this.pushId = pushId
-            push.sessionId?.let { this.sessionId = it }
-            this.backend = push.backend
-            this.encodedPush = push.encodedPush
-            this.attempts = push.attempt
-            this.reason = reason
-            this.deadLetteredAt = System.currentTimeMillis()
-        })
-        pushQueueStore.clearPush(pushId)
-        decQueue(backend)
-        deadLetterDepth[backend]?.incrementAndGet()
-        counter("lockers.push.deadlettered", backend).increment()
-        logger.warn("Dead-lettered ${backend.name} push after ${push.attempt} attempts: $reason")
+        val finished = pushQueueStore.finish(claim, parkedReason = reason) {
+            pushDeadLetterStore.saveDeadLetter(ServerDeadLetter {
+                this.pushId = pushId
+                push.sessionId?.let { this.sessionId = it }
+                this.backend = push.backend
+                this.encodedPush = push.encodedPush
+                this.attempts = push.attempt
+                this.reason = reason
+                this.deadLetteredAt = System.currentTimeMillis()
+            })
+        }
+        if (finished) {
+            decQueue(backend)
+            deadLetterDepth[backend]?.incrementAndGet()
+            counter("lockers.push.deadlettered", backend).increment()
+            logger.warn("Dead-lettered {} push after {} attempts", backend.name, push.attempt)
+        }
     }
 
     private suspend fun removeRegistration(sessionId: ServerSessionId, backend: Int) {
@@ -394,7 +434,8 @@ class PushServiceImpl(
         try {
             val rawSessionId = request.sessionId?.rawValue
             val push = request.push
-            if (rawSessionId == null || rawSessionId.isEmpty() || push == null) {
+            if (rawSessionId == null || rawSessionId.isEmpty() || push == null ||
+                (request.deliveryId.isNotEmpty() && request.deliveryId.size !in 16..64)) {
                 return@trackResponse SendPushResponse { result = SendPushResponse.Result.UNKNOWN_ERROR }
             }
 
@@ -408,13 +449,17 @@ class PushServiceImpl(
             val encodedPush = push.toByteArray()
             for (registration in registrations) {
                 val backend = PushBackendKind.fromProtoValue(registration.backend)
+                val stableId = if (request.deliveryId.isEmpty()) Random.nextBytes(PUSH_ID_BYTES)
+                    else com.latenighthack.ktcrypto.SHA256.digest("lockers.push.delivery.v1".encodeToByteArray() +
+                        java.nio.ByteBuffer.allocate(4).putInt(rawSessionId.size).array() + rawSessionId +
+                        java.nio.ByteBuffer.allocate(4).putInt(registration.backend).array() + request.deliveryId)
                 val serverPush = ServerPush {
-                    this.pushId = ServerPushId(Random.nextBytes(PUSH_ID_BYTES))
+                    this.pushId = ServerPushId(stableId)
                     this.sessionId = serverSessionId
                     this.backend = registration.backend
                     this.encodedPush = encodedPush
                 }
-                pushQueueStore.savePush(serverPush)
+                if (!pushQueueStore.enqueue(serverPush, stableIdentity = request.deliveryId.isNotEmpty())) continue
                 incQueue(backend)
                 backend?.let { counter("lockers.push.enqueued", it).increment() }
                 workAvailable.trySend(Unit)

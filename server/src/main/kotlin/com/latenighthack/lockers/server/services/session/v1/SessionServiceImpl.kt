@@ -106,7 +106,7 @@ class SessionServiceImpl(
             override suspend fun findServer(sessionId: SessionId): SessionGatewayService = object : SessionGatewayService {
                 override suspend fun postEvent(request: PostEventRequest): PostEventResponse {
                     val gateway = pushGatewayDiscovery.findServer(sessionId) ?: error("push gateway unavailable")
-                    val response = gateway.sendPush(SendPushRequest(sessionId, request.event?.notification?.push))
+                    val response = gateway.sendPush(SendPushRequest(sessionId, request.event?.notification?.push, request.event?.eventId?.rawValue ?: byteArrayOf()))
                     return PostEventResponse(result = if (response.result.isOk()) PostEventResponse.Result.OK else PostEventResponse.Result.UNKNOWN_ERROR)
                 }
                 override suspend fun postEvents(request: PostEventsRequest) = PostEventsResponse(request.groups.map { postEvent(it) })
@@ -494,6 +494,7 @@ class SessionServiceImpl(
                     pushGatewayDiscovery.findServer(sessionId)?.sendPush(SendPushRequest {
                         this.sessionId = sessionId
                         push = requestPush
+                        deliveryId = eventIdRaw
                     })
                 } catch (e: CancellationException) { throw e }
                 catch (e: Exception) { logger.warn("push enqueue failed after durable inbox acceptance", e) }

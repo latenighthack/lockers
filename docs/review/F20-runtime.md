@@ -1,0 +1,9 @@
+# F20 — Durable push claims and replay identity
+
+Reproductions: two workers sharing one durable row entered both providers concurrently, even while admin drain hints repeated. A retry of an accepted gateway delivery enqueued and sent it twice. Both tests failed before the leased queue implementation.
+
+Fix: additive push-work metadata provides bounded indexed discovery, persisted retry deadlines, per-attempt UUID lease fencing, lease renewal, and stale completion/retry rejection. Each backend uses a fixed coroutine pool with bounded handoff capacity; advisory wake-ups accelerate durable polling. Gateway delivery identity includes session and backend, stores the canonical payload digest, and retains accepted/parked identity state so replay cannot send again or reuse an identity for another payload. Session forwarding preserves the upstream event identity. Legacy requests without an identity retain independent delivery semantics. Existing queue schema and wire field prefix remain unchanged.
+
+Session cleanup adopts historical rows in bounded pages and removes canonical/work records via a bounded session index; pending admission checks enforce a per-session quota across backends. Lease ownership provides at-least-once delivery after worker failure; external provider acceptance before a process crash still needs provider idempotency to guarantee exactly-once external effects.
+
+Validation: :server:test PushServiceTest and PushQueueClaimsTest, 22 discovered tests passed. Includes concurrent workers, accepted replay, replacement-lease fencing, cleanup over 260 records without deleting another session, quota across backends, persisted retry budget, dead letters, bounded dispatch, disabled-worker compatibility, and remote API-only enqueue discovery. Indexed helpers use the frozen dependencies-indexed-final manifest. Completion/parked retention and bounded admin scans are tracked in F33; shutdown joins in F26.

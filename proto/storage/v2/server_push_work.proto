@@ -15,4 +15,5 @@ message ServerPushWork {
   int64 created_at = 9;
   int64 completed_at = 10;
   string parked_reason = 11;
+  bool deduplicated = 12;
 }

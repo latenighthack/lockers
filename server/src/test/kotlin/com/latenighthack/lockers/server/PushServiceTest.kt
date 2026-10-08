@@ -119,6 +119,42 @@ class PushServiceTest {
         assertThat(decoded.backend?.getApns()?.deviceToken?.decodeToString()).isEqualTo("t2")
     }
 
+    @Test fun `two workers do not concurrently send one durable queue row`() = runBlocking {
+        val database = ServerStorage.inMemory()
+        val gate = CompletableDeferred<Unit>()
+        val a = RecordingPushProvider(PushBackendKind.APNS).apply { this.gate = gate }
+        val b = RecordingPushProvider(PushBackendKind.APNS).apply { this.gate = gate }
+        val first = harness(listOf(a), delegate = database)
+        val second = PushServiceImpl(first.sessionStore, PushQueueStoreImpl(database), first.deadLetterStore,
+            SimpleMeterRegistry(), listOf(b))
+        val sid = sessionId(52, 53)
+        first.client.register(sid, apns("t1"))
+        first.gateway.sendPush(SendPushRequest { sessionId = sid; push = Push { title = "one row" } })
+        try {
+            first.impl.start(); second.start()
+            withTimeout(1000) { while (a.sends.size + b.sends.size < 1) delay(10) }
+            repeat(10) { first.admin.drainQueue(DrainQueueRequest {}) }
+            delay(300)
+            assertThat(a.sends.size + b.sends.size).isEqualTo(1)
+        } finally { gate.complete(Unit); first.impl.stop(); second.stop() }
+    }
+
+    @Test fun `gateway replay does not send an accepted delivery identity twice`() = runBlocking {
+        val provider = RecordingPushProvider(PushBackendKind.APNS)
+        val h = harness(listOf(provider))
+        val sid = sessionId(54, 55)
+        h.client.register(sid, apns("t1"))
+        val request = SendPushRequest(sessionId = sid, push = Push { title = "stable" }, deliveryId = ByteArray(16) { 1 })
+        try {
+            h.impl.start()
+            h.gateway.sendPush(request)
+            withTimeout(1000) { provider.awaitSends(1); while (h.admin.getQueueStats(GetQueueStatsRequest {}).queued != 0L) delay(10) }
+            h.gateway.sendPush(request)
+            delay(300)
+            assertThat(provider.sends.size).isEqualTo(1)
+        } finally { h.impl.stop() }
+    }
+
     @Test fun `worker discovers pushes saved by an API-only replica after startup`() = runBlocking {
         val database = ServerStorage.inMemory()
         val provider = RecordingPushProvider(PushBackendKind.APNS)

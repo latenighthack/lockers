@@ -12,6 +12,7 @@ object ServerStorage {
         com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreImplDefinitionV1,
         com.latenighthack.lockers.server.services.push.v1.PushSessionStoreImplDefinitionV1,
         com.latenighthack.lockers.server.services.push.v1.PushQueueStoreImplDefinitionV1,
+        com.latenighthack.lockers.server.services.push.v1.PushWorkDefinitionV2,
         com.latenighthack.lockers.server.services.push.v1.PushDeadLetterStoreImplDefinitionV1,
         com.latenighthack.lockers.server.services.room.v1.LockerStoreImplDefinitionV1,
         com.latenighthack.lockers.server.services.room.v1.RoomSequencesDefinitionV1("delivery"),
