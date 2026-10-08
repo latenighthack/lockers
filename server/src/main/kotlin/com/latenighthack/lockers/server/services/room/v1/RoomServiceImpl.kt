@@ -192,15 +192,9 @@ class RoomServiceImpl(
     private val cacheSizeGauge = meterRegistry.gauge("lockers.room.cache.size", roomToSessionCache) { it.asMap().size.toDouble() }
 
     private suspend fun lookupSessions(roomId: RoomId): Set<SessionId> {
-        val cached = roomToSessionCache.get(roomId)
-        if (cached != null) {
-            cacheHitCounter.increment()
-            return cached
-        }
-        
+        // Another replica can change subscriptions. Recipient authority is always durable;
+        // the local cache is an observational snapshot, never an authorization/fanout source.
         cacheMissCounter.increment()
-        // Rebuilding room→session routing from the durable store: this is exactly the path a new
-        // shard owner takes on first access after a fenced handoff (Model A — no state transfer).
         reshardRoomsRebuiltCounter.increment()
         val sessions = subscriptionStore.getAllSessions(ServerRoomId(roomId.rawValue))
             .map { SessionId(it.rawValue) }
