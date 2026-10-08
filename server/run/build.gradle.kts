@@ -13,6 +13,10 @@ application {
 
 dependencies {
     implementation(projects.server)
+    implementation(projects.observabilityServer)
+    implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:1.45.0")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp:1.45.0")
+    implementation("io.opentelemetry:opentelemetry-extension-kotlin:1.45.0")
     implementation(libs.kotlin.inject.runtime)
     implementation(libs.ktstore.library)
     implementation(libs.coroutines.core)

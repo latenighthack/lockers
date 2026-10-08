@@ -26,3 +26,7 @@ local.properties
 
 # OS
 .DS_Store
+
+# Isolated Fullhouse paired-build state
+.fh/
+.artifacts/

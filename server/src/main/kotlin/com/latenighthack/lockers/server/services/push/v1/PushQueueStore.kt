@@ -1,7 +1,6 @@
 package com.latenighthack.lockers.server.services.push.v1
 
-import com.latenighthack.ktstore.Store
-import com.latenighthack.ktstore.StoreDelegate
+import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.server.storage.v1.*
 
 interface PushQueueStore {
@@ -12,13 +11,8 @@ interface PushQueueStore {
     suspend fun clearPush(pushId: ServerPushId)
 }
 
-class PushQueueStoreImpl(delegate: StoreDelegate): PushQueueStore, Store<ServerPush>(
-    delegate,
-    "push",
-    ServerPush::toByteArray,
-    ServerPush.Companion::fromByteArray
-) {
-    private val pushIdKey = serializedIndex(ServerPush::pushId, ServerPushId::toByteArray).also { primaryKey(it) }
+class PushQueueStoreImpl(delegate: Database): PushQueueStore, Store<ServerPush>(delegate, PushQueueStoreImplDefinitionV1) {
+    private val pushIdKey = PushQueueStoreImplDefinitionV1.pushIdKey
 
     override suspend fun savePush(push: ServerPush) = save(push)
 

@@ -1,13 +1,17 @@
 package com.latenighthack.lockers.server
 
 import com.latenighthack.ktstore.InMemoryStoreDelegate
-import com.latenighthack.ktstore.StoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.ktstore.createStoreDelegate
 import com.latenighthack.lockers.server.claim.ClaimContext
 import com.latenighthack.lockers.server.claim.ClaimMetrics
 import com.latenighthack.lockers.server.cluster.BlueprintV
 import com.latenighthack.lockers.server.cluster.ShardMetrics
 import io.ktor.http.ContentType
+import io.ktor.server.application.ApplicationCallPipeline
+import io.ktor.server.application.call
+import io.ktor.server.request.*
+import io.opentelemetry.extension.kotlin.asContextElement
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
@@ -40,17 +44,17 @@ private const val JDBC_POSTGRES_PREFIX = "jdbc:postgresql:"
  * otherwise we fall back to in-memory storage for local development. In-memory
  * data does NOT survive a restart, so production must set LOCKERS_DB_URL.
  */
-private fun storeDelegate(config: LockersConfig): StoreDelegate {
+private fun database(config: LockersConfig, definitions: List<com.latenighthack.ktstore.StoreDefinition<*>>, registry: MeterRegistry, telemetry: com.latenighthack.lockers.observability.LockersTelemetry): Database {
     val dbUrl = config.databaseUrl
     return if (dbUrl != null) {
-        createStoreDelegate(dbUrl.removePrefix(JDBC_POSTGRES_PREFIX))
+        ServerStorage.postgres(dbUrl, definitions, registry, telemetry)
     } else {
         System.err.println(
             "WARNING: LOCKERS_DB_URL is not set — using in-memory storage. Data will " +
                 "NOT survive a restart. Set LOCKERS_DB_URL to a Postgres JDBC URL " +
                 "(jdbc:postgresql://host:5432/lockers?user=U&password=P) in production."
         )
-        InMemoryStoreDelegate()
+        Database(ServerStorage.configuration("lockers-local", definitions), com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(InMemoryStoreDelegate(), registry, telemetry))
     }
 }
 
@@ -199,21 +203,29 @@ fun main() {
         bindRuntimeMetrics(metricsRegistry)
         // Pre-register the sharding/reshard + claim meters so `/metrics` is shape-stable across
         // deployment modes; unused modes simply never mutate them.
-        ShardMetrics(metricsRegistry)
-        val claimMetrics = ClaimMetrics(metricsRegistry)
 
-        val core = ServerCore::class.create(config, storeDelegate(config))
-        core.overrideMeterRegistry = metricsRegistry
+        val telemetrySdk = if (System.getenv("OTEL_SDK_DISABLED") != "true" &&
+            (!System.getenv("OTEL_EXPORTER_OTLP_ENDPOINT").isNullOrBlank() || !System.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT").isNullOrBlank()))
+            io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk.builder().addPropertiesSupplier {
+                mapOf("otel.service.name" to "lockers", "otel.metrics.exporter" to "none", "otel.logs.exporter" to "none", "otel.exporter.otlp.protocol" to "http/protobuf")
+            }.build().openTelemetrySdk else null
+        val openTelemetry = telemetrySdk ?: io.opentelemetry.api.OpenTelemetry.noop()
+        val diagnostics = com.latenighthack.lockers.observability.server.LockersMonitoring.diagnostics(openTelemetry)
+        val factories = ServiceLoader.load(ServerExtensionFactory::class.java).toList()
+        val database = database(config, factories.flatMap { it.storeDefinitions }, metricsRegistry, diagnostics)
+        val core = ServerCore::class.create(config, database)
+        val monitoring = com.latenighthack.lockers.observability.server.LockersMonitoring.attach(core, metricsRegistry, metricsRegistry, openTelemetry)
         core.setup()
 
         // Background scope for cluster pollers/pool — supervised so one failure doesn't kill the
         // process, and cancelled last on shutdown.
         val clusterScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val (cluster, claim) = startCoordination(config, ownershipMode, metricsRegistry, clusterScope)
+        ShardMetrics(metricsRegistry)
+        if (claim == null) ClaimMetrics(metricsRegistry)
 
         // Optional add-ons contributed from the classpath (e.g. remote content).
-        val extensions = ServiceLoader.load(ServerExtensionFactory::class.java)
-            .map { it.create(metricsRegistry) }
+        val extensions = factories.map { it.create(metricsRegistry, database) }
         // The ownership mode swaps in Registry*/Ring* discovery; the default monolith wires
         // in-process Local*Discovery exactly as before (byte-for-byte).
         val component = MonolithComponent(core, extensions, cluster.context, claim)
@@ -221,6 +233,19 @@ fun main() {
 
         // Public port: client/peer traffic + probes + metrics.
         val server = embeddedServer(CIO, port = config.httpPort) {
+            intercept(ApplicationCallPipeline.Setup) {
+                val carrier = mutableMapOf<String, String>()
+                for (key in listOf("traceparent", "tracestate")) {
+                    (call.request.headers[key] ?: if (call.request.headers["Upgrade"].equals("websocket", true)) call.request.queryParameters[key] else null)
+                        ?.takeIf { it.length <= 512 }?.let { carrier[key] = it }
+                }
+                val context = openTelemetry.propagators.textMapPropagator.extract(io.opentelemetry.context.Context.root(), carrier,
+                    object : io.opentelemetry.context.propagation.TextMapGetter<Map<String, String>> {
+                        override fun keys(carrier: Map<String, String>) = carrier.keys
+                        override fun get(carrier: Map<String, String>?, key: String) = carrier?.get(key)
+                    })
+                kotlinx.coroutines.withContext(context.asContextElement()) { proceed() }
+            }
             install(WebSockets)
             routing {
                 // Liveness only: the process is up and the event loop is turning. Never gated on
@@ -261,6 +286,8 @@ fun main() {
                     cluster.close()
                     component.stop()
                     claim?.close()
+                    monitoring.close()
+                    telemetrySdk?.close()
                 }
                 adminServer.stop(gracePeriodMillis = 1_000, timeoutMillis = 5_000)
                 server.stop(gracePeriodMillis = 1_000, timeoutMillis = 5_000)

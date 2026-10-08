@@ -48,6 +48,7 @@ class MonolithComponent(
      * loop and async registry writes); cancelled on [stop]. Declared first: properties below
      * capture it during construction.
      */
+    private val telemetry = serverCore.telemetry
     private val clusterScope = CoroutineScope(SupervisorJob())
 
     val pushServiceModule: PushServiceModule =
@@ -129,6 +130,7 @@ class MonolithComponent(
                 onDemoted = { roomServiceModule.serverImpl.evictRoomCaches() },
                 sessionRenewRound = { (sessionRegistry as ClaimSessionRegistry).renewRound() },
                 sessionReleaseAll = { (sessionRegistry as ClaimSessionRegistry).releaseAll() },
+                telemetry = telemetry,
             )
         }
 

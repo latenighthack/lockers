@@ -9,8 +9,7 @@ import assertk.assertions.isNotNull
 import assertk.assertions.isEmpty
 import assertk.assertions.isGreaterThanOrEqualTo
 import com.latenighthack.ktbuf.net.GrpcRequestContext
-import com.latenighthack.ktstore.InMemoryStoreDelegate
-import com.latenighthack.ktstore.StoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.Push
 import com.latenighthack.lockers.common.v1.SessionId
 import com.latenighthack.lockers.common.v1.toByteArray
@@ -50,7 +49,7 @@ class PushServiceTest {
     private suspend fun harness(
         providers: List<PushProvider>,
         dispatch: PushDispatchConfig = PushDispatchConfig.DEFAULT,
-        delegate: StoreDelegate = InMemoryStoreDelegate(),
+        delegate: Database = com.latenighthack.lockers.server.ServerStorage.inMemory(),
     ): Harness {
         val sessionStore = PushSessionStoreImpl(delegate)
         val queueStore = PushQueueStoreImpl(delegate)
@@ -58,7 +57,7 @@ class PushServiceTest {
         sessionStore.prepare()
         queueStore.prepare()
         deadLetterStore.prepare()
-        delegate.createStores()
+        delegate.open()
         val registry = SimpleMeterRegistry()
         val impl = PushServiceImpl(sessionStore, queueStore, deadLetterStore, registry, providers, dispatch)
         return Harness(

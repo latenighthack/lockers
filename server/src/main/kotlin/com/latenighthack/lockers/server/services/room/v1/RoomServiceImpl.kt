@@ -19,6 +19,7 @@ import com.latenighthack.lockers.session.v1.PostEventRequest
 import io.github.reactivecircus.cache4k.Cache
 import io.github.reactivecircus.cache4k.CacheEvent
 import io.micrometer.core.instrument.MeterRegistry
+import com.latenighthack.lockers.observability.*
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
@@ -56,10 +57,24 @@ class RoomServiceImpl(
     private val meterRegistry: MeterRegistry,
     private val config: LockersConfig,
     private val deliveryOutbox: DeliveryOutboxStore? = null,
+    private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
 ) : BaseServiceImpl(), RoomServer {
     private val logger = LoggerFactory.getLogger(RoomServiceImpl::class.java)
+    private suspend fun processAgent(room: RoomId, id: LockerId, locker: Locker): List<LockerAgentRegistry.LockerWrite> {
+        val start = System.nanoTime(); var outcome = "error"
+        try { return telemetry.observe(TelemetryOperation.AGENT_EXECUTE) { agentRegistry.processPayload(room, id, locker) }.also {
+            outcome = "ok"; meterRegistry.safeMeters { counter("lockers.agent.derived.writes").increment(it.size.toDouble()) }
+        } } catch (cancelled: kotlinx.coroutines.CancellationException) { outcome = "cancelled"; throw cancelled }
+        finally {
+            meterRegistry.safeMeters {
+                counter("lockers.agent.invocations", "outcome", outcome).increment()
+                timer("lockers.agent.duration", "outcome", outcome).record(System.nanoTime() - start, java.util.concurrent.TimeUnit.NANOSECONDS)
+            }
+        }
+    }
+
     private val deliveryWorker = if (config.deliveryOutboxEnabled && config.deliveryWorkerEnabled)
-        DeliveryWorker(requireNotNull(deliveryOutbox), sessionGatewayDiscovery).also { it.start() } else null
+        DeliveryWorker(requireNotNull(deliveryOutbox), sessionGatewayDiscovery, meterRegistry, telemetry).also { it.start() } else null
     private val lockVerifier = LockVerifier(lockStore)
     private val dispatchers = ShardedDispatcher<RoomId>(config.shardCount, "room-shard") {
         it.rawValue.contentHashCode()
@@ -203,13 +218,15 @@ class RoomServiceImpl(
         return sessions
     }
 
-    override suspend fun capabilities(context: GrpcRequestContext, request: CapabilitiesRequest) = CapabilitiesResponse(
+    override suspend fun capabilities(context: GrpcRequestContext, request: CapabilitiesRequest) = meterRegistry.trackRpc(TelemetryOperation.ROOM_CAPABILITIES, telemetry) { CapabilitiesResponse(
         subscribeAndSnapshot = config.deliveryOutboxEnabled, getLockers = true,
         postLockerChanges = config.deliveryOutboxEnabled, writeReceipts = config.deliveryOutboxEnabled,
         maxBatchItems = 64, maxBatchBytes = minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)
-    )
+    ) }
 
-    override suspend fun getLockers(context: GrpcRequestContext, request: GetLockersRequest): GetLockersResponse {
+    override suspend fun getLockers(context: GrpcRequestContext, request: GetLockersRequest): GetLockersResponse = meterRegistry.trackRpc(TelemetryOperation.ROOM_GET_MANY, telemetry) { observedGetLockers(context, request) }
+
+    private suspend fun observedGetLockers(context: GrpcRequestContext, request: GetLockersRequest): GetLockersResponse {
         require(request.lockerIds.size <= 64 && request.toByteArray().size <= 8 * 1024 * 1024)
         val room = requireNotNull(request.roomId)
         val all = lockerStore.getLockers(ServerRoomId(room.rawValue), request.lockerIds.map { (it.keyspace?.value ?: 0L) to ServerLockerId(it.rawValue) }).associateBy {
@@ -222,7 +239,9 @@ class RoomServiceImpl(
         })
     }
 
-    override suspend fun subscribeAndSnapshot(context: GrpcRequestContext, request: SubscribeAndSnapshotRequest): SubscribeAndSnapshotResponse {
+    override suspend fun subscribeAndSnapshot(context: GrpcRequestContext, request: SubscribeAndSnapshotRequest): SubscribeAndSnapshotResponse = meterRegistry.trackRpc(TelemetryOperation.ROOM_SNAPSHOT, telemetry, { rpcOutcome(it.result.toString()) }) { observedSubscribeAndSnapshot(context, request) }
+
+    private suspend fun observedSubscribeAndSnapshot(context: GrpcRequestContext, request: SubscribeAndSnapshotRequest): SubscribeAndSnapshotResponse {
         require(request.keyspaces.size <= 64)
         val room = requireNotNull(request.roomId)
         val session = requireNotNull(request.sessionId)
@@ -242,8 +261,10 @@ class RoomServiceImpl(
 
     private class BatchRejected(val response: PostLockerChangesResponse) : RuntimeException()
 
-    override suspend fun postLockerChanges(context: GrpcRequestContext, request: PostLockerChangesRequest): PostLockerChangesResponse {
-        val trace = WriteTrace(request.writeRequestId.take(8).joinToString("") { "%02x".format(it) }, meterRegistry)
+    override suspend fun postLockerChanges(context: GrpcRequestContext, request: PostLockerChangesRequest): PostLockerChangesResponse = meterRegistry.trackRpc(TelemetryOperation.ROOM_BATCH_WRITE, telemetry, { rpcOutcome(it.result.toString()) }) { observedPostLockerChanges(context, request) }
+
+    private suspend fun observedPostLockerChanges(context: GrpcRequestContext, request: PostLockerChangesRequest): PostLockerChangesResponse {
+        val trace = WriteTrace(request.writeRequestId.take(8).joinToString("") { "%02x".format(it) }, meterRegistry, telemetry)
         trace.requestBytes = request.toByteArray().size
         return trace.run { postLockerChangesTraced(context, request, trace).also { trace.result = it.result.toString() } }
     }
@@ -326,7 +347,7 @@ class RoomServiceImpl(
                 val writes = linkedMapOf<LockerId, ServerLocker>()
                 val derivedEvents = mutableListOf<Event>()
                 for (change in normalized) {
-                    for (derived in trace.phase("agent") { agentRegistry.processPayload(room, change.lockerId!!, change.locker!!) }) {
+                    for (derived in trace.phase("agent") { processAgent(room, change.lockerId!!, change.locker!!) }) {
                         val id = derived.lockerId
                         val existing = writes[id] ?: lockerStore.getLocker(ServerRoomId(room.rawValue), id.keyspace?.value ?: 0L, ServerLockerId(id.rawValue))
                         val version = (existing?.version ?: 0L) + 1
@@ -360,7 +381,7 @@ class RoomServiceImpl(
     override suspend fun subscription(
         context: GrpcRequestContext,
         request: SubscriptionRequest
-    ) = meterRegistry.trackResponse("lockers.room.locker.subscribe", SubscriptionResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.room.locker.subscribe", SubscriptionResponse::result, telemetry) {
         val roomId = request.roomId ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
         val sessionId = request.sessionId ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
 
@@ -396,7 +417,7 @@ class RoomServiceImpl(
     override suspend fun getLocker(
         context: GrpcRequestContext,
         request: GetLockerRequest
-    ) = meterRegistry.trackResponse("lockers.room.locker.get", GetLockerResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.room.locker.get", GetLockerResponse::result, telemetry) {
         val startTime = System.nanoTime()
         val lockerId = request.lockerId
         val roomId = request.roomId
@@ -429,7 +450,7 @@ class RoomServiceImpl(
     override suspend fun getAllLockers(
         context: GrpcRequestContext,
         request: GetAllLockersRequest
-    ) = meterRegistry.trackResponse("lockers.room.locker.getall", GetAllLockersResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.room.locker.getall", GetAllLockersResponse::result, telemetry) {
         val startTime = System.nanoTime()
         val roomId = request.roomId
             ?: return@trackResponse GetAllLockersResponse(result = GetAllLockersResponse.Result.UNKNOWN_ERROR)
@@ -468,7 +489,7 @@ class RoomServiceImpl(
     override suspend fun postLockerChange(
         context: GrpcRequestContext,
         request: PostLockerChangeRequest
-    ) = meterRegistry.trackResponse("lockers.room.locker.postlockerchange", PostLockerChangeResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.room.locker.postlockerchange", PostLockerChangeResponse::result, telemetry) {
         if (config.deliveryOutboxEnabled) {
             val batch = postLockerChanges(context, PostLockerChangesRequest(roomId = request.roomId,
                 changes = listOf(request.copy(writeRequestId = byteArrayOf())), writeRequestId = request.writeRequestId.takeIf { it.isNotEmpty() } ?: Random.nextBytes(32)))
@@ -626,7 +647,7 @@ class RoomServiceImpl(
             // must not fail the RPC — a 500 here punishes a successful write and the
             // client has no way to retry into a consistent state.
             try {
-                val frameLockers = agentRegistry.processPayload(requestRoomId, requestLockerId, updatedLocker)
+                val frameLockers = processAgent(requestRoomId, requestLockerId, updatedLocker)
 
                 val derived = frameLockers.map { frameLocker ->
                     val existing = lockerStore.getLocker(ServerRoomId(requestRoomId.rawValue), frameLocker.lockerId.keyspace?.value ?: 0L, ServerLockerId(frameLocker.lockerId.rawValue))
@@ -681,7 +702,7 @@ class RoomServiceImpl(
     override suspend fun deleteLocker(
         context: GrpcRequestContext,
         request: DeleteLockerRequest
-    ) = meterRegistry.trackResponse("lockers.room.locker.deletelocker", DeleteLockerResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.room.locker.deletelocker", DeleteLockerResponse::result, telemetry) {
         val requestRoomId = request.roomId ?: return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
         val requestEventId = EventId(Random.nextBytes(32))
         val requestLockerId = request.lockerId ?: return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
@@ -770,7 +791,7 @@ class RoomServiceImpl(
     override suspend fun lockLocker(
         context: GrpcRequestContext,
         request: LockLockerRequest
-    ) = meterRegistry.trackResponse("lockers.room.locker.lock", LockLockerResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.room.locker.lock", LockLockerResponse::result, telemetry) {
         val requestRoomId = request.roomId ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)
         val grant = request.grant ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)
 
@@ -807,7 +828,7 @@ class RoomServiceImpl(
     override suspend fun unlockLocker(
         context: GrpcRequestContext,
         request: UnlockLockerRequest
-    ) = meterRegistry.trackResponse("lockers.room.locker.unlock", UnlockLockerResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.room.locker.unlock", UnlockLockerResponse::result, telemetry) {
         val requestRoomId = request.roomId ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)
         val scope = request.scope ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)
 

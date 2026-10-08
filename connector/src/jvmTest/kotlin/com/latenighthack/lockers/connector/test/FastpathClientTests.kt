@@ -20,7 +20,7 @@ import kotlin.test.*
 class FastpathClientTests {
     private suspend fun client(rpc: RpcClient, writeKey: Secp256r1KeyPair): LockersClient {
         val key = Secp256r1KeyPair.generate()
-        return LockersClient.create(rpc, InMemoryStoreDelegate(), KeyValueStore(InMemoryKeyValueStoreDelegate()),
+        return LockersClient.create(rpc, com.latenighthack.lockers.connector.ConnectorStorage.inMemory(), KeyValueStore(InMemoryKeyValueStoreDelegate()),
             object : AuthenticationKeySource {
                 override suspend fun getSessionKeyPair() = key
                 override suspend fun hasSessionKeyPair() = true

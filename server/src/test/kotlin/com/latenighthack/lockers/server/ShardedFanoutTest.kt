@@ -8,7 +8,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotEmpty
 import com.latenighthack.ktbuf.net.GrpcRequestContext
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.SessionId
 import com.latenighthack.lockers.push.v1.PushGatewayServer
 import com.latenighthack.lockers.push.v1.PushGatewayService
@@ -152,7 +152,7 @@ class ShardedFanoutTest {
 
     @Test
     fun `monolith component builds, starts and stops with a single-node cluster context`() = runBlocking {
-        val core = ServerCore::class.create(LockersConfig.defaults(), InMemoryStoreDelegate())
+        val core = ServerCore::class.create(LockersConfig.defaults(), com.latenighthack.lockers.server.ServerStorage.inMemory())
         core.setup()
 
         // Dedicated scope for the router's (never-completing) shard-map watch, so it does not

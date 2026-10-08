@@ -35,6 +35,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation(projects.api)
+                api(projects.observabilityApi)
                 implementation(libs.kotlin.stdlib)
                 implementation(libs.ktbuf.library)
                 implementation(libs.ktbuf.rpc)
@@ -47,6 +48,7 @@ kotlin {
         }
         val jvmTest by getting {
             dependencies {
+                implementation("org.xerial:sqlite-jdbc:3.45.3.0")
                 implementation(kotlin("test"))
                 implementation(libs.coroutines.test)
                 implementation(libs.assertk)

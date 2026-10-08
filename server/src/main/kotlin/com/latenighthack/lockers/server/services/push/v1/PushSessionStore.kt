@@ -1,7 +1,6 @@
 package com.latenighthack.lockers.server.services.push.v1
 
-import com.latenighthack.ktstore.Store
-import com.latenighthack.ktstore.StoreDelegate
+import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.server.storage.v1.*
 
 interface PushSessionStore {
@@ -12,13 +11,8 @@ interface PushSessionStore {
     suspend fun deletePushInfo(sessionId: ServerSessionId)
 }
 
-class PushSessionStoreImpl(delegate: StoreDelegate): PushSessionStore, Store<ServerPushInfo>(
-    delegate,
-    "push_session",
-    ServerPushInfo::toByteArray,
-    ServerPushInfo.Companion::fromByteArray
-) {
-    private val sessionIdKey = serializedIndex(ServerPushInfo::sessionId, ServerSessionId::toByteArray).also { primaryKey(it) }
+class PushSessionStoreImpl(delegate: Database): PushSessionStore, Store<ServerPushInfo>(delegate, PushSessionStoreImplDefinitionV1) {
+    private val sessionIdKey = PushSessionStoreImplDefinitionV1.sessionIdKey
 
     override suspend fun savePushInfo(pushInfo: ServerPushInfo) = save(pushInfo)
 

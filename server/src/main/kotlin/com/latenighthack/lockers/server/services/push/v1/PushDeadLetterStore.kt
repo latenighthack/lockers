@@ -1,7 +1,6 @@
 package com.latenighthack.lockers.server.services.push.v1
 
-import com.latenighthack.ktstore.Store
-import com.latenighthack.ktstore.StoreDelegate
+import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.server.storage.v1.*
 
 interface PushDeadLetterStore {
@@ -14,13 +13,8 @@ interface PushDeadLetterStore {
     suspend fun deleteDeadLetter(pushId: ServerPushId)
 }
 
-class PushDeadLetterStoreImpl(delegate: StoreDelegate) : PushDeadLetterStore, Store<ServerDeadLetter>(
-    delegate,
-    "push_deadletter",
-    ServerDeadLetter::toByteArray,
-    ServerDeadLetter.Companion::fromByteArray
-) {
-    private val pushIdKey = serializedIndex(ServerDeadLetter::pushId, ServerPushId::toByteArray).also { primaryKey(it) }
+class PushDeadLetterStoreImpl(delegate: Database) : PushDeadLetterStore, Store<ServerDeadLetter>(delegate, PushDeadLetterStoreImplDefinitionV1) {
+    private val pushIdKey = PushDeadLetterStoreImplDefinitionV1.pushIdKey
 
     override suspend fun saveDeadLetter(deadLetter: ServerDeadLetter) = save(deadLetter)
 

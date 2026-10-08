@@ -1,0 +1,70 @@
+rule_files: [lockers.yml]
+evaluation_interval: 1m
+tests:
+  - name: unexpected-errors-with-traffic
+    interval: 1m
+    input_series:
+      - series: 'lockers_rpc_requests_total{service_name="sample",environment="test",outcome="ok"}'
+        values: '0+6000x20'
+      - series: 'lockers_rpc_requests_total{service_name="sample",environment="test",outcome="error"}'
+        values: '0+120x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: LockersUnexpectedRpcErrors
+        exp_alerts:
+          - exp_labels: {service_name: sample, environment: test, severity: warning}
+            exp_annotations: {summary: "Lockers unexpected RPC error rate exceeds 1%", description: "Inspect RPC outcomes, related logs and traces in the Rooms/Sessions/Push packs. See monitoring/RUNBOOKS.md."}
+  - name: traffic-gate-prevents-low-volume-alert
+    interval: 1m
+    input_series:
+      - series: 'lockers_rpc_requests_total{service_name="sample",environment="test",outcome="ok"}'
+        values: '0+1x20'
+      - series: 'lockers_rpc_requests_total{service_name="sample",environment="test",outcome="error"}'
+        values: '0+1x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: LockersUnexpectedRpcErrors
+        exp_alerts: []
+  - name: disabled-delivery-worker-is-gated
+    interval: 1m
+    input_series:
+      - series: 'lockers_backlog_pending{service_name="sample",environment="test",queue="room"}'
+        values: '10x20'
+      - series: 'lockers_delivery_accepted_total{service_name="sample",environment="test",queue="room"}'
+        values: '0x20'
+      - series: 'lockers_monitoring_component_enabled{service_name="sample",environment="test",component="delivery_worker"}'
+        values: '0x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: LockersDeliveryStalled
+        exp_alerts: []
+  - name: shared-backlog-alert-is-not-duplicated
+    interval: 1m
+    input_series:
+      - series: 'lockers_backlog_pending{service_name="sample",environment="test",queue="room",job="sample",instance="a",storage="shared"}'
+        values: '10x20'
+      - series: 'lockers_backlog_pending{service_name="sample",environment="test",queue="room",job="sample",instance="b",storage="shared"}'
+        values: '10x20'
+      - series: 'lockers_delivery_accepted_total{service_name="sample",environment="test",queue="room",job="sample",instance="a"}'
+        values: '0x20'
+      - series: 'lockers_delivery_accepted_total{service_name="sample",environment="test",queue="room",job="sample",instance="b"}'
+        values: '0x20'
+      - series: 'lockers_monitoring_component_enabled{service_name="sample",environment="test",component="delivery_worker"}'
+        values: '1x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: LockersDeliveryStalled
+        exp_alerts:
+          - exp_labels: {service_name: sample, environment: test, queue: room, severity: warning}
+            exp_annotations: {summary: "Lockers durable delivery has stopped making progress", description: "Check gateway failures, backlog sample freshness and worker configuration. See monitoring/RUNBOOKS.md."}
+  - name: stale-backlog-data-is-an-alert
+    interval: 1m
+    input_series:
+      - series: 'lockers_backlog_sample_timestamp{service_name="sample",environment="test",storage="shared",job="sample",instance="a"}'
+        values: '0x20'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: LockersBacklogSnapshotStale
+        exp_alerts:
+          - exp_labels: {service_name: sample, environment: test, storage: shared, job: sample, instance: a, severity: warning}
+            exp_annotations: {summary: "Lockers backlog telemetry is unavailable", description: "Do not interpret the cached queue depth as current. See monitoring/RUNBOOKS.md."}

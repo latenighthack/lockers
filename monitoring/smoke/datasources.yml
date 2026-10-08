@@ -1,0 +1,32 @@
+apiVersion: 1
+datasources:
+  - name: Monitoring Prometheus
+    uid: smoke-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+  - name: Monitoring Loki
+    uid: smoke-loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          matcherRegex: '"trace_id"\s*:\s*"([0-9a-f]{32})"'
+          datasourceUid: smoke-tempo
+          url: '$${__value.raw}'
+  - name: Monitoring Tempo
+    uid: smoke-tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: smoke-loki
+        tags: [{key: service.name, value: service_name}]
+        filterByTraceID: true
+        spanStartTimeShift: -2s
+        spanEndTimeShift: 2s
+      lokiSearch: {datasourceUid: smoke-loki}

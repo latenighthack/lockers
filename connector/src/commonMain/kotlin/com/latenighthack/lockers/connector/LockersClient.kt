@@ -1,8 +1,10 @@
 package com.latenighthack.lockers.connector
 
+import com.latenighthack.lockers.observability.*
+
 import com.latenighthack.ktbuf.net.RpcClient
 import com.latenighthack.ktstore.KeyValueStore
-import com.latenighthack.ktstore.StoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.LockerKeyspace
 import com.latenighthack.lockers.common.v1.SessionId
 import com.latenighthack.lockers.common.v1.Version
@@ -21,7 +23,7 @@ import kotlin.reflect.KFunction1
  * start/close lifecycle so callers don't wire the parts together by hand.
  *
  * ```
- * val client = LockersClient.create(rpcClient, storeDelegate, keyValueStore, keySource, appVersion)
+ * val client = LockersClient.create(rpcClient, database, keyValueStore, keySource, appVersion)
  * client.awaitConnected()
  * val chat = client.typed(CHAT_KEYSPACE, ChatMessage::toByteArray, ChatMessage.Companion::fromByteArray)
  * ```
@@ -93,27 +95,28 @@ class LockersClient private constructor(
          */
         suspend fun create(
             rpcClient: RpcClient,
-            storeDelegate: StoreDelegate,
+            database: Database,
             keyValueStore: KeyValueStore,
             keySource: AuthenticationKeySource,
             appVersion: Version,
             lockKeySource: LockKeySource? = null,
             codecs: NotificationCodecs = NotificationCodecs.identity(),
+            telemetry: LockersTelemetry = LockersTelemetry.NONE,
         ): LockersClient {
-            val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
-            val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
-            val lockerStore = LockerStoreImpl(storeDelegate)
-            val pushRegistrationStore = PushRegistrationStoreImpl(storeDelegate)
+            database.open()
+            val sessionStore = SessionStoreImpl(keyValueStore, database)
+            val subscriptionStore = SubscriptionStoreImpl(database)
+            val lockerStore = LockerStoreImpl(database)
+            val pushRegistrationStore = PushRegistrationStoreImpl(database)
 
             sessionStore.prepare()
             subscriptionStore.prepare()
             lockerStore.prepare()
             pushRegistrationStore.prepare()
-            storeDelegate.createStores()
 
-            val stream = Stream(rpcClient, keySource, sessionStore, subscriptionStore, appVersion)
-            val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs)
-            val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId)
+            val stream = Stream(rpcClient, keySource, sessionStore, subscriptionStore, appVersion, telemetry)
+            val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs, telemetry = telemetry)
+            val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId, telemetry)
 
             lockerClient.start()
             stream.start()

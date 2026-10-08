@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.connector
 
+import com.latenighthack.lockers.observability.*
+
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.LockerKeyspace
 import com.latenighthack.lockers.common.v1.RoomId
@@ -38,7 +40,10 @@ interface NotificationCodec {
 class NotificationCodecs private constructor(
     private val global: List<NotificationCodec>,
     private val perKeyspace: Map<Long, List<NotificationCodec>>,
+    private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
 ) {
+    fun withTelemetry(telemetry: LockersTelemetry) = NotificationCodecs(global, perKeyspace, telemetry)
+
     private fun chainFor(keyspace: LockerKeyspace): List<NotificationCodec> =
         perKeyspace[keyspace.value] ?: global
 
@@ -46,7 +51,9 @@ class NotificationCodecs private constructor(
     fun isEmpty(keyspace: LockerKeyspace): Boolean = chainFor(keyspace).isEmpty()
 
     /** Applies the receive-side chain; returns null if any codec drops the notification. */
-    suspend fun decode(context: NotificationContext, payload: ByteArray): ByteArray? {
+    suspend fun decode(context: NotificationContext, payload: ByteArray): ByteArray? = telemetry.observe(TelemetryOperation.CONNECTOR_CODEC_DECODE, { if (it == null) TelemetryOutcome.DROPPED else TelemetryOutcome.OK }) { decodeObserved(context, payload) }
+
+    private suspend fun decodeObserved(context: NotificationContext, payload: ByteArray): ByteArray? {
         var current = payload
         for (codec in chainFor(context.keyspace).asReversed()) {
             current = codec.decode(context, current) ?: return null
@@ -55,7 +62,9 @@ class NotificationCodecs private constructor(
     }
 
     /** Applies the send-side chain. */
-    suspend fun encode(context: NotificationContext, payload: ByteArray): ByteArray {
+    suspend fun encode(context: NotificationContext, payload: ByteArray): ByteArray = telemetry.observe(TelemetryOperation.CONNECTOR_CODEC_ENCODE) { encodeObserved(context, payload) }
+
+    private suspend fun encodeObserved(context: NotificationContext, payload: ByteArray): ByteArray {
         var current = payload
         for (codec in chainFor(context.keyspace)) {
             current = codec.encode(context, current)

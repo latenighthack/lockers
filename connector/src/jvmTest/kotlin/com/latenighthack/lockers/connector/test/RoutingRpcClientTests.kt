@@ -5,7 +5,7 @@ import com.latenighthack.ktbuf.net.RpcClient
 import com.latenighthack.ktbuf.net.RpcMethodSpecifier
 import com.latenighthack.ktbuf.net.RpcResponse
 import com.latenighthack.ktbuf.net.RpcServerStream
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.LockerKeyspace
 import com.latenighthack.lockers.common.v1.RoomId
@@ -186,12 +186,12 @@ class RoutingRpcClientTests {
 
     /** A [LockerClient] wired to [rpcClient] over in-memory stores; not started (writes need no stream). */
     private suspend fun lockerClientWith(rpcClient: RpcClient): LockerClient {
-        val storeDelegate = InMemoryStoreDelegate()
+        val database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
         val keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate())
-        val lockerStore = LockerStoreImpl(storeDelegate).also { it.prepare() }
-        val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate).also { it.prepare() }
-        val subscriptionStore = SubscriptionStoreImpl(storeDelegate).also { it.prepare() }
-        storeDelegate.createStores()
+        val lockerStore = LockerStoreImpl(database).also { it.prepare() }
+        val sessionStore = SessionStoreImpl(keyValueStore, database).also { it.prepare() }
+        val subscriptionStore = SubscriptionStoreImpl(database).also { it.prepare() }
+        database.open()
 
         val kp = Secp256r1KeyPair.generate()
         val keySource = object : AuthenticationKeySource {

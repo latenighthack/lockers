@@ -8,9 +8,16 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.slf4j.LoggerFactory
 import java.util.UUID
+import io.micrometer.core.instrument.MeterRegistry
+import com.latenighthack.lockers.observability.*
+import com.latenighthack.lockers.server.tools.safeMeters
+import java.util.concurrent.TimeUnit
 
 /** Leases recover after process death; stable event ids make retries safe at the gateway. */
-class DeliveryWorker(private val store: DeliveryOutboxStore, private val discovery: SessionGatewayDiscovery) {
+class DeliveryWorker(private val store: DeliveryOutboxStore, private val discovery: SessionGatewayDiscovery, private val meters: MeterRegistry? = null, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, private val queue: String = "room") {
+    init { meters?.counter("lockers.delivery.accepted", "queue", queue); meters?.counter("lockers.delivery.attempts", "queue", queue); meters?.counter("lockers.delivery.failures", "queue", queue) }
+    private val active = java.util.concurrent.atomic.AtomicInteger(0)
+    init { meters?.gauge("lockers.delivery.worker.active", listOf(io.micrometer.core.instrument.Tag.of("queue", queue)), active) { it.get().toDouble() } }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val permits = Semaphore(4)
     private val owner = UUID.randomUUID().toString()
@@ -19,6 +26,7 @@ class DeliveryWorker(private val store: DeliveryOutboxStore, private val discove
     @Volatile private var stopping = false
     fun start() {
         check(job == null)
+        active.set(1)
         job = scope.launch {
             // Independent room lanes keep a slow gateway from imposing a batch barrier on
             // unrelated rooms. All lanes share the same four network permits.
@@ -27,16 +35,18 @@ class DeliveryWorker(private val store: DeliveryOutboxStore, private val discove
                     while (isActive && !stopping) {
                         try { if (!drainOnce(roomLimit = 1)) store.awaitWork() }
                         catch (e: CancellationException) { throw e }
-                        catch (e: Exception) { logger.warn("delivery outbox iteration failed", e); delay(250) }
+                        catch (e: Exception) { meters?.safeMeters { counter("lockers.delivery.failures", "queue", queue).increment() }; logger.warn("delivery outbox iteration failed", e); delay(250) }
                     }
                 } }
             }
         }
     }
-    suspend fun drainOnce(roomLimit: Int = 4): Boolean {
+    suspend fun drainOnce(roomLimit: Int = 4): Boolean = telemetry.observe(TelemetryOperation.DELIVERY_DRAIN) { drainMeasured(roomLimit) }
+    private suspend fun drainMeasured(roomLimit: Int): Boolean {
         val began = System.nanoTime()
         val intents = store.claim(owner, System.currentTimeMillis(), limit = roomLimit, eventsPerRoom = 64)
         if (intents.isEmpty()) return false
+        meters?.safeMeters { counter("lockers.delivery.attempts", "queue", queue).increment(intents.size.toDouble()) }
         val heartbeat = CoroutineScope(kotlin.coroutines.coroutineContext).launch {
             while (isActive) { delay(10_000); store.renew(intents, System.currentTimeMillis()) }
         }
@@ -66,7 +76,7 @@ class DeliveryWorker(private val store: DeliveryOutboxStore, private val discove
                                 batches.last().add(item); bytes += size
                             }
                             for (batch in batches) {
-                                val results = withTimeout(10_000) {
+                                val results = telemetry.observe(TelemetryOperation.DELIVERY_GATEWAY) { withTimeout(10_000) {
                                     try { group.service.postEvents(com.latenighthack.lockers.session.v1.PostEventsRequest(batch.map { it.second })).results }
                                     catch (e: com.latenighthack.ktbuf.net.RpcResponseException) {
                                         if (e.code != com.latenighthack.ktbuf.proto.Codes.UNIMPLEMENTED && e.code != com.latenighthack.ktbuf.proto.Codes.NOT_FOUND) throw e
@@ -74,30 +84,37 @@ class DeliveryWorker(private val store: DeliveryOutboxStore, private val discove
                                         batch.map { group.service.postEvent(it.second) }
                                     }
                                 }
+                                }
                                 batch.zip(results).forEach { (item, result) ->
-                                    if (result.result.isOk()) store.accepted(item.first, item.second.sessionIds)
+                                    if (result.result.isOk()) {
+                                        store.accepted(item.first, item.second.sessionIds)
+                                        meters?.safeMeters { counter("lockers.delivery.accepted", "queue", queue).increment() }
+                                    } else meters?.safeMeters { counter("lockers.delivery.failures", "queue", queue).increment() }
                                 }
                             }
-                        } catch (e: CancellationException) { if (e !is TimeoutCancellationException) throw e }
-                        catch (e: Exception) { logger.warn("delivery gateway retry; {} events remain recoverable", routed.size, e) }
+                        } catch (e: CancellationException) { if (e !is TimeoutCancellationException) throw e else meters?.safeMeters { counter("lockers.delivery.failures", "queue", queue).increment() } }
+                        catch (e: Exception) { meters?.safeMeters { counter("lockers.delivery.failures", "queue", queue).increment() }; logger.warn("delivery gateway retry; {} events remain recoverable", routed.size, e) }
                     }
                 } }.awaitAll()
             }
         } finally {
             withContext(NonCancellable) {
                 heartbeat.cancelAndJoin()
-                intents.forEach { store.retry(it, System.currentTimeMillis()) }
+                var retried = false
+                intents.forEach { if (store.retryIfPending(it, System.currentTimeMillis())) retried = true }
+                if (retried) meters?.safeMeters { counter("lockers.delivery.retry.rounds", "queue", queue).increment() }
+                meters?.safeMeters { timer("lockers.delivery.duration", "queue", queue).record(System.nanoTime() - began, TimeUnit.NANOSECONDS) }
             }
         }
         logger.debug("locker_delivery elapsed_ms={}", (System.nanoTime() - began) / 1_000_000.0)
         return true
     }
     /** Stops claiming. Await in-flight acceptance before disabling the last worker. */
-    suspend fun stop() { stopping = true; job?.join(); scope.cancel() }
+    suspend fun stop() { stopping = true; job?.join(); active.set(0); scope.cancel() }
     suspend fun drain(timeoutMs: Long = 30_000) = withTimeout(timeoutMs) {
         stopping = true
         job?.join()
         while (store.pendingCount() > 0) { if (!drainOnce()) store.awaitWork() }
     }
-    fun close() { scope.cancel() }
+    fun close() { active.set(0); scope.cancel() }
 }

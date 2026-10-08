@@ -1,0 +1,995 @@
+{
+  "contract_version": 1,
+  "resource_labels": [
+    "service_name",
+    "environment"
+  ],
+  "latency_buckets_seconds": [
+    0.001,
+    0.005,
+    0.01,
+    0.025,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1,
+    2.5,
+    5,
+    10,
+    30,
+    60
+  ],
+  "metrics": [
+    {
+      "name": "lockers.rpc.requests",
+      "prometheus": "lockers_rpc_requests_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "service",
+        "operation",
+        "outcome"
+      ],
+      "scope": "process",
+      "description": "lockers.rpc.requests"
+    },
+    {
+      "name": "lockers.rpc.duration",
+      "prometheus": "lockers_rpc_duration_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [
+        "service",
+        "operation",
+        "outcome"
+      ],
+      "scope": "process",
+      "description": "lockers.rpc.duration"
+    },
+    {
+      "name": "lockers.backlog.pending",
+      "prometheus": "lockers_backlog_pending",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [
+        "queue",
+        "storage"
+      ],
+      "scope": "shared_storage",
+      "description": "Cached durable count; -1 means not sampled. Aggregate replicas with max by storage."
+    },
+    {
+      "name": "lockers.backlog.sample.timestamp",
+      "prometheus": "lockers_backlog_sample_timestamp",
+      "type": "gauge",
+      "unit": "unix_seconds",
+      "labels": [
+        "storage"
+      ],
+      "scope": "shared_storage",
+      "description": "Last successful sample in Unix seconds."
+    },
+    {
+      "name": "lockers.backlog.sample.healthy",
+      "prometheus": "lockers_backlog_sample_healthy",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [
+        "storage"
+      ],
+      "scope": "process",
+      "description": "lockers.backlog.sample.healthy"
+    },
+    {
+      "name": "lockers.backlog.refresh.failures",
+      "prometheus": "lockers_backlog_refresh_failures_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "storage"
+      ],
+      "scope": "process",
+      "description": "lockers.backlog.refresh.failures"
+    },
+    {
+      "name": "lockers.monitoring.info",
+      "prometheus": "lockers_monitoring_info",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [
+        "contract_version",
+        "library_version",
+        "client_service_name"
+      ],
+      "scope": "process",
+      "description": "lockers.monitoring.info"
+    },
+    {
+      "name": "lockers.monitoring.component.enabled",
+      "prometheus": "lockers_monitoring_component_enabled",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [
+        "component"
+      ],
+      "scope": "process",
+      "description": "lockers.monitoring.component.enabled"
+    },
+    {
+      "name": "lockers.delivery.accepted",
+      "prometheus": "lockers_delivery_accepted_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "queue"
+      ],
+      "scope": "process",
+      "description": "lockers.delivery.accepted"
+    },
+    {
+      "name": "lockers.delivery.attempts",
+      "prometheus": "lockers_delivery_attempts_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "queue"
+      ],
+      "scope": "process",
+      "description": "lockers.delivery.attempts"
+    },
+    {
+      "name": "lockers.delivery.failures",
+      "prometheus": "lockers_delivery_failures_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "queue"
+      ],
+      "scope": "process",
+      "description": "lockers.delivery.failures"
+    },
+    {
+      "name": "lockers.delivery.retry.rounds",
+      "prometheus": "lockers_delivery_retry_rounds_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "queue"
+      ],
+      "scope": "process",
+      "description": "lockers.delivery.retry.rounds"
+    },
+    {
+      "name": "lockers.storage.operations",
+      "prometheus": "lockers_storage_operations_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "store",
+        "operation",
+        "outcome"
+      ],
+      "scope": "process",
+      "description": "lockers.storage.operations"
+    },
+    {
+      "name": "lockers.storage.duration",
+      "prometheus": "lockers_storage_duration_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [
+        "store",
+        "operation",
+        "outcome"
+      ],
+      "scope": "process",
+      "description": "lockers.storage.duration"
+    },
+    {
+      "name": "lockers.agent.invocations",
+      "prometheus": "lockers_agent_invocations_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "outcome"
+      ],
+      "scope": "process",
+      "description": "lockers.agent.invocations"
+    },
+    {
+      "name": "lockers.agent.duration",
+      "prometheus": "lockers_agent_duration_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [
+        "outcome"
+      ],
+      "scope": "process",
+      "description": "lockers.agent.duration"
+    },
+    {
+      "name": "lockers.agent.derived.writes",
+      "prometheus": "lockers_agent_derived_writes_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.agent.derived.writes"
+    },
+    {
+      "name": "lockers.claim.renew.last.success.timestamp",
+      "prometheus": "lockers_claim_renew_last_success_timestamp",
+      "type": "gauge",
+      "unit": "unix_seconds",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.claim.renew.last.success.timestamp"
+    },
+    {
+      "name": "lockers.claim.renew.interval.seconds",
+      "prometheus": "lockers_claim_renew_interval_seconds",
+      "type": "gauge",
+      "unit": "seconds",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.claim.renew.interval.seconds"
+    },
+    {
+      "name": "lockers.claim.renew.failures",
+      "prometheus": "lockers_claim_renew_failures_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.claim.renew.failures"
+    },
+    {
+      "name": "lockers.connector.operations",
+      "prometheus": "lockers_connector_operations_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "operation",
+        "outcome",
+        "platform"
+      ],
+      "scope": "process",
+      "description": "lockers.connector.operations"
+    },
+    {
+      "name": "lockers.connector.duration",
+      "prometheus": "lockers_connector_duration_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [
+        "operation",
+        "outcome",
+        "platform"
+      ],
+      "scope": "process",
+      "description": "lockers.connector.duration"
+    },
+    {
+      "name": "lockers.connector.telemetry.dropped",
+      "prometheus": "lockers_connector_telemetry_dropped_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "platform",
+        "reason"
+      ],
+      "scope": "process",
+      "description": "lockers.connector.telemetry.dropped"
+    },
+    {
+      "name": "lockers.connector.telemetry.batches",
+      "prometheus": "lockers_connector_telemetry_batches_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "platform"
+      ],
+      "scope": "process",
+      "description": "lockers.connector.telemetry.batches"
+    },
+    {
+      "name": "lockers.connector.diagnostics.dropped",
+      "prometheus": "lockers_connector_diagnostics_dropped_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "platform"
+      ],
+      "scope": "process",
+      "description": "lockers.connector.diagnostics.dropped"
+    },
+    {
+      "name": "lockers.delivery.worker.active",
+      "prometheus": "lockers_delivery_worker_active",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [
+        "queue"
+      ],
+      "scope": "process",
+      "description": "lockers.delivery.worker.active"
+    },
+    {
+      "name": "lockers.delivery.duration",
+      "prometheus": "lockers_delivery_duration_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [
+        "queue"
+      ],
+      "scope": "process",
+      "description": "lockers.delivery.duration"
+    },
+    {
+      "name": "lockers.room.locker.rejected.oversize",
+      "prometheus": "lockers_room_locker_rejected_oversize_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.locker.rejected.oversize"
+    },
+    {
+      "name": "lockers.room.locker.rejected.ratelimited",
+      "prometheus": "lockers_room_locker_rejected_ratelimited_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.locker.rejected.ratelimited"
+    },
+    {
+      "name": "lockers.room.cache.hits",
+      "prometheus": "lockers_room_cache_hits_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.cache.hits"
+    },
+    {
+      "name": "lockers.room.cache.misses",
+      "prometheus": "lockers_room_cache_misses_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.cache.misses"
+    },
+    {
+      "name": "lockers.room.cache.size",
+      "prometheus": "lockers_room_cache_size",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.cache.size"
+    },
+    {
+      "name": "lockers.room.forward.writes",
+      "prometheus": "lockers_room_forward_writes_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.forward.writes"
+    },
+    {
+      "name": "lockers.room.forward.failures",
+      "prometheus": "lockers_room_forward_failures_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.forward.failures"
+    },
+    {
+      "name": "lockers.room.gateway.lookup.failures",
+      "prometheus": "lockers_room_gateway_lookup_failures_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.gateway.lookup.failures"
+    },
+    {
+      "name": "lockers.room.events.post.success",
+      "prometheus": "lockers_room_events_post_success_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.events.post.success"
+    },
+    {
+      "name": "lockers.room.events.post.failure",
+      "prometheus": "lockers_room_events_post_failure_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.events.post.failure"
+    },
+    {
+      "name": "lockers.room.agent.failures",
+      "prometheus": "lockers_room_agent_failures_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.agent.failures"
+    },
+    {
+      "name": "lockers.room.subscriptions",
+      "prometheus": "lockers_room_subscriptions_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "operation",
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.room.subscriptions"
+    },
+    {
+      "name": "lockers.session.opens",
+      "prometheus": "lockers_session_opens_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.session.opens"
+    },
+    {
+      "name": "lockers.session.streams.active",
+      "prometheus": "lockers_session_streams_active",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.session.streams.active"
+    },
+    {
+      "name": "lockers.session.streams.cancelled",
+      "prometheus": "lockers_session_streams_cancelled_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.session.streams.cancelled"
+    },
+    {
+      "name": "lockers.session.events.delivered",
+      "prometheus": "lockers_session_events_delivered_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "delivery_type"
+      ],
+      "scope": "process",
+      "description": "lockers.session.events.delivered"
+    },
+    {
+      "name": "lockers.session.events.posted",
+      "prometheus": "lockers_session_events_posted_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.session.events.posted"
+    },
+    {
+      "name": "lockers.session.events.queued",
+      "prometheus": "lockers_session_events_queued_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.session.events.queued"
+    },
+    {
+      "name": "lockers.session.inbox.saves",
+      "prometheus": "lockers_session_inbox_saves_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.session.inbox.saves"
+    },
+    {
+      "name": "lockers.session.inbox.deletes",
+      "prometheus": "lockers_session_inbox_deletes_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.session.inbox.deletes"
+    },
+    {
+      "name": "lockers.session.events.preopen",
+      "prometheus": "lockers_session_events_preopen_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.session.events.preopen"
+    },
+    {
+      "name": "lockers.session.events.delivery.time",
+      "prometheus": "lockers_session_events_delivery_time_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [
+        "delivery_type"
+      ],
+      "scope": "process",
+      "description": "lockers.session.events.delivery.time"
+    },
+    {
+      "name": "lockers.push.provider.configured",
+      "prometheus": "lockers_push_provider_configured",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [
+        "backend"
+      ],
+      "scope": "process",
+      "description": "lockers.push.provider.configured"
+    },
+    {
+      "name": "lockers.push.send.duration",
+      "prometheus": "lockers_push_send_duration_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [
+        "backend",
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.push.send.duration"
+    },
+    {
+      "name": "lockers.push.sent",
+      "prometheus": "lockers_push_sent_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "backend"
+      ],
+      "scope": "process",
+      "description": "lockers.push.sent"
+    },
+    {
+      "name": "lockers.push.failed",
+      "prometheus": "lockers_push_failed_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "backend"
+      ],
+      "scope": "process",
+      "description": "lockers.push.failed"
+    },
+    {
+      "name": "lockers.push.retried",
+      "prometheus": "lockers_push_retried_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "backend"
+      ],
+      "scope": "process",
+      "description": "lockers.push.retried"
+    },
+    {
+      "name": "lockers.push.rejected",
+      "prometheus": "lockers_push_rejected_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "backend"
+      ],
+      "scope": "process",
+      "description": "lockers.push.rejected"
+    },
+    {
+      "name": "lockers.push.deadlettered",
+      "prometheus": "lockers_push_deadlettered_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "backend"
+      ],
+      "scope": "process",
+      "description": "lockers.push.deadlettered"
+    },
+    {
+      "name": "lockers.push.queue.depth",
+      "prometheus": "lockers_push_queue_depth",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [
+        "backend"
+      ],
+      "scope": "process",
+      "description": "lockers.push.queue.depth"
+    },
+    {
+      "name": "lockers.push.deadletter.depth",
+      "prometheus": "lockers_push_deadletter_depth",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [
+        "backend"
+      ],
+      "scope": "process",
+      "description": "lockers.push.deadletter.depth"
+    },
+    {
+      "name": "lockers.claim.rooms.owned",
+      "prometheus": "lockers_claim_rooms_owned",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.claim.rooms.owned"
+    },
+    {
+      "name": "lockers.claim.renew.duration",
+      "prometheus": "lockers_claim_renew_duration_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.claim.renew.duration"
+    },
+    {
+      "name": "lockers.claim.acquires",
+      "prometheus": "lockers_claim_acquires_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.claim.acquires"
+    },
+    {
+      "name": "lockers.claim.steals",
+      "prometheus": "lockers_claim_steals_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.claim.steals"
+    },
+    {
+      "name": "lockers.claim.lost",
+      "prometheus": "lockers_claim_lost_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.claim.lost"
+    },
+    {
+      "name": "lockers.claim.redirects",
+      "prometheus": "lockers_claim_redirects_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.claim.redirects"
+    },
+    {
+      "name": "lockers.gateway.registry.misses",
+      "prometheus": "lockers_gateway_registry_misses_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.gateway.registry.misses"
+    },
+    {
+      "name": "lockers.shard.ownership.moves",
+      "prometheus": "lockers_shard_ownership_moves_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.shard.ownership.moves"
+    },
+    {
+      "name": "lockers.shard.inhandoff",
+      "prometheus": "lockers_shard_inhandoff",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.shard.inhandoff"
+    },
+    {
+      "name": "lockers.shard.lease.expiries",
+      "prometheus": "lockers_shard_lease_expiries_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.shard.lease.expiries"
+    },
+    {
+      "name": "lockers.reshard.duration",
+      "prometheus": "lockers_reshard_duration_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.reshard.duration"
+    },
+    {
+      "name": "lockers.reshard.rooms.rebuilt",
+      "prometheus": "lockers_reshard_rooms_rebuilt_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.reshard.rooms.rebuilt"
+    },
+    {
+      "name": "lockers.reshard.cas.conflicts",
+      "prometheus": "lockers_reshard_cas_conflicts_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.reshard.cas.conflicts"
+    },
+    {
+      "name": "lockers.write.phase",
+      "prometheus": "lockers_write_phase_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [
+        "phase"
+      ],
+      "scope": "process",
+      "description": "lockers.write.phase"
+    },
+    {
+      "name": "lockers.room.dispatcher.time",
+      "prometheus": "lockers_room_dispatcher_time_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.dispatcher.time"
+    },
+    {
+      "name": "lockers.session.dispatcher.time",
+      "prometheus": "lockers_session_dispatcher_time_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.session.dispatcher.time"
+    },
+    {
+      "name": "lockers.room.locker.get.time",
+      "prometheus": "lockers_room_locker_get_time_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.locker.get.time"
+    },
+    {
+      "name": "lockers.room.locker.getall.time",
+      "prometheus": "lockers_room_locker_getall_time_seconds",
+      "type": "timer",
+      "unit": "seconds",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.locker.getall.time"
+    },
+    {
+      "name": "lockers.room.locker.count",
+      "prometheus": "lockers_room_locker_count",
+      "type": "summary",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.room.locker.count"
+    },
+    {
+      "name": "lockers.push.queue.size",
+      "prometheus": "lockers_push_queue_size",
+      "type": "gauge",
+      "unit": "count",
+      "labels": [],
+      "scope": "process",
+      "description": "lockers.push.queue.size"
+    },
+    {
+      "name": "lockers.push.enqueued",
+      "prometheus": "lockers_push_enqueued_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "backend"
+      ],
+      "scope": "process",
+      "description": "lockers.push.enqueued"
+    },
+    {
+      "name": "lockers.push.registrations",
+      "prometheus": "lockers_push_registrations_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "backend"
+      ],
+      "scope": "process",
+      "description": "lockers.push.registrations"
+    },
+    {
+      "name": "lockers.session.creates",
+      "prometheus": "lockers_session_creates_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.session.creates"
+    },
+    {
+      "name": "lockers.room.locker.subscribe",
+      "prometheus": "lockers_room_locker_subscribe_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.room.locker.subscribe"
+    },
+    {
+      "name": "lockers.room.locker.get",
+      "prometheus": "lockers_room_locker_get_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.room.locker.get"
+    },
+    {
+      "name": "lockers.room.locker.getall",
+      "prometheus": "lockers_room_locker_getall_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.room.locker.getall"
+    },
+    {
+      "name": "lockers.room.locker.postlockerchange",
+      "prometheus": "lockers_room_locker_postlockerchange_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.room.locker.postlockerchange"
+    },
+    {
+      "name": "lockers.room.locker.deletelocker",
+      "prometheus": "lockers_room_locker_deletelocker_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.room.locker.deletelocker"
+    },
+    {
+      "name": "lockers.room.locker.lock",
+      "prometheus": "lockers_room_locker_lock_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.room.locker.lock"
+    },
+    {
+      "name": "lockers.room.locker.unlock",
+      "prometheus": "lockers_room_locker_unlock_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.room.locker.unlock"
+    },
+    {
+      "name": "lockers.session.post",
+      "prometheus": "lockers_session_post_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.session.post"
+    },
+    {
+      "name": "lockers.session.broadcast",
+      "prometheus": "lockers_session_broadcast_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.session.broadcast"
+    },
+    {
+      "name": "lockers.push.register",
+      "prometheus": "lockers_push_register_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.push.register"
+    },
+    {
+      "name": "lockers.push.unregister",
+      "prometheus": "lockers_push_unregister_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.push.unregister"
+    },
+    {
+      "name": "lockers.push.config",
+      "prometheus": "lockers_push_config_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.push.config"
+    },
+    {
+      "name": "lockers.push.sendpush",
+      "prometheus": "lockers_push_sendpush_total",
+      "type": "counter",
+      "unit": "count",
+      "labels": [
+        "result"
+      ],
+      "scope": "process",
+      "description": "lockers.push.sendpush"
+    }
+  ]
+}

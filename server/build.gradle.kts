@@ -23,6 +23,7 @@ mavenPublishing {
 
 dependencies {
     implementation(projects.api)
+    api(projects.observabilityApi)
     implementation(projects.shardingCore)
 
     implementation(libs.kotlin.inject.runtime)

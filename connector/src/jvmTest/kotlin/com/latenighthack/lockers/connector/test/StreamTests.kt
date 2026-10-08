@@ -5,7 +5,7 @@ import com.latenighthack.ktbuf.test.server.runTestWithServer
 import com.latenighthack.ktcrypto.Secp256r1KeyPair
 import com.latenighthack.ktcrypto.generate
 import com.latenighthack.ktstore.InMemoryKeyValueStoreDelegate
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.ktstore.KeyValueStore
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.common.v1.Version
@@ -37,17 +37,17 @@ class StreamTests {
         runTestWithServer(Application::attachTestServices) { server, _ ->
         withContext(Dispatchers.Default) {
             val rpcClient = server.rpcClient
-            val storeDelegate = InMemoryStoreDelegate()
+            val database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
             val keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate())
-            val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
-            val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
+            val sessionStore = SessionStoreImpl(keyValueStore, database)
+            val subscriptionStore = SubscriptionStoreImpl(database)
             val keySource = FixedKeySource(Secp256r1KeyPair.generate())
             val testRoomId = RoomId(Random.nextBytes(32))
             val testLockerId = LockerId(Random.nextBytes(32), LockerKeyspace { value = 1L })
 
             subscriptionStore.prepare()
             sessionStore.prepare()
-            storeDelegate.createStores()
+            database.open()
 
             val version = Version(0, 0, 1)
             val stream1 = Stream(rpcClient, keySource, sessionStore, subscriptionStore, version)
@@ -83,10 +83,10 @@ class StreamTests {
     @Test
     fun `initialized → subscribed → event received`() = runTestWithServer(Application::attachTestServices) { server, _ ->
         val rpcClient = server.rpcClient
-        val storeDelegate = InMemoryStoreDelegate()
+        val database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
         val keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate())
-        val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
-        val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
+        val sessionStore = SessionStoreImpl(keyValueStore, database)
+        val subscriptionStore = SubscriptionStoreImpl(database)
         val sessionKeyPair = Secp256r1KeyPair.generate()
         val testRoomId = RoomId(Random.nextBytes(32))
         val testLockerId = LockerId(Random.nextBytes(32), LockerKeyspace { value = 1L })
@@ -108,7 +108,7 @@ class StreamTests {
 
         subscriptionStore.prepare()
         sessionStore.prepare()
-        storeDelegate.createStores()
+        database.open()
 
         val stream = Stream(
             rpcClient,
@@ -204,17 +204,17 @@ class StreamTests {
     fun `desynced sequence bytes recover the same session and its queued events`() =
         runTestWithServer(Application::attachTestServices) { server, _ ->
             val rpcClient = server.rpcClient
-            val storeDelegate = InMemoryStoreDelegate()
+            val database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
             val keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate())
-            val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
-            val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
+            val sessionStore = SessionStoreImpl(keyValueStore, database)
+            val subscriptionStore = SubscriptionStoreImpl(database)
             val keySource = FixedKeySource(Secp256r1KeyPair.generate())
             val testRoomId = RoomId(Random.nextBytes(32))
             val testLockerId = LockerId(Random.nextBytes(32), LockerKeyspace { value = 1L })
 
             subscriptionStore.prepare()
             sessionStore.prepare()
-            storeDelegate.createStores()
+            database.open()
 
             val version = Version(0, 0, 1)
             val stream1 = Stream(rpcClient, keySource, sessionStore, subscriptionStore, version)
@@ -253,17 +253,17 @@ class StreamTests {
     fun `pending stored acks do not block the session open`() =
         runTestWithServer(Application::attachTestServices) { server, _ ->
             val rpcClient = server.rpcClient
-            val storeDelegate = InMemoryStoreDelegate()
+            val database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
             val keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate())
-            val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
-            val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
+            val sessionStore = SessionStoreImpl(keyValueStore, database)
+            val subscriptionStore = SubscriptionStoreImpl(database)
             val keySource = FixedKeySource(Secp256r1KeyPair.generate())
             val testRoomId = RoomId(Random.nextBytes(32))
             val testLockerId = LockerId(Random.nextBytes(32), LockerKeyspace { value = 1L })
 
             subscriptionStore.prepare()
             sessionStore.prepare()
-            storeDelegate.createStores()
+            database.open()
 
             // Pending acks (e.g. the app died before the server confirmed them) are re-sent
             // immediately after the open request. That early second request must never displace
@@ -296,14 +296,14 @@ class StreamTests {
     fun `unrecoverable signature mismatch falls back to a fresh session`() =
         runTestWithServer(Application::attachTestServices) { server, _ ->
             val rpcClient = server.rpcClient
-            val storeDelegate = InMemoryStoreDelegate()
+            val database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
             val keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate())
-            val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
-            val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
+            val sessionStore = SessionStoreImpl(keyValueStore, database)
+            val subscriptionStore = SubscriptionStoreImpl(database)
 
             subscriptionStore.prepare()
             sessionStore.prepare()
-            storeDelegate.createStores()
+            database.open()
 
             val version = Version(0, 0, 1)
             val stream1 = Stream(rpcClient, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, version)
@@ -325,15 +325,15 @@ class StreamTests {
     @Test(timeout = 30_000)
     fun `a failing subscription reconcile retries in-session instead of parking until reconnect`() =
         runTestWithServer(Application::attachTestServices) { server, _ ->
-            val storeDelegate = InMemoryStoreDelegate()
+            val database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
             val keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate())
-            val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
-            val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
+            val sessionStore = SessionStoreImpl(keyValueStore, database)
+            val subscriptionStore = SubscriptionStoreImpl(database)
             val testRoomId = RoomId(Random.nextBytes(32))
 
             subscriptionStore.prepare()
             sessionStore.prepare()
-            storeDelegate.createStores()
+            database.open()
 
             // Fail the first two Subscription RPCs, then let it through. Previously the first
             // failure parked the room (left pending in the store) until the next reconnect, so
@@ -383,16 +383,16 @@ class StreamTests {
     @Test(timeout = 30_000)
     fun `one room's failing subscription does not head-of-line-block another room`() =
         runTestWithServer(Application::attachTestServices) { server, _ ->
-            val storeDelegate = InMemoryStoreDelegate()
+            val database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
             val keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate())
-            val sessionStore = SessionStoreImpl(keyValueStore, storeDelegate)
-            val subscriptionStore = SubscriptionStoreImpl(storeDelegate)
+            val sessionStore = SessionStoreImpl(keyValueStore, database)
+            val subscriptionStore = SubscriptionStoreImpl(database)
             val badRoomId = RoomId(Random.nextBytes(32))
             val goodRoomId = RoomId(Random.nextBytes(32))
 
             subscriptionStore.prepare()
             sessionStore.prepare()
-            storeDelegate.createStores()
+            database.open()
 
             val stream = Stream(
                 RoomFaultRpcClient(server.rpcClient, failRoom = badRoomId),

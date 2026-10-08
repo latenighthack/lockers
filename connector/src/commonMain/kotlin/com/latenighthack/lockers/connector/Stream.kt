@@ -1,5 +1,8 @@
 package com.latenighthack.lockers.connector
 
+import com.latenighthack.lockers.observability.*
+
+import com.latenighthack.ktstore.*
 import com.diamondedge.logging.KmLog
 import com.diamondedge.logging.logging
 
@@ -8,14 +11,10 @@ import com.latenighthack.ktbuf.net.RpcClient
 import com.latenighthack.ktbuf.rpc.repeatWithBackoff
 import com.latenighthack.ktcrypto.Secp256r1KeyPair
 import com.latenighthack.ktcrypto.encode
-import com.latenighthack.ktstore.BoundStoreKey
 import com.latenighthack.lockers.session.v1.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlin.random.Random
-import com.latenighthack.ktstore.KeyValueStore
-import com.latenighthack.ktstore.Store
-import com.latenighthack.ktstore.StoreDelegate
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.internal.ShardedRoomServiceRpc
 import com.latenighthack.lockers.connector.internal.ShardedSessionServiceRpc
@@ -40,15 +39,10 @@ fun byteArrayIdentity(bytes: ByteArray): ByteArray {
     return bytes
 }
 
-class SessionStoreImpl(private val keyValueStore: KeyValueStore, delegate: StoreDelegate) : Store<StoredAck>(
-    delegate,
-    "acks",
-    StoredAck::toByteArray,
-    StoredAck::fromByteArray
-), SessionStore {
-    private val roomIdKey = serializedIndex(StoredAck::roomIdRawValue, ::byteArrayIdentity)
-    private val eventIdKey = serializedIndex(StoredAck::eventIdRawValue, ::byteArrayIdentity)
-    private val roomIdEventIdKey = compositeIndex(roomIdKey, eventIdKey).also { primaryKey(it) }
+class SessionStoreImpl(private val keyValueStore: KeyValueStore, delegate: Database) : Store<StoredAck>(delegate, SessionStoreImplDefinitionV1), SessionStore {
+    private val roomIdKey = SessionStoreImplDefinitionV1.roomIdKey
+    private val eventIdKey = SessionStoreImplDefinitionV1.eventIdKey
+    private val roomIdEventIdKey = SessionStoreImplDefinitionV1.roomIdEventIdKey
 
     companion object {
         private val SESSION_ID_KEY = "session_id"
@@ -67,8 +61,8 @@ class SessionStoreImpl(private val keyValueStore: KeyValueStore, delegate: Store
 
     override suspend fun getPendingAcks(): List<StoredAck> = getAll().filterNot { it.confirmed }
     override suspend fun hasReceived(ack: StoredAck): Boolean = get(roomIdEventIdKey.eq(listOf(
-        BoundStoreKey.SerializedKey(roomIdKey.name, ack.roomIdRawValue),
-        BoundStoreKey.SerializedKey(eventIdKey.name, ack.eventIdRawValue)
+        BoundStoreKey.SerializedKey(roomIdKey.name.value, ack.roomIdRawValue),
+        BoundStoreKey.SerializedKey(eventIdKey.name.value, ack.eventIdRawValue)
     ))) != null
 
     override suspend fun addAck(ack: StoredAck) = save(ack)
@@ -92,13 +86,8 @@ interface SubscriptionStore {
     suspend fun deleteSubscription(roomId: RoomId)
 }
 
-class SubscriptionStoreImpl(delegate: StoreDelegate) : SubscriptionStore, Store<StoredSubscription>(
-    delegate,
-    "subscriptions",
-    StoredSubscription::toByteArray,
-    StoredSubscription.Companion::fromByteArray
-) {
-    private val roomIdKey = serializedIndex(StoredSubscription::roomIdRawValue, ::byteArrayIdentity).also { primaryKey(it) }
+class SubscriptionStoreImpl(delegate: Database) : SubscriptionStore, Store<StoredSubscription>(delegate, SubscriptionStoreImplDefinitionV1) {
+    private val roomIdKey = SubscriptionStoreImplDefinitionV1.roomIdKey
 
     override suspend fun getAllSubscriptions() = getAll()
 
@@ -114,7 +103,8 @@ class SubscriptionController(
     private val subscriptionStore: SubscriptionStore,
     @Suppress("UNUSED_PARAMETER") sessionStore: SessionStore,
     private val sessionIdSource: Flow<SessionId?>,
-    private val log: KmLog = logging()
+    private val log: KmLog = logging(),
+    private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
 ) {
     private val controllerJob = SupervisorJob()
     private val controllerScope = CoroutineScope(Dispatchers.Default + controllerJob)
@@ -160,6 +150,7 @@ class SubscriptionController(
                 val targetSession = sessionId ?: return
                 jobs[roomId] = controllerScope.launch {
                     repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
+                        telemetry.observe(TelemetryOperation.CONNECTOR_SUBSCRIBE) {
                         val hydrate = hydrateSubscription
                         if (subscribed && hydrate != null) {
                             hydrate(roomId, targetSession)
@@ -170,6 +161,7 @@ class SubscriptionController(
                                 if (subscribed) kind.subscribe { } else kind.unsubscribe { }
                             })
                             check(response.result.isOk()) { "subscription rejected: ${response.result}" }
+                        }
                         }
                     }
                     changes.send(Change.Confirmed(roomId, targetSession, generation, subscribed))
@@ -266,7 +258,8 @@ class Stream(
     private val keySource: AuthenticationKeySource,
     private val sessionStore: SessionStore,
     private val subscriptionStore: SubscriptionStore,
-    private val appVersion: Version
+    private val appVersion: Version,
+    private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
 ) {
     companion object {
         val PING_TIMEOUT = 60_000L
@@ -290,7 +283,7 @@ class Stream(
     // recorded here so the reconnect re-targets the owning node. A plain client (monolith) never
     // sees EPOCH_STALE, so this stays a no-op.
     private val routing = rpcClient as? RoutingRpcClient
-    private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource)
+    private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource, telemetry = telemetry)
     private val outgoingAcks = MutableSharedFlow<List<StoredAck>>()
 
     internal var hydrateSubscription: (suspend (RoomId, SessionId) -> Unit)?
@@ -335,7 +328,7 @@ class Stream(
             onConnected.value = false
 
             repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
-                connectInternal()
+                telemetry.observe(TelemetryOperation.CONNECTOR_RECONNECT) { connectInternal() }
                 onConnected.value = false
             }
 
@@ -345,6 +338,8 @@ class Stream(
     }
 
     private fun failFatally(error: StreamFatalError): Nothing {
+        telemetry.safeRecord(TelemetryOperation.CONNECTOR_TERMINAL, TelemetryOutcome.REJECTED)
+        telemetry.safeEvent(TelemetryEvent(TelemetryOperation.CONNECTOR_TERMINAL, TelemetryOutcome.REJECTED))
         fatalErrorState.value = error
         throw FatalStreamException(error)
     }
@@ -366,6 +361,7 @@ class Stream(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
+                telemetry.safeEvent(TelemetryEvent(TelemetryOperation.CONNECTOR_TERMINAL, TelemetryOutcome.ERROR))
                 fatalErrorState.value = StreamFatalError.TransportExhausted
             }
         }
@@ -444,6 +440,9 @@ class Stream(
                                 sessionStore.updateNextSequenceBytes(open.nextSequenceKey)
                                 sessionStore.updateSessionId(currentSessionId)
 
+                                telemetry.safeRecord(TelemetryOperation.CONNECTOR_OPEN, TelemetryOutcome.OK)
+                                val tracing = kotlinx.coroutines.currentCoroutineContext()[TelemetryContext]
+                                telemetry.safeEvent(TelemetryEvent(TelemetryOperation.CONNECTOR_OPEN, TelemetryOutcome.OK, tracing?.traceId, tracing?.spanId))
                                 onConnected.value = true
                                 sessionIdSource.value = currentSessionId
 
@@ -512,6 +511,7 @@ class Stream(
                         processIncomingEvents(events.event)
                     }
                     is WatchSessionResponse.OneOfResponse.ack -> {
+                        telemetry.safeRecord(TelemetryOperation.CONNECTOR_ACK, TelemetryOutcome.OK)
                         val ack = oneOf.getAck()!!
 
                         for (confirmedAck in ack.confirmedAcks) {

@@ -54,13 +54,33 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build and test
-        run: ./gradlew build
+        run: ./gradlew build :observability-server:monitoringBundle
         env:
           LOCKERS_TEST_PG_URL: jdbc:postgresql://localhost:5432/lockers?user=lockers&password=lockers
           LOCKERS_TEST_PG_REQUIRED: 'true'
 
+      - name: Upload versioned monitoring bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: lockers-monitoring
+          path: observability-server/build/distributions/*.zip
+
       - name: Static analysis (detekt, advisory)
         run: ./gradlew detekt
+
+  monitoring:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check portable dashboard artifacts
+        run: python3 monitoring/tools/generate.py --check
+      - name: Start pinned monitoring smoke stack
+        run: docker compose -f monitoring/smoke/compose.yml up -d
+      - name: Validate import, queries, alerts and correlation
+        run: python3 monitoring/smoke/verify.py
+      - name: Clean up smoke stack
+        if: always()
+        run: docker compose -f monitoring/smoke/compose.yml down -v
 
   publish:
     # Publishes :api and :connector to Maven Central. Runs on macOS because the
@@ -70,7 +90,7 @@ jobs:
     # Enable snapshots for the namespace in Central first, then set the repository
     # variable CENTRAL_SNAPSHOTS_ENABLED=true. Releases need no snapshot permission.
     # v* tag     -> release <version> (auto-promoted on the Central Portal)
-    needs: build
+    needs: [build, monitoring]
     if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && vars.CENTRAL_SNAPSHOTS_ENABLED == 'true'))
     runs-on: macos-latest
     steps:

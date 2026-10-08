@@ -1,20 +1,23 @@
 package com.latenighthack.lockers.connector
 
+import com.latenighthack.lockers.observability.*
+
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /** One instance per LockerClient; work belongs to the client, not the first waiter. */
-internal class LockerSyncCoordinator(private val scope: CoroutineScope) {
+internal class LockerSyncCoordinator(private val scope: CoroutineScope, private val telemetry: LockersTelemetry = LockersTelemetry.NONE) {
     private val mutex = Mutex()
     private val reads = mutableMapOf<Any, Deferred<Any?>>()
     private val mutations = mutableMapOf<Any, Mutex>()
-    private val gate = PriorityNetworkGate(4)
+    private val gate = PriorityNetworkGate(4, telemetry)
 
     @Suppress("UNCHECKED_CAST")
     suspend fun <T> read(key: Any, operation: suspend () -> T): T {
+        val tracing = currentCoroutineContext()[TelemetryContext]?.tracing ?: kotlin.coroutines.EmptyCoroutineContext
         val work = mutex.withLock {
-            reads[key] ?: scope.async(start = CoroutineStart.LAZY) {
+            reads[key] ?: scope.async(tracing, start = CoroutineStart.LAZY) {
                 try { network(false, operation) }
                 finally { mutex.withLock { reads.remove(key) } }
             }.also { reads[key] = it; it.start() }
@@ -28,7 +31,7 @@ internal class LockerSyncCoordinator(private val scope: CoroutineScope) {
     suspend fun <T> network(interactive: Boolean = true, operation: suspend () -> T): T = gate.run(interactive, operation)
 }
 
-private class PriorityNetworkGate(private val limit: Int) {
+private class PriorityNetworkGate(private val limit: Int, private val telemetry: LockersTelemetry) {
     private val mutex = Mutex()
     private var active = 0
     private val writes = ArrayDeque<CompletableDeferred<Unit>>()
@@ -39,7 +42,7 @@ private class PriorityNetworkGate(private val limit: Int) {
             if (active < limit) { active++; permit.complete(Unit) }
             else (if (interactive) writes else reads).addLast(permit)
         }
-        try { permit.await() }
+        try { telemetry.observe(TelemetryOperation.CONNECTOR_QUEUE) { permit.await() } }
         catch (e: CancellationException) {
             withContext(NonCancellable) { mutex.withLock {
                 if (!writes.remove(permit) && !reads.remove(permit)) release()

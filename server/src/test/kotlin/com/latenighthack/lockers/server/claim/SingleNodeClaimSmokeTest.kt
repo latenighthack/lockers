@@ -3,7 +3,7 @@ package com.latenighthack.lockers.server.claim
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isTrue
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.Locker
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.LockerKeyspace
@@ -22,7 +22,7 @@ class SingleNodeClaimSmokeTest {
     fun `single-node claim mode never redirects`() = runBlocking {
         val node = startClaimNode(
             nodeId = "solo",
-            delegate = InMemoryStoreDelegate(),
+            delegate = com.latenighthack.lockers.server.ServerStorage.inMemory(),
             roomClaims = InMemoryRoomClaimStore(),
             sessionGateways = InMemorySessionGatewayStore(),
             ttlMs = 15_000,

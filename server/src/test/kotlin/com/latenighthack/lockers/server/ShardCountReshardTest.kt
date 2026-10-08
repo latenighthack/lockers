@@ -7,7 +7,7 @@ import assertk.assertions.contains
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isTrue
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.Locker
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.LockerKeyspace
@@ -169,11 +169,11 @@ class ShardCountReshardTest {
             listOf(NodeId("a"), NodeId("b")),
             ShardCounts(default = 256, perKeyspace = mapOf(roomKeyspace to fromCount)),
         )
-        val delegate = InMemoryStoreDelegate()
+        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
         val subs = SubscriptionStoreImpl(delegate).also { it.prepare() }
         val lockers = LockerStoreImpl(delegate).also { it.prepare() }
         val locks = LockStoreImpl(delegate).also { it.prepare() }
-        delegate.createStores()
+        delegate.open()
 
         val a = node(NodeId("a"), sim, subs, lockers, locks, scope)
         val b = node(NodeId("b"), sim, subs, lockers, locks, scope)
@@ -216,11 +216,11 @@ class ShardCountReshardTest {
     fun `a stale write on the old owner increments the CAS conflict backstop`() = runBlocking {
         val scope = CoroutineScope(Job())
         val sim = SimCluster(listOf(NodeId("a")), ShardCounts(default = 64, perKeyspace = mapOf(roomKeyspace to 64)))
-        val delegate = InMemoryStoreDelegate()
+        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
         val subs = SubscriptionStoreImpl(delegate).also { it.prepare() }
         val lockers = LockerStoreImpl(delegate).also { it.prepare() }
         val locks = LockStoreImpl(delegate).also { it.prepare() }
-        delegate.createStores()
+        delegate.open()
         val a = node(NodeId("a"), sim, subs, lockers, locks, scope)
 
         val room = "room-cas".encodeToByteArray()

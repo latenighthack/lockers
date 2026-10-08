@@ -1,8 +1,9 @@
 package com.latenighthack.lockers.connector
 
+import com.latenighthack.lockers.observability.*
+
+import com.latenighthack.ktstore.*
 import com.latenighthack.ktbuf.net.RpcClient
-import com.latenighthack.ktstore.Store
-import com.latenighthack.ktstore.StoreDelegate
 import com.latenighthack.lockers.common.v1.SessionId
 import com.latenighthack.lockers.connector.storage.v1.StoredPushRegistration
 import com.latenighthack.lockers.connector.storage.v1.fromByteArray
@@ -60,12 +61,7 @@ internal fun backendOf(registration: PushRegistration): Int? = when (registratio
     null -> null
 }
 
-private fun intToBytes(value: Int): ByteArray = byteArrayOf(
-    (value ushr 24).toByte(),
-    (value ushr 16).toByte(),
-    (value ushr 8).toByte(),
-    value.toByte(),
-)
+
 
 interface PushRegistrationStore {
     suspend fun getAllRegistrations(): List<StoredPushRegistration>
@@ -74,13 +70,8 @@ interface PushRegistrationStore {
     suspend fun deleteRegistration(backend: Int)
 }
 
-class PushRegistrationStoreImpl(delegate: StoreDelegate) : PushRegistrationStore, Store<StoredPushRegistration>(
-    delegate,
-    "push_registrations",
-    StoredPushRegistration::toByteArray,
-    StoredPushRegistration.Companion::fromByteArray,
-) {
-    private val backendKey = serializedIndex(StoredPushRegistration::backend, ::intToBytes).also { primaryKey(it) }
+class PushRegistrationStoreImpl(delegate: Database) : PushRegistrationStore, Store<StoredPushRegistration>(delegate, PushRegistrationStoreImplDefinitionV1) {
+    private val backendKey = PushRegistrationStoreImplDefinitionV1.backendKey
 
     override suspend fun getAllRegistrations(): List<StoredPushRegistration> = getAll()
 
@@ -103,6 +94,7 @@ class PushRegistrationController(
     rpcClient: RpcClient,
     private val store: PushRegistrationStore,
     private val sessionIdSource: StateFlow<SessionId?>,
+    private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
 ) {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Default + job)
@@ -154,10 +146,10 @@ class PushRegistrationController(
         val sessionId = sessionIdSource.value
         if (sessionId != null) {
             runCatching {
-                pushService.unregisterSession(UnregisterSessionRequest {
+                telemetry.observe(TelemetryOperation.CONNECTOR_PUSH_UNREGISTER, { if (it.result.isOk()) TelemetryOutcome.OK else TelemetryOutcome.REJECTED }) { pushService.unregisterSession(UnregisterSessionRequest {
                     this.sessionId = sessionId
                     this.backend = PushBackend.fromInt(backend.protoValue)
-                })
+                }) }
             }
         }
         store.deleteRegistration(backend.protoValue)
@@ -175,10 +167,10 @@ class PushRegistrationController(
 
     private suspend fun sendRegister(sessionId: SessionId, backend: Int, registration: PushRegistration) {
         val response = runCatching {
-            pushService.registerSession(RegisterSessionRequest {
+            telemetry.observe(TelemetryOperation.CONNECTOR_PUSH_REGISTER, { if (it.result.isOk()) TelemetryOutcome.OK else TelemetryOutcome.REJECTED }) { pushService.registerSession(RegisterSessionRequest {
                 this.sessionId = sessionId
                 this.registration = registration
-            })
+            }) }
         }.getOrNull() ?: return
 
         if (response.result is RegisterSessionResponse.Result.OK) {

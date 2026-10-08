@@ -1,7 +1,6 @@
 package com.latenighthack.lockers.server.services.session.v1
 
-import com.latenighthack.ktstore.Store
-import com.latenighthack.ktstore.StoreDelegate
+import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.server.storage.v1.*
 
 interface SessionStore {
@@ -14,16 +13,8 @@ interface SessionStore {
     suspend fun destroySession(sessionId: ServerSessionId)
 }
 
-class SessionStoreImpl(delegate: StoreDelegate) : SessionStore, Store<ServerSession>(
-    delegate,
-    "sessions",
-    ServerSession::toByteArray,
-    ServerSession.Companion::fromByteArray
-) {
-    private val sessionIdKey = serializedIndex(
-        ServerSession::sessionId,
-        ServerSessionId::toByteArray
-    ).also { primaryKey(it) }
+class SessionStoreImpl(delegate: Database) : SessionStore, Store<ServerSession>(delegate, SessionStoreImplDefinitionV1) {
+    private val sessionIdKey = SessionStoreImplDefinitionV1.sessionIdKey
 
     override suspend fun getSessionById(sessionId: ServerSessionId): ServerSession? = get(sessionIdKey.eq(sessionId.toByteArray()))
 
@@ -33,4 +24,3 @@ class SessionStoreImpl(delegate: StoreDelegate) : SessionStore, Store<ServerSess
 
     override suspend fun destroySession(sessionId: ServerSessionId) = delete(sessionIdKey.eq(sessionId.toByteArray()))
 }
-

@@ -2,7 +2,7 @@ package com.latenighthack.lockers.server.claim
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions
 import kotlin.test.Test
@@ -71,7 +71,7 @@ class ClaimLoadSoakTest {
             assertThat(claimResult.errors).isEqualTo(0)
 
             // Baseline: same load against a single monolith node over the same loopback transport.
-            val baseline = startLocalMonolithNode(InMemoryStoreDelegate())
+            val baseline = startLocalMonolithNode(com.latenighthack.lockers.server.ServerStorage.inMemory())
             val baselineResult = try {
                 ClaimLoadRunner(
                     targetAddrs = listOf(baseline.addr),
