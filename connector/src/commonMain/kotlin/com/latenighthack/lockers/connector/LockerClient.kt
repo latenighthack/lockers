@@ -50,6 +50,8 @@ private fun StoredLocker.toIdentifiedLocker(): IdentifiedLocker {
     }
 }
 
+internal fun LockerId.canonical() = copy(keyspace = keyspace ?: LockerKeyspace(0))
+
 private fun LockerId.keyspaceOrDefault() = keyspace ?: LockerKeyspace { value = 0L }
 
 private fun LockerClient.LockerUpdate.toStored() = StoredLocker {
@@ -396,7 +398,7 @@ class LockerClient(
     class Change(val lockerId: LockerId, val transform: suspend (ByteArray) -> ByteArray)
 
     /** Atomic on capable servers. Legacy fallback is selected before submitting any write. */
-    suspend fun updateLockers(roomId: RoomId, changes: List<Change>, initialKey: Secp256r1KeyPair? = null) = telemetry.observe(TelemetryOperation.CONNECTOR_BATCH_WRITE) { updateLockersObserved(roomId, changes, initialKey) }
+    suspend fun updateLockers(roomId: RoomId, changes: List<Change>, initialKey: Secp256r1KeyPair? = null) = telemetry.observe(TelemetryOperation.CONNECTOR_BATCH_WRITE) { updateLockersObserved(roomId, changes.map { Change(it.lockerId.canonical(), it.transform) }, initialKey) }
 
     private suspend fun updateLockersObserved(roomId: RoomId, changes: List<Change>, initialKey: Secp256r1KeyPair?) {
         require(changes.isNotEmpty() && changes.size <= 64 && changes.map { it.lockerId }.distinct().size == changes.size)
@@ -679,7 +681,7 @@ class LockerClient(
     } }
 
     suspend fun deleteLocker(roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.() -> Unit = {}) =
-        sync.mutate(roomId to lockerId) { telemetry.observe(TelemetryOperation.CONNECTOR_DELETE) { deleteLockerSerialized(roomId, lockerId, notificationBuilder) } }
+        sync.mutate(roomId to lockerId.canonical()) { telemetry.observe(TelemetryOperation.CONNECTOR_DELETE) { deleteLockerSerialized(roomId, lockerId.canonical(), notificationBuilder) } }
 
     private suspend fun deleteLockerSerialized(
         roomId: RoomId,
@@ -755,7 +757,7 @@ class LockerClient(
         roomId: RoomId, lockerId: LockerId,
         notificationBuilder: NotificationBuilder.(Locker?) -> Unit = {}, ratchet: Boolean = false,
         transform: suspend (ByteArray) -> ByteArray,
-    ): Locker? = sync.mutate(roomId to lockerId) { telemetry.observe(TelemetryOperation.CONNECTOR_WRITE) { updateLockerSerialized(roomId, lockerId, notificationBuilder, ratchet, transform) } }
+    ): Locker? = sync.mutate(roomId to lockerId.canonical()) { telemetry.observe(TelemetryOperation.CONNECTOR_WRITE) { updateLockerSerialized(roomId, lockerId.canonical(), notificationBuilder, ratchet, transform) } }
 
     private suspend fun updateLockerSerialized(
         roomId: RoomId,
@@ -764,7 +766,7 @@ class LockerClient(
         ratchet: Boolean = false,
         transform: suspend (ByteArray) -> ByteArray,
     ): Locker? {
-        lockerStore.pendingRatchets().filter { it.request.roomId == roomId && it.request.lockerId == lockerId }.forEach { recoverRatchet(it, serialized = true) }
+        lockerStore.pendingRatchets().filter { it.request.roomId == roomId && it.request.lockerId?.canonical() == lockerId.canonical() }.forEach { recoverRatchet(it, serialized = true) }
         val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
         var currentPlaintext = cached?.toIdentifiedLocker()?.locker?.plaintextPayload() ?: byteArrayOf()
         var parentVersion = cached?.version ?: 0L
@@ -896,7 +898,7 @@ class LockerClient(
                 else -> throw IllegalStateException("Unresolved ratchet receipt: ${response.result}")
             }
         }
-        if (serialized) resolve() else sync.mutate(room to id) { resolve() }
+        if (serialized) resolve() else sync.mutate(room to id.canonical()) { resolve() }
     }
 
     /** Establish a lock at [scope] with [keyPair]. Sign the grant with [parentKeyPair]

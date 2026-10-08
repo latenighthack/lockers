@@ -87,4 +87,18 @@ class ReviewConnectorTests {
         } finally { replacement.stop() }
     }
 
+    @Test fun `null and zero keyspaces are rejected as duplicate batch identities`() = runBlocking {
+        var calls = 0
+        val rpc = ReviewRpc { _, _ -> calls++; error("duplicate batch must be rejected before I/O") }
+        val client = reviewClient(rpc)
+        try {
+            val raw = byteArrayOf(2)
+            assertFailsWith<IllegalArgumentException> { client.updateLockers(RoomId(byteArrayOf(1)), listOf(
+                LockerClient.Change(LockerId(raw)) { byteArrayOf(3) },
+                LockerClient.Change(LockerId(raw, LockerKeyspace(0))) { byteArrayOf(4) },
+            )) }
+            assertEquals(0, calls)
+        } finally { client.stop() }
+    }
+
 }
