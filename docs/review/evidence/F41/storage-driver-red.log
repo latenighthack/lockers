@@ -1,0 +1,47 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :browser-tests
+w: [33m[1m⚠️ Deprecated Gradle Property 'kotlin.js.compiler' Used[0m[0m
+The `kotlin.js.compiler` deprecated property is used in your build.
+[32m[1mSolution:[0m[0m
+[32m[3mIt is unsupported, please stop using it.[0m[0m
+
+
+> Task :migration-gradle-plugin:compileJava UP-TO-DATE
+> Task :migration-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :migration-gradle-plugin:processResources UP-TO-DATE
+> Task :migration-gradle-plugin:classes UP-TO-DATE
+> Task :migration-gradle-plugin:jar UP-TO-DATE
+> Task :library:kmpPartiallyResolvedDependenciesChecker
+> Task :library:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :library:compileKotlinJvm FROM-CACHE
+> Task :library:compileJvmMainJava NO-SOURCE
+> Task :library:jvmProcessResources NO-SOURCE
+> Task :library:processJvmMainResources SKIPPED
+> Task :library:jvmMainClasses UP-TO-DATE
+> Task :library:jvmJar UP-TO-DATE
+> Task :library:jvmTestProcessResources NO-SOURCE
+> Task :library:processJvmTestResources SKIPPED
+> Task :library:compileTestKotlinJvm
+> Task :library:compileJvmTestJava NO-SOURCE
+> Task :library:jvmTestClasses
+
+> Task :library:jvmTest FAILED
+
+com.latenighthack.ktstore.JdbcSecurityVersionTest[jvm] > resolvedDriverIncludesCurrentAuthenticationAndPaddingFixes[jvm] FAILED
+    org.junit.ComparisonFailure at JdbcSecurityVersionTest.kt:10
+
+1 test completed, 1 failed
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':library:jvmTest'.
+> There were failing tests. See the report at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-build/library/build/reports/tests/jvmTest/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+BUILD FAILED in 10s
+9 actionable tasks: 3 executed, 1 from cache, 5 up-to-date

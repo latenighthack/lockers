@@ -40,6 +40,10 @@ dependencies {
     implementation(libs.kotlinx.datetime)
     implementation(libs.micrometer.core)
     implementation(libs.cache4k)
+    // Publish the aligned Netty platform to consumers; Pushy/Firebase use Netty clients.
+    implementation(platform(libs.netty.bom))
+    // Own the library runtime floor too, rather than relying on :server:run to override it.
+    runtimeOnly(libs.postgresql)
     implementation(libs.pushy)
     implementation(libs.firebase.admin)
     implementation(libs.webpush)
@@ -59,3 +63,23 @@ dependencies {
 tasks.named<Test>("test") {
     useJUnitPlatform()
 }
+
+// Inspect resolved artifacts; catalog requests alone do not establish a patched graph.
+val verifyRuntimeSecurity by tasks.registering {
+    group = "verification"
+    description = "Verify patched JDBC and consistent Netty artifacts in the library runtime"
+    val runtime = configurations.named("runtimeClasspath")
+    inputs.files(runtime)
+    doLast {
+        val artifacts = runtime.get().resolvedConfiguration.resolvedArtifacts
+        val jdbc = artifacts.filter { it.moduleVersion.id.group == "org.postgresql" }
+        check(jdbc.single().moduleVersion.id.version == libs.versions.postgresql.get()) {
+            "Runtime must select the reviewed pgJDBC security release"
+        }
+        val netty = artifacts.filter { it.moduleVersion.id.group == "io.netty" && it.name != "netty-tcnative-boringssl-static" && it.name != "netty-tcnative-classes" }
+        check(netty.isNotEmpty() && netty.all { it.moduleVersion.id.version == libs.versions.netty.get() }) {
+            "Runtime Netty modules must match the reviewed BOM release"
+        }
+    }
+}
+tasks.named("check") { dependsOn(verifyRuntimeSecurity) }
