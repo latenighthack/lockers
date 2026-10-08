@@ -1,0 +1,97 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Type-safe project accessors is an incubating feature.
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt
+> Task :api:generateProto
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:processResources NO-SOURCE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:processResources NO-SOURCE
+> Task :sharding-core:compileKotlin
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :observability-api:compileKotlinJvm
+> Task :sharding-core:jar
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmMainClasses
+> Task :observability-api:jvmJar
+
+> Task :api:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:996:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2296:93 Redundant call of conversion method.
+
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmMainClasses
+> Task :api:jvmJar
+> Task :server:kspKotlin
+> Task :server:processResources NO-SOURCE
+
+> Task :server:compileKotlin
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:38:51 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Connection'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:60:31 Unnecessary safe call on a non-null receiver of type 'Connection'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:127:44 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:326:93 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangesResponse'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:351:45 Unnecessary safe call on a non-null receiver of type 'ServerSessionEvent'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:358:45 Unnecessary safe call on a non-null receiver of type 'ServerSessionEvent'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/server/src/main/kotlin/com/latenighthack/lockers/server/tools/WriteTrace.kt:67:46 Unnecessary non-null assertion (!!) on a non-null receiver of type 'String'.
+
+> Task :server:compileJava NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar
+> Task :server:test:compileKotlin
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar
+> Task :server:kspTestKotlin SKIPPED
+> Task :server:processTestResources NO-SOURCE
+
+> Task :server:compileTestKotlin
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/server/src/test/kotlin/com/latenighthack/lockers/server/claim/ClaimLoadRunner.kt:133:53 Unnecessary safe call on a non-null receiver of type 'PostLockerChangeResponse.Result'.
+
+> Task :server:compileTestJava NO-SOURCE
+> Task :server:testClasses UP-TO-DATE
+
+> Task :server:test FAILED
+
+BoundaryAuthorityTest > correctlySignedRatchetStillRejectsAnUndecodableReplacementKey() FAILED
+    org.opentest4j.AssertionFailedError at BoundaryAuthorityTest.kt:36
+
+BoundaryAuthorityTest > malformedPublicKeyedRoomCannotFallBackToUnsignedEstablishment() FAILED
+    org.opentest4j.AssertionFailedError at BoundaryAuthorityTest.kt:27
+
+BoundaryAuthorityTest > malformedPublicKeysAndUnknownScopesNeverBecomePersistedAuthority() FAILED
+    org.opentest4j.AssertionFailedError at BoundaryAuthorityTest.kt:14
+
+3 tests completed, 3 failed
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':server:test'.
+> There were failing tests. See the report at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-boundaries/server/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 20s
+18 actionable tasks: 18 executed

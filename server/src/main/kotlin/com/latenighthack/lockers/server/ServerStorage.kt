@@ -24,6 +24,7 @@ object ServerStorage {
         com.latenighthack.lockers.server.services.room.v1.SubscriptionStoreImplDefinitionV1,
     )
     val additionsV4: List<StoreDefinition<*>> = listOf(
+        com.latenighthack.lockers.server.services.session.v1.SessionInboxMetadataDefinitionV2,
         com.latenighthack.lockers.server.services.session.v1.UsedSessionProofDefinitionV2,
     )
     val definitions = legacyDefinitionsV3 + additionsV4

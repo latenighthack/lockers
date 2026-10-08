@@ -81,15 +81,7 @@ class LocalSessionGatewayDiscovery(private val sessionGatewayServer: SessionGate
 
 
 
-private data class OnlineServerSessionEvent(val event: ServerSessionEvent? = null, val receiveTime: Long = 0L, val sequence: Long = 0L)
-
-private fun ServerSessionEvent.clientEvent() = Event {
-    eventId { rawValue = this@clientEvent.eventId!!.rawValue }
-    roomId { rawValue = this@clientEvent.roomId!!.rawValue }
-    roomSequence = this@clientEvent.roomSequence
-    if (encodedLocker.isNotEmpty()) locker = IdentifiedLocker.fromByteArray(encodedLocker)
-    if (encodedPayload.isNotEmpty()) notification { payload { rawValue = encodedPayload } }
-}
+private data class OnlineServerSessionEvent(val event: ServerSessionEvent? = null, val receiveTime: Long = 0L, val sequence: Long = 0L, val clientEvent: Event? = null)
 
 private const val BROADCAST_EVENT_ID_BYTES = 16
 
@@ -326,7 +318,7 @@ class SessionServiceImpl(
                         if (it.sequence > lastSequence + 1) {
                             // A slow stream overran the bounded live buffer. Recover from the
                             // durable inbox immediately rather than waiting for reconnect.
-                            val missed = sessionInboxStore.getAllEvents(sessionId).sortedBy { row -> row.roomSequence }.map { row -> row.clientEvent() }
+                            val missed = sessionInboxStore.getAllClientEvents(sessionId)
                             if (missed.isNotEmpty()) emit(StreamControlEvent.Message(WatchSessionResponse {
                                 response.events { event = missed }
                             }))
@@ -343,7 +335,7 @@ class SessionServiceImpl(
                     val response = dispatchers.runOnDispatcher(SessionId(sessionId.rawValue)) {
                         dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
 
-                        val queuedEvents = sessionInboxStore.getAllEvents(sessionId).sortedBy { it.roomSequence }.map { it.clientEvent() }
+                        val queuedEvents = sessionInboxStore.getAllClientEvents(sessionId)
 
                         storedQueuedEvents = queuedEvents.mapNotNull { it.eventId?.rawValue?.toList() }.toSet()
 
@@ -369,25 +361,10 @@ class SessionServiceImpl(
                         .record(System.nanoTime() - it.receiveTime, java.util.concurrent.TimeUnit.NANOSECONDS)
                     eventsDeliveredCounter.increment()
 
+                    val clientEvent = requireNotNull(it.clientEvent)
                     StreamControlEvent.Message(WatchSessionResponse {
                         response.events {
-                            event {
-                                addEvent {
-                                    roomId { rawValue = it.event?.roomId!!.rawValue }
-                                    eventId { rawValue = it.event?.eventId!!.rawValue }
-                                    roomSequence = it.event!!.roomSequence
-                                    it.event?.encodedPayload?.let { encodedPayload ->
-                                        notification {
-                                            payload {
-                                                rawValue = encodedPayload
-                                            }
-                                        }
-                                    }
-                                    it.event?.encodedLocker?.let { encodedLocker ->
-                                        locker = IdentifiedLocker.fromByteArray(encodedLocker)
-                                    }
-                                }
-                            }
+                            event = listOf(clientEvent)
                         }
                     })
                 }
@@ -424,9 +401,9 @@ class SessionServiceImpl(
             require(event.eventId?.rawValue?.isNotEmpty() == true)
             group.sessionIds.distinct().map { id -> ServerSessionEvent(ServerSessionId(id.rawValue),
                 ServerRoomId(event.roomId?.rawValue ?: byteArrayOf()), ServerEventId(event.eventId!!.rawValue),
-                event.notification?.payload?.rawValue ?: byteArrayOf(), event.locker?.toByteArray() ?: byteArrayOf(), event.roomSequence) }
+                event.notification?.payload?.rawValue ?: byteArrayOf(), event.locker?.toByteArray() ?: byteArrayOf(), event.roomSequence) to event }
         }
-        sessionInboxStore.saveEvents(rows)
+        sessionInboxStore.saveClientEvents(rows)
         val moved = sessionRegistry.remoteSessions(request.groups.flatMap { it.sessionIds }.distinct())
         return PostEventsResponse(request.groups.map { group ->
             try {
@@ -503,13 +480,13 @@ class SessionServiceImpl(
         if (requestPush != null && pushDelivery != null) {
             val room = event.roomId ?: RoomId(byteArrayOf())
             pushDelivery.outbox.commit(room, recipients, listOf(event.copy(locker = null))) {
-                if (persistInbox) sessionInboxStore.saveEvents(events)
+                if (persistInbox) sessionInboxStore.saveClientEvents(events.map { it to event })
             }
-        } else if (persistInbox) sessionInboxStore.saveEvents(events)
+        } else if (persistInbox) sessionInboxStore.saveClientEvents(events.map { it to event })
         inboxSavesCounter.increment(events.size.toDouble())
         eventsPostedCounter.increment(events.size.toDouble())
         eventsQueuedCounter.increment(events.size.toDouble())
-        events.forEach { incomingEvents.emit(OnlineServerSessionEvent(it, receiveTime, eventSerial.incrementAndGet())) }
+        events.forEach { incomingEvents.emit(OnlineServerSessionEvent(it, receiveTime, eventSerial.incrementAndGet(), event)) }
         if (requestPush != null && pushDelivery == null) recipients.forEach { sessionId ->
             deliveryScope.launch {
                 pushPermits.acquire()
