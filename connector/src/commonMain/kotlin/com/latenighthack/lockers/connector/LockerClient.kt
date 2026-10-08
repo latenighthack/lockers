@@ -388,22 +388,56 @@ class LockerClient(
         val capabilities = capabilities()
         // A replacement session must register itself even while an older hydration is in flight.
         return sync.read(room to session) {
-        var watermark = 0L
-        val lockers = if (capabilities.subscribeAndSnapshot && session != null) {
-            val unsigned = SubscribeAndSnapshotRequest(roomId = room, sessionId = session)
-            val response = roomService.subscribeAndSnapshot(unsigned.copy(proof = stream.signSessionRequest(SessionSigning.SNAPSHOT, session, unsigned.toByteArray())))
-            check(response.result.isOk()) { "subscribe and snapshot failed" }
-            watermark = response.roomSequence
-            response.lockers
-        } else {
-            if (session != null) {
-                val unsigned = SubscriptionRequest(roomId = room, sessionId = session, kind = SubscriptionRequest.OneOfKind.subscribe(SubscriptionRequest.Subscribe()))
-                val response = roomService.subscription(unsigned.copy(proof = stream.signSessionRequest(SessionSigning.SUBSCRIPTION, session, unsigned.toByteArray())))
-                check(response.result.isOk()) { "Subscription rejected" }
-            }
-            roomService.getAllLockers(GetAllLockersRequest(roomId = room)).lockers
+        val before = lockerStore.getAllLockers(room)
+        var watermark: Long? = null
+        val lockers = mutableListOf<IdentifiedLocker>()
+        var token = byteArrayOf()
+        val seenTokens = mutableSetOf<String>()
+        if (!capabilities.subscribeAndSnapshot && session != null) {
+            val unsigned = SubscriptionRequest(roomId = room, sessionId = session, kind = SubscriptionRequest.OneOfKind.subscribe(SubscriptionRequest.Subscribe()))
+            val response = roomService.subscription(unsigned.copy(proof = stream.signSessionRequest(SessionSigning.SUBSCRIPTION, session, unsigned.toByteArray())))
+            check(response.result.isOk()) { "Subscription rejected" }
         }
-        lockers.forEach { accept(it.toUpdate(room, watermark)) }
+        do {
+            val page: List<IdentifiedLocker>
+            val sequence: Long
+            val next: ByteArray
+            if (capabilities.subscribeAndSnapshot && session != null) {
+                val unsigned = SubscribeAndSnapshotRequest(roomId = room, sessionId = session,
+                    pageSize = if (capabilities.snapshotPaging) 64 else 0, pageToken = token)
+                val response = roomService.subscribeAndSnapshot(unsigned.copy(proof = stream.signSessionRequest(SessionSigning.SNAPSHOT, session, unsigned.toByteArray())))
+                check(response.result.isOk()) { "Subscribe and snapshot rejected" }
+                page = response.lockers; sequence = response.roomSequence; next = response.nextPageToken
+            } else {
+                val response = roomService.getAllLockers(GetAllLockersRequest(roomId = room,
+                    pageSize = if (capabilities.snapshotPaging) 64 else 0, pageToken = token))
+                check(response.result.isOk()) { "Snapshot rejected" }
+                page = response.lockers; sequence = response.roomSequence; next = response.nextPageToken
+            }
+            if (watermark == null) watermark = sequence else check(watermark == sequence) { "Snapshot watermark changed between pages" }
+            lockers += page
+            check(capabilities.snapshotPaging || next.isEmpty()) { "Unexpected unnegotiated snapshot page" }
+            check(next.isEmpty() || seenTokens.add(next.toBase64String())) { "Snapshot page token repeated" }
+            token = next
+        } while (token.isNotEmpty())
+        val present = lockers.mapNotNull { it.lockerId?.canonical() }.toSet()
+        // Legacy snapshots omit tombstones. Confirm each omission; never infer deletion from a partial page.
+        val missing = before.filter { LockerId(it.lockerIdRawValue, LockerKeyspace(it.lockerKeyspace)).canonical() !in present }
+        val repairs = missing.map { stored ->
+            val id = LockerId(stored.lockerIdRawValue, LockerKeyspace(stored.lockerKeyspace))
+            val response = roomService.getLocker(GetLockerRequest(room, id))
+            check(response.result.isOk()) { "Missing snapshot record confirmation rejected" }
+            stored to response.locker
+        }
+        withAcceptance {
+            lockerStore.acceptAtomically {
+                lockers.forEach { acceptLocked(it.toUpdate(room, watermark ?: 0L)) }
+                repairs.forEach { (expected, confirmed) ->
+                    if (confirmed == null || (confirmed.locker == null && confirmed.version == 0L)) forgetUnchanged(expected)
+                    else acceptLocked(confirmed.toUpdate(room))
+                }
+            }
+        }
         lockers
         }
     }
@@ -678,7 +712,7 @@ class LockerClient(
         }
 
     private suspend fun fetchAllLockers(roomId: RoomId, keyspace: LockerKeyspace): List<IdentifiedLocker> = telemetry.observe(TelemetryOperation.CONNECTOR_GET_ALL) {
-        hydrateRoom(roomId).filter { it.locker != null && it.lockerId?.keyspace == keyspace } }
+        hydrateRoom(roomId).filter { it.locker != null && it.lockerId?.keyspaceOrDefault() == keyspace } }
 
     suspend fun getLocker(roomId: RoomId, lockerId: LockerId, revalidate: Boolean = true): IdentifiedLocker? {
         val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
@@ -707,24 +741,38 @@ class LockerClient(
         require(lockerIds.size <= 64)
         val caps = capabilities()
         if (!caps.getLockers) return coroutineScope { lockerIds.map { id -> async { fetchLocker(roomId, id) } }.awaitAll() }
-        return sync.read(Triple("lockers", roomId, lockerIds)) {
-            roomService.getLockers(GetLockersRequest(roomId, lockerIds)).results.map { item ->
-                item.locker?.also { accept(it.toUpdate(roomId)) }
+        return sync.read(Triple("lockers", roomId, lockerIds.map { it.canonical() })) {
+            val before = lockerIds.map { lockerStore.getLocker(roomId, it.keyspaceOrDefault(), it) }
+            val response = roomService.getLockers(GetLockersRequest(roomId, lockerIds.map { it.canonical() }))
+            check(response.results.size == lockerIds.size) { "Incomplete bulk read response" }
+            response.results.mapIndexed { index, item ->
+                check(item.result.isOk()) { "Locker read rejected" }
+                acceptRead(roomId, item.locker, before[index])
             }
         }
     }
 
-    private suspend fun fetchLocker(roomId: RoomId, lockerId: LockerId): IdentifiedLocker? = telemetry.observe(TelemetryOperation.CONNECTOR_GET) {  sync.read(roomId to lockerId) {
-        val fetchedLocker = roomService.getLocker(GetLockerRequest {
-            this.lockerId = lockerId
-            this.roomId = roomId
-        }).locker
+    private suspend fun forgetUnchanged(expected: StoredLocker) {
+        val room = RoomId(expected.roomIdRawValue); val id = LockerId(expected.lockerIdRawValue, LockerKeyspace(expected.lockerKeyspace))
+        if (lockerStore.getLocker(room, id.keyspaceOrDefault(), id) != expected) return
+        lockerStore.forgetLocker(expected)
+        watchMutex.withLock { watched[room to id.keyspaceOrDefault()]?.revision?.update { it + 1 } }
+    }
 
-        fetchedLocker?.let {
-            accept(it.toUpdate(roomId))
+    private suspend fun acceptRead(room: RoomId, identified: IdentifiedLocker?, before: StoredLocker?): IdentifiedLocker? {
+        withAcceptance {
+            if (identified == null || (identified.locker == null && identified.version == 0L)) {
+                before?.let { forgetUnchanged(it) }
+            } else acceptLocked(identified.toUpdate(room))
         }
+        return identified?.takeIf { it.locker != null }
+    }
 
-        fetchedLocker
+    private suspend fun fetchLocker(roomId: RoomId, lockerId: LockerId): IdentifiedLocker? = telemetry.observe(TelemetryOperation.CONNECTOR_GET) { sync.read(roomId to lockerId.canonical()) {
+        val before = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
+        val response = roomService.getLocker(GetLockerRequest(roomId, lockerId.canonical()))
+        check(response.result.isOk()) { "Locker read rejected" }
+        acceptRead(roomId, response.locker, before)
     } }
 
     suspend fun deleteLocker(roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.() -> Unit = {}) =

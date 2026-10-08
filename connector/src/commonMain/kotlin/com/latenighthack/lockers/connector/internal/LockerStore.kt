@@ -15,6 +15,10 @@ interface LockerStore {
     suspend fun archiveRatchet(value: ArchivedRatchet): Unit = throw UnsupportedOperationException("Durable ratchet archive required")
     suspend fun matchingRatchet(room: RoomId, publicKey: ByteArray): ArchivedRatchet? = null
     suspend fun forgetArchivedRatchet(value: ArchivedRatchet): Unit = throw UnsupportedOperationException("Durable ratchet archive required")
+    suspend fun acceptAtomically(action: suspend () -> Unit) = action()
+    suspend fun forgetLocker(expected: StoredLocker) {
+        deleteLocker(RoomId(expected.roomIdRawValue), LockerKeyspace(expected.lockerKeyspace), LockerId(expected.lockerIdRawValue))
+    }
     suspend fun acceptLocker(locker: StoredLocker) = saveLocker(locker)
     fun changesAfter(cursor: Long): kotlinx.coroutines.flow.Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable change journal required")
     fun liveChanges(): kotlinx.coroutines.flow.Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable change journal required")
@@ -44,6 +48,16 @@ class LockerStoreImpl(private val database: Database) : LockerStore, Store<Store
     override suspend fun matchingRatchet(room: RoomId, publicKey: ByteArray) = archive.matching(room, publicKey)
     override suspend fun forgetArchivedRatchet(value: ArchivedRatchet) = archive.remove(value)
     private val eventJournal = ConnectorEventJournal(database)
+    override suspend fun acceptAtomically(action: suspend () -> Unit) { prepare(); database.transaction("connector-accept") { action() } }
+    override suspend fun forgetLocker(expected: StoredLocker) {
+        prepare(); database.transaction("connector-accept") {
+            val room = RoomId(expected.roomIdRawValue); val id = LockerId(expected.lockerIdRawValue, LockerKeyspace(expected.lockerKeyspace))
+            val current = getLocker(room, id.keyspace!!, id)
+            if (current != expected) return@transaction
+            deleteLocker(room, id.keyspace!!, id)
+            eventJournal.append(1, expected.copy(deleted = true, lockerPayload = byteArrayOf()).toByteArray(), kotlin.random.Random.nextBytes(32))
+        }
+    }
     override fun changesAfter(cursor: Long) = eventJournal.after(cursor)
     override fun liveChanges() = eventJournal.live()
     override suspend fun acceptLocker(locker: StoredLocker) {
