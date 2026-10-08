@@ -169,6 +169,10 @@ message UnlockLockerResponse {
 message GetAllLockersRequest {
   common.v1.RoomId room_id = 1;
   common.v1.LockerKeyspace keyspace = 2;
+  // 0 preserves the complete legacy response; oversized legacy reads fail explicitly.
+  // Positive sizes select immutable leased snapshot pages (maximum 64 items).
+  int32 page_size = 10;
+  bytes page_token = 11;
 }
 
 message GetAllLockersResponse {
@@ -180,6 +184,8 @@ message GetAllLockersResponse {
   }
 
   repeated common.v1.IdentifiedLocker lockers = 2;
+  int64 room_sequence = 3;
+  bytes next_page_token = 4;
 }
 
 message GetLockerRequest {
@@ -207,17 +213,21 @@ message CapabilitiesResponse {
   bool write_receipts = 4;
   int32 max_batch_items = 5;
   int32 max_batch_bytes = 6;
+  bool snapshot_paging = 8;
 }
 message SubscribeAndSnapshotRequest {
   common.v1.SessionProof proof = 20;
   common.v1.RoomId room_id = 1;
   common.v1.SessionId session_id = 2;
   repeated common.v1.LockerKeyspace keyspaces = 3;
+  int32 page_size = 10;
+  bytes page_token = 11;
 }
 message SubscribeAndSnapshotResponse {
   SubscriptionResponse.Result result = 1;
   repeated common.v1.IdentifiedLocker lockers = 2;
   int64 room_sequence = 3;
+  bytes next_page_token = 4;
 }
 message GetLockersRequest {
   common.v1.RoomId room_id = 1;
