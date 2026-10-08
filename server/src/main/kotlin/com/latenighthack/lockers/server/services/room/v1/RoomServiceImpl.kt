@@ -537,16 +537,16 @@ class RoomServiceImpl(
             val effectiveLock = if (prefetchLocks) prefetchedLock else effectiveLockOrNull(requestRoomId, requestLockerId)
             var effectiveState = effectiveLock?.let { lockVerifier.stateOf(it) }
 
-            val updatedLockerVersion = if (storedLocker == null) {
-                requestVersion
-            } else if (storedLocker.version == requestVersion) {
-                storedLocker.version + 1
+            val updatedLockerVersion = if (storedLocker == null && requestVersion == 0L) {
+                1L
+            } else if (storedLocker != null && storedLocker.version == requestVersion && requestVersion in 0 until Long.MAX_VALUE) {
+                requestVersion + 1
             } else {
                 reshardCasConflictsCounter.increment()
                 return PostLockerChangeResponse {
                     result = PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION
-                    version = storedLocker.version
-                    existingLocker = if (storedLocker.deleted) null else Locker.fromByteArray(storedLocker.locker)
+                    version = storedLocker?.version ?: 0L
+                    existingLocker = storedLocker?.takeUnless { it.deleted }?.let { Locker.fromByteArray(it.locker) }
                     lockState = effectiveState
                 }
             }
@@ -721,16 +721,16 @@ class RoomServiceImpl(
             val effectiveLock = effectiveLockOrNull(requestRoomId, requestLockerId)
             val effectiveState = effectiveLock?.let { lockVerifier.stateOf(it) }
 
-            val updatedLockerVersion = if (storedLocker == null) {
-                requestVersion
-            } else if (storedLocker.version == requestVersion) {
-                storedLocker.version + 1
+            val updatedLockerVersion = if (storedLocker == null && requestVersion == 0L) {
+                1L
+            } else if (storedLocker != null && storedLocker.version == requestVersion && requestVersion in 0 until Long.MAX_VALUE) {
+                requestVersion + 1
             } else {
                 reshardCasConflictsCounter.increment()
                 return@runOnDispatcher DeleteLockerResponse {
                     result = DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION
-                    version = storedLocker.version
-                    existingLocker = if (storedLocker.deleted) null else Locker.fromByteArray(storedLocker.locker)
+                    version = storedLocker?.version ?: 0L
+                    existingLocker = storedLocker?.takeUnless { it.deleted }?.let { Locker.fromByteArray(it.locker) }
                     lockState = effectiveState
                 }
             }

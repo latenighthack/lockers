@@ -65,13 +65,23 @@ class ReviewRegressionTest {
         val s = stores(); val a = service(s); val b = service(s)
         val ra = LocalRoomServiceRpc(a); val rb = LocalRoomServiceRpc(b)
         try {
-            rb.postLockerChange(PostLockerChangeRequest(roomId = room, lockerId = id, locker = body(1)))
+            val initial = rb.postLockerChange(PostLockerChangeRequest(roomId = room, lockerId = id, locker = body(1)))
             ra.getLocker(GetLockerRequest(room, id)) // caches no locks on a non-owning reader
             val key = Secp256r1KeyPair.generate()
             assertTrue(rb.lockLocker(LockLockerRequest(roomId = room, grant = LockGrant(
                 scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM), publicKey = Secp256R1Key.PublicKey(key.publicKey.encode())))).result.isOk())
-            assertFalse(ra.postLockerChange(PostLockerChangeRequest(roomId = room, lockerId = id, locker = body(2))).result.isOk())
+            assertEquals(PostLockerChangeResponse.Result.SIGNATURE_REQUIRED, ra.postLockerChange(PostLockerChangeRequest(roomId = room, lockerId = id, locker = body(2), parentVersion = initial.version)).result)
         } finally { a.close(); b.close() }
+    }
+
+    @Test fun reusedAbsentParentCannotCommitASecondInitialWrite(): Unit = runBlocking {
+        val s = stores(); val service = service(s); val rpc = LocalRoomServiceRpc(service)
+        try {
+            val req = PostLockerChangeRequest(roomId = room, lockerId = id, locker = body(1), parentVersion = 0)
+            val first = rpc.postLockerChange(req); val second = rpc.postLockerChange(req)
+            assertTrue(first.result.isOk()); assertFalse(second.result.isOk())
+            assertEquals(1, first.version); assertEquals(1, second.version)
+        } finally { service.close() }
     }
 
 }
