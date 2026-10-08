@@ -2,6 +2,7 @@ package com.latenighthack.lockers.server.services.room.v1
 
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.lockers.common.LockerEnvelope
+import com.latenighthack.lockers.server.LockerWireValidation
 import com.latenighthack.ktbuf.net.GrpcRequestContext
 import com.latenighthack.ktbuf.net.ServerDescriptor
 import com.latenighthack.lockers.common.v1.*
@@ -65,6 +66,7 @@ class RoomServiceImpl(
     private suspend fun processAgent(room: RoomId, id: LockerId, locker: Locker): List<LockerAgentRegistry.LockerWrite> {
         val start = System.nanoTime(); var outcome = "error"
         try { return telemetry.observe(TelemetryOperation.AGENT_EXECUTE) { agentRegistry.processPayload(room, id, locker) }.also {
+            require(it.all { output -> LockerEnvelope.isSupported(output.locker) }) { "Unsupported derived locker envelope" }
             outcome = "ok"; meterRegistry.safeMeters { counter("lockers.agent.derived.writes").increment(it.size.toDouble()) }
         } } catch (cancelled: kotlinx.coroutines.CancellationException) { outcome = "cancelled"; throw cancelled }
         finally {
@@ -89,6 +91,17 @@ class RoomServiceImpl(
 
     private suspend fun lockStateFor(roomId: RoomId, lockerId: LockerId): LockState? =
         effectiveLockOrNull(roomId, lockerId)?.let { lockVerifier.stateOf(it) }
+
+    private data class StoredRead(val value: IdentifiedLocker, val valid: Boolean)
+    private suspend fun storedRead(room: RoomId, stored: ServerLocker): StoredRead {
+        val id = LockerId(requireNotNull(stored.lockerId).rawValue, LockerKeyspace(stored.keyspace))
+        val body = if (stored.deleted || !LockerWireValidation.valid(stored.locker)) null else try { Locker.fromByteArray(stored.locker) }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (_: Exception) { null }
+        val valid = stored.deleted || (body != null && LockerEnvelope.isSupported(body))
+        return StoredRead(IdentifiedLocker(id, if (valid) body else null, stored.version,
+            lockStateFor(room, id)), valid)
+    }
 
     /**
      * Locker writes are gated to the node that owns the room's `(keyspace, roomId)` shard. On a
@@ -232,8 +245,11 @@ class RoomServiceImpl(
             LockerId(requireNotNull(it.lockerId).rawValue, LockerKeyspace(it.keyspace))
         }
         return GetLockersResponse(request.lockerIds.map { id ->
-            all[id.copy(keyspace = id.keyspace ?: LockerKeyspace(0))]?.let { stored -> GetLockerResponse(result = GetLockerResponse.Result.OK,
-                locker = IdentifiedLocker(id, if (stored.deleted) null else Locker.fromByteArray(stored.locker), stored.version, lockStateFor(room, id))) }
+            all[id.copy(keyspace = id.keyspace ?: LockerKeyspace(0))]?.let { stored ->
+                val read = storedRead(room, stored)
+                GetLockerResponse(result = if (read.valid) GetLockerResponse.Result.OK else GetLockerResponse.Result.INVALID_DATA,
+                    locker = read.value)
+            }
                 ?: GetLockerResponse(result = GetLockerResponse.Result.UNKNOWN_ERROR)
         })
     }
@@ -246,13 +262,14 @@ class RoomServiceImpl(
         val session = requireNotNull(request.sessionId)
         check(config.deliveryOutboxEnabled)
         return requireNotNull(deliveryOutbox).atomic(room) {
+            val spaces = request.keyspaces.map { it.value }.toSet()
+            val reads = lockerStore.getAllLockers(ServerRoomId(room.rawValue)).filter { spaces.isEmpty() || it.keyspace in spaces }
+                .map { storedRead(room, it) }
+            if (reads.any { !it.valid }) return@atomic SubscribeAndSnapshotResponse(result = SubscriptionResponse.Result.INVALID_DATA,
+                lockers = reads.filter { !it.valid }.map { it.value })
             subscriptionStore.addSubscription(ServerSessionId(session.rawValue), ServerRoomId(room.rawValue))
             roomToSessionCache.invalidate(room)
-            val spaces = request.keyspaces.map { it.value }.toSet()
-            val lockers = lockerStore.getAllLockers(ServerRoomId(room.rawValue)).filter { spaces.isEmpty() || it.keyspace in spaces }.map {
-                val id = LockerId(requireNotNull(it.lockerId).rawValue, LockerKeyspace(it.keyspace))
-                IdentifiedLocker(id, if (it.deleted) null else Locker.fromByteArray(it.locker), it.version, lockStateFor(room, id))
-            }
+            val lockers = reads.map { it.value }
             SubscribeAndSnapshotResponse(result = SubscriptionResponse.Result.OK, lockers = lockers,
                 roomSequence = requireNotNull(deliveryOutbox).watermark(room))
         }
@@ -425,7 +442,6 @@ class RoomServiceImpl(
         }
 
         val storedLocker = lockerStore.getLocker(ServerRoomId(roomId.rawValue), lockerId.keyspace?.value ?: 0L, ServerLockerId(lockerId.rawValue))
-        val lockerPayload = storedLocker?.takeUnless { it.deleted }?.locker?.let { Locker.fromByteArray(it) }
         
         if (storedLocker == null) {
             getLockerTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
@@ -433,16 +449,9 @@ class RoomServiceImpl(
         }
 
         getLockerTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
-        val effectiveState = lockStateFor(roomId, lockerId)
-        GetLockerResponse {
-            result = GetLockerResponse.Result.OK
-            locker {
-                this.lockerId = lockerId
-                locker = lockerPayload
-                version = storedLocker.version
-                lockState = effectiveState
-            }
-        }
+        val read = storedRead(roomId, storedLocker)
+        GetLockerResponse(result = if (read.valid) GetLockerResponse.Result.OK else GetLockerResponse.Result.INVALID_DATA,
+            locker = read.value)
     }
 
     override suspend fun getAllLockers(
@@ -464,24 +473,10 @@ class RoomServiceImpl(
         lockersReturnedSummary.record(storedLockers.size.toDouble())
         getAllLockersTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
 
-        // Resolve lock state up front: the builder lambdas below are not suspend contexts.
-        val identified = storedLockers.map { storedLocker ->
-            val storedLockerId = LockerId(
-                rawValue = storedLocker.lockerId?.rawValue!!,
-                keyspace = LockerKeyspace { value = storedLocker.keyspace }
-            )
-            IdentifiedLocker(
-                lockerId = storedLockerId,
-                locker = if (storedLocker.deleted) null else Locker.fromByteArray(storedLocker.locker),
-                version = storedLocker.version,
-                lockState = lockStateFor(roomId, storedLockerId),
-            )
-        }
-
-        return@trackResponse GetAllLockersResponse {
-            result = GetAllLockersResponse.Result.OK
-            lockers = identified
-        }
+        val reads = storedLockers.map { storedRead(roomId, it) }
+        if (reads.any { !it.valid }) return@trackResponse GetAllLockersResponse(result = GetAllLockersResponse.Result.INVALID_DATA,
+            lockers = reads.filter { !it.valid }.map { it.value })
+        GetAllLockersResponse(result = GetAllLockersResponse.Result.OK, lockers = reads.map { it.value })
     }
 
     override suspend fun postLockerChange(

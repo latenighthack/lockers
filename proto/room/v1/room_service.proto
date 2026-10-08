@@ -42,6 +42,8 @@ message SubscriptionResponse {
   Result result = 1;
   enum Result {
     OK = 0;
+    // Invalid stored body: metadata identifies the version requiring owner repair.
+    INVALID_DATA = 2;
     UNKNOWN_ERROR = 10;
   }
 }
@@ -179,6 +181,8 @@ message GetAllLockersResponse {
   Result result = 1;
   enum Result {
     OK = 0;
+    // Invalid stored body: metadata identifies the version requiring owner repair.
+    INVALID_DATA = 2;
     NOT_ALLOWED = 1;
     UNKNOWN_ERROR = 10;
   }
@@ -197,6 +201,8 @@ message GetLockerResponse {
   Result result = 1;
   enum Result {
     OK = 0;
+    // Invalid stored body: metadata identifies the version requiring owner repair.
+    INVALID_DATA = 2;
     NOT_ALLOWED = 1;
     UNKNOWN_ERROR = 10;
   }
