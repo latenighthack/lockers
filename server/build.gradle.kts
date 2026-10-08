@@ -42,6 +42,8 @@ dependencies {
     implementation(libs.cache4k)
     // Publish the aligned Netty platform to consumers; Pushy/Firebase use Netty clients.
     implementation(platform(libs.netty.bom))
+    // The unshaded Netty BOM cannot update gRPC's relocated transport.
+    implementation(platform(libs.grpc.bom))
     // Own the library runtime floor too, rather than relying on :server:run to override it.
     runtimeOnly(libs.postgresql)
     implementation(libs.pushy)
@@ -55,6 +57,8 @@ dependencies {
     testImplementation(libs.coroutines.test)
     testImplementation(libs.ktbuf.test)
     testImplementation(libs.assertk)
+    testImplementation(libs.grpc.netty.shaded)
+    testImplementation(libs.grpc.stub)
     testImplementation(libs.sqlite.jdbc)
     // Real-Postgres claim-store tests (gated on LOCKERS_TEST_PG_URL; see PgTestGate).
     testRuntimeOnly(libs.postgresql)
@@ -75,6 +79,10 @@ val verifyRuntimeSecurity by tasks.registering {
         val jdbc = artifacts.filter { it.moduleVersion.id.group == "org.postgresql" }
         check(jdbc.single().moduleVersion.id.version == libs.versions.postgresql.get()) {
             "Runtime must select the reviewed pgJDBC security release"
+        }
+        val grpc = artifacts.filter { it.moduleVersion.id.group == "io.grpc" }
+        check(grpc.isNotEmpty() && grpc.all { it.moduleVersion.id.version == libs.versions.grpc.get() }) {
+            "Runtime gRPC modules must include the reviewed relocated transport fixes"
         }
         val netty = artifacts.filter { it.moduleVersion.id.group == "io.netty" && it.name != "netty-tcnative-boringssl-static" && it.name != "netty-tcnative-classes" }
         check(netty.isNotEmpty() && netty.all { it.moduleVersion.id.version == libs.versions.netty.get() }) {

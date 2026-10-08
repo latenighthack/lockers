@@ -16,10 +16,16 @@ consumer metadata includes the BOM. A JVM test verifies actual loaded JDBC and
 unshaded codec/transport implementations, and an EmbeddedChannel regression writes
 and releases a valid HTTP/2 client preface. Shaded gRPC retains unrelocated version
 resource names, so Version.identify alone is not an accurate artifact/loaded-class
-check; shaded dependencies require their own advisory assessment.
+check. A follow-up upgrades the separately relocated gRPC transport through its
+own 1.84.1 BOM and verifies its real local HTTP/2 unary byte roundtrip plus shutdown.
+This keeps unshaded Pushy on the supported 4.1 Netty line. The library guard verifies
+both direct and relocated artifact versions. gRPC's bundled Netty remains governed
+by its maintainer's release; this is not a claim that every transitive advisory is
+reachable or eliminated. There is no production gRPC server listener in this repo.
 
 Validation: storage-driver regression passes; lockers security guard and two
-network contract tests pass; all 78 connector JVM tests pass. Recorded library and
+network contract tests pass; all 78 connector JVM tests pass. The gRPC parent follow-up
+adds a third real transport test and preserves the passing connector suite. Recorded library and
 application runtime graphs both select pgJDBC 42.7.14 and consistent direct Netty
 4.1.139.Final modules. The patched storage library was published only to the private
 Fullhouse worktree Maven repository with ./fh deps resolve/publish --library ktstore.
@@ -37,3 +43,7 @@ buffer-padding fixes; this change does not claim those conditions occur locally.
 Replay commands: ./gradlew :server:verifyRuntimeSecurity :server:test --tests
 '*NetworkDependencyContractTest' :connector:jvmTest, with the explicit generated
 -PfhWorkspace manifest. Raw logs and resolved graphs are in evidence/F41.
+
+Parent transport source: [gRPC 1.84.1 release](https://github.com/grpc/grpc-java/releases/tag/v1.84.1),
+released October 7, 2026. A direct Netty BOM cannot modify Netty classes relocated
+inside grpc-netty-shaded; the parent transport must be upgraded independently.
