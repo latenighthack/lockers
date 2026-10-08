@@ -11,6 +11,7 @@ import com.latenighthack.ktbuf.rpc.RetryLimitExceeded
 import com.latenighthack.ktbuf.rpc.repeatWithBackoff
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.lockers.common.LockerEnvelope
+import com.latenighthack.lockers.common.SessionSigning
 import com.latenighthack.lockers.common.LockerSigning
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.internal.PendingRatchet
@@ -385,14 +386,17 @@ class LockerClient(
         return sync.read(room to session) {
         var watermark = 0L
         val lockers = if (capabilities.subscribeAndSnapshot && session != null) {
-            val response = roomService.subscribeAndSnapshot(SubscribeAndSnapshotRequest(roomId = room, sessionId = session))
+            val unsigned = SubscribeAndSnapshotRequest(roomId = room, sessionId = session)
+            val response = roomService.subscribeAndSnapshot(unsigned.copy(proof = stream.signSessionRequest(SessionSigning.SNAPSHOT, session, unsigned.toByteArray())))
             check(response.result.isOk()) { "subscribe and snapshot failed" }
             watermark = response.roomSequence
             response.lockers
         } else {
-            if (session != null) roomService.subscription(SubscriptionRequest {
-                roomId = room; sessionId = session; kind.subscribe { }
-            })
+            if (session != null) {
+                val unsigned = SubscriptionRequest(roomId = room, sessionId = session, kind = SubscriptionRequest.OneOfKind.subscribe(SubscriptionRequest.Subscribe()))
+                val response = roomService.subscription(unsigned.copy(proof = stream.signSessionRequest(SessionSigning.SUBSCRIPTION, session, unsigned.toByteArray())))
+                check(response.result.isOk()) { "Subscription rejected" }
+            }
             roomService.getAllLockers(GetAllLockersRequest(roomId = room)).lockers
         }
         lockers.forEach { accept(it.toUpdate(room, watermark)) }

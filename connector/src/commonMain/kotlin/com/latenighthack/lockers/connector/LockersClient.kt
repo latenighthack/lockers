@@ -90,6 +90,9 @@ class LockersClient private constructor(
     /** Server push capabilities — notably the VAPID public key a web client needs to subscribe. */
     suspend fun getPushConfig(): PushConfig? = pushRegistrations.getPushConfig()
 
+    /** Authenticates revocation of the connected server session before closing this client. */
+    suspend fun destroySession() { stream.destroySession(); closeAndJoin() }
+
     /** Tears down the stream and background processing. */
     fun close() {
         pushRegistrations.stop()
@@ -134,7 +137,7 @@ class LockersClient private constructor(
             val ownedContext = parentContext + clientJob
             val stream = Stream(rpcClient, keySource, sessionStore, subscriptionStore, appVersion, telemetry, ownedContext)
             val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs, telemetry = telemetry, coroutineContext = ownedContext)
-            val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId, telemetry, ownedContext)
+            val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId, telemetry, ownedContext, stream.connection, stream::signSessionRequest)
             try {
                 lockerClient.start()
                 stream.start()

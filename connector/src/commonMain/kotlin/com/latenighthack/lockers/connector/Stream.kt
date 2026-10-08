@@ -12,6 +12,10 @@ import com.latenighthack.ktbuf.rpc.RetryLimitExceeded
 import com.latenighthack.ktbuf.rpc.repeatWithBackoff
 import com.latenighthack.ktcrypto.Secp256r1KeyPair
 import com.latenighthack.ktcrypto.encode
+import com.latenighthack.ktcrypto.SHA256
+import com.latenighthack.ktcrypto.digest
+import com.latenighthack.lockers.common.SessionSigning
+import kotlinx.datetime.Clock
 import com.latenighthack.lockers.session.v1.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -132,6 +136,7 @@ class SubscriptionController(
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
     coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default,
     private val connectionSource: StateFlow<StreamConnectionState>? = null,
+    private val signRequest: (suspend (String, SessionId, ByteArray) -> SessionProof)? = null,
 ) {
     private val controllerJob = SupervisorJob(coroutineContext[Job])
     private val controllerScope = CoroutineScope(coroutineContext + controllerJob)
@@ -187,11 +192,13 @@ class SubscriptionController(
                         if (subscribed && hydrate != null) {
                             hydrate(roomId, targetSession)
                         } else {
-                            val response = roomService.subscription(SubscriptionRequest {
+                            val unsigned = SubscriptionRequest {
                                 this.sessionId = targetSession
                                 this.roomId = roomId
                                 if (subscribed) kind.subscribe { } else kind.unsubscribe { }
-                            })
+                            }
+                            val signed = unsigned.copy(proof = signRequest?.invoke(SessionSigning.SUBSCRIPTION, targetSession, unsigned.toByteArray()))
+                            val response = roomService.subscription(signed)
                             check(response.result.isOk()) { "subscription rejected: ${response.result}" }
                         }
                         }
@@ -330,7 +337,7 @@ class Stream(
     // recorded here so the reconnect re-targets the owning node. A plain client (monolith) never
     // sees EPOCH_STALE, so this stays a no-op.
     private val routing = rpcClient as? RoutingRpcClient
-    private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource, telemetry = telemetry, coroutineContext = streamScope.coroutineContext, connectionSource = connectionState)
+    private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource, telemetry = telemetry, coroutineContext = streamScope.coroutineContext, connectionSource = connectionState, signRequest = ::signSessionRequest)
     private val outgoingAcks = MutableSharedFlow<List<StoredAck>>()
 
     internal var hydrateSubscription: (suspend (RoomId, SessionId) -> Unit)?
@@ -369,6 +376,30 @@ class Stream(
     /** The current session id once the session has opened, else null. */
     val sessionId: StateFlow<SessionId?>
         get() = sessionIdSource
+
+    /** Sign an unsigned unary request for the currently connected session incarnation. */
+    suspend fun signSessionRequest(operation: String, session: SessionId, unsignedRequest: ByteArray): SessionProof {
+        currentCoroutineContext().ensureActive()
+        if (sessionId.value != session) throw RetryableStreamException("Session changed before unary proof")
+        val key = keySource.getSessionKeyPair()
+        val nonce = Random.nextBytes(32)
+        val issued = Clock.System.now().toEpochMilliseconds()
+        val context = SessionSigning.context(operation, session, SHA256.digest(unsignedRequest), issued, nonce)
+        val signature = key.privateKey.sign(context)
+        if (sessionId.value != session) throw RetryableStreamException("Session changed while signing unary proof")
+        return SessionProof(issuedAtMs = issued, nonce = nonce, signature = Signature(
+            publicKey = Secp256R1Key.PublicKey(key.publicKey.encode()), signature = signature, signingVersion = 2))
+    }
+
+    /** Revoke the current server session and close its client incarnation. */
+    suspend fun destroySession() {
+        val session = sessionId.value ?: throw StreamClosedException()
+        val unsigned = DestroySessionRequest(sessionId = session)
+        val signed = unsigned.copy(proof = signSessionRequest(SessionSigning.DESTROY, session, unsigned.toByteArray()))
+        check(sessionService.destroySession(signed).result.isOk()) { "Session revocation rejected" }
+        sessionStore.updateSessionId(null); sessionStore.updateNextSequenceBytes(null)
+        stop()
+    }
 
     private suspend fun connect() {
         // Outer loop: a stream that ends WITHOUT throwing (server closed the socket cleanly —
