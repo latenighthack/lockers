@@ -570,7 +570,12 @@ class SessionServiceImpl(
             }
             val updatedSession = session.copy(nextKeyMaterial = Random.nextBytes(32))
 
-            sessionStore.updateSession(updatedSession)
+            if (!sessionStore.rotateIfCurrent(session, updatedSession)) {
+                result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
+                nextSequenceKey = sessionStore.getSessionById(serverSessionId)?.nextKeyMaterial ?: byteArrayOf()
+                meterRegistry.counter("lockers.session.opens", "result", "INVALID_SEQUENCE").increment()
+                return null
+            }
 
             result = WatchSessionResponse.Open.Result.OK
             nextSequenceKey = updatedSession.nextKeyMaterial
@@ -622,7 +627,11 @@ class SessionServiceImpl(
                 nextKeyMaterial = Random.nextBytes(32)
                 authorizedPublicKey = requestPublicKey
             }
-            sessionStore.updateSession(updatedSession)
+            if (!sessionStore.createIfAbsent(updatedSession)) {
+                result = WatchSessionResponse.Open.Result.SESSION_EXISTS
+                meterRegistry.counter("lockers.session.creates", "result", "SESSION_EXISTS").increment()
+                return null
+            }
 
             result = WatchSessionResponse.Open.Result.OK
             nextSequenceKey = updatedSession.nextKeyMaterial
