@@ -10,13 +10,19 @@ import com.latenighthack.lockers.server.storage.v1.*
  * uniform. The stored [ServerLock.lockState] is a serialized common.v1.LockState.
  */
 interface LockStore {
+    /** Must serialize the entire room hierarchy with content and outbox commits. */
+    suspend fun <T> atomic(roomId: ServerRoomId, block: suspend () -> T): T =
+        throw UnsupportedOperationException("LockStore requires atomic room transactions")
+    fun deliveryOutbox(): DeliveryOutboxStore? = null
     suspend fun getLock(roomId: ServerRoomId, scopeKind: Long, keyspace: Long, lockerId: ServerLockerId): ServerLock?
     suspend fun getAllLocksInRoom(roomId: ServerRoomId): List<ServerLock>
     suspend fun saveLock(lock: ServerLock)
     suspend fun deleteLock(roomId: ServerRoomId, scopeKind: Long, keyspace: Long, lockerId: ServerLockerId)
 }
 
-class LockStoreImpl(delegate: Database) : LockStore, Store<ServerLock>(delegate, LockStoreImplDefinitionV1) {
+class LockStoreImpl(private val database: Database) : LockStore, Store<ServerLock>(database, LockStoreImplDefinitionV1) {
+    override suspend fun <T> atomic(roomId: ServerRoomId, block: suspend () -> T): T = database.transaction(roomMutationKey(roomId), block)
+    override fun deliveryOutbox() = DeliveryOutboxStore(database)
     private val roomIdKey = LockStoreImplDefinitionV1.roomIdKey
     private val scopeKindKey = LockStoreImplDefinitionV1.scopeKindKey
     private val keyspaceKey = LockStoreImplDefinitionV1.keyspaceKey
@@ -56,3 +62,5 @@ class LockStoreImpl(delegate: Database) : LockStore, Store<ServerLock>(delegate,
         )
     ))
 }
+
+fun roomMutationKey(roomId: ServerRoomId): String = "lockers.room." + roomId.rawValue.joinToString("") { "%02x".format(it) }

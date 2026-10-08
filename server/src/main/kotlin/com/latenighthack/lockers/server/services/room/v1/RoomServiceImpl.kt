@@ -57,9 +57,10 @@ class RoomServiceImpl(
     private val agentRegistry: LockerAgentRegistry,
     private val meterRegistry: MeterRegistry,
     private val config: LockersConfig,
-    private val deliveryOutbox: DeliveryOutboxStore? = null,
+    deliveryOutbox: DeliveryOutboxStore? = null,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
 ) : BaseServiceImpl(), RoomServer {
+    private val deliveryOutbox = deliveryOutbox ?: lockStore.deliveryOutbox()
     private val logger = LoggerFactory.getLogger(RoomServiceImpl::class.java)
     private suspend fun processAgent(room: RoomId, id: LockerId, locker: Locker): List<LockerAgentRegistry.LockerWrite> {
         val start = System.nanoTime(); var outcome = "error"
@@ -74,7 +75,7 @@ class RoomServiceImpl(
         }
     }
 
-    private val deliveryWorker = if (config.deliveryOutboxEnabled && config.deliveryWorkerEnabled)
+    private val deliveryWorker = if (config.deliveryWorkerEnabled)
         DeliveryWorker(requireNotNull(deliveryOutbox), sessionGatewayDiscovery, meterRegistry, telemetry).also { it.start() } else null
     private val lockVerifier = LockVerifier(lockStore)
     private val dispatchers = ShardedDispatcher<RoomId>(config.shardCount, "room-shard") {
@@ -243,7 +244,7 @@ class RoomServiceImpl(
         val room = requireNotNull(request.roomId)
         val session = requireNotNull(request.sessionId)
         check(config.deliveryOutboxEnabled)
-        return requireNotNull(deliveryOutbox).atomic {
+        return requireNotNull(deliveryOutbox).atomic(room) {
             subscriptionStore.addSubscription(ServerSessionId(session.rawValue), ServerRoomId(room.rawValue))
             roomToSessionCache.invalidate(room)
             val spaces = request.keyspaces.map { it.value }.toSet()
@@ -269,7 +270,7 @@ class RoomServiceImpl(
     private suspend fun postLockerChangesTraced(context: GrpcRequestContext, request: PostLockerChangesRequest, trace: WriteTrace): PostLockerChangesResponse {
         val room = request.roomId ?: return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.INVALID)
         val changes = request.changes
-        if (!config.deliveryOutboxEnabled || changes.isEmpty() || changes.size > 64 ||
+        if (changes.isEmpty() || changes.size > 64 ||
             request.writeRequestId.size !in 16..64 || changes.any { it.lockerId == null || it.locker == null || (it.roomId != null && it.roomId != room) } ||
             changes.map { it.lockerId?.let { id -> id.copy(keyspace = id.keyspace ?: LockerKeyspace(0)) } }.distinct().size != changes.size ||
             request.toByteArray().size > minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)) {
@@ -486,48 +487,11 @@ class RoomServiceImpl(
         context: GrpcRequestContext,
         request: PostLockerChangeRequest
     ) = meterRegistry.trackResponse("lockers.room.locker.postlockerchange", PostLockerChangeResponse::result, telemetry) {
-        if (config.deliveryOutboxEnabled) {
             val batch = postLockerChanges(context, PostLockerChangesRequest(roomId = request.roomId,
                 changes = listOf(request.copy(writeRequestId = byteArrayOf())), writeRequestId = request.writeRequestId.takeIf { it.isNotEmpty() } ?: Random.nextBytes(32)))
             return@trackResponse batch.changes.firstOrNull()?.copy(agentFailed = batch.agentFailed, agentPending = batch.agentPending)
                 ?: PostLockerChangeResponse(result = if (batch.result is PostLockerChangesResponse.Result.NOT_OWNER)
                     PostLockerChangeResponse.Result.NOT_OWNER else PostLockerChangeResponse.Result.UNKNOWN_ERROR, redirect = batch.redirect)
-        }
-        val requestRoomId = request.roomId ?: return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
-        val requestEventId = EventId(Random.nextBytes(32))
-        val updatedLocker = request.locker ?: return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
-        val requestLockerId = request.lockerId ?: return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
-        val requestVersion = request.parentVersion
-
-        redirectIfNotOwner(requestLockerId.keyspace?.value ?: 0L, requestRoomId)?.let { redirect ->
-            forwardToOwnerOrNull(context, redirect) { it.postLockerChange(request) }?.let {
-                return@trackResponse it
-            }
-            return@trackResponse PostLockerChangeResponse {
-                result = PostLockerChangeResponse.Result.NOT_OWNER
-                this.redirect = redirect
-            }
-        }
-
-        if (!rateLimiter.tryAcquire(requestRoomId)) {
-            rateLimitedCounter.increment()
-            logger.warn("rate limit exceeded for room; rejecting locker change")
-            return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
-        }
-
-        val encodedLocker = updatedLocker.toByteArray()
-        if (encodedLocker.size > config.maxLockerPayloadBytes) {
-            oversizeRejectedCounter.increment()
-            logger.warn("locker payload ${encodedLocker.size}B exceeds limit ${config.maxLockerPayloadBytes}B; rejecting")
-            return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UNKNOWN_ERROR)
-        }
-
-        val startTime = System.nanoTime()
-        return@trackResponse dispatchers.runOnDispatcher(requestRoomId) {
-            dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
-
-            performLockerChange(request)
-        }
     }
 
     private suspend fun performLockerChange(request: PostLockerChangeRequest, pendingEvents: MutableList<Event>? = null,
@@ -621,62 +585,9 @@ class RoomServiceImpl(
                 locker { locker = updatedLocker; lockerId = requestLockerId; version = updatedLockerVersion; lockState = effectiveState }
                 notification = request.notification
             }
-            if (pendingEvents != null) {
-                requireNotNull(pendingWrites).add(serverLocker)
-                pendingEvents.add(sourceEvent)
-                return PostLockerChangeResponse(result = PostLockerChangeResponse.Result.OK, version = updatedLockerVersion, lockState = effectiveState)
-            } else if (config.deliveryOutboxEnabled) {
-                requireNotNull(deliveryOutbox).commit(requestRoomId, sessionIds, listOf(sourceEvent)) {
-                    sessionIds.clear()
-                    sessionIds.addAll(subscriptionStore.getAllSessions(ServerRoomId(requestRoomId.rawValue)).map { SessionId(it.rawValue) })
-                    lockerStore.updateLocker(serverLocker)
-                }
-            } else {
-                lockerStore.updateLocker(serverLocker)
-                deliver(listOf(sourceEvent), sessionIds)
-            }
-            var agentFailed = false
-
-            // let the pluggable agent derive additional lockers; write + broadcast them.
-            // Keyspaces stay opaque to the core — the agent decides what to act on.
-            // The client's write is already persisted + fanned out, so an agent failure
-            // must not fail the RPC — a 500 here punishes a successful write and the
-            // client has no way to retry into a consistent state.
-            try {
-                val frameLockers = processAgent(requestRoomId, requestLockerId, updatedLocker)
-
-                val derived = frameLockers.map { frameLocker ->
-                    val existing = lockerStore.getLocker(ServerRoomId(requestRoomId.rawValue), frameLocker.lockerId.keyspace?.value ?: 0L, ServerLockerId(frameLocker.lockerId.rawValue))
-                    val version = (existing?.version ?: 0L) + 1
-                    val stored = ServerLocker(ServerRoomId(requestRoomId.rawValue), frameLocker.lockerId.keyspace?.value ?: 0L,
-                        ServerLockerId(frameLocker.lockerId.rawValue), frameLocker.locker.toByteArray(), version)
-                    val event = Event {
-                        roomId = requestRoomId; eventId = EventId(Random.nextBytes(32))
-                        locker { locker = frameLocker.locker; lockerId = frameLocker.lockerId; this.version = version }
-                    }
-                    stored to event
-                }
-                if (derived.isNotEmpty()) {
-                    if (config.deliveryOutboxEnabled) requireNotNull(deliveryOutbox).commit(requestRoomId, sessionIds, derived.map { it.second }) {
-                        lockerStore.updateLockers(derived.map { it.first })
-                    } else {
-                        lockerStore.updateLockers(derived.map { it.first })
-                        deliver(derived.map { it.second }, sessionIds)
-                    }
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) { throw e
-            } catch (e: Exception) {
-                agentFailed = true
-                agentFailureCounter.increment()
-                logger.error("agent processing failed for locker change (keyspace=${requestLockerId.keyspace?.value})", e)
-            }
-
-            return PostLockerChangeResponse {
-                result = PostLockerChangeResponse.Result.OK
-                version = updatedLockerVersion
-                lockState = effectiveState
-                this.agentFailed = agentFailed
-            }
+            requireNotNull(pendingWrites).add(serverLocker)
+            requireNotNull(pendingEvents).add(sourceEvent)
+            return PostLockerChangeResponse(result = PostLockerChangeResponse.Result.OK, version = updatedLockerVersion, lockState = effectiveState)
     }
 
     private suspend fun deliver(events: List<Event>, sessionIds: List<SessionId>) {
@@ -721,7 +632,7 @@ class RoomServiceImpl(
         }
 
         val startTime = System.nanoTime()
-        return@trackResponse dispatchers.runOnDispatcher(requestRoomId) {
+        return@trackResponse dispatchers.runOnDispatcher(requestRoomId) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
             dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
 
             val storedLocker = lockerStore.getLocker(
@@ -739,7 +650,7 @@ class RoomServiceImpl(
                 requestVersion + 1
             } else {
                 reshardCasConflictsCounter.increment()
-                return@runOnDispatcher DeleteLockerResponse {
+                return@atomic DeleteLockerResponse {
                     result = DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION
                     version = storedLocker?.version ?: 0L
                     existingLocker = storedLocker?.takeUnless { it.deleted }?.let { Locker.fromByteArray(it.locker) }
@@ -751,11 +662,11 @@ class RoomServiceImpl(
             // write context with an empty content hash.
             if (effectiveLock != null) {
                 when (lockVerifier.verifyWrite(effectiveLock, requestRoomId, requestLockerId, requestVersion, ByteArray(0), request.writeSignature, request.notification)) {
-                    LockVerifier.WriteVerdict.REQUIRED -> return@runOnDispatcher DeleteLockerResponse {
+                    LockVerifier.WriteVerdict.REQUIRED -> return@atomic DeleteLockerResponse {
                         result = DeleteLockerResponse.Result.SIGNATURE_REQUIRED
                         lockState = effectiveState
                     }
-                    LockVerifier.WriteVerdict.INVALID -> return@runOnDispatcher DeleteLockerResponse {
+                    LockVerifier.WriteVerdict.INVALID -> return@atomic DeleteLockerResponse {
                         result = DeleteLockerResponse.Result.SIGNATURE_INVALID
                         lockState = effectiveState
                     }
@@ -768,12 +679,9 @@ class RoomServiceImpl(
             val event = Event(roomId = requestRoomId, eventId = requestEventId,
                 locker = IdentifiedLocker(requestLockerId, version = updatedLockerVersion, lockState = effectiveState), notification = request.notification)
             val recipients = mutableListOf<SessionId>()
-            if (config.deliveryOutboxEnabled) requireNotNull(deliveryOutbox).commit(requestRoomId, recipients, listOf(event)) {
+            requireNotNull(deliveryOutbox).commit(requestRoomId, recipients, listOf(event)) {
                 recipients.addAll(subscriptionStore.getAllSessions(ServerRoomId(requestRoomId.rawValue)).map { SessionId(it.rawValue) })
                 lockerStore.updateLocker(tombstone)
-            } else {
-                lockerStore.updateLocker(tombstone)
-                deliver(listOf(event), lookupSessions(requestRoomId).toList())
             }
 
             DeleteLockerResponse {
@@ -781,7 +689,7 @@ class RoomServiceImpl(
                 version = updatedLockerVersion
                 lockState = effectiveState
             }
-        }
+        } }
     }
 
     override suspend fun lockLocker(
@@ -803,7 +711,7 @@ class RoomServiceImpl(
             }
         }
 
-        return@trackResponse dispatchers.runOnDispatcher(requestRoomId) {
+        return@trackResponse dispatchers.runOnDispatcher(requestRoomId) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
             when (val outcome = lockVerifier.applyLock(requestRoomId, grant, request.parentLockVersion)) {
                 is LockVerifier.LockOutcome.Ok -> {
                     LockLockerResponse {
@@ -817,7 +725,7 @@ class RoomServiceImpl(
                 }
                 is LockVerifier.LockOutcome.NotAuthorized -> LockLockerResponse(result = LockLockerResponse.Result.NOT_AUTHORIZED)
             }
-        }
+        } }
     }
 
     override suspend fun unlockLocker(
@@ -837,7 +745,7 @@ class RoomServiceImpl(
             }
         }
 
-        return@trackResponse dispatchers.runOnDispatcher(requestRoomId) {
+        return@trackResponse dispatchers.runOnDispatcher(requestRoomId) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
             val outcome = lockVerifier.applyUnlock(requestRoomId, scope, request.signature, request.parentLockVersion)
             when (outcome) {
                 is LockVerifier.UnlockOutcome.Ok -> {
@@ -846,7 +754,7 @@ class RoomServiceImpl(
                 is LockVerifier.UnlockOutcome.Stale -> UnlockLockerResponse(result = UnlockLockerResponse.Result.UPDATE_LOCAL_VERSION)
                 is LockVerifier.UnlockOutcome.SignatureInvalid -> UnlockLockerResponse(result = UnlockLockerResponse.Result.SIGNATURE_INVALID)
             }
-        }
+        } }
     }
 
     /**

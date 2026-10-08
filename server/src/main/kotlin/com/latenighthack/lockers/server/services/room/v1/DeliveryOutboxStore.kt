@@ -16,10 +16,11 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
     suspend fun receipt(room: RoomId, id: ByteArray) = receipts.find(ServerRoomId(room.rawValue), id)
     suspend fun saveReceipt(receipt: ServerWriteReceipt) = receipts.put(receipt)
     suspend fun <T> atomic(block: suspend () -> T): T = delegate.transaction(LOCK, block)
+    suspend fun <T> atomic(roomId: RoomId, block: suspend () -> T): T = delegate.transaction(roomMutationKey(ServerRoomId(roomId.rawValue)), block)
     suspend fun watermark(roomId: RoomId): Long = sequences.value(ServerRoomId(roomId.rawValue))
 
     suspend fun <T> commit(roomId: RoomId, recipients: List<SessionId>, events: List<Event>, mutation: suspend () -> T): T {
-        val committed = delegate.transaction(LOCK) {
+        val committed = delegate.transaction(roomMutationKey(ServerRoomId(roomId.rawValue))) {
             val result = mutation()
             if (events.isEmpty()) return@transaction result
             val serverRoom = ServerRoomId(roomId.rawValue)
