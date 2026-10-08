@@ -24,6 +24,10 @@ class StorageAdoptionTest {
         "push_delivery_write_receipts" to StoreRow(hex("0a010112030a0102a00607"), listOf(BoundStoreKey.SerializedKey("requestId", hex("01")), BoundStoreKey.SerializedKey("roomIdtoByteArray", hex("0a0102")))),
         "push_delivery_room_sequences" to StoreRow(hex("0a030a0101a00607"), listOf(BoundStoreKey.SerializedKey("roomIdtoByteArray", hex("0a0101"))))
     )
+    @Test fun historicalV3SchemaMatchesTheIndependentlyCapturedStoreSet() {
+        assertEquals(fixtures.keys, ServerStorage.legacyDefinitionsV3.map { it.storeName.value }.toSet())
+    }
+
     @Test fun adoptsEveryOwnedStorePreservesBytesAndSupportsReopen() = runBlocking {
         val file = File.createTempFile("serverstorage-legacy", ".db")
         val configuration = ServerStorage.configuration(file.name)
