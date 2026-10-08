@@ -2,6 +2,7 @@ package com.latenighthack.lockers.server.services.room.v1
 
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.lockers.common.LockerSigning
+import com.latenighthack.lockers.server.ProtocolValidation
 import com.latenighthack.lockers.common.RoomKeying
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.room.v1.PostLockerChangeRequest
@@ -94,6 +95,9 @@ class LockVerifier(private val lockStore: LockStore) {
         lockStore.atomic(ServerRoomId(roomId.rawValue)) { applyLockUnchecked(roomId, grant, parentLockVersion) }
 
     private suspend fun applyLockUnchecked(roomId: RoomId, grant: LockGrant, parentLockVersion: Long): LockOutcome {
+        if (!ProtocolValidation.room(roomId) || !ProtocolValidation.scope(grant.scope) ||
+            !ProtocolValidation.publicKey(grant.publicKey?.rawValue) || parentLockVersion < 0 ||
+            grant.authorityVersion < 0 || grant.scopeVersion < 0) return LockOutcome.NotAuthorized
         val scope = grant.scope ?: return LockOutcome.NotAuthorized
         val grantKey = grant.publicKey ?: return LockOutcome.NotAuthorized
         val scopeKind = scope.kind.value.toLong()
@@ -168,6 +172,8 @@ class LockVerifier(private val lockStore: LockStore) {
         lockStore.atomic(ServerRoomId(roomId.rawValue)) { applyUnlockUnchecked(roomId, scope, signature, parentLockVersion) }
 
     private suspend fun applyUnlockUnchecked(roomId: RoomId, scope: LockScope, signature: Signature?, parentLockVersion: Long): UnlockOutcome {
+        if (!ProtocolValidation.room(roomId) || !ProtocolValidation.scope(scope) || parentLockVersion < 0)
+            return UnlockOutcome.SignatureInvalid
         val scopeKind = scope.kind.value.toLong()
         val keyspace = if (scopeKind == SCOPE_ROOM) 0L else (scope.keyspace?.value ?: 0L)
         val lockerId = if (scopeKind == SCOPE_LOCKER) ServerLockerId(scope.lockerRawValue) else EMPTY_LOCKER
@@ -207,6 +213,9 @@ class LockVerifier(private val lockStore: LockStore) {
         }
 
     private suspend fun applyRatchetUnchecked(lock: ServerLock, roomId: RoomId, lockerId: LockerId, parentVersion: Long, ratchet: PostLockerChangeRequest.Ratchet): RatchetOutcome {
+        if (!ProtocolValidation.room(roomId) || !ProtocolValidation.locker(lockerId) || parentVersion < 0 ||
+            !ProtocolValidation.publicKey(ratchet.newPublicKey?.rawValue) ||
+            !ProtocolValidation.sharedKeys(ratchet.newSharedKeys)) return RatchetOutcome.Invalid
         val state = stateOf(lock)
         val oldKey = state.publicKey?.rawValue ?: return RatchetOutcome.Invalid
         val newKey = ratchet.newPublicKey ?: return RatchetOutcome.Invalid
@@ -261,6 +270,8 @@ class LockVerifier(private val lockStore: LockStore) {
         val keyBytes = RoomKeying.authorityKey(roomId) ?: return null
         return try {
             Secp256r1PublicKey.decode(keyBytes)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
         } catch (e: Exception) {
             null
         }
@@ -269,6 +280,8 @@ class LockVerifier(private val lockStore: LockStore) {
     private suspend fun verifySig(publicKeyBytes: ByteArray, message: ByteArray, signature: ByteArray): Boolean =
         try {
             Secp256r1PublicKey.decode(publicKeyBytes).verify(message, signature)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
         } catch (e: Exception) {
             false
         }
@@ -276,6 +289,8 @@ class LockVerifier(private val lockStore: LockStore) {
     private suspend fun verifyWith(key: Secp256r1PublicKey, message: ByteArray, signature: ByteArray): Boolean =
         try {
             key.verify(message, signature)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
         } catch (e: Exception) {
             false
         }
