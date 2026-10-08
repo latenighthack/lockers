@@ -28,10 +28,12 @@ class AdvisoryLockCoordinator(private val gateway: AdvisoryLockGateway) : Owners
     override suspend fun acquire(keyspace: Keyspace, shard: ShardId, epoch: Epoch): ShardLease? {
         val key = advisoryKey(keyspace, shard)
         val session = gateway.tryLock(key) ?: return null
-        return AdvisoryShardLease(keyspace, shard, epoch, key, session)
+        val token = session.fencingToken.takeIf { it > 0 } ?: fakeTokens.incrementAndGet()
+        return AdvisoryShardLease(keyspace, shard, epoch, token, key, session)
     }
 
     companion object {
+        private val fakeTokens = java.util.concurrent.atomic.AtomicLong()
         /**
          * Maps a `(keyspace, shard)` pair onto the single 64-bit key `pg_try_advisory_lock(bigint)`
          * takes. Pure and deterministic so every node derives the *same* key for the same shard —
@@ -66,6 +68,7 @@ private class AdvisoryShardLease(
     override val shard: ShardId,
     override val epoch: Epoch,
     override val fencingToken: Long,
+    override val fencingKey: Long,
     private val session: AdvisoryLockSession,
 ) : ShardLease {
     @Volatile
@@ -92,6 +95,7 @@ interface AdvisoryLockGateway {
 
 /** A DB session holding one advisory lock. Closing it releases the lock (or the session dies). */
 interface AdvisoryLockSession {
+    val fencingToken: Long get() = 0
     /** False once the session/connection is closed or otherwise dead. */
     fun isAlive(): Boolean
     suspend fun close()
@@ -113,7 +117,14 @@ class JdbcAdvisoryLockGateway(private val jdbcUrl: String) : AdvisoryLockGateway
         }.getOrDefault(false)
 
         if (acquired) {
-            JdbcAdvisoryLockSession(conn)
+            try {
+                conn.createStatement().use { it.execute("CREATE TABLE IF NOT EXISTS shard_fence (fence_key BIGINT PRIMARY KEY, token BIGINT NOT NULL)") }
+                val token = conn.prepareStatement("INSERT INTO shard_fence (fence_key, token) VALUES (?, 1) ON CONFLICT (fence_key) DO UPDATE SET token = shard_fence.token + 1 RETURNING token").use { statement ->
+                    statement.setLong(1, key)
+                    statement.executeQuery().use { result -> check(result.next()); result.getLong(1) }
+                }
+                JdbcAdvisoryLockSession(conn, token)
+            } catch (failure: Throwable) { runCatching { conn.close() }; throw failure }
         } else {
             runCatching { conn.close() }
             null
@@ -122,7 +133,7 @@ class JdbcAdvisoryLockGateway(private val jdbcUrl: String) : AdvisoryLockGateway
 }
 
 /** Holds the advisory lock for as long as its [Connection] is open; closing releases the lock. */
-private class JdbcAdvisoryLockSession(private val conn: Connection) : AdvisoryLockSession {
+private class JdbcAdvisoryLockSession(private val conn: Connection, override val fencingToken: Long) : AdvisoryLockSession {
     override fun isAlive(): Boolean = runCatching { !conn.isClosed && conn.isValid(1) }.getOrDefault(false)
 
     override suspend fun close() {

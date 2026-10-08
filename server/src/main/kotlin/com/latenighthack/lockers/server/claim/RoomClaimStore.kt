@@ -14,6 +14,8 @@ data class RoomClaimRow(val nodeId: String, val nodeAddr: String, val epoch: Lon
  * claim QPS ever pressures Postgres.
  */
 interface RoomClaimStore {
+    fun mutationFence(roomId: RoomId, nodeId: String, epoch: Long): com.latenighthack.lockers.server.services.room.v1.RoomMutationFence =
+        com.latenighthack.lockers.server.services.room.v1.ClaimMutationFence(roomId, nodeId, epoch)
     /** Idempotently creates the backing table/index (the app-table `createStores()` precedent). */
     suspend fun prepare()
 
@@ -156,7 +158,7 @@ class JdbcRoomClaimStore(private val pool: ClaimJdbcPool) : RoomClaimStore {
             ON CONFLICT (room_id) DO UPDATE
                SET node_id    = EXCLUDED.node_id,
                    node_addr  = EXCLUDED.node_addr,
-                   epoch      = CASE WHEN room_claim.node_id = EXCLUDED.node_id
+                   epoch      = CASE WHEN room_claim.node_id = EXCLUDED.node_id AND room_claim.expires_at >= now()
                                      THEN room_claim.epoch
                                      ELSE room_claim.epoch + 1 END,
                    expires_at = EXCLUDED.expires_at
@@ -172,10 +174,10 @@ class JdbcRoomClaimStore(private val pool: ClaimJdbcPool) : RoomClaimStore {
         """
 
         private const val RELEASE_SQL =
-            "DELETE FROM room_claim WHERE room_id = ? AND node_id = ?"
+            "UPDATE room_claim SET expires_at = '-infinity'::timestamptz WHERE room_id = ? AND node_id = ?"
 
         private const val RELEASE_ALL_SQL =
-            "DELETE FROM room_claim WHERE node_id = ?"
+            "UPDATE room_claim SET expires_at = '-infinity'::timestamptz WHERE node_id = ?"
 
         private const val LOOKUP_SQL =
             "SELECT node_id, node_addr, epoch FROM room_claim WHERE room_id = ?"

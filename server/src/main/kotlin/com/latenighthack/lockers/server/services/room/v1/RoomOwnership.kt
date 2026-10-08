@@ -10,6 +10,12 @@ import com.latenighthack.lockers.common.v1.RoomId
  */
 interface RoomOwnership {
     suspend fun resolve(keyspace: Long, roomId: RoomId): RoomOwner
+    suspend fun mutationFence(keyspace: Long, roomId: RoomId): RoomMutationFence {
+        val admitted = resolve(keyspace, roomId)
+        if (admitted !is RoomOwner.Local) throw RoomOwnershipLost()
+        return CheckedRoomMutationFence { resolve(keyspace, roomId) == admitted }
+    }
+    fun invalidate(roomId: RoomId) {}
 }
 
 sealed interface RoomOwner {
@@ -26,4 +32,5 @@ sealed interface RoomOwner {
 /** Single-node / monolith default: every room is owned locally, so writes never redirect. */
 class LocalRoomOwnership : RoomOwnership {
     override suspend fun resolve(keyspace: Long, roomId: RoomId): RoomOwner = RoomOwner.Local()
+    override suspend fun mutationFence(keyspace: Long, roomId: RoomId): RoomMutationFence = CheckedRoomMutationFence(allowPersistent = true) { true }
 }

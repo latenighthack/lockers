@@ -90,7 +90,10 @@ class LockVerifier(private val lockStore: LockStore) {
 
     suspend fun contentHash(innerPayload: ByteArray): ByteArray = SHA256.digest(innerPayload)
 
-    suspend fun applyLock(roomId: RoomId, grant: LockGrant, parentLockVersion: Long): LockOutcome {
+    suspend fun applyLock(roomId: RoomId, grant: LockGrant, parentLockVersion: Long): LockOutcome =
+        lockStore.atomic(ServerRoomId(roomId.rawValue)) { applyLockUnchecked(roomId, grant, parentLockVersion) }
+
+    private suspend fun applyLockUnchecked(roomId: RoomId, grant: LockGrant, parentLockVersion: Long): LockOutcome {
         val scope = grant.scope ?: return LockOutcome.NotAuthorized
         val grantKey = grant.publicKey ?: return LockOutcome.NotAuthorized
         val scopeKind = scope.kind.value.toLong()
@@ -161,12 +164,10 @@ class LockVerifier(private val lockStore: LockStore) {
         return LockOutcome.Ok(state)
     }
 
-    suspend fun applyUnlock(
-        roomId: RoomId,
-        scope: LockScope,
-        signature: Signature?,
-        parentLockVersion: Long,
-    ): UnlockOutcome {
+    suspend fun applyUnlock(roomId: RoomId, scope: LockScope, signature: Signature?, parentLockVersion: Long): UnlockOutcome =
+        lockStore.atomic(ServerRoomId(roomId.rawValue)) { applyUnlockUnchecked(roomId, scope, signature, parentLockVersion) }
+
+    private suspend fun applyUnlockUnchecked(roomId: RoomId, scope: LockScope, signature: Signature?, parentLockVersion: Long): UnlockOutcome {
         val scopeKind = scope.kind.value.toLong()
         val keyspace = if (scopeKind == SCOPE_ROOM) 0L else (scope.keyspace?.value ?: 0L)
         val lockerId = if (scopeKind == SCOPE_LOCKER) ServerLockerId(scope.lockerRawValue) else EMPTY_LOCKER
@@ -198,13 +199,14 @@ class LockVerifier(private val lockStore: LockStore) {
         return UnlockOutcome.Ok
     }
 
-    suspend fun applyRatchet(
-        lock: ServerLock,
-        roomId: RoomId,
-        lockerId: LockerId,
-        parentVersion: Long,
-        ratchet: PostLockerChangeRequest.Ratchet,
-    ): RatchetOutcome {
+    suspend fun applyRatchet(lock: ServerLock, roomId: RoomId, lockerId: LockerId, parentVersion: Long, ratchet: PostLockerChangeRequest.Ratchet): RatchetOutcome =
+        lockStore.atomic(ServerRoomId(roomId.rawValue)) {
+            val current = lockStore.getLock(ServerRoomId(roomId.rawValue), lock.scopeKind, lock.keyspace, requireNotNull(lock.lockerId))
+            if (current == null || current.version != lock.version || !current.lockState.contentEquals(lock.lockState)) RatchetOutcome.Invalid
+            else applyRatchetUnchecked(current, roomId, lockerId, parentVersion, ratchet)
+        }
+
+    private suspend fun applyRatchetUnchecked(lock: ServerLock, roomId: RoomId, lockerId: LockerId, parentVersion: Long, ratchet: PostLockerChangeRequest.Ratchet): RatchetOutcome {
         val state = stateOf(lock)
         val oldKey = state.publicKey?.rawValue ?: return RatchetOutcome.Invalid
         val newKey = ratchet.newPublicKey ?: return RatchetOutcome.Invalid

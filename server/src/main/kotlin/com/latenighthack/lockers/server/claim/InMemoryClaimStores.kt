@@ -22,15 +22,25 @@ class InMemoryRoomClaimStore(
 
     override suspend fun prepare() {}
 
+    override fun mutationFence(roomId: RoomId, nodeId: String, epoch: Long) = object : com.latenighthack.lockers.server.services.room.v1.RoomMutationFence() {
+        override suspend fun <T> guard(driver: com.latenighthack.ktstore.SqlDriver?, block: suspend () -> T): T = mutex.withLock {
+            fun valid() = rows[roomId]?.let { it.nodeId == nodeId && it.epoch == epoch && it.expiresAt >= clock() } == true
+            if (!valid()) throw com.latenighthack.lockers.server.services.room.v1.RoomOwnershipLost()
+            val result = block()
+            if (!valid()) throw com.latenighthack.lockers.server.services.room.v1.RoomOwnershipLost()
+            result
+        }
+    }
+
     override suspend fun claim(roomId: RoomId, nodeId: String, nodeAddr: String, ttlMs: Long): RoomClaimRow =
         mutex.withLock {
             val now = clock()
             val existing = rows[roomId]
             val next = when {
                 existing == null -> Entry(nodeId, nodeAddr, epoch = 1, expiresAt = now + ttlMs)
-                existing.nodeId == nodeId -> existing.copy(nodeAddr = nodeAddr, expiresAt = now + ttlMs)
                 existing.expiresAt < now ->
                     Entry(nodeId, nodeAddr, epoch = existing.epoch + 1, expiresAt = now + ttlMs)
+                existing.nodeId == nodeId -> existing.copy(nodeAddr = nodeAddr, expiresAt = now + ttlMs)
                 else -> existing // valid foreign owner: no steal, return their row
             }
             rows[roomId] = next
@@ -51,12 +61,12 @@ class InMemoryRoomClaimStore(
 
     override suspend fun release(roomId: RoomId, nodeId: String) {
         mutex.withLock {
-            if (rows[roomId]?.nodeId == nodeId) rows.remove(roomId)
+            rows[roomId]?.takeIf { it.nodeId == nodeId }?.let { rows[roomId] = it.copy(expiresAt = Long.MIN_VALUE) }
         }
     }
 
     override suspend fun releaseAll(nodeId: String) {
-        mutex.withLock { rows.entries.removeIf { it.value.nodeId == nodeId } }
+        mutex.withLock { rows.replaceAll { _, entry -> if (entry.nodeId == nodeId) entry.copy(expiresAt = Long.MIN_VALUE) else entry } }
     }
 
     override suspend fun lookup(roomId: RoomId): RoomClaimRow? = mutex.withLock {

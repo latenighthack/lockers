@@ -151,6 +151,13 @@ class RoomServiceImpl(
         }
     }
 
+    private suspend fun <T> runRoomMutation(room: RoomId, onLost: suspend () -> T, block: suspend () -> T): T {
+        return try {
+            val fence = roomOwnership.mutationFence(0, room)
+            kotlinx.coroutines.withContext(fence) { dispatchers.runOnDispatcher(room, block) }
+        } catch (lost: RoomOwnershipLost) { roomOwnership.invalidate(room); onLost() }
+    }
+
     private val gatewayLookupFailureCounter = meterRegistry.counter("lockers.room.gateway.lookup.failures")
     private val oversizeRejectedCounter = meterRegistry.counter("lockers.room.locker.rejected.oversize")
     private val rateLimitedCounter = meterRegistry.counter("lockers.room.locker.rejected.ratelimited")
@@ -280,7 +287,7 @@ class RoomServiceImpl(
         val outbox = requireNotNull(deliveryOutbox)
         val digest = com.latenighthack.ktcrypto.SHA256.digest(request.toByteArray())
         val queuedAt = System.nanoTime()
-        return dispatchers.runOnDispatcher(room) {
+        return runRoomMutation(room, onLost = { PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, room)) }) {
             meterRegistry.timer("lockers.write.phase", "phase", "room_queue").record(System.nanoTime() - queuedAt, java.util.concurrent.TimeUnit.NANOSECONDS)
             val events = mutableListOf<Event>()
             var replay: PostLockerChangesResponse? = null
@@ -328,9 +335,9 @@ class RoomServiceImpl(
                 }
                 trace.recipients = recipients.size
             } catch (e: BatchRejected) {
-                return@runOnDispatcher e.response
+                return@runRoomMutation e.response
             }
-            replay?.let { return@runOnDispatcher it }
+            replay?.let { return@runRoomMutation it }
             // The durable pending receipt prevents an ambiguous retry from executing an agent twice.
             // After a crash here, the client sees committed/pending, not an invitation to replay a move.
             var failed = false
@@ -505,7 +512,7 @@ class RoomServiceImpl(
             )
 
             val effectiveLock = if (prefetchLocks) prefetchedLock else effectiveLockOrNull(requestRoomId, requestLockerId)
-            var effectiveState = effectiveLock?.let { lockVerifier.stateOf(it) }
+                var effectiveState = effectiveLock?.let { lockVerifier.stateOf(it) }
 
             val updatedLockerVersion = if (storedLocker == null && requestVersion == 0L) {
                 1L
@@ -626,7 +633,7 @@ class RoomServiceImpl(
         }
 
         val startTime = System.nanoTime()
-        return@trackResponse dispatchers.runOnDispatcher(requestRoomId) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
+        return@trackResponse runRoomMutation(requestRoomId, onLost = { DeleteLockerResponse(result = DeleteLockerResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, requestRoomId)) }) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
             dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
 
             val storedLocker = lockerStore.getLocker(
@@ -705,7 +712,7 @@ class RoomServiceImpl(
             }
         }
 
-        return@trackResponse dispatchers.runOnDispatcher(requestRoomId) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
+        return@trackResponse runRoomMutation(requestRoomId, onLost = { LockLockerResponse(result = LockLockerResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, requestRoomId)) }) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
             when (val outcome = lockVerifier.applyLock(requestRoomId, grant, request.parentLockVersion)) {
                 is LockVerifier.LockOutcome.Ok -> {
                     LockLockerResponse {
@@ -739,7 +746,7 @@ class RoomServiceImpl(
             }
         }
 
-        return@trackResponse dispatchers.runOnDispatcher(requestRoomId) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
+        return@trackResponse runRoomMutation(requestRoomId, onLost = { UnlockLockerResponse(result = UnlockLockerResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, requestRoomId)) }) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
             val outcome = lockVerifier.applyUnlock(requestRoomId, scope, request.signature, request.parentLockVersion)
             when (outcome) {
                 is LockVerifier.UnlockOutcome.Ok -> {

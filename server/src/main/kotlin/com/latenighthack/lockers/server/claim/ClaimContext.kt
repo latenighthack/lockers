@@ -52,8 +52,9 @@ class ClaimContext(
             val jdbcUrl = config.databaseUrl
                 ?: fallbackJdbcUrl?.takeIf { it.isNotBlank() }
                 ?: error("LOCKERS_ROOM_OWNERSHIP=claim requires LOCKERS_DB_URL.")
-            val nodeId = config.sharding.nodeId?.takeIf { it.isNotBlank() }
+            val configuredNodeId = config.sharding.nodeId?.takeIf { it.isNotBlank() }
                 ?: error("LOCKERS_ROOM_OWNERSHIP=claim requires LOCKERS_NODE_ID.")
+            val nodeId = "$configuredNodeId:${java.util.UUID.randomUUID()}"
             val advertiseAddr = config.sharding.advertiseAddr?.takeIf { it.isNotBlank() }
                 ?: error("LOCKERS_ROOM_OWNERSHIP=claim requires LOCKERS_ADVERTISE_ADDR (peer-reachable host:port).")
             check(config.claimRenewMs > 0 && config.claimRenewMs < config.claimTtlMs / 2) {
