@@ -6,6 +6,9 @@ import com.latenighthack.lockers.sharding.ShardId
 import com.latenighthack.lockers.sharding.spi.OwnershipCoordinator
 import com.latenighthack.lockers.sharding.spi.ShardLease
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.sql.Connection
 import java.sql.DriverManager
@@ -73,13 +76,19 @@ private class AdvisoryShardLease(
 ) : ShardLease {
     @Volatile
     private var released = false
+    private var closed = false
+    private val releaseMutex = Mutex()
 
     override val isValid: Boolean get() = !released && session.isAlive()
 
-    override suspend fun release() {
-        if (released) return
-        released = true
-        session.close()
+    override suspend fun release() = withContext(NonCancellable) {
+        releaseMutex.withLock {
+            if (!closed) {
+                released = true
+                session.close()
+                closed = true
+            }
+        }
     }
 }
 
@@ -107,27 +116,38 @@ interface AdvisoryLockSession {
  * (`postgresql` is runtime-only on `:server:run`, so this uses only `java.sql`).
  */
 class JdbcAdvisoryLockGateway(private val jdbcUrl: String) : AdvisoryLockGateway {
-    override suspend fun tryLock(key: Long): AdvisoryLockSession? = withContext(Dispatchers.IO) {
-        val conn = DriverManager.getConnection(jdbcUrl)
-        val acquired = runCatching {
-            conn.prepareStatement("SELECT pg_try_advisory_lock(?)").use { st ->
-                st.setLong(1, key)
-                st.executeQuery().use { rs -> rs.next() && rs.getBoolean(1) }
-            }
-        }.getOrDefault(false)
-
-        if (acquired) {
-            try {
-                conn.createStatement().use { it.execute("CREATE TABLE IF NOT EXISTS shard_fence (fence_key BIGINT PRIMARY KEY, token BIGINT NOT NULL)") }
-                val token = conn.prepareStatement("INSERT INTO shard_fence (fence_key, token) VALUES (?, 1) ON CONFLICT (fence_key) DO UPDATE SET token = shard_fence.token + 1 RETURNING token").use { statement ->
-                    statement.setLong(1, key)
-                    statement.executeQuery().use { result -> check(result.next()); result.getLong(1) }
+    override suspend fun tryLock(key: Long): AdvisoryLockSession? {
+        // Ownership transfers only after the dispatcher handoff succeeds. Prompt cancellation
+        // at that boundary otherwise loses the newly allocated connection and its advisory lock.
+        var allocated: Connection? = null
+        try {
+            val session = withContext(Dispatchers.IO) {
+                val conn = DriverManager.getConnection(jdbcUrl).also { allocated = it }
+                val acquired = conn.prepareStatement("SELECT pg_try_advisory_lock(?)").use { st ->
+                    st.setLong(1, key)
+                    st.executeQuery().use { rs -> rs.next() && rs.getBoolean(1) }
                 }
-                JdbcAdvisoryLockSession(conn, token)
-            } catch (failure: Throwable) { runCatching { conn.close() }; throw failure }
-        } else {
-            runCatching { conn.close() }
-            null
+                if (!acquired) {
+                    conn.close()
+                    allocated = null
+                    null
+                } else {
+                    conn.createStatement().use { it.execute("CREATE TABLE IF NOT EXISTS shard_fence (fence_key BIGINT PRIMARY KEY, token BIGINT NOT NULL)") }
+                    val token = conn.prepareStatement("INSERT INTO shard_fence (fence_key, token) VALUES (?, 1) ON CONFLICT (fence_key) DO UPDATE SET token = shard_fence.token + 1 RETURNING token").use { statement ->
+                        statement.setLong(1, key)
+                        statement.executeQuery().use { result -> check(result.next()); result.getLong(1) }
+                    }
+                    JdbcAdvisoryLockSession(conn, token)
+                }
+            }
+            allocated = null
+            return session
+        } catch (failure: Throwable) {
+            allocated?.let { connection ->
+                try { withContext(NonCancellable + Dispatchers.IO) { connection.close() } }
+                catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+            }
+            throw failure
         }
     }
 }
@@ -138,6 +158,6 @@ private class JdbcAdvisoryLockSession(private val conn: Connection, override val
 
     override suspend fun close() {
         // Closing the connection ends the session, which releases every advisory lock it held.
-        withContext(Dispatchers.IO) { runCatching { conn.close() } }
+        withContext(NonCancellable + Dispatchers.IO) { conn.close() }
     }
 }
