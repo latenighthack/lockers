@@ -18,6 +18,7 @@ import com.latenighthack.lockers.observability.*
 import io.micrometer.core.instrument.Tag
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import me.tatarka.inject.annotations.Component
@@ -106,8 +107,10 @@ class PushServiceImpl(
         Semaphore(dispatch.sendConcurrencyPerBackend.coerceAtLeast(1))
     }
 
-    private val newPushesFlow = MutableSharedFlow<ServerPush>(extraBufferCapacity = 1000)
+    private val workAvailable = Channel<Unit>(Channel.CONFLATED)
     private val processorScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val inFlight = java.util.concurrent.ConcurrentHashMap.newKeySet<ServerPushId>()
+    private val dispatchSlots = Semaphore(dispatch.sendConcurrencyPerBackend.coerceAtLeast(1) * PushBackendKind.entries.size)
 
     private val totalQueueGauge = AtomicInteger(0)
     private val queueDepth = PushBackendKind.entries.associateWith { AtomicInteger(0) }
@@ -152,18 +155,26 @@ class PushServiceImpl(
         }
         logger.info("Starting push service processor")
         processorScope.launch {
-            newPushesFlow
-                .onStart {
+            while (isActive) {
+                try {
                     val pending = pushQueueStore.getPendingPushes()
                     seedGaugesFrom(pending, pushDeadLetterStore.getAllDeadLetters())
-                    logger.info("Loaded ${pending.size} pending pushes")
-                    emitAll(pending.asFlow())
-                }
-                .collect { push ->
-                    // Process each row independently so one slow/blocking send
-                    // never serializes the whole queue.
-                    processorScope.launch { processPush(push) }
-                }
+                    for (push in pending) {
+                        val id = push.pushId ?: continue
+                        if (!inFlight.add(id)) continue
+                        try { dispatchSlots.acquire() }
+                        catch (cancelled: CancellationException) { inFlight.remove(id); throw cancelled }
+                        processorScope.launch {
+                            try { processPush(push) }
+                            finally { inFlight.remove(id); dispatchSlots.release() }
+                        }
+                    }
+                } catch (cancelled: CancellationException) { throw cancelled }
+                catch (error: Exception) { logger.warn("push queue scan failed; retrying durable state", error) }
+                // Hints accelerate discovery; periodic durable scans cover remote/API-only replicas,
+                // startup races and transient scan failures. Persisted queue rows are the authority.
+                withTimeoutOrNull(250) { workAvailable.receive() }
+            }
         }
     }
 
@@ -406,7 +417,7 @@ class PushServiceImpl(
                 pushQueueStore.savePush(serverPush)
                 incQueue(backend)
                 backend?.let { counter("lockers.push.enqueued", it).increment() }
-                newPushesFlow.emit(serverPush)
+                workAvailable.trySend(Unit)
             }
 
             SendPushResponse { result = SendPushResponse.Result.OK }
@@ -454,9 +465,7 @@ class PushServiceImpl(
     ): DrainQueueResponse {
         authorizeAdmin(context)
         val pending = pushQueueStore.getPendingPushes()
-        for (push in pending) {
-            newPushesFlow.emit(push)
-        }
+        workAvailable.trySend(Unit)
         logger.info("Drain re-fed ${pending.size} queued pushes to the processor")
         return DrainQueueResponse { drained = pending.size.toLong() }
     }
@@ -493,7 +502,7 @@ class PushServiceImpl(
             backend?.let { counter("lockers.push.enqueued", it).increment() }
             pushDeadLetterStore.deleteDeadLetter(pushId)
             backend?.let { deadLetterDepth[it]?.decrementAndGet() }
-            newPushesFlow.emit(requeued)
+            workAvailable.trySend(Unit)
             retried++
         }
         logger.info("Retried $retried dead letters")

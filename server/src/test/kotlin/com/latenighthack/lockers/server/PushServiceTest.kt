@@ -119,6 +119,23 @@ class PushServiceTest {
         assertThat(decoded.backend?.getApns()?.deviceToken?.decodeToString()).isEqualTo("t2")
     }
 
+    @Test fun `worker discovers pushes saved by an API-only replica after startup`() = runBlocking {
+        val database = ServerStorage.inMemory()
+        val provider = RecordingPushProvider(PushBackendKind.APNS)
+        val worker = harness(listOf(provider), delegate = database)
+        val api = PushServiceImpl(worker.sessionStore, PushQueueStoreImpl(database), worker.deadLetterStore,
+            SimpleMeterRegistry(), emptyList(), PushDispatchConfig(workerEnabled = false))
+        try {
+            worker.impl.start()
+            delay(100) // The startup snapshot has completed before the other replica enqueues.
+            val sid = sessionId(50, 51)
+            LocalPushServiceRpc(api).register(sid, apns("t1"))
+            LocalPushGatewayServiceRpc(api).sendPush(SendPushRequest { sessionId = sid; push = Push { title = "remote enqueue" } })
+            withTimeout(1000) { provider.awaitSends(1) }
+            assertThat(provider.sends.single().title).isEqualTo("remote enqueue")
+        } finally { worker.impl.stop(); api.stop() }
+    }
+
     @Test
     fun `sendPush enqueues one per backend and dispatches to each provider`() = runBlocking {
         val apnsProvider = RecordingPushProvider(PushBackendKind.APNS)
