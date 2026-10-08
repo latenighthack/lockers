@@ -224,7 +224,7 @@ class RoomServiceImpl(
         }
         return GetLockersResponse(request.lockerIds.map { id ->
             all[id.copy(keyspace = id.keyspace ?: LockerKeyspace(0))]?.let { stored -> GetLockerResponse(result = GetLockerResponse.Result.OK,
-                locker = IdentifiedLocker(id, Locker.fromByteArray(stored.locker), stored.version, lockStateFor(room, id))) }
+                locker = IdentifiedLocker(id, if (stored.deleted) null else Locker.fromByteArray(stored.locker), stored.version, lockStateFor(room, id))) }
                 ?: GetLockerResponse(result = GetLockerResponse.Result.UNKNOWN_ERROR)
         })
     }
@@ -418,7 +418,7 @@ class RoomServiceImpl(
         val storedLocker = lockerStore.getLocker(ServerRoomId(roomId.rawValue), lockerId.keyspace?.value ?: 0L, ServerLockerId(lockerId.rawValue))
         val lockerPayload = storedLocker?.takeUnless { it.deleted }?.locker?.let { Locker.fromByteArray(it) }
         
-        if (lockerPayload == null) {
+        if (storedLocker == null) {
             getLockerTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
             return@trackResponse GetLockerResponse(result = GetLockerResponse.Result.UNKNOWN_ERROR)
         }
@@ -456,7 +456,7 @@ class RoomServiceImpl(
         getAllLockersTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
 
         // Resolve lock state up front: the builder lambdas below are not suspend contexts.
-        val identified = storedLockers.filterNot { it.deleted }.map { storedLocker ->
+        val identified = storedLockers.map { storedLocker ->
             val storedLockerId = LockerId(
                 rawValue = storedLocker.lockerId?.rawValue!!,
                 keyspace = LockerKeyspace { value = storedLocker.keyspace }

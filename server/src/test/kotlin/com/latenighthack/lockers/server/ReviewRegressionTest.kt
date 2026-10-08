@@ -84,4 +84,19 @@ class ReviewRegressionTest {
         } finally { service.close() }
     }
 
+    @Test fun allReadShapesReturnTheSameVersionedTombstone(): Unit = runBlocking {
+        val s = stores(); val service = service(s); val rpc = LocalRoomServiceRpc(service)
+        try {
+            val first = rpc.postLockerChange(PostLockerChangeRequest(roomId = room, lockerId = id, locker = body(1)))
+            val deleted = rpc.deleteLocker(DeleteLockerRequest(roomId = room, lockerId = id, parentVersion = first.version))
+            val single = assertNotNull(rpc.getLocker(GetLockerRequest(room, id)).locker)
+            val bulk = assertNotNull(rpc.getLockers(GetLockersRequest(room, listOf(id))).results.single().locker)
+            val all = rpc.getAllLockers(GetAllLockersRequest(room)).lockers.single()
+            for (value in listOf(single, bulk, all)) {
+                assertEquals(deleted.version, value.version)
+                assertNull(value.locker)
+            }
+        } finally { service.close() }
+    }
+
 }
