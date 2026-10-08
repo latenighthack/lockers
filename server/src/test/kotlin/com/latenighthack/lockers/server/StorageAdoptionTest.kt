@@ -29,7 +29,7 @@ class StorageAdoptionTest {
         val configuration = ServerStorage.configuration(file.name)
         val legacy = SqlStoreDelegate(JdbcDriver(file.absolutePath, "sqlite"), "BLOB", legacyBinaryText = true)
         try {
-            configuration.stores.forEach { legacy.registerStore(it.name.value, it.keys, it.primaryKey) }
+            ServerStorage.legacyDefinitionsV3.map { it.declaration }.forEach { legacy.registerStore(it.name.value, it.keys, it.primaryKey) }
             legacy.createStores()
             fixtures.forEach { (table, row) -> legacy.save(table, row.data, row.keys) }
         } finally { legacy.close() }
