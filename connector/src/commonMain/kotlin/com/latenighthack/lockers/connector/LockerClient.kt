@@ -444,38 +444,51 @@ class LockerClient(
                 val stored = lockerStore.getLocker(roomId, change.lockerId.keyspaceOrDefault(), change.lockerId)
                 change.lockerId to ((stored?.version ?: 0L) to (stored?.lockerPayload ?: byteArrayOf()))
             }.toMutableMap()
-            // Explicit pair construction avoids conflating version zero with a missing body.
-            changes.forEach { change ->
-                val stored = lockerStore.getLocker(roomId, change.lockerId.keyspaceOrDefault(), change.lockerId)
-                current[change.lockerId] = (stored?.version ?: 0L) to (stored?.lockerPayload ?: byteArrayOf())
-            }
             val scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM)
+            val initialState = if (initialKey != null && caps.authorityV2) getLockScope(roomId, scope) else null
+            val targetVersion = initialState?.scopeState?.lockVersion ?: 0L
+            val authorityVersion = initialState?.parentState?.lockVersion ?: 0L
             val grant = initialKey?.let { key ->
                 val public = key.publicKey.encode()
-                LockGrant(scope, Secp256R1Key.PublicKey(public), signatureOf(key, LockerSigning.grantContext(roomId, scope, public)))
+                val context = if (caps.authorityV2) LockerSigning.grantContextV2(roomId, scope, public, authorityVersion, targetVersion)
+                    else LockerSigning.grantContext(roomId, scope, public)
+                LockGrant(scope, Secp256R1Key.PublicKey(public), signatureOf(key, context, if (caps.authorityV2) 2 else 1), authorityVersion, targetVersion)
             }
             var submitted: PostLockerChangesRequest? = null
             try {
                 repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
-                    val request = submitted ?: PostLockerChangesRequest(roomId = roomId, initialLock = grant,
-                        writeRequestId = kotlin.random.Random.nextBytes(32), changes = changes.map { change ->
-                            val (version, plaintext) = current.getValue(change.lockerId)
-                            val body = buildWriteBody(initialKey ?: lockKeySource?.writeKeyFor(roomId, change.lockerId),
-                                roomId, change.lockerId, version, change.transform(plaintext))
-                            PostLockerChangeRequest(roomId = roomId, lockerId = change.lockerId, locker = body.locker,
-                                parentVersion = version, writeSignature = body.signature)
-                        }).also {
-                            if (it.toByteArray().size > minOf(8 * 1024 * 1024, caps.maxBatchBytes))
-                                throw LockerWriteException("atomic locker batch exceeds encoded request limit")
-                            submitted = it
-                        }
+                    val request = submitted ?: run {
+                        val authorities = if (caps.authorityV2 && initialKey == null) {
+                            if (caps.getLockers) {
+                                val result = sync.network { roomService.getLockers(GetLockersRequest(roomId, changes.map { it.lockerId })) }
+                                require(result.results.size == changes.size) { "Incomplete batch authority discovery" }
+                                changes.zip(result.results).associate { (change, response) ->
+                                    check(response.result.isOk()) { "Authority discovery rejected" }
+                                    change.lockerId to (response.locker?.lockState?.lockVersion ?: 0L)
+                                }
+                            } else changes.associate { it.lockerId to currentAuthorityVersion(roomId, it.lockerId) }
+                        } else emptyMap()
+                        PostLockerChangesRequest(roomId = roomId, initialLock = grant, parentLockVersion = targetVersion,
+                            writeRequestId = kotlin.random.Random.nextBytes(32), changes = changes.map { change ->
+                                val (version, plaintext) = current.getValue(change.lockerId)
+                                val authority = if (initialKey != null) targetVersion + 1 else authorities[change.lockerId] ?: 0L
+                                val body = buildWriteBody(initialKey ?: lockKeySource?.writeKeyFor(roomId, change.lockerId),
+                                    roomId, change.lockerId, version, change.transform(plaintext), authority, null, caps.authorityV2)
+                                PostLockerChangeRequest(roomId = roomId, lockerId = change.lockerId, locker = body.locker,
+                                    parentVersion = version, writeSignature = body.signature)
+                            }).also {
+                                if (it.toByteArray().size > minOf(8 * 1024 * 1024, caps.maxBatchBytes))
+                                    throw LockerWriteException("atomic locker batch exceeds encoded request limit")
+                                submitted = it
+                            }
+                    }
                     val response = sync.network { roomService.postLockerChanges(request) }
                     when (response.result) {
                         is PostLockerChangesResponse.Result.OK -> {
-                            if (response.agentFailed || response.agentPending) throw LockerWriteException("batch committed; agent ${if (response.agentPending) "pending" else "failed"}")
                             request.changes.zip(response.changes).forEach { (change, result) ->
                                 accept(LockerUpdate(roomId, change.lockerId!!, result.version, change.locker!!.plaintextPayload()))
                             }
+                            if (response.agentFailed || response.agentPending) throw LockerSourceCommittedException(response.changes.maxOfOrNull { it.version } ?: 0, response.agentPending)
                         }
                         is PostLockerChangesResponse.Result.CONFLICT -> {
                         telemetry.safeRecord(TelemetryOperation.CONNECTOR_CONFLICT, TelemetryOutcome.CONFLICT)
@@ -723,9 +736,10 @@ class LockerClient(
 
         val deletedVersion = try {
             repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
-                val signature = signingKey?.let { signWrite(it, roomId, lockerId, parentVersion, ByteArray(0)) }
-
+                val caps = capabilities()
                 val notif = encodedNotification(roomId, lockerId) { this.notificationBuilder() }
+                val authority = if (signingKey != null && caps.authorityV2) currentAuthorityVersion(roomId, lockerId) else 0
+                val signature = signingKey?.let { signWrite(it, roomId, lockerId, parentVersion, ByteArray(0), authority, notif, caps.authorityV2) }
 
                 val result = sync.network { roomService.deleteLocker(DeleteLockerRequest {
                     this.roomId = roomId
@@ -807,36 +821,31 @@ class LockerClient(
         // signing key for this room (signed=false), which is otherwise invisible from the message.
         val writeContext = "room=${roomId.toLogString()} locker=${lockerId.toLogString()} signed=${signingKey != null}"
 
-        val supportsReceipts = capabilities().writeReceipts
+        val caps = capabilities()
+        val supportsReceipts = caps.writeReceipts
         if (pendingRatchetKey != null && !supportsReceipts) throw LockerWriteException("Ratchets require durable server write receipts")
         var submitted: PostLockerChangeRequest? = null
         var committedAgentStatus: PostLockerChangeResponse? = null
         val updatedLocker = try {
             repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
-                val newPlaintext = transform(currentPlaintext)
-                val body = buildWriteBody(signingKey, roomId, lockerId, parentVersion, newPlaintext)
-                val ratchetMsg = if (pendingRatchetKey != null && signingKey != null) {
-                    buildRatchet(signingKey, pendingRatchetKey, roomId, lockerId, parentVersion)
-                } else {
-                    null
-                }
-                log.debug { "updating locker=${lockerId.toLogString()}" }
-
-                val notif = encodedNotification(roomId, lockerId) { this.notificationBuilder(body.locker) }
-
-                val request = submitted ?: PostLockerChangeRequest {
-                    if (supportsReceipts) writeRequestId = kotlin.random.Random.nextBytes(32)
-                    this.roomId = roomId
-                    this.lockerId = lockerId
-                    this.parentVersion = parentVersion
-                    this.locker = body.locker
-                    if (body.signature != null) this.writeSignature = body.signature
-                    if (ratchetMsg != null) this.ratchet = ratchetMsg
-
-                    this.notification = notif
-                }.also {
-                    if (pendingRatchetKey != null) lockerStore.saveRatchet(PendingRatchet(it, pendingRatchetKey.privateKey.encode()))
-                    submitted = it
+                val request = submitted ?: run {
+                    val authority = if (signingKey != null && caps.authorityV2) currentAuthorityVersion(roomId, lockerId) else 0L
+                    val newPlaintext = transform(currentPlaintext)
+                    // The builder sees a provisional payload envelope; the final V2 signature binds its encoded notification.
+                    val provisional = buildWriteBody(signingKey, roomId, lockerId, parentVersion, newPlaintext)
+                    val notif = encodedNotification(roomId, lockerId) { this.notificationBuilder(provisional.locker) }
+                    val body = if (caps.authorityV2) buildWriteBody(signingKey, roomId, lockerId, parentVersion, newPlaintext, authority, notif, true) else provisional
+                    val ratchetMsg = if (pendingRatchetKey != null && signingKey != null)
+                        buildRatchet(signingKey, pendingRatchetKey, roomId, lockerId, parentVersion, authority, caps.authorityV2) else null
+                    PostLockerChangeRequest {
+                        if (supportsReceipts) writeRequestId = kotlin.random.Random.nextBytes(32)
+                        this.roomId = roomId; this.lockerId = lockerId; this.parentVersion = parentVersion
+                        this.locker = body.locker; this.writeSignature = body.signature
+                        this.ratchet = ratchetMsg; this.notification = notif
+                    }.also {
+                        if (pendingRatchetKey != null) lockerStore.saveRatchet(PendingRatchet(it, pendingRatchetKey.privateKey.encode()))
+                        submitted = it
+                    }
                 }
                 val result = sync.network { roomService.postLockerChange(request) }
 
@@ -939,19 +948,25 @@ class LockerClient(
         parentKeyPair: Secp256r1KeyPair? = null,
         parentLockVersion: Long = 0L
     ): LockLockerResponse {
+        val caps = capabilities()
+        val state = if (caps.authorityV2) getLockScope(roomId, scope) else null
+        val targetVersion = if (caps.authorityV2 && parentLockVersion == 0L) state?.scopeState?.lockVersion ?: 0L else parentLockVersion
+        val authorityVersion = state?.parentState?.lockVersion ?: 0L
         val publicKeyBytes = keyPair.publicKey.encode()
         val parentSignature = parentKeyPair?.let {
-            val context = LockerSigning.grantContext(roomId, scope, publicKeyBytes)
-            signatureOf(it, context)
+            val context = if (caps.authorityV2) LockerSigning.grantContextV2(roomId, scope, publicKeyBytes, authorityVersion, targetVersion)
+                else LockerSigning.grantContext(roomId, scope, publicKeyBytes)
+            signatureOf(it, context, if (caps.authorityV2) 2 else 1)
         }
 
         return roomService.lockLocker(LockLockerRequest {
             this.roomId = roomId
-            this.parentLockVersion = parentLockVersion
+            this.parentLockVersion = targetVersion
             grant = LockGrant(
                 scope = scope,
                 publicKey = Secp256R1Key.PublicKey(rawValue = publicKeyBytes),
                 parentSignature = parentSignature,
+                authorityVersion = authorityVersion, scopeVersion = targetVersion,
             )
         }).also {
             if (it.result is LockLockerResponse.Result.NOT_OWNER) recordRoomRedirect(roomId, it.redirect)
@@ -965,15 +980,25 @@ class LockerClient(
         keyPair: Secp256r1KeyPair,
         parentLockVersion: Long
     ): UnlockLockerResponse {
-        val context = LockerSigning.unlockContext(roomId, scope)
+        val v2 = capabilities().authorityV2
+        val context = if (v2) LockerSigning.unlockContextV2(roomId, scope, parentLockVersion) else LockerSigning.unlockContext(roomId, scope)
         return roomService.unlockLocker(UnlockLockerRequest {
             this.roomId = roomId
             this.scope = scope
             this.parentLockVersion = parentLockVersion
-            signature = signatureOf(keyPair, context)
+            signature = signatureOf(keyPair, context, if (v2) 2 else 1)
         }).also {
             if (it.result is UnlockLockerResponse.Result.NOT_OWNER) recordRoomRedirect(roomId, it.redirect)
         }
+    }
+
+    suspend fun getLockScope(roomId: RoomId, scope: LockScope): GetLockScopeResponse =
+        sync.network { roomService.getLockScope(GetLockScopeRequest(roomId, scope)) }.also { check(it.result.isOk()) { "Authority discovery rejected" } }
+
+    private suspend fun currentAuthorityVersion(roomId: RoomId, lockerId: LockerId): Long {
+        val response = sync.network { roomService.getLocker(GetLockerRequest(roomId, lockerId.canonical())) }
+        check(response.result.isOk()) { "Authority discovery failed: ${response.result}" }
+        return response.locker?.lockState?.lockVersion ?: 0L
     }
 
     private class WriteBody(val locker: Locker, val signature: Signature?)
@@ -984,12 +1009,13 @@ class LockerClient(
         lockerId: LockerId,
         parentVersion: Long,
         plaintext: ByteArray,
+        lockVersion: Long = 0, notification: Notification? = null, v2: Boolean = false,
     ): WriteBody {
         if (signingKey == null) {
             return WriteBody(Locker { open { encodedPayload = plaintext } }, null)
         }
         val hash = SHA256.digest(plaintext)
-        val signature = signWrite(signingKey, roomId, lockerId, parentVersion, hash)
+        val signature = signWrite(signingKey, roomId, lockerId, parentVersion, hash, lockVersion, notification, v2)
         val locker = Locker {
             sealed {
                 payload {
@@ -1010,13 +1036,15 @@ class LockerClient(
         roomId: RoomId,
         lockerId: LockerId,
         parentVersion: Long,
+        lockVersion: Long = 0, v2: Boolean = false,
     ): PostLockerChangeRequest.Ratchet {
         val newPublicKeyBytes = newKey.publicKey.encode()
-        val context = LockerSigning.ratchetContext(roomId, lockerId, parentVersion, newPublicKeyBytes)
+        val context = if (v2) LockerSigning.ratchetContextV2(roomId, lockerId, parentVersion, lockVersion, newPublicKeyBytes, emptyList())
+            else LockerSigning.ratchetContext(roomId, lockerId, parentVersion, newPublicKeyBytes)
         return PostLockerChangeRequest.Ratchet(
             newPublicKey = Secp256R1Key.PublicKey(rawValue = newPublicKeyBytes),
             newSharedKeys = emptyList(),
-            signature = signatureOf(oldKey, context),
+            signature = signatureOf(oldKey, context, if (v2) 2 else 1),
         )
     }
 
@@ -1026,14 +1054,16 @@ class LockerClient(
         lockerId: LockerId,
         parentVersion: Long,
         contentHash: ByteArray,
-    ): Signature =
-        signatureOf(keyPair, LockerSigning.writeContext(roomId, lockerId, parentVersion, contentHash))
+        lockVersion: Long = 0, notification: Notification? = null, v2: Boolean = false,
+    ): Signature = signatureOf(keyPair, if (v2) LockerSigning.writeContextV2(roomId, lockerId, parentVersion, lockVersion, contentHash, notification)
+        else LockerSigning.writeContext(roomId, lockerId, parentVersion, contentHash), if (v2) 2 else 1)
 
-    private suspend fun signatureOf(keyPair: Secp256r1KeyPair, message: ByteArray): Signature =
+    private suspend fun signatureOf(keyPair: Secp256r1KeyPair, message: ByteArray, version: Int = 1): Signature =
         Signature(
             publicKey = Secp256R1Key.PublicKey(rawValue = keyPair.publicKey.encode()),
             // ktcrypto's sign() returns the raw r‖s the server expects on every platform.
             signature = keyPair.privateKey.sign(message),
+            signingVersion = version,
         )
 }
 

@@ -9,6 +9,7 @@ internal class ShardedRoomServiceRpc(rpcClient: RpcClient): RoomServiceRpc(rpcCl
         is SubscribeAndSnapshotRequest -> request.roomId
         is PostLockerChangesRequest -> request.roomId
         is GetLockersRequest -> request.roomId
+        is GetLockScopeRequest -> request.roomId
         is SubscriptionRequest -> request.roomId
         is GetLockerRequest -> request.roomId
         is GetAllLockersRequest -> request.roomId
