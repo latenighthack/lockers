@@ -55,6 +55,7 @@ object BlueprintV {
          * Returns `null` when ready, else a short human reason.
          */
         suspend fun notReadyReason(): String? {
+            shardSource.notReadyReason()?.let { return it }
             if (databaseUrl != null && !pingDb(databaseUrl)) return "database unreachable"
             return null
         }

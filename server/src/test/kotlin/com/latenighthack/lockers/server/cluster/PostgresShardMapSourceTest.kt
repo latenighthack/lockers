@@ -10,6 +10,9 @@ import com.latenighthack.lockers.sharding.ShardCounts
 import com.latenighthack.lockers.sharding.ShardId
 import com.latenighthack.lockers.sharding.ShardMap
 import kotlin.test.Test
+import kotlinx.coroutines.*
+import kotlinx.coroutines.test.*
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Pure row->ShardMap mapping coverage (no JDBC): epoch selection, fallback, empty handling. */
 class PostgresShardMapSourceTest {
@@ -17,6 +20,27 @@ class PostgresShardMapSourceTest {
     private val fallbackNodes = setOf(NodeId("a"), NodeId("b"))
     private val fallback = RingAssignment(fallbackNodes)
     private val bootstrap = ShardMap(Epoch(0), counts, fallback)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test fun initialFailureRetriesAndLoadsTheMap() = runTest {
+        var reads = 0
+        val gateway = object : ShardMapGateway {
+            override suspend fun readRows(): List<ShardMapRow> {
+                if (++reads == 1) error("startup database unavailable")
+                return listOf(ShardMapRow(7, 0, 0, "a"))
+            }
+        }
+        val source = PostgresShardMapSource(gateway, counts, fallback, pollInterval = 10.milliseconds)
+        kotlin.test.assertNotNull(source.notReadyReason())
+        source.bind(backgroundScope)
+        runCurrent()
+        kotlin.test.assertNotNull(source.notReadyReason())
+        advanceTimeBy(11)
+        runCurrent()
+        assertThat(source.current().epoch).isEqualTo(Epoch(7))
+        kotlin.test.assertNull(source.notReadyReason())
+        kotlin.test.assertNotNull(source.notReadyReason(source.health.value.refreshedAtMillis!! + 31))
+    }
 
     @Test
     fun emptyTableYieldsBootstrapRing() {
