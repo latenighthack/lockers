@@ -8,6 +8,7 @@ import com.diamondedge.logging.logging
 
 import com.latenighthack.ktbuf.bytes.toBase64String
 import com.latenighthack.ktbuf.net.RpcClient
+import com.latenighthack.ktbuf.rpc.RetryLimitExceeded
 import com.latenighthack.ktbuf.rpc.repeatWithBackoff
 import com.latenighthack.ktcrypto.Secp256r1KeyPair
 import com.latenighthack.ktcrypto.encode
@@ -130,6 +131,7 @@ class SubscriptionController(
     private val log: KmLog = logging(),
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
     coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default,
+    private val connectionSource: StateFlow<StreamConnectionState>? = null,
 ) {
     private val controllerJob = SupervisorJob(coroutineContext[Job])
     private val controllerScope = CoroutineScope(coroutineContext + controllerJob)
@@ -152,6 +154,8 @@ class SubscriptionController(
     private data class Confirmations(val sessionId: SessionId? = null, val rooms: Set<RoomId> = emptySet())
     private val changes = kotlinx.coroutines.channels.Channel<Change>(kotlinx.coroutines.channels.Channel.UNLIMITED)
     private val confirmations = MutableStateFlow(Confirmations())
+    private val closed = MutableStateFlow(false)
+    init { controllerJob.invokeOnCompletion { closed.value = true } }
     private val newSubscriptions = MutableSharedFlow<RoomId>(extraBufferCapacity = 64)
 
     suspend fun resendSubscriptions() {
@@ -244,7 +248,12 @@ class SubscriptionController(
     }
 
     suspend fun awaitSubscription(roomId: RoomId) {
-        combine(sessionIdSource, confirmations) { session, confirmed ->
+        combine(sessionIdSource, confirmations, closed, connectionSource ?: MutableStateFlow<StreamConnectionState>(StreamConnectionState.Connecting)) { session, confirmed, isClosed, state ->
+            when (state) {
+                is StreamConnectionState.Failed -> throw StreamFailedException(state.error)
+                is StreamConnectionState.Closed -> throw StreamClosedException()
+                else -> if (isClosed) throw StreamClosedException()
+            }
             session != null && session == confirmed.sessionId && roomId in confirmed.rooms
         }.first { it }
     }
@@ -308,14 +317,17 @@ class Stream(
     private val streamJob = SupervisorJob(coroutineContext[Job])
     private val streamScope = CoroutineScope(coroutineContext + streamJob)
     private val started = MutableStateFlow(false)
-    private val sessionIdSource = MutableStateFlow<SessionId?>(null)
+    private val connectionState = MutableStateFlow<StreamConnectionState>(StreamConnectionState.Connecting)
+    private var connectionEpoch = 0L
+    val connection: StateFlow<StreamConnectionState> get() = connectionState.asStateFlow()
+    private val sessionIdSource = MappedStateFlow(connectionState) { (it as? StreamConnectionState.Connected)?.sessionId }
     private val sessionService = ShardedSessionServiceRpc(rpcClient)
 
     // When routing through a [RoutingRpcClient], an EPOCH_STALE + redirect on session open is
     // recorded here so the reconnect re-targets the owning node. A plain client (monolith) never
     // sees EPOCH_STALE, so this stays a no-op.
     private val routing = rpcClient as? RoutingRpcClient
-    private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource, telemetry = telemetry, coroutineContext = streamScope.coroutineContext)
+    private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource, telemetry = telemetry, coroutineContext = streamScope.coroutineContext, connectionSource = connectionState)
     private val outgoingAcks = MutableSharedFlow<List<StoredAck>>()
 
     internal var hydrateSubscription: (suspend (RoomId, SessionId) -> Unit)?
@@ -329,23 +341,27 @@ class Stream(
         AcceptedSessionEvent(it.cursor, Event.fromByteArray(it.payload))
     }
 
-    private val onConnected = MutableStateFlow(false)
-    val isConnected: Flow<Boolean>
-        get() {
-            return onConnected
-        }
+    val isConnected: StateFlow<Boolean> = MappedStateFlow(connectionState) { it is StreamConnectionState.Connected }
+    private val fatalErrorState = MappedStateFlow(connectionState) { when (it) {
+        is StreamConnectionState.Failed -> it.error
+        is StreamConnectionState.Closed -> it.error
+        else -> null
+    } }
+    val fatalError: StateFlow<StreamFatalError?> get() = fatalErrorState
+    init { streamJob.invokeOnCompletion { transition(StreamConnectionState.Closed(fatalErrorState.value)) } }
 
-    private val fatalErrorState = MutableStateFlow<StreamFatalError?>(null)
-
-    /**
-     * Emits a non-null value when the stream hits a terminal session-open error
-     * and stops reconnecting. Stays null during normal operation and transient,
-     * automatically-retried failures.
-     */
-    val fatalError: Flow<StreamFatalError?>
-        get() {
-            return fatalErrorState
+    private fun transition(next: StreamConnectionState) {
+        connectionState.update { previous ->
+            if (previous is StreamConnectionState.Closed || (previous is StreamConnectionState.Failed && next !is StreamConnectionState.Closed)) previous else next
         }
+    }
+    suspend fun awaitConnected() {
+        when (val state = connection.first { it is StreamConnectionState.Connected || it is StreamConnectionState.Failed || it is StreamConnectionState.Closed }) {
+            is StreamConnectionState.Failed -> throw StreamFailedException(state.error)
+            is StreamConnectionState.Closed -> throw StreamClosedException()
+            else -> Unit
+        }
+    }
 
     /** The current session id once the session has opened, else null. */
     val sessionId: StateFlow<SessionId?>
@@ -358,11 +374,16 @@ class Stream(
         // repeatWithBackoff with a fresh budget, so TransportExhausted still fires on
         // *consecutive* transport failures.
         while (true) {
-            onConnected.value = false
-
-            repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
-                telemetry.observe(TelemetryOperation.CONNECTOR_RECONNECT) { connectInternal() }
-                onConnected.value = false
+            repeatWithBackoff(exceptionHandler = { if (it is CancellationException) throw it; true }) {
+                transition(StreamConnectionState.Connecting)
+                try { telemetry.observe(TelemetryOperation.CONNECTOR_RECONNECT) { connectInternal() } }
+                catch (failure: Throwable) {
+                    transition(StreamConnectionState.Retrying(failure.message))
+                    throw failure
+                }
+                finally {
+                    if (connectionState.value is StreamConnectionState.Connected) transition(StreamConnectionState.Retrying("Transport closed"))
+                }
             }
 
             // Clean close: brief pause so a same-session takeover fight can't tight-loop.
@@ -373,7 +394,7 @@ class Stream(
     private fun failFatally(error: StreamFatalError): Nothing {
         telemetry.safeRecord(TelemetryOperation.CONNECTOR_TERMINAL, TelemetryOutcome.REJECTED)
         telemetry.safeEvent(TelemetryEvent(TelemetryOperation.CONNECTOR_TERMINAL, TelemetryOutcome.REJECTED))
-        fatalErrorState.value = error
+        transition(StreamConnectionState.Failed(error))
         throw FatalStreamException(error)
     }
 
@@ -394,11 +415,13 @@ class Stream(
                 connect()
             } catch (e: FatalStreamException) {
                 // fatalErrorState already set by failFatally
+            } catch (e: RetryLimitExceeded) {
+                transition(StreamConnectionState.Failed(StreamFatalError.TransportExhausted))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 telemetry.safeEvent(TelemetryEvent(TelemetryOperation.CONNECTOR_TERMINAL, TelemetryOutcome.ERROR))
-                fatalErrorState.value = StreamFatalError.TransportExhausted
+                transition(StreamConnectionState.Failed(StreamFatalError.TransportExhausted))
             }
         }
     }
@@ -479,8 +502,8 @@ class Stream(
                                 telemetry.safeRecord(TelemetryOperation.CONNECTOR_OPEN, TelemetryOutcome.OK)
                                 val tracing = kotlinx.coroutines.currentCoroutineContext()[TelemetryContext]
                                 telemetry.safeEvent(TelemetryEvent(TelemetryOperation.CONNECTOR_OPEN, TelemetryOutcome.OK, tracing?.traceId, tracing?.spanId))
-                                onConnected.value = true
-                                sessionIdSource.value = currentSessionId
+                                currentCoroutineContext().ensureActive()
+                                transition(StreamConnectionState.Connected(currentSessionId, ++connectionEpoch))
 
                                 processIncomingEvents(open.queuedEvents)
                             }
@@ -592,6 +615,7 @@ class Stream(
     suspend fun closeAndJoin() { stop(); streamJob.join(); subscriptionController.closeAndJoin() }
 
     fun stop() {
+        transition(StreamConnectionState.Closed(fatalErrorState.value))
         subscriptionController.stop()
         streamJob.cancel()
     }

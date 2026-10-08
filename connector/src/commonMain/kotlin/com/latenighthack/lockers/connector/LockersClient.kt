@@ -37,6 +37,7 @@ class LockersClient private constructor(
 ) {
     /** Emits `true` while the session stream is connected. */
     val isConnected: Flow<Boolean> get() = stream.isConnected
+    val connection: StateFlow<StreamConnectionState> get() = stream.connection
 
     /** Emits a non-null value when the stream hits a terminal, non-retryable error. */
     val fatalError: Flow<StreamFatalError?> get() = stream.fatalError
@@ -46,7 +47,7 @@ class LockersClient private constructor(
 
     /** Suspends until the stream connects at least once. */
     suspend fun awaitConnected() {
-        isConnected.filter { it }.first()
+        stream.awaitConnected()
     }
 
     /** Creates a keyspace-scoped, typed view over the shared [LockerClient]. */

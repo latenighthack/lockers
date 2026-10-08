@@ -7,6 +7,7 @@ import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.*
 import com.latenighthack.lockers.connector.internal.*
 import com.latenighthack.lockers.room.v1.*
+import com.latenighthack.lockers.session.v1.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.collect
@@ -209,6 +210,59 @@ class ReviewConnectorTests {
             stream.start(); stream.start(); entered.await(); delay(200); assertEquals(1, calls.get())
             parent.cancelAndJoin(); assertTrue(stopped.isCompleted)
         } finally { stream.closeAndJoin(); parent.cancelAndJoin() }
+    }
+
+    @Test fun `awaitConnected reports a closed client instead of hanging`(): Unit = runBlocking {
+        val key = Secp256r1KeyPair.generate()
+        val auth = object : AuthenticationKeySource {
+            override suspend fun getSessionKeyPair() = key
+            override suspend fun hasSessionKeyPair() = true
+            override suspend fun generateSessionKeyPair() {}
+            override suspend fun revokeKeys() {}
+        }
+        val client = LockersClient.create(ReviewRpc { _, _ -> error("not used") }, ConnectorStorage.inMemory(), KeyValueStore(InMemoryKeyValueStoreDelegate()), auth, Version())
+        client.close()
+        try {
+            val failure = assertFailsWith<IllegalStateException> { withTimeout(500) { client.awaitConnected() } }
+            assertFalse(failure is CancellationException, "Await should report closure without a timeout")
+        }
+        finally { client.closeAndJoin() }
+    }
+
+    @Test fun `transport failure clears readiness and session during backoff`() = runBlocking {
+        val breakTransport = CompletableDeferred<Unit>()
+        val rpc = object : RpcClient {
+            override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray) = RpcResponse(CapabilitiesResponse().toByteArray(), emptyMap())
+            override suspend fun serverStreamingCall(method: RpcMethodSpecifier, block: suspend RpcServerStream.() -> Unit, readyCallback: () -> Unit) {
+                var first = true
+                block(object : RpcServerStream {
+                    override suspend fun receive(): ByteArray {
+                        if (first) { first = false; return WatchSessionResponse(response = WatchSessionResponse.OneOfResponse.open(WatchSessionResponse.Open(result = WatchSessionResponse.Open.Result.OK, nextSequenceKey = ByteArray(32)))).toByteArray() }
+                        breakTransport.await(); throw IllegalStateException("transport ended")
+                    }
+                    override suspend fun send(bytes: ByteArray) {}
+                    override suspend fun closeOutbound() {}
+                    override suspend fun closeInbound() {}
+                })
+                throw IllegalStateException("transport ended")
+            }
+        }
+        val key = Secp256r1KeyPair.generate()
+        val auth = object : AuthenticationKeySource {
+            override suspend fun getSessionKeyPair() = key
+            override suspend fun hasSessionKeyPair() = true
+            override suspend fun generateSessionKeyPair() {}
+            override suspend fun revokeKeys() {}
+        }
+        val client = LockersClient.create(rpc, ConnectorStorage.inMemory(), KeyValueStore(InMemoryKeyValueStoreDelegate()), auth, Version())
+        try {
+            withTimeout(5_000) { client.awaitConnected() }
+            assertNotNull(client.sessionId.value)
+            breakTransport.complete(Unit)
+            withTimeout(5_000) { client.connection.first { it is StreamConnectionState.Retrying } }
+            assertFalse(client.isConnected.first())
+            assertNull(client.sessionId.value)
+        } finally { client.closeAndJoin() }
     }
 
 }
