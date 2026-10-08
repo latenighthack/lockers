@@ -265,4 +265,38 @@ class ReviewConnectorTests {
         } finally { client.closeAndJoin() }
     }
 
+    @Test fun `a silent session expires its receive deadline and reconnects`() = runBlocking {
+        val opens = java.util.concurrent.atomic.AtomicInteger()
+        val rpc = object : RpcClient {
+            override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray) = error("not used")
+            override suspend fun serverStreamingCall(method: RpcMethodSpecifier, block: suspend RpcServerStream.() -> Unit, readyCallback: () -> Unit) {
+                opens.incrementAndGet()
+                var first = true
+                block(object : RpcServerStream {
+                    override suspend fun receive(): ByteArray {
+                        if (first) { first = false; return WatchSessionResponse(response = WatchSessionResponse.OneOfResponse.open(WatchSessionResponse.Open(result = WatchSessionResponse.Open.Result.OK, nextSequenceKey = ByteArray(32)))).toByteArray() }
+                        awaitCancellation()
+                    }
+                    override suspend fun send(bytes: ByteArray) {}
+                    override suspend fun closeOutbound() {}
+                    override suspend fun closeInbound() {}
+                })
+            }
+        }
+        val key = Secp256r1KeyPair.generate()
+        val auth = object : AuthenticationKeySource {
+            override suspend fun getSessionKeyPair() = key
+            override suspend fun hasSessionKeyPair() = true
+            override suspend fun generateSessionKeyPair() {}
+            override suspend fun revokeKeys() {}
+        }
+        val database = ConnectorStorage.inMemory(); database.open()
+        val stream = Stream(rpc, auth, SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), database), SubscriptionStoreImpl(database), Version(), heartbeatIntervalMillis = 20, heartbeatTimeoutMillis = 60)
+        try {
+            stream.start()
+            withTimeout(1_500) { while (opens.get() < 2) delay(10) }
+            assertTrue(opens.get() >= 2)
+        } finally { stream.closeAndJoin() }
+    }
+
 }

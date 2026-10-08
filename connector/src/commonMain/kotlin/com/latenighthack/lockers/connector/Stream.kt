@@ -300,7 +300,10 @@ class Stream(
     private val appVersion: Version,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
     coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default,
+    private val heartbeatIntervalMillis: Long = PING_TIMEOUT,
+    private val heartbeatTimeoutMillis: Long = 2 * PING_TIMEOUT,
 ) {
+    init { require(heartbeatIntervalMillis > 0 && heartbeatTimeoutMillis > heartbeatIntervalMillis) }
     companion object {
         val PING_TIMEOUT = 60_000L
         val RECONNECT_DELAY_MILLIS = 1_000L
@@ -426,7 +429,16 @@ class Stream(
         }
     }
 
-    private suspend fun connectInternal() {
+    private suspend fun connectInternal() = coroutineScope {
+        val lastReceive = MutableStateFlow(kotlin.time.TimeSource.Monotonic.markNow())
+        val watchdog = launch {
+            while (true) {
+                delay(heartbeatIntervalMillis)
+                if (lastReceive.value.elapsedNow().inWholeMilliseconds >= heartbeatTimeoutMillis)
+                    throw RetryableStreamException("Session receive deadline expired")
+            }
+        }
+        try {
         val (currentSessionId, isNew) = (
             sessionStore.getSessionId()?.let { Pair(it, false) } ?: Pair(SessionId(Random.nextBytes(32)), true)
         )
@@ -477,7 +489,7 @@ class Stream(
                             }
                         }, flow {
                             while (true) {
-                                delay(PING_TIMEOUT)
+                                delay(heartbeatIntervalMillis)
                                 emit(WatchSessionRequest {
                                     request.ping { }
                                 })
@@ -489,6 +501,7 @@ class Stream(
                 awaitCancellation()
             })
             .collect { response ->
+                lastReceive.value = kotlin.time.TimeSource.Monotonic.markNow()
                 when (val oneOf = response.response) {
                     is WatchSessionResponse.OneOfResponse.open -> {
                         val open = oneOf.getOpen()!!
@@ -589,6 +602,7 @@ class Stream(
                     }
                 }
             }
+        } finally { withContext(NonCancellable) { watchdog.cancelAndJoin() } }
     }
 
     private suspend fun processIncomingEvents(queuedEvents: List<Event>) {
