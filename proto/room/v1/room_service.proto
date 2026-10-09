@@ -23,8 +23,6 @@ service Room {
 }
 
 message SubscriptionRequest {
-  // Monotonic durable intent generation, signed by the session proof.
-  int64 intent_revision = 3;
   common.v1.SessionProof proof = 20;
   common.v1.SessionId session_id = 1;
   common.v1.RoomId room_id = 2;
@@ -33,6 +31,9 @@ message SubscriptionRequest {
     Subscribe subscribe = 10;
     Unsubscribe unsubscribe = 11;
   }
+
+  // Monotonic durable intent generation, signed by the session proof.
+  int64 intent_revision = 3;
 
   message Subscribe {
   }
@@ -238,21 +239,21 @@ message CapabilitiesResponse {
   bool subscription_revisions = 16;
 }
 message SubscribeAndSnapshotRequest {
-  // The same subscription intent generation is used on every snapshot page.
-  int64 intent_revision = 4;
   common.v1.SessionProof proof = 20;
   common.v1.RoomId room_id = 1;
   common.v1.SessionId session_id = 2;
   repeated common.v1.LockerKeyspace keyspaces = 3;
   int32 page_size = 10;
   bytes page_token = 11;
+  // The same subscription intent generation is used on every snapshot page.
+  int64 intent_revision = 4;
 }
 message SubscribeAndSnapshotResponse {
   SubscriptionResponse.Result result = 1;
-  int64 current_revision = 5;
   repeated common.v1.IdentifiedLocker lockers = 2;
   int64 room_sequence = 3;
   bytes next_page_token = 4;
+  int64 current_revision = 5;
 }
 message GetLockersRequest {
   common.v1.RoomId room_id = 1;
