@@ -311,7 +311,8 @@ class RoomServiceImpl(
                 GetLockerResponse(result = if (read.valid) GetLockerResponse.Result.OK else GetLockerResponse.Result.INVALID_DATA,
                     locker = read.value)
             }
-                ?: GetLockerResponse(result = GetLockerResponse.Result.UNKNOWN_ERROR)
+                ?: GetLockerResponse(result = GetLockerResponse.Result.OK,
+                    locker = IdentifiedLocker(id, version = 0, lockState = lockStateFor(room, id)))
         }), GetLockersResponse::toByteArray)
     }
 
