@@ -233,8 +233,9 @@ class RoomServiceImpl(
 
     override suspend fun getWriteOutcome(context: GrpcRequestContext, request: GetWriteOutcomeRequest): GetWriteOutcomeResponse {
         val room = request.roomId
-        if (room == null || room.rawValue.isEmpty() || room.rawValue.size > 256 || request.writeRequestId.size !in 16..64)
+        if (room == null || !ProtocolValidation.room(room) || request.writeRequestId.size !in 16..64)
             return GetWriteOutcomeResponse(result = GetWriteOutcomeResponse.Result.INVALID)
+        validateRead(room)
         val receipt = deliveryOutbox?.receipt(room, request.writeRequestId)
             ?: return GetWriteOutcomeResponse(result = GetWriteOutcomeResponse.Result.NOT_FOUND)
         val response = PostLockerChangesResponse.fromByteArray(receipt.encodedOutcome)
