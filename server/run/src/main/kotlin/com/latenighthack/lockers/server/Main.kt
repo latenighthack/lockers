@@ -286,8 +286,8 @@ fun main() {
         }
 
         // Internal admin port: management RPCs only. Bind this cluster-internal
-        // (do not expose via the public Service/Ingress); set LOCKERS_ADMIN_TOKEN
-        // for defense in depth.
+        // (do not expose via the public Service/Ingress). Management routes remain
+        // disabled without LOCKERS_ADMIN_TOKEN; configured routes authenticate before dispatch.
         val adminServer = embeddedServer(CIO, port = config.adminPort) {
             install(WebSockets)
             routing {

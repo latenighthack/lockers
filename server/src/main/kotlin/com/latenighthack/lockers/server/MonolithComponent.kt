@@ -43,6 +43,7 @@ class MonolithComponent(
     private val cluster: ClusterContext? = null,
     private val claim: ClaimContext? = null,
 ) {
+    internal val adminToken: String? get() = serverCore.config.adminToken
     init {
         require(cluster == null || claim == null) { "ring and claim ownership are mutually exclusive" }
     }

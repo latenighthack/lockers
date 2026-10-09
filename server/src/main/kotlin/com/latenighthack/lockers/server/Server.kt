@@ -21,9 +21,22 @@ fun Routing.monolithClient(component: MonolithComponent) {
     }
 }
 
-/** Mounts the internal management services. Bind this router to an internal-only port. */
+/** Management routes are disabled until an administrator credential is configured. */
 fun Routing.monolithAdmin(component: MonolithComponent) {
-    serveServices(component.adminServices)
+    val token = component.adminToken?.takeIf { it.isNotBlank() } ?: return
+    for (service in component.adminServices) {
+        for (method in service.descriptor.methods) {
+            require(!method.streamingIn && !method.streamingOut) { "Management methods must be unary" }
+            @Suppress("UNCHECKED_CAST")
+            val unary = method as com.latenighthack.ktbuf.net.ServerMethodDescriptor<Any, Any, Any>
+            serveUnary(service.server as Any, service.descriptor, unary) { context ->
+                val presented = context.headers.entries.firstOrNull { it.key.equals("x-admin-token", true) }?.value.orEmpty()
+                if (!validPeerToken(token, presented)) throw com.latenighthack.ktbuf.net.RpcResponseException(
+                    context.originalUrl, "POST", com.latenighthack.ktbuf.proto.Codes.UNAUTHENTICATED, "Invalid administrator credential")
+                context
+            }
+        }
+    }
 }
 
 /** Mount privileged peer RPCs on an internal listener protected by a cluster credential. */
