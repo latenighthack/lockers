@@ -18,8 +18,8 @@
       "0ea9f0cc47de5df6d54a43b13eae83385bf994b8"
     ],
     "reproduction": "LockVerifierTest: unsigned descendants cannot replace room or keyspace authority (baseline assertion failure)",
-    "regression": "LockVerifierTest (5 passing)",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "LockVerifierTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F02",
@@ -33,18 +33,20 @@
     "problem": "Locker.open and Locker.sealed are independent protobuf fields. The server hashes and verifies only sealed.payload.enclosure.innerPayload, then stores the entire Locker. The client extracts open.encodedPayload first. Appending or replacing an open field does not change the signed context, yet it changes the bytes applications consume. The same ambiguity reaches agents that read open.",
     "evidence": [
       "docs/review/F02.md",
-      "docs/review/F02-stored-envelope.md"
+      "docs/review/F02-stored-envelope.md",
+      "docs/review/F02-conflict-envelope.md"
     ],
     "fix": "Reject every invalid or ambiguous envelope before signature verification and persistence; require exactly one supported representation. Share that validator across single writes, batches, reads, and extension outputs. Define which metadata is authenticated: notifications and ratchet.newSharedKeys are also outside the current signing contexts. Introduce any changed signing preimage through an explicit protocol version, while retaining the existing wire compatibility path.",
     "status": "partial",
     "commits": [
       "13a6d1fa151e24ba43fe011ed48022c0936c5ea7",
       "8e0d9d86e0ae4e9a3dfa6df65e28d2ce1ae926d1",
-      "9e7fa716b5e6535eaadd4d341031e0faab2aca02"
+      "9e7fa716b5e6535eaadd4d341031e0faab2aca02",
+      "c967d1d4971dbbb4d40fb41524b24f3281dc4ac4"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F02-stored-envelope.md, docs/review/F02.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F02-stored-envelope.md, docs/review/F02.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ConflictEnvelopeBoundaryTest; ReviewRegressionTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F03",
@@ -70,8 +72,8 @@
       "333ab38bfb62e7947c997ba3b1e9ba3de3e74bba"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F03-connector.md, docs/review/F03.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F03-connector.md, docs/review/F03.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "LockVerifierTest; ReviewAuthorityV2Tests; ReviewRegressionTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F04",
@@ -97,8 +99,8 @@
       "4a49f969ce715b7b872d945efc739f45a18b09ba"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F04-admin-boundary.md, docs/review/F04-public-convenience.md, docs/review/F04-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F04-admin-boundary.md, docs/review/F04-public-convenience.md, docs/review/F04-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "GatewayBoundaryTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F05",
@@ -118,8 +120,8 @@
       "cf38a3d9556ea5c50f645f63abfffe855a6626f8"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F05-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F05-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "WebPushEndpointTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F06",
@@ -136,7 +138,9 @@
     "evidence": [
       "docs/review/F06-connector.md",
       "docs/review/F06.md",
-      "docs/review/F06-revocation.md"
+      "docs/review/F06-revocation.md",
+      "docs/review/F06-destroy-reconnect.md",
+      "docs/review/F06-snapshot-revocation.md"
     ],
     "fix": "Bind unary mutations to an authenticated session context or a signed, scoped session capability with expiry and replay protection. Define whether identifiers are public names or secret capabilities; the current API mixes those models. Implement authenticated revocation that closes live sockets and removes or expires session routing, subscription, inbox, and push state, with a documented deletion policy.",
     "status": "partial",
@@ -145,11 +149,13 @@
       "77c07c693d075eb6fc19ed16ea8720a4c2043125",
       "c0593e7863dd5518396a8999ff3a1e078a633848",
       "9c1d34e385e96ef2c6a37f5cf45e08b0acf4febe",
-      "4d02049ddccd1c901c69571ab7447e0a2a2eb5ea"
+      "4d02049ddccd1c901c69571ab7447e0a2a2eb5ea",
+      "3f0bb0fb50071eff27742b24900c1c7b78174b11",
+      "f8b18ae1f2bcb20e20e593b0084587ea4e182ea9"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F06-connector.md, docs/review/F06-revocation.md, docs/review/F06.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F06-connector.md, docs/review/F06-revocation.md, docs/review/F06.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewDestroyReconnectTests; ReviewSessionProofTests; SessionProofBoundaryTest; SessionRevocationTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F07",
@@ -171,8 +177,8 @@
       "4c0b7dcdd50bd16052cc4724ad19cf84835b9d03"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F07.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F07.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewRegressionTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F08",
@@ -198,7 +204,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F08.md",
     "regression": "Regression and verification evidence recorded in docs/review/F08.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F09",
@@ -219,8 +225,8 @@
       "f28f0afce95ffdbf04b5ccb0461c77ac9812cb19"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F09-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F09-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "DefaultAgentAuthorityTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F10",
@@ -235,7 +241,8 @@
     "evidence": [
       "Reproduced by legacyRatchetCommitsEvenWhenLockerPersistenceFails: inject a locker-save failure, submit a correctly signed ratchet write, and observe the new public key persisted while the locker remains absent. Fast batch source transactions avoid this particular partial commit.",
       "docs/review/F10.md",
-      "docs/review/F10-delete-receipts.md"
+      "docs/review/F10-delete-receipts.md",
+      "docs/review/F10-connector-delete.md"
     ],
     "fix": "Commit ratchet, locker, receipt, and delivery intent in one transaction on every supported path. Make success and ambiguous-response recovery refer to the complete transaction outcome. Do not advertise atomic ratcheting on a path that can persist only its authority half.",
     "status": "partial",
@@ -244,11 +251,12 @@
       "238cc852ca30e4bfae78553c7a7a8b008edfdf1d",
       "55f8733eba598eec6340945c2466836082f9163e",
       "50f5a42f72c2b093f0beead0ddb886d944ed8c94",
-      "a6d2156694a1f5c4c6a0edadb2b4eb3c93d6fc0b"
+      "a6d2156694a1f5c4c6a0edadb2b4eb3c93d6fc0b",
+      "abe4311fd6eec23e4f744016acb9c616735e1c6d"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F10-delete-receipts.md, docs/review/F10.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F10-delete-receipts.md, docs/review/F10.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewDeleteReceiptTests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F11",
@@ -271,8 +279,8 @@
       "f1fe0fe1af8c0265984da6492ad3889c0e46ac85"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F11-connector.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F11-connector.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F12",
@@ -295,8 +303,8 @@
       "b7768ab3338f8324d45bb611b4c6b1023ce565de"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F12-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F12-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "SessionAtomicityTest; SessionOwnershipTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F13",
@@ -308,16 +316,18 @@
     ],
     "problem": "When no stored locker exists, the server assigns request.parentVersion as the new version. With the usual parent 0, creation returns 0; a second stale parent-0 request is then accepted and returns 1. The first existence transition does not invalidate optimistic concurrency. The same initial rule applies to deletion of an absent locker.",
     "evidence": [
-      "docs/review/F13.md"
+      "docs/review/F13.md",
+      "docs/review/F13-batch-creation.md"
     ],
     "fix": "Define one initial parent sentinel, reject inappropriate parents for absence, and advance the version on every committed state transition. Include first-create races and deletion/recreation in the protocol's version tests. Guard negative values and overflow, and plan how legacy version-0 rows are interpreted during migration.",
     "status": "partial",
     "commits": [
-      "987e85bc7ebcde69be0250d0add16564ab1d1125"
+      "987e85bc7ebcde69be0250d0add16564ab1d1125",
+      "1b749f20266804b92ac81083c97113426ff8d8a0"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F13.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F13.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewBatchCreationTests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F14",
@@ -332,17 +342,22 @@
     "problem": "Duplicate detection uses the raw LockerId, while storage and signing canonicalize a missing keyspace to zero. A batch can contain both representations of the same locker. Both changes validate against the same prefetched version, two conflicting events are created, and one row wins persistence. Client mutation locks likewise use unnormalized IDs, allowing nominally serialized writes to the same stored locker to take different locks.",
     "evidence": [
       "docs/review/F14-connector.md",
-      "docs/review/F14.md"
+      "docs/review/F14.md",
+      "docs/review/F14-connector-aliases.md",
+      "docs/review/F14-unknown-identities.md"
     ],
     "fix": "Define a canonical identity type for room, keyspace, and locker bytes. Normalize at API entry before distinctness checks, mutation-lock acquisition, receipt construction, storage lookup, and routing. Keep the existing signed equivalence of omitted and zero keyspace; enforce it consistently rather than changing its meaning.",
     "status": "partial",
     "commits": [
       "a15c0ac4129157b029799df1a8d9d8523da3640f",
-      "14b4a3238b66b49d53bde6e400e425b57bec228a"
+      "14b4a3238b66b49d53bde6e400e425b57bec228a",
+      "c268b2a711a5b6e46962b9daf4bf76f831b1842a",
+      "3aa145b41709a020e0642afd0dc92db1f06dbe39",
+      "1cc3f671632d4fe6d1ed386324a5210b5c250e40"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F14-connector.md, docs/review/F14.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F14-connector.md, docs/review/F14.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "CanonicalBatchRegressionTest; ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F15",
@@ -364,8 +379,8 @@
       "99379f6c0a7092cef994a81b564812239e6d5479"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F15.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F15.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewRegressionTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F16",
@@ -388,8 +403,8 @@
       "9b77ef23b59287c2fdd9faf5a2bd9f2188bb9c47"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F16-connector.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F16-connector.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewSnapshotRepairTests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F17",
@@ -412,8 +427,8 @@
       "70e6bfc5dc5e28523026bc25d6189091d5daa15e"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F17-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F17-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "SubscriptionFreshnessTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F18",
@@ -434,11 +449,12 @@
     "status": "partial",
     "commits": [
       "d103c0c77467e6920d0943498a60ed7e86e1ee5a",
-      "fab169a501323c5de2c03edaaf962ea3b55d04a4"
+      "fab169a501323c5de2c03edaaf962ea3b55d04a4",
+      "83650fb02c621b7340883c17a221f40e979fa984"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F18-default-construction.md, docs/review/F18-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F18-default-construction.md, docs/review/F18-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "LegacyDeliveryModeTest; LockersConfigTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F19",
@@ -461,8 +477,8 @@
       "8786ba85eaa99d555fe34d87727459f6eb629370"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F19-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F19-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "PushServiceTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F20",
@@ -485,8 +501,8 @@
       "b425873853f1a217478c0a2f1de865efffe068f4"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F20-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F20-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "PushQueueClaimsTest; PushServiceTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F21",
@@ -512,8 +528,8 @@
       "47ef085203c70c8692b286234d76002c9872d182"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F21-connector.md, docs/review/F21-session-admission.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F21-connector.md, docs/review/F21-session-admission.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewPushControllerTests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F22",
@@ -540,8 +556,8 @@
       "f8f4442ed406594df54febf188362226c78223ed"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F22-connector.md, docs/review/F22-public-boundary.md, docs/review/F22-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F22-connector.md, docs/review/F22-public-boundary.md, docs/review/F22-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "PushQueueClaimsTest; PushServiceTest; ReviewPushControllerTests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F23",
@@ -559,11 +575,12 @@
     "fix": "Load and reduce a complete snapshot before one initial emission, buffering and version-ordering live events around a snapshot boundary. Expose an immutable state with loading/freshness metadata when cached state is intentionally emitted early. Keep all state access serialized, and define replay reset and watcher eviction.",
     "status": "partial",
     "commits": [
-      "fe7b93a8695ce45f605039fadc3bdf0e6893da0d"
+      "fe7b93a8695ce45f605039fadc3bdf0e6893da0d",
+      "1e2ff0c934e45cdc16b279a64ef1c75b66369d8f"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F23-connector.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F23-connector.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F24",
@@ -582,11 +599,12 @@
     "fix": "Commit accepted state and dedup/ACK intent independently of application multicast. Observe committed state through a transaction-aware storage Flow or a reducer that reloads from storage after conflated wakeups. Give state snapshots conflation and give events requiring delivery a persisted cursor or inbox. Move emission outside correctness mutexes; blindly dropping changes would introduce another delivery gap.",
     "status": "partial",
     "commits": [
-      "a321be6b160d281dc9df355a4e77ec785880677d"
+      "a321be6b160d281dc9df355a4e77ec785880677d",
+      "1e2ff0c934e45cdc16b279a64ef1c75b66369d8f"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F24-connector.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F24-connector.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F25",
@@ -617,8 +635,8 @@
       "c862e868dafbc24893963043cc8c477567feed80"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F25-advisory-cancellation.md, docs/review/F25-connector.md, docs/review/F25-coordination-sql-limits.md, docs/review/F25-runtime.md, docs/review/F25-telemetry-cancellation.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F25-advisory-cancellation.md, docs/review/F25-connector.md, docs/review/F25-coordination-sql-limits.md, docs/review/F25-runtime.md, docs/review/F25-telemetry-cancellation.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F26",
@@ -637,7 +655,9 @@
       "Confirmed by constructors and lifecycle methods. SupervisorJob supports a parent job, and its failure isolation requires an explicit child-failure policy. [Kotlin SupervisorJob API](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-supervisor-job.html)",
       "docs/review/F26-connector.md",
       "docs/review/F26-host-lifetime.md",
-      "docs/review/F26-runtime.md"
+      "docs/review/F26-runtime.md",
+      "docs/review/F26-connector-integration-fixtures.md",
+      "docs/review/F26-watch-producer-lifetime.md"
     ],
     "fix": "Give each client/server component one explicit lifecycle scope with a supplied parent, owned child jobs, and injected execution contexts. Keep deliberately shared reads owned by that client scope so one waiter cannot cancel everyone. Make start idempotent or reject duplicate starts, clean up partial initialization, and provide suspending close/stop that cancels and joins. Add an equivalent awaitable lifecycle seam for extensions.",
     "status": "partial",
@@ -645,11 +665,14 @@
       "0d339e5a8fddb3c16f11441985a584fd34b68d2b",
       "b87f34b2a1f706a6fb39edf986bfe9b5071bf419",
       "1f3593f4a2f69ccca0cdf36d138061922f4a814a",
-      "70351cf4c2218b3a30409a7dcedaeda63bfb9575"
+      "70351cf4c2218b3a30409a7dcedaeda63bfb9575",
+      "5cb73ce349c5a5e51a61376546c874854d8f5dfb",
+      "c6cca713f78a2e9649056b09c9de558db0c2395c",
+      "eb14e47bfd2e6f68ee9a95e30f3621cf6fa6d058"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F26-connector.md, docs/review/F26-host-lifetime.md, docs/review/F26-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F26-connector.md, docs/review/F26-host-lifetime.md, docs/review/F26-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F27",
@@ -673,8 +696,8 @@
       "0750a2961893538593474d9aadad4d992cb7bc68"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F27-connector.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F27-connector.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F28",
@@ -698,8 +721,8 @@
       "811d2cf43dbfffd7293ca799cb5f695b486d6415"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F28-connector.md, docs/review/F28-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F28-connector.md, docs/review/F28-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ReviewConnectorTests; SessionAtomicityTest; SessionHeartbeatTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F29",
@@ -714,16 +737,18 @@
     "problem": "A new socket is placed in openStreamCancellationChannels and activeStreamsCount is incremented before attachBeforeSnapshot completes. If that database operation fails, openState is never completed, so onCompletion skips cleanup. The next open can replace the stale channel and then suspend forever sending cancellation to a channel whose collector has already disappeared. Separately, ClaimSessionRegistry's asynchronous node-only delete can remove a newer attachment on the same node if it runs after reattach.",
     "evidence": [
       "Confirmed by publication and cleanup ordering. The registration failure case needs a deterministic fault-injection regression test; the resulting map/count leak and unmatched channel send follow directly from the current branches.",
-      "docs/review/F29-runtime.md"
+      "docs/review/F29-runtime.md",
+      "docs/review/F29-terminal-watch-close.md"
     ],
     "fix": "Use explicit registration ownership and try/finally from the first local mutation. Cancel the prior socket by job or a nonblocking close signal. Attach and detach registry rows using a socket/attachment incarnation so cleanup cannot erase a successor; monitor and await required publication before announcing connection success.",
     "status": "partial",
     "commits": [
-      "8865d82d8a5c1ca25a9297130dbc08ed7eb08720"
+      "8865d82d8a5c1ca25a9297130dbc08ed7eb08720",
+      "4c85efc8b54b2cb677540f42f20ae57f51af46a1"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F29-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F29-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "InMemorySessionGatewayStoreTest; RegistryIncarnationTest; RegistrySessionGatewayDiscoveryTest; SessionAtomicityTest; SessionAttachFailureTest; SessionHeartbeatTest; SessionOwnershipTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F30",
@@ -746,8 +771,8 @@
       "2e3a03dbc4a9ca35f3f42f6ceafae9c56b29671b"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F30-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F30-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "OwnerLifecycleTest; OwnerRecoveryTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F31",
@@ -769,8 +794,8 @@
       "bb99a0c3428b028c5c0ac1aa14772d321d6ef819"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F31-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F31-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "OwnerLifecycleTest; RoomOwnershipTest; ShardCountReshardTest; WholeRoomOwnershipTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F32",
@@ -794,8 +819,8 @@
       "5c2755b153db42588524e4f2e3a4bd59cd315d42"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F32-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F32-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "ClaimRenewalServiceTest; ClaimResourceDrainTest; InMemorySessionGatewayStoreTest; RegistryIncarnationTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F33",
@@ -813,17 +838,23 @@
     "evidence": [
       "Confirmed by storage queries, map insertion without removal, and the single outbox transaction key. This is a workload-dependent scaling risk rather than a measured performance claim.",
       "docs/review/F33-connector.md",
-      "docs/review/F33-runtime.md"
+      "docs/review/F33-runtime.md",
+      "docs/review/F33-inbox-receipts.md",
+      "docs/review/F33-pending-stream-deliveries.md"
     ],
     "fix": "Define deduplication and idempotency horizons before pruning ACKs, receipts, or tombstones. Add indexed due-work/head-of-room queries with bounded results and safe row claims instead of full scans under a global lock. Use observer reference counts and lock entry lifetimes, bound or coalesce persisted-intent wakeups, and measure backlog age, query size, lock wait, active jobs, and storage growth.",
     "status": "partial",
     "commits": [
       "0457e0d8179884b696e435af1cedac5871303ced",
-      "abc27633d1e135088ebbb731ad39a41485b3f46d"
+      "abc27633d1e135088ebbb731ad39a41485b3f46d",
+      "1ea959e8698b2fc0621e3c7a20faf798e06c9d90",
+      "d0b6412511cf64b5efc6b72ef8a8a7f82ea0b886",
+      "8b895ba05109fe394cbce62d88a449f8358f4f3f",
+      "26434f439e6aea269827e6078c57ca34dd929548"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F33-connector.md, docs/review/F33-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F33-connector.md, docs/review/F33-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "DeliveryFrameBoundsTest; GatewayAdmissionTest; InboxDeliveryReceiptTest; InboxReceiptPersistenceTest; PushQuotaPgTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F34",
@@ -846,8 +877,8 @@
       "85533853052cd3b8af29b88780bb315afcbca52d"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F34-notification-metadata.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F34-notification-metadata.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "BroadcastServiceTest; SessionAtomicityTest; SessionInboxMetadataPersistenceTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F35",
@@ -861,16 +892,18 @@
     "problem": "Broadcast creates an event with an empty room ID and no locker ID. LockerClient emits notifications only when lockerId is non-null, so broadcast payloads never reach its notification Flow. Stream still accepts and ACKs the event. The facade does not expose raw Stream.events as an alternative broadcast channel.",
     "evidence": [
       "Confirmed by the broadcast event shape and the notification branch. A caller using Stream directly can observe raw events; the standard LockersClient API cannot consume these broadcast notifications.",
-      "docs/review/F35-connector.md"
+      "docs/review/F35-connector.md",
+      "docs/review/F35-runtime.md"
     ],
     "fix": "Expose a session-level event/notification Flow with explicit room notification and broadcast variants. Decode and acknowledge each variant under a documented delivery policy. Keep locker-scoped codecs scoped, and provide a separate broadcast codec context rather than inventing a locker identity.",
     "status": "partial",
     "commits": [
-      "60533196ea820486f02ce0d8f70ad5bea89943c4"
+      "60533196ea820486f02ce0d8f70ad5bea89943c4",
+      "a5131b73f45951adf448b93ff054581bce01f95f"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F35-connector.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F35-connector.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "BroadcastShapeTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F36",
@@ -884,14 +917,19 @@
     ],
     "problem": "RoutingRpcClient's default normalizer prefixes bare owners with http://, while the pinned ktbuf JVM HttpRpcClient prepends http:// itself for non-HTTPS input. The documented factory therefore builds a double-scheme HTTP URL after a normal redirect. The server peer pool explicitly works around this same transport requirement. The owner cache also conflates room and session key namespaces, and concurrent client creation can allocate a losing transport that is never closed.",
     "evidence": [
-      "Confirmed by routing code and inspection of the pinned JVM transport; server RemoteGateway.kt documents and avoids the double-prefix issue. Fake routing tests do not exercise a real HttpRpcClient destination."
+      "Confirmed by routing code and inspection of the pinned JVM transport; server RemoteGateway.kt documents and avoids the double-prefix issue. Fake routing tests do not exercise a real HttpRpcClient destination.",
+      "docs/review/F36-connector.md",
+      "docs/review/F36-server-peer-ownership.md"
     ],
     "fix": "Make address adaptation an explicit platform transport contract and add real transport tests for bare, HTTP, HTTPS, and redirected endpoints. Namespace room/session routing keys, including keyspace if ring mode requires it. Serialize client creation or close losing instances, and provide bounded cache/resource disposal.",
-    "status": "open",
-    "commits": [],
+    "status": "partial",
+    "commits": [
+      "d771d62f3dabfc1785604651d63a8d1b74956b74",
+      "8c4b7c52feedde67150f48a50698098486641b74"
+    ],
     "reproduction": null,
-    "regression": null,
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "PeerConnectionOwnershipTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F37",
@@ -906,16 +944,20 @@
     "problem": "The batch source transaction saves an agentPending receipt, then runs the agent outside that transaction. A crash or cancellation in between leaves that receipt pending. Retries correctly avoid executing the agent again, but there is no recovery worker or completion protocol to resume or resolve the pending task. Applications receive a committed source with indefinitely missing derived state.",
     "evidence": [
       "Confirmed by the source receipt, replay branch, and synchronous post-commit hook. Avoiding blind replay is intentional and protects an at-most-once extension; the unresolved gap is how pending work reaches a final state.",
-      "docs/review/F37-connector.md"
+      "docs/review/F37-connector.md",
+      "docs/review/F37-integration-fixtures.md",
+      "docs/review/F37-runtime.md"
     ],
     "fix": "Define agent completion as a first-class durable workflow with a completion/status Flow. Give recoverable agents immutable request identity and an idempotent effect/derived-write contract before permitting replay. For arbitrary non-idempotent extensions, expose an explicit indeterminate outcome and reconciliation hook. Always preserve the committed source result, as required by F11.",
     "status": "partial",
     "commits": [
-      "4f437d68e0f515574b0b50f99c72c03ec3e04131"
+      "4f437d68e0f515574b0b50f99c72c03ec3e04131",
+      "45a96a6d4cf35b968658cf3d9918bd715b2db1b0",
+      "9f854ad6e137ae1676deb5d963d11aa70f85c913"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F37-connector.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F37-connector.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "AgentRecoveryTest; DeliveryLatencyTest; PersistedEnvelopeValidationTest; RequestPreflightTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F38",
@@ -933,7 +975,17 @@
     "evidence": [
       "The ping diagnostic created a session with an empty public key and received OK. The other malformed-input and unbounded aggregate paths were established by inspection. No particular transport frame ceiling or dependency CVE is assumed here.",
       "docs/review/F38-boundaries.md",
-      "docs/review/F38-claim-capacity.md"
+      "docs/review/F38-claim-capacity.md",
+      "docs/review/F38-cpu-admission.md",
+      "docs/review/F38-failure-contract.md",
+      "docs/review/F38-generated-decode-allocation.md",
+      "docs/review/F38-inbox-byte-admission.md",
+      "docs/review/F38-inbox-paging.md",
+      "docs/review/F38-namespace-admission.md",
+      "docs/review/F38-response-boundaries.md",
+      "docs/review/F38-session-frame-boundaries.md",
+      "docs/review/F38-snapshot-paging.md",
+      "docs/review/F38-write-preflight.md"
     ],
     "fix": "Validate canonical IDs, key encodings, known scopes, supported envelopes, versions, and complete encoded sizes at the trust boundary. Reject invalid public-keyed room encodings explicitly. Bound recipients, sessions, notification bytes, and global admission/storage consumption, and paginate snapshots/inbox replay with stable cursor semantics. Return precise protocol errors rather than poisoning persisted state or throwing decoder exceptions.",
     "status": "partial",
@@ -943,11 +995,21 @@
       "cf64d9323546fd5cf68ea79bee3bac3bc8503009",
       "1510d954b75e6dc0ec80c987aee404da781dd4e4",
       "43a239b69b2366e33274a3619ffc7d6b20e9dba6",
-      "2ef40806b9bbcd2b86ea334889b3fed189a09cd6"
+      "2ef40806b9bbcd2b86ea334889b3fed189a09cd6",
+      "3b6e8db2e9c9cb543e6bfcbec2654e105141322d",
+      "6fd246a7fdd51afde7450153842ff98893e2f058",
+      "1c3efeb67a75489251b9a9e26e438b5a5ffbc588",
+      "f70aa723a663b54b5661ca50750fdb42d0fd4cf8",
+      "c1bf97a45afcd23dc1bed8c8a6c1c1674691bc57",
+      "93acbe6e92bd6c1d6c7f249fc285779f638c74cc",
+      "1fc5e4a9e98bb5da7728857e59bf6d209cd23f11",
+      "08c2d66579eed631f4776df5dd4a9c7129568879",
+      "eb5f1c4432a1bba947b5f2c37409a01b4f70419c",
+      "5fa731a291281382c931a763c24893be3e7a1552"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F38-boundaries.md, docs/review/F38-claim-capacity.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F38-boundaries.md, docs/review/F38-claim-capacity.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "BoundaryAuthorityTest; CpuAdmissionBoundaryTest; GatewayAdmissionTest; GeneratedDecodeAllocationTest; InboxReplayPagingTest; LockVerifierTest; NamespaceAdmissionPgTest; NamespaceAdmissionTest; ResourceAdmissionTest; ResponseBoundaryTest; RoomIdentityAdmissionTest; SessionAdmissionFailureContractTest; SessionFrameBoundaryTest; SnapshotPagingTest; StorageAdoptionTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F39",
@@ -966,18 +1028,24 @@
       "Recorded dependency and Node resolution failures, followed by successful JVM/PostgreSQL tests and JS/Android/Apple compilation using the explicit pinned ktstore workspace dependency. Docker generator absence and platform test coverage were established by inspection.",
       "docs/review/F39-build.md",
       "docs/review/F39-historical-schema.md",
-      "docs/review/F39-source-project-pins.md"
+      "docs/review/F39-source-project-pins.md",
+      "docs/review/F39-integration-fixtures.md",
+      "docs/review/F39-load-validation.md",
+      "docs/review/F39-required-postgres-gate.md"
     ],
     "fix": "Complete the dependency publication/version transition and verify released-mode resolution before release. Preserve isolated workspace repositories while allowing toolchain distribution resolution. Pin and provision the same generator in local, CI, and container builds; include all generator/compiler inputs in caching. Move portable protocol/reducer tests to commonTest and add real platform storage/transport tests plus Fullhouse consumer checks for affected variants.",
     "status": "partial",
     "commits": [
       "608fb37718867f15d428428be1cef8ba21b17a28",
       "69941b4e2a8b0fdc6b8f77144f10907a112123f4",
-      "d6ef56d182113752b34ed144e9c4f9aab094f4ea"
+      "d6ef56d182113752b34ed144e9c4f9aab094f4ea",
+      "e5664adb60dfc2d696bf6f4afb2e191ab01cba7c",
+      "3b5f8cb1e417ea124590ebfa135f74e7b24a9ade",
+      "f6a533ee8261f945a3efbfacabb84209d09e9f05"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F39-build.md, docs/review/F39-historical-schema.md, docs/review/F39-source-project-pins.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F39-build.md, docs/review/F39-historical-schema.md, docs/review/F39-source-project-pins.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "NamespaceAdmissionPgTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F40",
@@ -998,8 +1066,8 @@
       "1ff4c46b94993d7c438e5ea55a16184dd987fc54"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F40-runtime.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F40-runtime.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "PostgresShardMapSourceTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F41",
@@ -1022,8 +1090,8 @@
       "a9d78e30cbf9bfa7c2a61a6028ead02812543d9d"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F41-build.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F41-build.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "NetworkDependencyContractTest; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   },
   {
     "id": "F42",
@@ -1040,16 +1108,18 @@
     "evidence": [
       "Confirmed against current build configuration, LICENSE, README, and POM properties. The licensing discrepancy is a factual metadata inconsistency; this review does not choose a license on the owner's behalf.",
       "docs/review/F42-build.md",
-      "docs/review/F42-connector.md"
+      "docs/review/F42-connector.md",
+      "docs/review/F42-generated-model-contracts.md"
     ],
     "fix": "Align README and publication metadata with the intended current contract, including lock semantics, read access, delivery modes, supported targets, and extension trust. Adopt a reviewed static-analysis baseline and enforce important checks over actual KMP source sets. Document transform purity/retry behavior; the single-write retry path currently reevaluates transform and codecs even when reusing a frozen submitted request. Publish exact canonical signing vectors and correct the length-prefix specification.",
     "status": "partial",
     "commits": [
       "008d5d309ff2b151e87edd1ac8095b6669985800",
-      "91e672c27fca3b01c63fc34e9a834472d8990a80"
+      "91e672c27fca3b01c63fc34e9a834472d8990a80",
+      "fce2801154ede39a28feff9973f3f2e406947898"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F42-build.md, docs/review/F42-connector.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F42-build.md, docs/review/F42-connector.md",
-    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
+    "regression": "GeneratedEqualityContractTest; PackedEnumGeneratorContractTest; ReviewAuthorityV2Tests; actual red/green evidence in linked issue notes",
+    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
   }
 ]
