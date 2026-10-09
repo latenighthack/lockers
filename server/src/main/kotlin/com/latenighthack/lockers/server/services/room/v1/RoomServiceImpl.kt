@@ -687,10 +687,13 @@ class RoomServiceImpl(
         val subscribed = when (request.kind) {
             is SubscriptionRequest.OneOfKind.subscribe -> true
             is SubscriptionRequest.OneOfKind.unsubscribe -> false
-            null -> return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
+            null -> {
+                meterRegistry.counter("lockers.room.subscriptions", "operation", "unknown", "result", "ERROR").increment()
+                return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
+            }
         }
-        val startTime = System.nanoTime()
         val changed = subscriptionStore.withIntent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue), request.intentRevision, subscribed) {
+            val startTime = System.nanoTime()
             dispatchers.runOnDispatcher(roomId) {
                 dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
                 val cachedSet = lookupSessions(roomId)
