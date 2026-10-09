@@ -82,7 +82,8 @@ internal class ConnectorEventJournal(private val database: Database, private val
     fun after(cursor: Long): Flow<ConnectorJournalEntry> = flow {
         require(cursor >= 0)
         var consumed = cursor
-        while (currentCoroutineContext().isActive) {
+        while (true) {
+            currentCoroutineContext().ensureActive()
             val hint = revision.value
             val entries = page(consumed)
             entries.forEach { emit(it); consumed = it.cursor }
