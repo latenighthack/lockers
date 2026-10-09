@@ -179,7 +179,7 @@ class SessionServiceImpl(
         val openState = CompletableDeferred<OpenState?>()
         val openSent = CompletableDeferred<Unit>()
 
-        val producer = deliveryScope.launch(currentCoroutineContext().minusKey(Job) + ServiceLifecycle.context) {
+        val producer = deliveryScope.async(currentCoroutineContext().minusKey(Job) + ServiceLifecycle.context) {
         flow { coroutineScope {
         val streamJob = currentCoroutineContext()[Job]!!
         merge(flow {
@@ -406,7 +406,8 @@ class SessionServiceImpl(
         } }.collect { send(it) }
         }
         producer.invokeOnCompletion { close(it) }
-        awaitClose { producer.cancel() }
+        try { awaitClose { producer.cancel() } }
+        finally { withContext(NonCancellable) { producer.cancelAndJoin() } }
         }
     }
 

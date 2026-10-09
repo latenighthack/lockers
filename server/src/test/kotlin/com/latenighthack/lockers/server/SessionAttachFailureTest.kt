@@ -14,12 +14,41 @@ import kotlinx.coroutines.flow.*
 import kotlin.test.*
 
 class SessionAttachFailureTest {
+    @Test fun `ending a watch collection joins upstream producer cleanup`(): Unit = runBlocking {
+        val database = ServerStorage.inMemory()
+        val sessions = SessionStoreImpl(database).also { it.prepare() }
+        val inbox = SessionInboxStoreImpl(database).also { it.prepare() }
+        database.open()
+        val service = SessionServiceImpl(sessions, inbox, SimpleMeterRegistry(), object : PushGatewayDiscovery {
+            override suspend fun findServer(sessionId: SessionId): PushGatewayService? = null
+        }, LocalSessionOwnership(), LockersConfig.defaults())
+        val context = GrpcRequestContext("", emptyMap(), emptyMap(), emptyMap(), SessionServer.Descriptor, SessionServer.Descriptor.methods[0])
+        val public = Secp256r1KeyPair.generate().publicKey.encode()
+        val cleaning = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val collection = async {
+            service.watchSession(context, flow {
+                try {
+                    emit(WatchSessionRequest { request.create { sessionId = SessionId(byteArrayOf(5)); publicKey { rawValue = public } } })
+                    awaitCancellation()
+                } finally { withContext(NonCancellable) { cleaning.complete(Unit); release.await() } }
+            }).first { it is StreamControlEvent.Message }
+        }
+        try {
+            withTimeout(1000) { cleaning.await() }
+            delay(25)
+            assertFalse(collection.isCompleted, "The collector must join the producer's cleanup")
+            release.complete(Unit)
+            withTimeout(1000) { collection.await() }
+        } finally { release.complete(Unit); collection.cancelAndJoin(); service.closeAndJoin(); database.close() }
+    }
     @Test fun `failed routing attachment releases stream registration and permits reconnect`() = runBlocking {
         val database = ServerStorage.inMemory()
         val sessions = SessionStoreImpl(database).also { it.prepare() }
         val inbox = SessionInboxStoreImpl(database).also { it.prepare() }
         database.open()
         val meters = SimpleMeterRegistry()
+        val uncaught = java.util.concurrent.CopyOnWriteArrayList<Throwable>()
         var attachCount = 0
         val registry = object : SessionRegistry {
             override suspend fun attachBeforeSnapshot(sessionId: ServerSessionId) { if (++attachCount == 1) error("registry unavailable") }
@@ -28,7 +57,8 @@ class SessionAttachFailureTest {
         }
         val service = SessionServiceImpl(sessions, inbox, meters, object : PushGatewayDiscovery {
             override suspend fun findServer(sessionId: SessionId): PushGatewayService? = null
-        }, LocalSessionOwnership(), LockersConfig.defaults(), registry)
+        }, LocalSessionOwnership(), LockersConfig.defaults(), registry,
+            coroutineContext = CoroutineExceptionHandler { _, failure -> uncaught.add(failure) })
         val context = GrpcRequestContext("", emptyMap(), emptyMap(), emptyMap(), SessionServer.Descriptor, SessionServer.Descriptor.methods[0])
         val pair = Secp256r1KeyPair.generate()
         val public = pair.publicKey.encode()
@@ -38,13 +68,14 @@ class SessionAttachFailureTest {
         }
         try {
             assertFailsWith<IllegalStateException> { collect(WatchSessionRequest { request.create { sessionId = sid; publicKey { rawValue = public } } }) }
+            assertTrue(uncaught.isEmpty(), "Stream failure must reach its collector without escaping to the host exception handler")
             assertEquals(0.0, meters.get("lockers.session.streams.active").gauge().value())
             val challenge = sessions.getSessionById(ServerSessionId(sid.rawValue))!!.nextKeyMaterial
             val signed = pair.privateKey.sign(challenge)
             val response = collect(WatchSessionRequest { request.open { sessionId = sid; sequenceKeySignature { signature = signed } } }) as StreamControlEvent.Message
             assertIs<WatchSessionResponse.Open.Result.OK>(response.message.response!!.getOpen()!!.result)
             assertEquals(0.0, meters.get("lockers.session.streams.active").gauge().value())
-        } finally { service.close() }
+        } finally { service.closeAndJoin(); database.close() }
     }
     @Test fun `shared store revocation closes a stream on another service instance`() = runBlocking {
         val database = ServerStorage.inMemory()
