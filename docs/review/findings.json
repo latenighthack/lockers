@@ -19,7 +19,7 @@
     ],
     "reproduction": "LockVerifierTest: unsigned descendants cannot replace room or keyspace authority (baseline assertion failure)",
     "regression": "LockVerifierTest (5 passing)",
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F02",
@@ -32,17 +32,19 @@
     ],
     "problem": "Locker.open and Locker.sealed are independent protobuf fields. The server hashes and verifies only sealed.payload.enclosure.innerPayload, then stores the entire Locker. The client extracts open.encodedPayload first. Appending or replacing an open field does not change the signed context, yet it changes the bytes applications consume. The same ambiguity reaches agents that read open.",
     "evidence": [
-      "docs/review/F02.md"
+      "docs/review/F02.md",
+      "docs/review/F02-stored-envelope.md"
     ],
     "fix": "Reject every invalid or ambiguous envelope before signature verification and persistence; require exactly one supported representation. Share that validator across single writes, batches, reads, and extension outputs. Define which metadata is authenticated: notifications and ratchet.newSharedKeys are also outside the current signing contexts. Introduce any changed signing preimage through an explicit protocol version, while retaining the existing wire compatibility path.",
     "status": "partial",
     "commits": [
       "13a6d1fa151e24ba43fe011ed48022c0936c5ea7",
-      "8e0d9d86e0ae4e9a3dfa6df65e28d2ce1ae926d1"
+      "8e0d9d86e0ae4e9a3dfa6df65e28d2ce1ae926d1",
+      "9e7fa716b5e6535eaadd4d341031e0faab2aca02"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F02-stored-envelope.md, docs/review/F02.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F02-stored-envelope.md, docs/review/F02.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F03",
@@ -67,9 +69,9 @@
       "c1d6f2151b683da18f7bbdcfe5c62879dec758a9",
       "333ab38bfb62e7947c997ba3b1e9ba3de3e74bba"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F03-connector.md, docs/review/F03.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F03-connector.md, docs/review/F03.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F04",
@@ -83,16 +85,20 @@
     ],
     "problem": "clientServices deliberately mounts SessionGateway and PushGateway on the public listener. Their implementations accept caller-selected session IDs and events or pushes without authenticating a peer or checking room write authority or subscriptions. A caller with a target session ID can inject locker bodies and arbitrary versions directly into its inbox, bypassing RoomService signature checks; the client trusts those events. Arbitrary push traffic and durable queue growth are also possible.",
     "evidence": [
-      "docs/review/F04-runtime.md"
+      "docs/review/F04-runtime.md",
+      "docs/review/F04-admin-boundary.md",
+      "docs/review/F04-public-convenience.md"
     ],
     "fix": "Give trusted peer RPCs their own transport boundary and authenticate peer identity. Keep in-process discovery usable without exposing equivalent public endpoints. Validate sender authority and event identity at that boundary; an internal port alone is insufficient if callers can reach it. Preserve the extension API while requiring an explicit decision about which of its routes are public.",
     "status": "partial",
     "commits": [
-      "670ecd591ee19bb93612502b4d267b237f9c6090"
+      "670ecd591ee19bb93612502b4d267b237f9c6090",
+      "e2cdeafde6e2426cc922171b37cf3ec2547e0999",
+      "4a49f969ce715b7b872d945efc739f45a18b09ba"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F04-admin-boundary.md, docs/review/F04-public-convenience.md, docs/review/F04-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F04-admin-boundary.md, docs/review/F04-public-convenience.md, docs/review/F04-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F05",
@@ -111,9 +117,9 @@
     "commits": [
       "cf38a3d9556ea5c50f645f63abfffe855a6626f8"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F05-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F05-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F06",
@@ -129,7 +135,8 @@
     "problem": "Session opening verifies a private-key signature, but the unary subscription and push registration RPCs use a bare caller-supplied sessionId. Knowing an ID is sufficient to add or remove its subscriptions, replace its push destination, or unregister a backend. This can suppress delivery or redirect push information to another device. destroySession additionally returns OK without revoking anything.",
     "evidence": [
       "docs/review/F06-connector.md",
-      "docs/review/F06.md"
+      "docs/review/F06.md",
+      "docs/review/F06-revocation.md"
     ],
     "fix": "Bind unary mutations to an authenticated session context or a signed, scoped session capability with expiry and replay protection. Define whether identifiers are public names or secret capabilities; the current API mixes those models. Implement authenticated revocation that closes live sockets and removes or expires session routing, subscription, inbox, and push state, with a documented deletion policy.",
     "status": "partial",
@@ -137,11 +144,12 @@
       "01c53db97726118f96991163981c9d247bd0d98e",
       "77c07c693d075eb6fc19ed16ea8720a4c2043125",
       "c0593e7863dd5518396a8999ff3a1e078a633848",
-      "9c1d34e385e96ef2c6a37f5cf45e08b0acf4febe"
+      "9c1d34e385e96ef2c6a37f5cf45e08b0acf4febe",
+      "4d02049ddccd1c901c69571ab7447e0a2a2eb5ea"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F06-connector.md, docs/review/F06-revocation.md, docs/review/F06.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F06-connector.md, docs/review/F06-revocation.md, docs/review/F06.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F07",
@@ -162,9 +170,9 @@
     "commits": [
       "4c0b7dcdd50bd16052cc4724ad19cf84835b9d03"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F07.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F07.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F08",
@@ -185,11 +193,12 @@
     "fix": "Require the storage mutation to atomically compare both expected locker/authority version and the current owner incarnation. Include content, lock changes, receipts, and delivery intents in the same transaction. Apply that invariant to writes, deletes, lock/unlock, and derived writes. Remove comments and metrics claiming that an ordinary read-and-save is a database CAS.",
     "status": "partial",
     "commits": [
-      "ca6e060c3fc699ccb37cd221cfda98f589588e46"
+      "ca6e060c3fc699ccb37cd221cfda98f589588e46",
+      "56ba70473bfa745922f5dc55d7d6f3559b81fc0d"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F08.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F08.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F09",
@@ -209,9 +218,9 @@
     "commits": [
       "f28f0afce95ffdbf04b5ccb0461c77ac9812cb19"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F09-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F09-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F10",
@@ -225,17 +234,21 @@
     "problem": "In the legacy path, applyRatchet saves the new lock key before the locker is saved or delivery is accepted. A storage exception or cancellation between those operations leaves the new authority committed with no successful content write. A client retry using the old key then fails verification, despite never receiving a successful ratchet response.",
     "evidence": [
       "Reproduced by legacyRatchetCommitsEvenWhenLockerPersistenceFails: inject a locker-save failure, submit a correctly signed ratchet write, and observe the new public key persisted while the locker remains absent. Fast batch source transactions avoid this particular partial commit.",
-      "docs/review/F10.md"
+      "docs/review/F10.md",
+      "docs/review/F10-delete-receipts.md"
     ],
     "fix": "Commit ratchet, locker, receipt, and delivery intent in one transaction on every supported path. Make success and ambiguous-response recovery refer to the complete transaction outcome. Do not advertise atomic ratcheting on a path that can persist only its authority half.",
     "status": "partial",
     "commits": [
       "984e2f03819a4eacc837004181cff37caa5299c0",
-      "238cc852ca30e4bfae78553c7a7a8b008edfdf1d"
+      "238cc852ca30e4bfae78553c7a7a8b008edfdf1d",
+      "55f8733eba598eec6340945c2466836082f9163e",
+      "50f5a42f72c2b093f0beead0ddb886d944ed8c94",
+      "a6d2156694a1f5c4c6a0edadb2b4eb3c93d6fc0b"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F10-delete-receipts.md, docs/review/F10.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F10-delete-receipts.md, docs/review/F10.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F11",
@@ -254,11 +267,12 @@
     "fix": "Persist a pending ratchet key and immutable request identity before submission. Resolve a committed outcome and adopt that key even when derived agent work is pending or failed. Return a typed outcome separating source commit from agent completion; reserve an ordinary write-failed exception for a source mutation that did not commit. Recover pending key transitions on startup.",
     "status": "partial",
     "commits": [
-      "f41db2c4cc217fb283e4ec9688042f84955386d2"
+      "f41db2c4cc217fb283e4ec9688042f84955386d2",
+      "f1fe0fe1af8c0265984da6492ad3889c0e46ac85"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F11-connector.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F11-connector.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F12",
@@ -280,9 +294,9 @@
     "commits": [
       "b7768ab3338f8324d45bb611b4c6b1023ce565de"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F12-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F12-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F13",
@@ -301,9 +315,9 @@
     "commits": [
       "987e85bc7ebcde69be0250d0add16564ab1d1125"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F13.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F13.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F14",
@@ -326,9 +340,9 @@
       "a15c0ac4129157b029799df1a8d9d8523da3640f",
       "14b4a3238b66b49d53bde6e400e425b57bec228a"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F14-connector.md, docs/review/F14.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F14-connector.md, docs/review/F14.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F15",
@@ -349,9 +363,9 @@
     "commits": [
       "99379f6c0a7092cef994a81b564812239e6d5479"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F15.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F15.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F16",
@@ -365,14 +379,17 @@
     ],
     "problem": "Legacy hydration merges only lockers returned by getAllLockers, which omits deleted rows. fetchLocker accepts only a non-null response. Neither operation removes a previously cached locker when the server reports absence. A disconnected client that misses a delete, or creates a replacement session after an inbox gap, can keep the deleted value indefinitely despite repeated successful revalidation.",
     "evidence": [
-      "Confirmed by the absence-only branches and the default capabilities path. The fast subscribeAndSnapshot path includes tombstones and can repair this specific gap; its behavior is not available when deliveryOutboxEnabled is false."
+      "Confirmed by the absence-only branches and the default capabilities path. The fast subscribeAndSnapshot path includes tombstones and can repair this specific gap; its behavior is not available when deliveryOutboxEnabled is false.",
+      "docs/review/F16-connector.md"
     ],
     "fix": "Return versioned tombstones on legacy-compatible reads, or reconcile a complete authoritative snapshot with its boundary/watermark. Do not infer an unversioned delete from absence while a newer live event may race hydration. Make reconciliation repair deletions as well as additions.",
-    "status": "open",
-    "commits": [],
-    "reproduction": null,
-    "regression": null,
-    "verification": null
+    "status": "partial",
+    "commits": [
+      "9b77ef23b59287c2fdd9faf5a2bd9f2188bb9c47"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F16-connector.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F16-connector.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F17",
@@ -394,9 +411,9 @@
     "commits": [
       "70e6bfc5dc5e28523026bc25d6189091d5daa15e"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F17-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F17-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F18",
@@ -410,16 +427,18 @@
     "problem": "deliveryOutboxEnabled defaults to false. The legacy path persists a locker and then sends events directly to gateways. Gateway lookup, RPC failure, or a crash between persistence and inbox acceptance can leave no durable delivery intent. deliver records failures and the write still returns OK. A durable session inbox helps only after the gateway has accepted an event.",
     "evidence": [
       "Confirmed by the default configuration and post-persistence direct delivery. The optional outbox path provides the missing durable intent, so the reliability contract currently changes materially with configuration.",
-      "docs/review/F18-runtime.md"
+      "docs/review/F18-runtime.md",
+      "docs/review/F18-default-construction.md"
     ],
     "fix": "Make durable delivery the supported invariant for production writes, deletes, and derived state, after resolving its scaling issues in F33. If a weaker legacy mode remains, expose its guarantee explicitly and provide snapshot repair that includes deletions. Treat local Flow wakeups as hints to recoverable work.",
     "status": "partial",
     "commits": [
-      "d103c0c77467e6920d0943498a60ed7e86e1ee5a"
+      "d103c0c77467e6920d0943498a60ed7e86e1ee5a",
+      "fab169a501323c5de2c03edaaf962ea3b55d04a4"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F18-default-construction.md, docs/review/F18-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F18-default-construction.md, docs/review/F18-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F19",
@@ -441,9 +460,9 @@
     "commits": [
       "8786ba85eaa99d555fe34d87727459f6eb629370"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F19-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F19-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F20",
@@ -456,16 +475,18 @@
     ],
     "problem": "Each emitted queue row creates another coroutine. drainQueue re-emits all rows, including those already being sent, without a row lease or in-flight guard. A semaphore bounds vendor calls but not the number of jobs waiting behind it. Multiple worker replicas have the same duplicate-send risk, while a large backlog can create an arbitrarily large coroutine set.",
     "evidence": [
-      "Reproduced by drainingQueueDuplicatesAnInFlightSend: hold the first provider send open, invoke drainQueue, and observe a second concurrent send for the same row."
+      "Reproduced by drainingQueueDuplicatesAnInFlightSend: hold the first provider send open, invoke drainQueue, and observe a second concurrent send for the same row.",
+      "docs/review/F20-runtime.md"
     ],
     "fix": "Claim rows atomically with lease identity, expected state, and a persisted next-attempt time. Use a fixed number of consumers over bounded claims. Make drain a request to accelerate discovery rather than a second delivery stream. Preserve at-least-once semantics for ambiguous provider acceptance and make duplicates observable.",
     "status": "partial",
     "commits": [
-      "ca1cfd5e1f7676905bfeb8716f581c203bc16208"
+      "ca1cfd5e1f7676905bfeb8716f581c203bc16208",
+      "b425873853f1a217478c0a2f1de865efffe068f4"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F20-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F20-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F21",
@@ -480,16 +501,19 @@
     "problem": "sendRegister catches transport failures and returns while leaving the row pending. Reconciliation is triggered by a distinct session ID, not a successful connection epoch. Stream keeps the same session ID through an ordinary reconnect, so no retry occurs. This contradicts the controller and facade documentation, and awaitRegistered can wait forever after a transient outage.",
     "evidence": [
       "Reproduced by registrationTransportFailureIsNotRetriedForSameSession: one failed registration remains pending; publishing an equal session ID makes no second RPC. The source has no independent retry loop.",
-      "docs/review/F21-connector.md"
+      "docs/review/F21-connector.md",
+      "docs/review/F21-session-admission.md"
     ],
     "fix": "Reconcile persisted desired registrations against a session state containing connection incarnation and readiness. Retry recoverable failures with bounded backoff while that desired state remains current. Represent terminal failure and closed state explicitly so callers can await a real outcome.",
     "status": "partial",
     "commits": [
-      "7dc75fbcd35b18c14d0f2856440d4f618b750fc6"
+      "7dc75fbcd35b18c14d0f2856440d4f618b750fc6",
+      "7c880d082e61db567929d7805efc165e72fa4107",
+      "47ef085203c70c8692b286234d76002c9872d182"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F21-connector.md, docs/review/F21-session-admission.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F21-connector.md, docs/review/F21-session-admission.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F22",
@@ -503,17 +527,21 @@
     "problem": "Two controller jobs and direct unregister calls mutate the same registration state without a serialized generation check. An older register response can overwrite a newer credential or recreate a row after unregister. It can also confirm a backend for a superseded session. Read-modify-write updates of reconciled.value can lose concurrent changes. Unregister removes local intent even if the server call failed, leaving no durable revoke to retry.",
     "evidence": [
       "Reproduced by lateRegistrationResponseResurrectsUnregisteredCredential: block register, complete unregister and local deletion, then release the register response; the credential is recreated and reported registered.",
-      "docs/review/F22-connector.md"
+      "docs/review/F22-connector.md",
+      "docs/review/F22-public-boundary.md",
+      "docs/review/F22-runtime.md"
     ],
     "fix": "Use a serialized reducer with desired credential revision, session incarnation, and durable pending removal. Apply acknowledgements only when all three still match. SubscriptionController's generation-checked confirmations provide a useful local pattern, with bounded commands and explicit lifecycle outcomes.",
     "status": "partial",
     "commits": [
       "4374c3c0dfec508614f51f48b317a3a1badd8e16",
-      "9c8c7741e09ba741103c16932267f706b953fab9"
+      "9c8c7741e09ba741103c16932267f706b953fab9",
+      "6d041947a94153f5cab571a12e8f705a01f8e794",
+      "f8f4442ed406594df54febf188362226c78223ed"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F22-connector.md, docs/review/F22-public-boundary.md, docs/review/F22-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F22-connector.md, docs/review/F22-public-boundary.md, docs/review/F22-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F23",
@@ -533,9 +561,9 @@
     "commits": [
       "fe7b93a8695ce45f605039fadc3bdf0e6893da0d"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F23-connector.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F23-connector.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F24",
@@ -556,9 +584,9 @@
     "commits": [
       "a321be6b160d281dc9df355a4e77ec785880677d"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F24-connector.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F24-connector.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F25",
@@ -573,16 +601,24 @@
     ],
     "problem": "WRITE_EXCEPTION_HANDLER treats CancellationException as retryable through its catch-all branch. The retry helper eventually produces RetryLimitExceeded, which the client wraps as LockerWriteException. Push registration runCatching and several provider/server catch(Exception) branches also catch coroutine cancellation and classify it as an ordinary failure or retry. This weakens cancellation propagation and can run failure-side persistence while a component is stopping.",
     "evidence": [
-      "docs/review/F25-connector.md"
+      "docs/review/F25-connector.md",
+      "docs/review/F25-advisory-cancellation.md",
+      "docs/review/F25-coordination-sql-limits.md",
+      "docs/review/F25-runtime.md",
+      "docs/review/F25-telemetry-cancellation.md"
     ],
     "fix": "Rethrow CancellationException before transient-error classification. Use narrowly scoped NonCancellable cleanup only for necessary resource release or completion of an already-defined transaction boundary. Review the pinned retry helper's exception contract, including its use of CancellationException for retry exhaustion, and distinguish exhaustion from actual caller cancellation.",
     "status": "partial",
     "commits": [
-      "ea56134dbfdd7851fba5020c092f9caf04f31290"
+      "ea56134dbfdd7851fba5020c092f9caf04f31290",
+      "3555f92acdd4f82d35551944febc08f929bc4bb7",
+      "565a39feaac026486b167ae08df8122801928406",
+      "2f59f54c123b71fae7b14117b34ac793799a8d10",
+      "c862e868dafbc24893963043cc8c477567feed80"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F25-advisory-cancellation.md, docs/review/F25-connector.md, docs/review/F25-coordination-sql-limits.md, docs/review/F25-runtime.md, docs/review/F25-telemetry-cancellation.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F25-advisory-cancellation.md, docs/review/F25-connector.md, docs/review/F25-coordination-sql-limits.md, docs/review/F25-runtime.md, docs/review/F25-telemetry-cancellation.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F26",
@@ -599,16 +635,21 @@
     "problem": "The connector components construct separate root SupervisorJobs; LockerClient uses GlobalScope plus such a job. Server workers also own independent root scopes. Parent cancellation cannot propagate into them, dispatchers are fixed, and most stop/close methods cancel without joining. Several start methods can create duplicate loops, and partial factory startup has no rollback. A supervisor isolates a failed child but does not restart a failed collector or expose its failure to callers.",
     "evidence": [
       "Confirmed by constructors and lifecycle methods. SupervisorJob supports a parent job, and its failure isolation requires an explicit child-failure policy. [Kotlin SupervisorJob API](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-supervisor-job.html)",
-      "docs/review/F26-connector.md"
+      "docs/review/F26-connector.md",
+      "docs/review/F26-host-lifetime.md",
+      "docs/review/F26-runtime.md"
     ],
     "fix": "Give each client/server component one explicit lifecycle scope with a supplied parent, owned child jobs, and injected execution contexts. Keep deliberately shared reads owned by that client scope so one waiter cannot cancel everyone. Make start idempotent or reject duplicate starts, clean up partial initialization, and provide suspending close/stop that cancels and joins. Add an equivalent awaitable lifecycle seam for extensions.",
     "status": "partial",
     "commits": [
-      "0d339e5a8fddb3c16f11441985a584fd34b68d2b"
+      "0d339e5a8fddb3c16f11441985a584fd34b68d2b",
+      "b87f34b2a1f706a6fb39edf986bfe9b5071bf419",
+      "1f3593f4a2f69ccca0cdf36d138061922f4a814a",
+      "70351cf4c2218b3a30409a7dcedaeda63bfb9575"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F26-connector.md, docs/review/F26-host-lifetime.md, docs/review/F26-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F26-connector.md, docs/review/F26-host-lifetime.md, docs/review/F26-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F27",
@@ -631,9 +672,9 @@
     "commits": [
       "0750a2961893538593474d9aadad4d992cb7bc68"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F27-connector.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F27-connector.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F28",
@@ -653,11 +694,12 @@
     "status": "partial",
     "commits": [
       "d2eea55ee789baa6792e3110aa7da54e116e47b4",
-      "b11e9f2cc589955251f52e22c5452823a5bf384e"
+      "b11e9f2cc589955251f52e22c5452823a5bf384e",
+      "811d2cf43dbfffd7293ca799cb5f695b486d6415"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F28-connector.md, docs/review/F28-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F28-connector.md, docs/review/F28-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F29",
@@ -671,14 +713,17 @@
     ],
     "problem": "A new socket is placed in openStreamCancellationChannels and activeStreamsCount is incremented before attachBeforeSnapshot completes. If that database operation fails, openState is never completed, so onCompletion skips cleanup. The next open can replace the stale channel and then suspend forever sending cancellation to a channel whose collector has already disappeared. Separately, ClaimSessionRegistry's asynchronous node-only delete can remove a newer attachment on the same node if it runs after reattach.",
     "evidence": [
-      "Confirmed by publication and cleanup ordering. The registration failure case needs a deterministic fault-injection regression test; the resulting map/count leak and unmatched channel send follow directly from the current branches."
+      "Confirmed by publication and cleanup ordering. The registration failure case needs a deterministic fault-injection regression test; the resulting map/count leak and unmatched channel send follow directly from the current branches.",
+      "docs/review/F29-runtime.md"
     ],
     "fix": "Use explicit registration ownership and try/finally from the first local mutation. Cancel the prior socket by job or a nonblocking close signal. Attach and detach registry rows using a socket/attachment incarnation so cleanup cannot erase a successor; monitor and await required publication before announcing connection success.",
-    "status": "open",
-    "commits": [],
-    "reproduction": null,
-    "regression": null,
-    "verification": null
+    "status": "partial",
+    "commits": [
+      "8865d82d8a5c1ca25a9297130dbc08ed7eb08720"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F29-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F29-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F30",
@@ -700,9 +745,9 @@
     "commits": [
       "2e3a03dbc4a9ca35f3f42f6ceafae9c56b29671b"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F30-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F30-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F31",
@@ -723,9 +768,9 @@
     "commits": [
       "bb99a0c3428b028c5c0ac1aa14772d321d6ef819"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F31-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F31-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F32",
@@ -740,14 +785,17 @@
     ],
     "problem": "The shutdown hook closes coordination and calls component.stop before stopping the public listener. component.stop releases shard leases or claim rows first, then cancels workers and closes dispatchers without awaiting all work. A successor can acquire authority while an existing handler continues on this node; the listener can still admit requests during part of that interval. This amplifies the missing commit fence in F08. ClaimJdbcPool.close also treats a successfully received null slot as an empty channel and stops draining: a normal partially initialized queue such as [null, openConnection] leaves the connection unclosed.",
     "evidence": [
-      "Confirmed by the shutdown order. stopAndRelease also cancels its renewal job without joining before deleting rows, permitting an in-flight renewal or publication to overlap release."
+      "Confirmed by the shutdown order. stopAndRelease also cancels its renewal job without joining before deleting rows, permitting an in-flight renewal or publication to overlap release.",
+      "docs/review/F32-runtime.md"
     ],
     "fix": "First reject new traffic and mark the component draining; then stop claiming work, cancel or finish handlers and join worker/renewal jobs. Release ownership only after authoritative work has stopped, then close providers, dispatchers, stores, and transports. Use one suspending shutdown path with bounded grace and preserve commit fencing as the final defense. Drain nullable pool slots by checking ChannelResult success separately from its nullable value, and await or close borrowed connections under a defined policy.",
-    "status": "open",
-    "commits": [],
-    "reproduction": null,
-    "regression": null,
-    "verification": null
+    "status": "partial",
+    "commits": [
+      "5c2755b153db42588524e4f2e3a4bd59cd315d42"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F32-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F32-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F33",
@@ -763,14 +811,19 @@
     ],
     "problem": "Confirmed ACK rows are retained forever, while getPendingAcks scans all rows before filtering. Write receipts, locker tombstones, and sessions have no defined reclamation policy. Watcher and mutation-lock maps retain every key encountered. SubscriptionController's command channel is unlimited. DeliveryOutbox.claim reads and groups the entire backlog inside one database lock shared with all room commits; four lanes repeat that scan, so independent room lanes still contend at storage.",
     "evidence": [
-      "Confirmed by storage queries, map insertion without removal, and the single outbox transaction key. This is a workload-dependent scaling risk rather than a measured performance claim."
+      "Confirmed by storage queries, map insertion without removal, and the single outbox transaction key. This is a workload-dependent scaling risk rather than a measured performance claim.",
+      "docs/review/F33-connector.md",
+      "docs/review/F33-runtime.md"
     ],
     "fix": "Define deduplication and idempotency horizons before pruning ACKs, receipts, or tombstones. Add indexed due-work/head-of-room queries with bounded results and safe row claims instead of full scans under a global lock. Use observer reference counts and lock entry lifetimes, bound or coalesce persisted-intent wakeups, and measure backlog age, query size, lock wait, active jobs, and storage growth.",
-    "status": "open",
-    "commits": [],
-    "reproduction": null,
-    "regression": null,
-    "verification": null
+    "status": "partial",
+    "commits": [
+      "0457e0d8179884b696e435af1cedac5871303ced",
+      "abc27633d1e135088ebbb731ad39a41485b3f46d"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F33-connector.md, docs/review/F33-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F33-connector.md, docs/review/F33-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F34",
@@ -784,14 +837,17 @@
     ],
     "problem": "Encoding supplies notification title/body to NotificationContext, but the session inbox serializes only notification.payload and the locker. Both live responses and replay reconstruct the notification without push title/body, so decoding sees null values. A consumer codec that binds its payload to those context fields cannot reliably round-trip.",
     "evidence": [
-      "Confirmed by the inbox event shape and reconstruction. Existing simple codec tests do not exercise a context-dependent codec through persistence and session replay."
+      "Confirmed by the inbox event shape and reconstruction. Existing simple codec tests do not exercise a context-dependent codec through persistence and session replay.",
+      "docs/review/F34-notification-metadata.md"
     ],
     "fix": "Persist and replay the metadata that is part of the codec contract, or explicitly narrow encode/decode context to values guaranteed on both sides. Version storage/wire changes as needed. Test context-dependent authentication and transformation through both live and offline delivery.",
-    "status": "open",
-    "commits": [],
-    "reproduction": null,
-    "regression": null,
-    "verification": null
+    "status": "partial",
+    "commits": [
+      "85533853052cd3b8af29b88780bb315afcbca52d"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F34-notification-metadata.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F34-notification-metadata.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F35",
@@ -804,14 +860,17 @@
     ],
     "problem": "Broadcast creates an event with an empty room ID and no locker ID. LockerClient emits notifications only when lockerId is non-null, so broadcast payloads never reach its notification Flow. Stream still accepts and ACKs the event. The facade does not expose raw Stream.events as an alternative broadcast channel.",
     "evidence": [
-      "Confirmed by the broadcast event shape and the notification branch. A caller using Stream directly can observe raw events; the standard LockersClient API cannot consume these broadcast notifications."
+      "Confirmed by the broadcast event shape and the notification branch. A caller using Stream directly can observe raw events; the standard LockersClient API cannot consume these broadcast notifications.",
+      "docs/review/F35-connector.md"
     ],
     "fix": "Expose a session-level event/notification Flow with explicit room notification and broadcast variants. Decode and acknowledge each variant under a documented delivery policy. Keep locker-scoped codecs scoped, and provide a separate broadcast codec context rather than inventing a locker identity.",
-    "status": "open",
-    "commits": [],
-    "reproduction": null,
-    "regression": null,
-    "verification": null
+    "status": "partial",
+    "commits": [
+      "60533196ea820486f02ce0d8f70ad5bea89943c4"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F35-connector.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F35-connector.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F36",
@@ -832,7 +891,7 @@
     "commits": [],
     "reproduction": null,
     "regression": null,
-    "verification": null
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F37",
@@ -846,14 +905,17 @@
     ],
     "problem": "The batch source transaction saves an agentPending receipt, then runs the agent outside that transaction. A crash or cancellation in between leaves that receipt pending. Retries correctly avoid executing the agent again, but there is no recovery worker or completion protocol to resume or resolve the pending task. Applications receive a committed source with indefinitely missing derived state.",
     "evidence": [
-      "Confirmed by the source receipt, replay branch, and synchronous post-commit hook. Avoiding blind replay is intentional and protects an at-most-once extension; the unresolved gap is how pending work reaches a final state."
+      "Confirmed by the source receipt, replay branch, and synchronous post-commit hook. Avoiding blind replay is intentional and protects an at-most-once extension; the unresolved gap is how pending work reaches a final state.",
+      "docs/review/F37-connector.md"
     ],
     "fix": "Define agent completion as a first-class durable workflow with a completion/status Flow. Give recoverable agents immutable request identity and an idempotent effect/derived-write contract before permitting replay. For arbitrary non-idempotent extensions, expose an explicit indeterminate outcome and reconciliation hook. Always preserve the committed source result, as required by F11.",
-    "status": "open",
-    "commits": [],
-    "reproduction": null,
-    "regression": null,
-    "verification": null
+    "status": "partial",
+    "commits": [
+      "4f437d68e0f515574b0b50f99c72c03ec3e04131"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F37-connector.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F37-connector.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F38",
@@ -870,16 +932,22 @@
     "problem": "Session create checks only null key/ID values and accepts empty or undecodable public keys; open decodes the stored key outside its verification try block. Lock establishment does not validate the new key or scope enum. A structurally public-keyed room with invalid key bytes falls back to TOFU rather than rejection. Initial versions accept arbitrary signed values and later increments can overflow. Legacy writes cap the locker body but not the complete request/notification; single gateway posts, aggregate room snapshots, and inbox-open responses lack a consistently bounded or paged envelope.",
     "evidence": [
       "The ping diagnostic created a session with an empty public key and received OK. The other malformed-input and unbounded aggregate paths were established by inspection. No particular transport frame ceiling or dependency CVE is assumed here.",
-      "docs/review/F38-boundaries.md"
+      "docs/review/F38-boundaries.md",
+      "docs/review/F38-claim-capacity.md"
     ],
     "fix": "Validate canonical IDs, key encodings, known scopes, supported envelopes, versions, and complete encoded sizes at the trust boundary. Reject invalid public-keyed room encodings explicitly. Bound recipients, sessions, notification bytes, and global admission/storage consumption, and paginate snapshots/inbox replay with stable cursor semantics. Return precise protocol errors rather than poisoning persisted state or throwing decoder exceptions.",
     "status": "partial",
     "commits": [
-      "4cc7cea70ee450959500c181363baf79e500d3cf"
+      "4cc7cea70ee450959500c181363baf79e500d3cf",
+      "c8e89e10346b773481efd8c43b1b14f569cd8d1c",
+      "cf64d9323546fd5cf68ea79bee3bac3bc8503009",
+      "1510d954b75e6dc0ec80c987aee404da781dd4e4",
+      "43a239b69b2366e33274a3619ffc7d6b20e9dba6",
+      "2ef40806b9bbcd2b86ea334889b3fed189a09cd6"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F38-boundaries.md, docs/review/F38-claim-capacity.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F38-boundaries.md, docs/review/F38-claim-capacity.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F39",
@@ -896,16 +964,20 @@
     "problem": "The reviewed working tree cannot resolve ktstore-library:0.2.0 from its configured released repositories. Explicit Fullhouse workspace substitution made validation possible, but is a different dependency coordinate. In workspace mode, PREFER_SETTINGS suppresses Kotlin's Node distribution Ivy repository and jsNodeTest cannot resolve org.nodejs:node:24.9.0. The Docker build installs neither Go nor protoc-gen-kt even though a clean build needs that generator. Local generation uses whichever executable is on PATH, whereas CI pins a version. Connector test dependencies and cases live only in jvmTest; the Apple test task has no sources, and fake transport/storage tests do not validate every published platform.",
     "evidence": [
       "Recorded dependency and Node resolution failures, followed by successful JVM/PostgreSQL tests and JS/Android/Apple compilation using the explicit pinned ktstore workspace dependency. Docker generator absence and platform test coverage were established by inspection.",
-      "docs/review/F39-build.md"
+      "docs/review/F39-build.md",
+      "docs/review/F39-historical-schema.md",
+      "docs/review/F39-source-project-pins.md"
     ],
     "fix": "Complete the dependency publication/version transition and verify released-mode resolution before release. Preserve isolated workspace repositories while allowing toolchain distribution resolution. Pin and provision the same generator in local, CI, and container builds; include all generator/compiler inputs in caching. Move portable protocol/reducer tests to commonTest and add real platform storage/transport tests plus Fullhouse consumer checks for affected variants.",
     "status": "partial",
     "commits": [
-      "608fb37718867f15d428428be1cef8ba21b17a28"
+      "608fb37718867f15d428428be1cef8ba21b17a28",
+      "69941b4e2a8b0fdc6b8f77144f10907a112123f4",
+      "d6ef56d182113752b34ed144e9c4f9aab094f4ea"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F39-build.md, docs/review/F39-historical-schema.md, docs/review/F39-source-project-pins.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F39-build.md, docs/review/F39-historical-schema.md, docs/review/F39-source-project-pins.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F40",
@@ -925,9 +997,9 @@
     "commits": [
       "1ff4c46b94993d7c438e5ea55a16184dd987fc54"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F40-runtime.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F40-runtime.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F41",
@@ -949,9 +1021,9 @@
       "c22369681e1a64b90823b216710676379b8c52b0",
       "a9d78e30cbf9bfa7c2a61a6028ead02812543d9d"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F41-build.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F41-build.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   },
   {
     "id": "F42",
@@ -967,15 +1039,17 @@
     "problem": "README describes room/locker authorization as entirely pending and the connector/API as currently JVM-only, despite lock authority and additional targets being implemented. The repository license is MIT, while publication metadata says Apache 2.0 and retains a comment claiming no LICENSE file exists. Detekt is explicitly advisory and can never fail the build. These inconsistencies make the real supported/security contract difficult for consumers to determine. LockerSigning's documentation specifies four-byte length prefixes, while Writer.bytes actually uses an eight-byte long, which can mislead external protocol implementations.",
     "evidence": [
       "Confirmed against current build configuration, LICENSE, README, and POM properties. The licensing discrepancy is a factual metadata inconsistency; this review does not choose a license on the owner's behalf.",
-      "docs/review/F42-build.md"
+      "docs/review/F42-build.md",
+      "docs/review/F42-connector.md"
     ],
     "fix": "Align README and publication metadata with the intended current contract, including lock semantics, read access, delivery modes, supported targets, and extension trust. Adopt a reviewed static-analysis baseline and enforce important checks over actual KMP source sets. Document transform purity/retry behavior; the single-write retry path currently reevaluates transform and codecs even when reusing a frozen submitted request. Publish exact canonical signing vectors and correct the length-prefix specification.",
     "status": "partial",
     "commits": [
-      "008d5d309ff2b151e87edd1ac8095b6669985800"
+      "008d5d309ff2b151e87edd1ac8095b6669985800",
+      "91e672c27fca3b01c63fc34e9a834472d8990a80"
     ],
-    "reproduction": null,
-    "regression": null,
-    "verification": "Issue-specific fixes and regression evidence committed; final integrated library, platform and consumer gates pending"
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F42-build.md, docs/review/F42-connector.md",
+    "regression": "Regression and verification evidence recorded in docs/review/F42-build.md, docs/review/F42-connector.md",
+    "verification": "Committed issue regressions; combined library, platform, consumer and independent verification gates pending"
   }
 ]

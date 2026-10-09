@@ -1,0 +1,49 @@
+Type-safe project accessors is an incubating feature.
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:compileKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :observability-api:jvmMainClasses UP-TO-DATE
+> Task :observability-api:jvmJar UP-TO-DATE
+> Task :observability-api:jvmTestProcessResources NO-SOURCE
+> Task :observability-api:processJvmTestResources SKIPPED
+
+> Task :observability-api:compileTestKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/observability-api/src/commonTest/kotlin/com/latenighthack/lockers/observability/TelemetryTest.kt:34:104 The corresponding parameter in the supertype 'LockersTelemetry' is named 'outcome'. This may cause problems when calling this function with named arguments.
+
+> Task :observability-api:compileJvmTestJava NO-SOURCE
+> Task :observability-api:jvmTestClasses
+
+> Task :observability-api:jvmTest FAILED
+
+TelemetryCancellationTest[jvm] > spanContextCannotReplaceTheOperationLifetime[jvm] FAILED
+    kotlinx.coroutines.TimeoutCancellationException at Timeout.kt:188
+        Caused by: kotlinx.coroutines.TimeoutCancellationException at TelemetryCancellationTest.kt:9
+
+TelemetryCancellationTest[jvm] > cancelledSpanStartupDoesNotExecuteTheOperation[jvm] FAILED
+    java.lang.AssertionError at TelemetryCancellationTest.kt:25
+
+2 tests completed, 2 failed
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':observability-api:jvmTest'.
+> There were failing tests. See the report at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/observability-api/build/reports/tests/jvmTest/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 2s
+6 actionable tasks: 3 executed, 3 up-to-date

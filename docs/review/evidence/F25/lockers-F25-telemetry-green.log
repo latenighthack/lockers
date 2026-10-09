@@ -1,0 +1,125 @@
+Type-safe project accessors is an incubating feature.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://github.com/yarnpkg/yarn/releases/download' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :observability-api:jvmTestProcessResources NO-SOURCE
+> Task :observability-api:processJvmTestResources SKIPPED
+> Task :kotlinKotlinNpmCachesSetup
+> Task :observability-api:compileKotlinJvm
+> Task :kotlinNodeJsSetup
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmMainClasses
+> Task :observability-api:jvmJar
+> Task :observability-api:compileTestKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmTestJava NO-SOURCE
+> Task :observability-api:jvmTestClasses UP-TO-DATE
+> Task :observability-api:jvmTest
+> Task :kotlinRestoreYarnLock
+> Task :kotlinYarnSetup
+> Task :api:jsPackageJson
+> Task :api:jsTestPackageJson
+> Task :observability-api:jsPackageJson
+> Task :connector:jsPackageJson
+> Task :connector:jsTestPackageJson
+> Task :observability-api:jsTestPackageJson
+> Task :observability-connector:jsPackageJson
+> Task :observability-connector:jsTestPackageJson
+> Task :api:jsPublicPackageJson
+> Task :api:jsTestPublicPackageJson
+> Task :connector:jsPublicPackageJson
+> Task :connector:jsTestPublicPackageJson
+> Task :observability-api:jsPublicPackageJson
+> Task :observability-api:jsTestPublicPackageJson
+> Task :observability-connector:jsPublicPackageJson
+> Task :observability-connector:jsTestPublicPackageJson
+> Task :kotlinPackageJsonUmbrella
+> Task :rootPackageJson
+
+> Task :kotlinNpmInstall
+(node:82523) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+warning Ignored scripts due to flag.
+
+> Task :kotlinStoreYarnLock
+> Task :observability-api:jsProcessResources NO-SOURCE
+> Task :observability-api:jsTestProcessResources NO-SOURCE
+> Task :observability-api:kotlinNodeJsSetup
+> Task :observability-api:compileKotlinJs
+> Task :observability-api:downloadKotlinNativeDistribution
+> Task :observability-api:jsMainClasses
+
+> Task :observability-api:compileTestKotlinJs
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/observability-api/src/commonTest/kotlin/com/latenighthack/lockers/observability/TelemetryTest.kt:34:104 The corresponding parameter in the supertype 'LockersTelemetry' is named 'outcome'. This may cause problems when calling this function with named arguments.
+
+> Task :observability-api:compileKotlinIosSimulatorArm64
+> Task :observability-api:jsTestClasses
+> Task :observability-api:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :observability-api:iosSimulatorArm64MainKlibrary
+
+> Task :observability-api:compileTestKotlinIosSimulatorArm64
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/observability-api/src/commonTest/kotlin/com/latenighthack/lockers/observability/TelemetryTest.kt:34:104 The corresponding parameter in the supertype 'LockersTelemetry' is named 'outcome'. This may cause problems when calling this function with named arguments.
+
+> Task :observability-api:compileTestDevelopmentExecutableKotlinJs
+> Task :observability-api:linkDebugTestIosSimulatorArm64
+> Task :observability-api:jsTestTestDevelopmentExecutableCompileSync
+> Task :observability-api:jsNodeTest
+> Task :observability-api:iosSimulatorArm64Test
+> Task :observability-api:preBuild UP-TO-DATE
+> Task :observability-api:preDebugBuild UP-TO-DATE
+> Task :observability-api:generateDebugResValues
+> Task :observability-api:generateDebugResources
+> Task :observability-api:packageDebugResources
+> Task :observability-api:processDebugNavigationResources
+> Task :observability-api:parseDebugLocalResources
+> Task :observability-api:generateDebugRFile
+> Task :observability-api:compileDebugKotlinAndroid
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 29s
+47 actionable tasks: 45 executed, 2 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

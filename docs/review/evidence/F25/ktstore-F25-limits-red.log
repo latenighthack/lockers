@@ -1,0 +1,59 @@
+Starting a Gradle Daemon, 1 busy and 5 stopped Daemons could not be reused, use --status for details
+
+> Configure project :browser-tests
+w: ⚠️ Deprecated Gradle Property 'kotlin.js.compiler' Used
+The `kotlin.js.compiler` deprecated property is used in your build.
+Solution: It is unsupported, please stop using it.
+
+
+> Task :migration-gradle-plugin:compileJava FROM-CACHE
+> Task :migration-gradle-plugin:pluginDescriptors
+> Task :migration-gradle-plugin:processResources
+> Task :migration-gradle-plugin:classes
+> Task :migration-gradle-plugin:jar
+> Task :library:kmpPartiallyResolvedDependenciesChecker
+> Task :library:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :library:jvmProcessResources NO-SOURCE
+> Task :library:processJvmMainResources SKIPPED
+> Task :library:jvmTestProcessResources NO-SOURCE
+> Task :library:processJvmTestResources SKIPPED
+
+> Task :library:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-jdbc-limits/library/src/commonMain/kotlin/com/latenighthack/ktstore/InMemoryStoreDelegate.kt:129:26 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-jdbc-limits/library/src/commonMain/kotlin/com/latenighthack/ktstore/InMemoryStoreDelegate.kt:198:159 Unnecessary non-null assertion (!!) on a non-null receiver of type 'StoreKey<*>'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-jdbc-limits/library/src/commonMain/kotlin/com/latenighthack/ktstore/KeyValueStore.kt:36:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-jdbc-limits/library/src/commonMain/kotlin/com/latenighthack/ktstore/Sql.kt:283:26 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-jdbc-limits/library/src/jvmMain/kotlin/com/latenighthack/ktstore/AtomicBoolean.kt:7:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-jdbc-limits/library/src/jvmMain/kotlin/com/latenighthack/ktstore/AtomicBoolean.kt:21:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-jdbc-limits/library/src/jvmMain/kotlin/com/latenighthack/ktstore/AtomicBoolean.kt:39:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-jdbc-limits/library/src/jvmMain/kotlin/com/latenighthack/ktstore/PersistentKeyValueStoreDelegate.kt:5:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+
+> Task :library:compileJvmMainJava NO-SOURCE
+> Task :library:jvmMainClasses
+> Task :library:jvmJar
+> Task :library:compileTestKotlinJvm
+> Task :library:compileJvmTestJava NO-SOURCE
+> Task :library:jvmTestClasses
+
+> Task :library:jvmTest FAILED
+
+com.latenighthack.ktstore.PostgresCancellationLimitsTest[jvm] > existingStricterServerTimeoutsArePreserved[jvm] FAILED
+    java.lang.AssertionError at PostgresCancellationLimitsTest.kt:46
+
+com.latenighthack.ktstore.PostgresCancellationLimitsTest[jvm] > canceledLockWaitJoinsWithinItsFiniteSqlLimit[jvm] FAILED
+    kotlinx.coroutines.TimeoutCancellationException at CoroutineDebugging.kt:42
+        Caused by: kotlinx.coroutines.TimeoutCancellationException at Timeout.kt:188
+
+3 tests completed, 2 failed
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':library:jvmTest'.
+> There were failing tests. See the report at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-jdbc-limits/library/build/reports/tests/jvmTest/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+BUILD FAILED in 10s
+9 actionable tasks: 8 executed, 1 from cache
