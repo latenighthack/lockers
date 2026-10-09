@@ -29,6 +29,8 @@ class FcmPushProvider(private val config: FcmConfig) : PushProvider {
     override val backend = PushBackendKind.FCM
     override val isConfigured: Boolean get() = config.isConfigured
 
+    private val appName = "lockers-push-${java.util.UUID.randomUUID()}"
+    private val ownedApp = java.util.concurrent.atomic.AtomicReference<FirebaseApp?>()
     private val messaging: FirebaseMessaging? by lazy { initMessaging() }
 
     private fun initMessaging(): FirebaseMessaging? {
@@ -37,14 +39,15 @@ class FcmPushProvider(private val config: FcmConfig) : PushProvider {
             return null
         }
         return try {
-            val existing = FirebaseApp.getApps().firstOrNull { it.name == APP_NAME }
-            val app = existing ?: FileInputStream(config.credentialsPath!!).use { stream ->
+            val app = FileInputStream(config.credentialsPath!!).use { stream ->
                 val options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(stream))
                     .build()
-                FirebaseApp.initializeApp(options, APP_NAME)
+                FirebaseApp.initializeApp(options, appName)
             }
-            FirebaseMessaging.getInstance(app).also { logger.info("FCM messaging initialized") }
+            ownedApp.set(app)
+            try { FirebaseMessaging.getInstance(app).also { logger.info("FCM messaging initialized") } }
+            catch (failure: Throwable) { ownedApp.compareAndSet(app, null); try { app.delete() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }; throw failure }
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (e: Exception) {
             logger.error("Failed to initialize FCM", e)
@@ -102,7 +105,5 @@ class FcmPushProvider(private val config: FcmConfig) : PushProvider {
         null -> PushResult.Retryable(e.message ?: "FCM error")
     }
 
-    companion object {
-        private const val APP_NAME = "lockers-push"
-    }
+    override fun close() { ownedApp.getAndSet(null)?.delete() }
 }

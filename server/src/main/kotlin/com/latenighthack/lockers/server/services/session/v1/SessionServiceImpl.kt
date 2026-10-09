@@ -100,7 +100,7 @@ class SessionServiceImpl(
     private val sessionRegistry: SessionRegistry = SessionRegistry.Noop,
     private val pushDelivery: PushDeliveryStore? = null,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
-    coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
+    private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
 ) : BaseServiceImpl(), SessionServer, SessionGatewayServer, BroadcastAdminServer {
     private val lifecycleStarted = java.util.concurrent.atomic.AtomicBoolean(false)
     private val lifecycleClosed = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -418,7 +418,7 @@ class SessionServiceImpl(
         pushWorker?.closeAndJoin()
         dispatchers.closeAndJoin()
     }
-    fun close() = ServiceLifecycle.blockingClose { closeAndJoin() }
+    fun close() = ServiceLifecycle.blockingClose(coroutineContext) { closeAndJoin() }
 
     override suspend fun postEvents(context: GrpcRequestContext, request: PostEventsRequest): PostEventsResponse =
         meterRegistry.trackRpc(TelemetryOperation.SESSION_POST_MANY, telemetry, { if (it.results.all { result -> result.result.isOk() }) TelemetryOutcome.OK else TelemetryOutcome.REJECTED }) { observedPostEvents(context, request) }

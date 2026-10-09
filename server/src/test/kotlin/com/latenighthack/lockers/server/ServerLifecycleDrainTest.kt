@@ -124,4 +124,71 @@ class ServerLifecycleDrainTest {
         assertTrue(stopped.get())
     }
 
+    @OptIn(DelicateCoroutinesApi::class, ExperimentalCoroutinesApi::class)
+    @Test fun `custom single thread embedding requires suspend shutdown`(): Unit = runBlocking {
+        val dispatcher = newSingleThreadContext("embedder-main")
+        val core = ServerCore::class.create(LockersConfig.defaults().copy(deliveryWorkerEnabled = false), ServerStorage.inMemory())
+        core.overrideCoroutineContext = dispatcher
+        core.overridePushProviders = emptyList()
+        core.setup()
+        val entered = CompletableDeferred<Unit>()
+        val cleaned = CompletableDeferred<Unit>()
+        val extension = object : ServerExtension {
+            override suspend fun start(scope: CoroutineScope) {
+                scope.launch(dispatcher) {
+                    entered.complete(Unit)
+                    try { awaitCancellation() }
+                    finally { withContext(NonCancellable) { delay(10); cleaned.complete(Unit) } }
+                }
+            }
+        }
+        val component = MonolithComponent(core, listOf(extension))
+        try {
+            component.start()
+            withTimeout(1000) { entered.await() }
+            withContext(dispatcher) { assertFailsWith<IllegalStateException> { component.stop() } }
+            withTimeout(1000) { withContext(dispatcher) { component.closeAndJoin() } }
+            assertTrue(cleaned.isCompleted)
+        } finally { component.closeAndJoin(); dispatcher.close() }
+    }
+
+    @Test fun `provider asynchronous closure is awaited`(): Unit = runBlocking {
+        val entered = CompletableDeferred<Unit>()
+        val finish = CompletableDeferred<Unit>()
+        val provider = object : PushProvider {
+            override val backend = PushBackendKind.APNS
+            override val isConfigured = true
+            override suspend fun send(registration: PushRegistration, push: Push) = PushResult.Accepted
+            override suspend fun closeAndJoin() { entered.complete(Unit); finish.await() }
+        }
+        val core = ServerCore::class.create(LockersConfig.defaults(), ServerStorage.inMemory())
+        core.overridePushProviders = listOf(provider)
+        core.setup()
+        val component = MonolithComponent(core)
+        try {
+            val closing = async { component.closeAndJoin() }
+            entered.await()
+            assertFalse(closing.isCompleted)
+            finish.complete(Unit)
+            closing.await()
+        } finally { finish.complete(Unit); component.closeAndJoin() }
+    }
+
+    @Test fun `provider construction unwinds earlier resources and suppresses cleanup failures`() {
+        val failed = IllegalArgumentException("construction failed")
+        val cleanup = IllegalStateException("close failed")
+        val closed = AtomicBoolean(false)
+        val first = object : PushProvider {
+            override val backend = PushBackendKind.APNS
+            override val isConfigured = true
+            override suspend fun send(registration: PushRegistration, push: Push) = PushResult.Accepted
+            override fun close() { closed.set(true); throw cleanup }
+        }
+        assertSame(failed, assertFailsWith<IllegalArgumentException> {
+            PushProviders.build(listOf({ first }, { throw failed }))
+        })
+        assertTrue(closed.get())
+        assertContentEquals(arrayOf(cleanup), failed.suppressed)
+    }
+
 }

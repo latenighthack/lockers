@@ -25,8 +25,10 @@ class ApnsPushProvider(private val config: ApnsConfig) : PushProvider {
     override val backend = PushBackendKind.APNS
     override val isConfigured: Boolean get() = config.isConfigured
 
-    private val productionClient by lazy { buildClient(production = true) }
-    private val developmentClient by lazy { buildClient(production = false) }
+    private val productionClientHolder = lazy { buildClient(production = true) }
+    private val developmentClientHolder = lazy { buildClient(production = false) }
+    private val productionClient by productionClientHolder
+    private val developmentClient by developmentClientHolder
 
     private fun buildClient(production: Boolean): ApnsClient? {
         if (!config.isConfigured) {
@@ -91,7 +93,15 @@ class ApnsPushProvider(private val config: ApnsConfig) : PushProvider {
     }
 
     override fun close() {
-        runCatching { if (config.isConfigured) productionClient?.close() }
-        runCatching { if (config.isConfigured) developmentClient?.close() }
+        for (holder in listOf(productionClientHolder, developmentClientHolder)) if (holder.isInitialized()) holder.value?.close()
+    }
+
+    override suspend fun closeAndJoin() {
+        var failed: Throwable? = null
+        for (holder in listOf(productionClientHolder, developmentClientHolder)) if (holder.isInitialized()) {
+            try { holder.value?.close()?.await() }
+            catch (failure: Throwable) { if (failed == null) failed = failure else failed!!.addSuppressed(failure) }
+        }
+        failed?.let { throw it }
     }
 }

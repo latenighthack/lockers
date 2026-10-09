@@ -63,7 +63,7 @@ class RoomServiceImpl(
     private val config: LockersConfig,
     deliveryOutbox: DeliveryOutboxStore? = null,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
-    coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
+    private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
 ) : BaseServiceImpl(), RoomServer {
     private val deliveryOutbox = deliveryOutbox ?: lockStore.deliveryOutbox()
     private val lifecycleStarted = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -810,5 +810,5 @@ class RoomServiceImpl(
         deliveryWorker?.closeAndJoin()
         dispatchers.closeAndJoin()
     }
-    fun close() = ServiceLifecycle.blockingClose { closeAndJoin() }
+    fun close() = ServiceLifecycle.blockingClose(coroutineContext) { closeAndJoin() }
 }

@@ -227,5 +227,5 @@ class MonolithComponent(
     }
 
     /** Compatibility adapter; external owners can use closeAndJoin without blocking a thread. */
-    fun stop() = ServiceLifecycle.blockingClose { closeAndJoin() }
+    fun stop() = ServiceLifecycle.blockingClose(serverCore.coroutineContext) { closeAndJoin() }
 }

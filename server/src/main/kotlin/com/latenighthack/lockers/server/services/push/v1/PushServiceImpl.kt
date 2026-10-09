@@ -97,7 +97,7 @@ class PushServiceImpl(
     private val pushProviders: List<PushProvider>,
     private val dispatch: PushDispatchConfig = PushDispatchConfig.DEFAULT,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
-    coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
+    private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
 ) : BaseServiceImpl(), PushServer, PushGatewayServer, PushAdminServer {
     private val logger = LoggerFactory.getLogger(PushServiceImpl::class.java)
 
@@ -210,7 +210,7 @@ class PushServiceImpl(
         }
     }
 
-    fun stop() = ServiceLifecycle.blockingClose { stopAndJoin() }
+    fun stop() = ServiceLifecycle.blockingClose(coroutineContext) { stopAndJoin() }
 
     suspend fun stopAndJoin() {
         ServiceLifecycle.requireExternalClose()
@@ -225,7 +225,7 @@ class PushServiceImpl(
                     try { pushQueueStore.release(claim, System.currentTimeMillis()) } catch (failure: Throwable) { record(failure) }
                 }
                 localClaims.clear()
-                pushProviders.forEach { try { it.close() } catch (failure: Throwable) { record(failure) } }
+                pushProviders.forEach { try { it.closeAndJoin() } catch (failure: Throwable) { record(failure) } }
                 workAvailable.close()
                 failed?.let { throw it }
             }

@@ -14,7 +14,7 @@ import com.latenighthack.lockers.server.tools.safeMeters
 import java.util.concurrent.TimeUnit
 
 /** Leases recover after process death; stable event ids make retries safe at the gateway. */
-class DeliveryWorker(private val store: DeliveryOutboxStore, private val discovery: SessionGatewayDiscovery, private val meters: MeterRegistry? = null, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, private val queue: String = "room", coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext) {
+class DeliveryWorker(private val store: DeliveryOutboxStore, private val discovery: SessionGatewayDiscovery, private val meters: MeterRegistry? = null, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, private val queue: String = "room", private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext) {
     init { meters?.counter("lockers.delivery.accepted", "queue", queue); meters?.counter("lockers.delivery.attempts", "queue", queue); meters?.counter("lockers.delivery.failures", "queue", queue) }
     private val active = java.util.concurrent.atomic.AtomicInteger(0)
     init { meters?.gauge("lockers.delivery.worker.active", listOf(io.micrometer.core.instrument.Tag.of("queue", queue)), active) { it.get().toDouble() } }
@@ -122,5 +122,5 @@ class DeliveryWorker(private val store: DeliveryOutboxStore, private val discove
         scope.coroutineContext[Job]!!.cancelAndJoin()
         active.set(0)
     }
-    fun close() = com.latenighthack.lockers.server.tools.ServiceLifecycle.blockingClose { closeAndJoin() }
+    fun close() = com.latenighthack.lockers.server.tools.ServiceLifecycle.blockingClose(coroutineContext) { closeAndJoin() }
 }
