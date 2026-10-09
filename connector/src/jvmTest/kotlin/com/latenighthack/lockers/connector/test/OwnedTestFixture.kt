@@ -53,7 +53,7 @@ internal fun <T> runOwnedTestWithServer(
         withContext(resources) {
             val runnerJob = currentCoroutineContext()[Job]!!
             var runnerFailure: Throwable? = null
-            try { runner(server, context) }
+            try { runner.invoke(CoroutineScope(currentCoroutineContext()), server, context) }
             catch (error: Throwable) { runnerFailure = error; throw error }
             finally {
                 withContext(NonCancellable) { runnerJob.children.toList().forEach { it.cancelAndJoin() } }

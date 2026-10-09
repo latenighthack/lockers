@@ -15,3 +15,10 @@ matches the owned Stream fixture and prevents virtual heartbeats/reconnects
 from outrunning real sockets. All 139 JVM tests then passed in 24 seconds
 (`/tmp/connector-fixture-clock-fix.log`); production coroutine ownership and
 retry timing are unchanged.
+
+A second ownership regression appeared on normal fixture return: the suspend
+runner extension was invoked with the outer `runTest` CoroutineScope receiver,
+so `launch` collectors escaped the runner Job inspected by cleanup. The fixture
+now passes `CoroutineScope(currentCoroutineContext())` explicitly. The normal
+return regression and complete 153-test JVM suite pass in 18 seconds
+(`/tmp/connector-controller-final-suite.log`), with no relaxed deadlines.
