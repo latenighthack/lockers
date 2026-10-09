@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.SubscriptionLockOrderTest" tests="2" skipped="0" failures="2" errors="0" timestamp="2026-10-09T04:11:52.357Z" hostname="Mikes-MacBook-Pro.local" time="4.906">
+  <properties/>
+  <testcase name="signed monolith subscription does not invert dispatcher and database ownership()" classname="com.latenighthack.lockers.server.SubscriptionLockOrderTest" time="2.445">
+    <failure message="kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 2000 ms" type="kotlinx.coroutines.TimeoutCancellationException">kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 2000 ms
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at com.latenighthack.lockers.server.SubscriptionLockOrderTest$exercise$2$4.invokeSuspend(SubscriptionLockOrderTest.kt:79)
+	at com.latenighthack.lockers.server.SubscriptionLockOrderTest$exercise$2.invokeSuspend(SubscriptionLockOrderTest.kt:78)
+	at com.latenighthack.lockers.server.SubscriptionLockOrderTest$signed monolith subscription does not invert dispatcher and database ownership$1.invokeSuspend(SubscriptionLockOrderTest.kt:23)
+Caused by: kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 2000 ms
+	at kotlinx.coroutines.TimeoutKt.TimeoutCancellationException(Timeout.kt:189)
+	at kotlinx.coroutines.TimeoutCoroutine.run(Timeout.kt:157)
+	at kotlinx.coroutines.EventLoopImplBase$DelayedRunnableTask.run(EventLoop.common.kt:505)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+	at kotlinx.coroutines.DefaultExecutor.run(DefaultExecutor.kt:105)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+</failure>
+  </testcase>
+  <testcase name="signed PostgreSQL subscription does not invert dispatcher and room transaction across handles()" classname="com.latenighthack.lockers.server.SubscriptionLockOrderTest" time="2.454">
+    <failure message="kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 2000 ms" type="kotlinx.coroutines.TimeoutCancellationException">kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 2000 ms
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at com.latenighthack.lockers.server.SubscriptionLockOrderTest$exercise$2$4.invokeSuspend(SubscriptionLockOrderTest.kt:79)
+	at com.latenighthack.lockers.server.SubscriptionLockOrderTest$exercise$2.invokeSuspend(SubscriptionLockOrderTest.kt:78)
+	at com.latenighthack.lockers.server.SubscriptionLockOrderTest$signed PostgreSQL subscription does not invert dispatcher and room transaction across handles$1.invokeSuspend(SubscriptionLockOrderTest.kt:31)
+Caused by: kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 2000 ms
+	at kotlinx.coroutines.TimeoutKt.TimeoutCancellationException(Timeout.kt:189)
+	at kotlinx.coroutines.TimeoutCoroutine.run(Timeout.kt:157)
+	at kotlinx.coroutines.EventLoopImplBase$DelayedRunnableTask.run(EventLoop.common.kt:505)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+	at kotlinx.coroutines.DefaultExecutor.run(DefaultExecutor.kt:105)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>
