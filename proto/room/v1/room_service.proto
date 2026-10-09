@@ -23,6 +23,8 @@ service Room {
 }
 
 message SubscriptionRequest {
+  // Monotonic durable intent generation, signed by the session proof.
+  int64 intent_revision = 3;
   common.v1.SessionProof proof = 20;
   common.v1.SessionId session_id = 1;
   common.v1.RoomId room_id = 2;
@@ -41,10 +43,13 @@ message SubscriptionRequest {
 
 message SubscriptionResponse {
   Result result = 1;
+  // Durable current generation for this session and room; no mutation on STALE_INTENT.
+  int64 current_revision = 2;
   enum Result {
     OK = 0;
     // Invalid stored body: metadata identifies the version requiring owner repair.
     INVALID_DATA = 2;
+    STALE_INTENT = 3;
     UNKNOWN_ERROR = 10;
   }
 }
@@ -230,8 +235,11 @@ message CapabilitiesResponse {
   bool snapshot_paging = 8;
   bool write_outcomes = 14;
   bool delete_receipts = 15;
+  bool subscription_revisions = 16;
 }
 message SubscribeAndSnapshotRequest {
+  // The same subscription intent generation is used on every snapshot page.
+  int64 intent_revision = 4;
   common.v1.SessionProof proof = 20;
   common.v1.RoomId room_id = 1;
   common.v1.SessionId session_id = 2;
@@ -241,6 +249,7 @@ message SubscribeAndSnapshotRequest {
 }
 message SubscribeAndSnapshotResponse {
   SubscriptionResponse.Result result = 1;
+  int64 current_revision = 5;
   repeated common.v1.IdentifiedLocker lockers = 2;
   int64 room_sequence = 3;
   bytes next_page_token = 4;
