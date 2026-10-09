@@ -1,0 +1,36 @@
+{
+  "jvmTest": {
+    "tests": 195,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "jsNodeTest": {
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "iosSimulatorArm64Test": {
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "jsBrowserTest": {
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "connected": {
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "manifest": "dependencies-indexeddb-final.json",
+  "ktstore": "0.2.0-fh.d53a47cbc15434b3ce1e",
+  "ktbuf": "1.1.10-fh.9c3962ea021c76107b84",
+  "android_device": "emulator-5590"
+}
