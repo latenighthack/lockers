@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="InviteLinkTests[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:21:10.652Z" hostname="Mikes-MacBook-Pro.local" time="0.094">
+  <properties/>
+  <testcase name="rejects garbage[jvm]" classname="gg.roll.viewmodel.core.InviteLinkTests" time="0.008"/>
+  <testcase name="parses link embedded in longer text[jvm]" classname="gg.roll.viewmodel.core.InviteLinkTests" time="0.084"/>
+  <testcase name="room link round trips[jvm]" classname="gg.roll.viewmodel.core.InviteLinkTests" time="0.0"/>
+  <testcase name="profile link round trips[jvm]" classname="gg.roll.viewmodel.core.InviteLinkTests" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

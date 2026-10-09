@@ -1,0 +1,279 @@
+{
+  "schema": 1,
+  "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners",
+  "revision": "f5e9eaa801ff90c7c81538025a9d545a6c75056a",
+  "sourceHash": "d1cd270704ab9c7d550cf14a44e0e1179f5d293981b39f4e6697b04e61d4c2d1",
+  "inputsHash": "d53a47cbc15434b3ce1e3bfc9de5b89ec81236975676ce356e417688b4b4878c",
+  "version": "0.2.0-fh.d53a47cbc15434b3ce1e",
+  "group": "com.latenighthack.ktstore",
+  "artifacts": [
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-0.2.0-fh.d53a47cbc15434b3ce1e-javadoc.jar",
+      "hash": "6ae078b1d137b1190e92cb885666215e3074adb2734442b7599380f9fd5b7b10"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-0.2.0-fh.d53a47cbc15434b3ce1e-kotlin-tooling-metadata.json",
+      "hash": "57f48ae2b7fd781be7fb32d2c541b04783c8cf9c6163db43c86933673709e499"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-0.2.0-fh.d53a47cbc15434b3ce1e-sources.jar",
+      "hash": "7529ea43523fccf978ec8edcd95abb554c240a9ef8ad71cf1c19501ddb843ec8"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-0.2.0-fh.d53a47cbc15434b3ce1e.jar",
+      "hash": "07e97edf78eae644e948761d3c3fed48ba409a2143304d7cc8df04f3591cc07b"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-0.2.0-fh.d53a47cbc15434b3ce1e.module",
+      "hash": "26b6a181acb439a30b1445bef5da219bdabd7a934b866082b8b31e779938ad7a"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-0.2.0-fh.d53a47cbc15434b3ce1e.pom",
+      "hash": "dcd49b3143a246ff326433650264538f90fd0944314a531e77f4eeffb3d3b92e"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-android/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-android-0.2.0-fh.d53a47cbc15434b3ce1e-javadoc.jar",
+      "hash": "94bb49e1c03b78ea0900734563f55717b78f227bd6cb3fee5a6096d4185e6f87"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-android/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-android-0.2.0-fh.d53a47cbc15434b3ce1e-sources.jar",
+      "hash": "2119879c56490efa49948e5c626f82d85817320a2fcc0a718d64058b48046a6a"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-android/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-android-0.2.0-fh.d53a47cbc15434b3ce1e.aar",
+      "hash": "39d828735bc48e61c02d805c7bfe7d9c183d145617948868f5065296fcf53638"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-android/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-android-0.2.0-fh.d53a47cbc15434b3ce1e.module",
+      "hash": "c17fc057746f010851cabe453486b6259e0fbc30f8a787fd010a7a9fc20effab"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-android/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-android-0.2.0-fh.d53a47cbc15434b3ce1e.pom",
+      "hash": "29744df44142b652fc89e1e6d463c70a14215788591bdaf847c06890c0560e0d"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosarm64-0.2.0-fh.d53a47cbc15434b3ce1e-cinterop-sqlite3.klib",
+      "hash": "4eb13df6c737d4f9f1447365bd1cb4eddee7014d6ccd4579c75381c6db352ca3"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosarm64-0.2.0-fh.d53a47cbc15434b3ce1e-javadoc.jar",
+      "hash": "4addb09f1c71b8cada3a8ce08f66e84e9703c849100c139642c8ab8ed8c60eac"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosarm64-0.2.0-fh.d53a47cbc15434b3ce1e-metadata.jar",
+      "hash": "8128a90c1fcf328c2e57730f15f43d2793763228498d7965670f68ff75c153c4"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosarm64-0.2.0-fh.d53a47cbc15434b3ce1e-sources.jar",
+      "hash": "7529ea43523fccf978ec8edcd95abb554c240a9ef8ad71cf1c19501ddb843ec8"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosarm64-0.2.0-fh.d53a47cbc15434b3ce1e.klib",
+      "hash": "64e8b4cf94c6c296f0e9dc36ffe354c3af4fe48a3376dce8d31a3f54d1e448ff"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosarm64-0.2.0-fh.d53a47cbc15434b3ce1e.module",
+      "hash": "b7e9030dcffaa80eae473d27f54e50a911e72eecbed8af5a0b54436790023b7b"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosarm64-0.2.0-fh.d53a47cbc15434b3ce1e.pom",
+      "hash": "0fe041867922143bfedcd8d89276fff3f52b55284f175b820ac1265d364629a2"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iossimulatorarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iossimulatorarm64-0.2.0-fh.d53a47cbc15434b3ce1e-cinterop-sqlite3.klib",
+      "hash": "1324bf68d7036077526a0f85929ea9ad6428c927132228070535fe7de90179e9"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iossimulatorarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iossimulatorarm64-0.2.0-fh.d53a47cbc15434b3ce1e-javadoc.jar",
+      "hash": "6ae078b1d137b1190e92cb885666215e3074adb2734442b7599380f9fd5b7b10"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iossimulatorarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iossimulatorarm64-0.2.0-fh.d53a47cbc15434b3ce1e-metadata.jar",
+      "hash": "8128a90c1fcf328c2e57730f15f43d2793763228498d7965670f68ff75c153c4"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iossimulatorarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iossimulatorarm64-0.2.0-fh.d53a47cbc15434b3ce1e-sources.jar",
+      "hash": "7529ea43523fccf978ec8edcd95abb554c240a9ef8ad71cf1c19501ddb843ec8"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iossimulatorarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iossimulatorarm64-0.2.0-fh.d53a47cbc15434b3ce1e.klib",
+      "hash": "2cc9979715126a435aa67f38aa895b5b339ac3f84100746ffcf55c6fd0ef173a"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iossimulatorarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iossimulatorarm64-0.2.0-fh.d53a47cbc15434b3ce1e.module",
+      "hash": "5f8215885c570518def6feb9da21ca2614003014b526ce0e076cd09aa01fdb17"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iossimulatorarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iossimulatorarm64-0.2.0-fh.d53a47cbc15434b3ce1e.pom",
+      "hash": "0aa4e3bc14605b6669ada3f593856e5c71c4d2d07d131a8e8977a21b42646a4a"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosx64-0.2.0-fh.d53a47cbc15434b3ce1e-cinterop-sqlite3.klib",
+      "hash": "23032aac8f050c77ea9bcdb7fb2757d30c572b090facd54af2a3341ad2f2dd42"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosx64-0.2.0-fh.d53a47cbc15434b3ce1e-javadoc.jar",
+      "hash": "6ae078b1d137b1190e92cb885666215e3074adb2734442b7599380f9fd5b7b10"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosx64-0.2.0-fh.d53a47cbc15434b3ce1e-metadata.jar",
+      "hash": "d5cb1792dad7c8d0ae3a5feab49078f2f4ccb490b8cbea05b4eda3917f3cab45"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosx64-0.2.0-fh.d53a47cbc15434b3ce1e-sources.jar",
+      "hash": "7529ea43523fccf978ec8edcd95abb554c240a9ef8ad71cf1c19501ddb843ec8"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosx64-0.2.0-fh.d53a47cbc15434b3ce1e.klib",
+      "hash": "d3a2f8cb6feb6ba25cac3564e6974ae47f5b88993b685e59e373426594b031d6"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosx64-0.2.0-fh.d53a47cbc15434b3ce1e.module",
+      "hash": "48611ea875a0161900154a0626cf361e04c6868ec678b1288aff9fddf81964d1"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-iosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-iosx64-0.2.0-fh.d53a47cbc15434b3ce1e.pom",
+      "hash": "0c4650286f8b8474426bc4998a75e489d9b571510fdf53a3a3c9684f986cd355"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-js/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-js-0.2.0-fh.d53a47cbc15434b3ce1e-javadoc.jar",
+      "hash": "6ae078b1d137b1190e92cb885666215e3074adb2734442b7599380f9fd5b7b10"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-js/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-js-0.2.0-fh.d53a47cbc15434b3ce1e-sources.jar",
+      "hash": "1f5a3f09ac463262dfe26046297bccbac21a59ad36de6b4d18f382e60ade8044"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-js/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-js-0.2.0-fh.d53a47cbc15434b3ce1e.klib",
+      "hash": "8b494e6c74ec8244e23136879441e9d7e74f81c32e79e8069398d5dc600b2110"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-js/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-js-0.2.0-fh.d53a47cbc15434b3ce1e.module",
+      "hash": "7ed58126492ad1ce59c3b2a4077960fcddf1a6d49c48ee0b06ee4a087bb9ac93"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-js/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-js-0.2.0-fh.d53a47cbc15434b3ce1e.pom",
+      "hash": "8892786ad8aeef52508d23cdd6753755e99f737f7b29bee34da6c320ecf1e086"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-jvm/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-jvm-0.2.0-fh.d53a47cbc15434b3ce1e-javadoc.jar",
+      "hash": "6ae078b1d137b1190e92cb885666215e3074adb2734442b7599380f9fd5b7b10"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-jvm/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-jvm-0.2.0-fh.d53a47cbc15434b3ce1e-sources.jar",
+      "hash": "704e16dd55677e26f0f4fd599700787ecd43a9d9daeb07ed6034f5746ae8303f"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-jvm/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-jvm-0.2.0-fh.d53a47cbc15434b3ce1e.jar",
+      "hash": "26ac1a1b23c96a25fde7ffef549997a42e3c5ec457ee9728ecb8867697d57007"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-jvm/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-jvm-0.2.0-fh.d53a47cbc15434b3ce1e.module",
+      "hash": "6ba43674b8a64f3a75b808782c61da7239e6b9322ddb644948b975a8d0ef2273"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-jvm/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-jvm-0.2.0-fh.d53a47cbc15434b3ce1e.pom",
+      "hash": "42f8b398f3aa8f7d142d4f094300a9d1fa657084a02de3d38e90a9e9b4183408"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosarm64-0.2.0-fh.d53a47cbc15434b3ce1e-cinterop-sqlite3.klib",
+      "hash": "b82fb383ef366ab21e1c5e556acb4d18483a060ab31bec0776af6850f1afe9e7"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosarm64-0.2.0-fh.d53a47cbc15434b3ce1e-javadoc.jar",
+      "hash": "6ae078b1d137b1190e92cb885666215e3074adb2734442b7599380f9fd5b7b10"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosarm64-0.2.0-fh.d53a47cbc15434b3ce1e-metadata.jar",
+      "hash": "d5cb1792dad7c8d0ae3a5feab49078f2f4ccb490b8cbea05b4eda3917f3cab45"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosarm64-0.2.0-fh.d53a47cbc15434b3ce1e-sources.jar",
+      "hash": "7529ea43523fccf978ec8edcd95abb554c240a9ef8ad71cf1c19501ddb843ec8"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosarm64-0.2.0-fh.d53a47cbc15434b3ce1e.klib",
+      "hash": "47b74d4abf6edeec86d387bc3556d5f26d3f34686c1ddca70a46bb02f0470c3a"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosarm64-0.2.0-fh.d53a47cbc15434b3ce1e.module",
+      "hash": "abe677296f22e7d03bfc670f89848f955d17bfd986bcecec0696d57b56a3ec90"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosarm64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosarm64-0.2.0-fh.d53a47cbc15434b3ce1e.pom",
+      "hash": "2ed549b840fdb4e8d9dd1b5c7e87c7ed3f0cb63dc7a46b106e5ab0f8ec9977fa"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosx64-0.2.0-fh.d53a47cbc15434b3ce1e-cinterop-sqlite3.klib",
+      "hash": "b01ed25902a3eab68613df411cca409f9507c219a47fce13d8618c3a56e73aac"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosx64-0.2.0-fh.d53a47cbc15434b3ce1e-javadoc.jar",
+      "hash": "6ae078b1d137b1190e92cb885666215e3074adb2734442b7599380f9fd5b7b10"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosx64-0.2.0-fh.d53a47cbc15434b3ce1e-metadata.jar",
+      "hash": "d5cb1792dad7c8d0ae3a5feab49078f2f4ccb490b8cbea05b4eda3917f3cab45"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosx64-0.2.0-fh.d53a47cbc15434b3ce1e-sources.jar",
+      "hash": "7529ea43523fccf978ec8edcd95abb554c240a9ef8ad71cf1c19501ddb843ec8"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosx64-0.2.0-fh.d53a47cbc15434b3ce1e.klib",
+      "hash": "a703cfa0cbce3ecacea7a9a0a52ae6474133208fe0fb591b95917a0cfd1c7759"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosx64-0.2.0-fh.d53a47cbc15434b3ce1e.module",
+      "hash": "8e7034639c768c84652a5d3dc480f9fac992b57d754379464dd9c30ceb2eb07d"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-library-macosx64/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-library-macosx64-0.2.0-fh.d53a47cbc15434b3ce1e.pom",
+      "hash": "a2fae6ffeebc81907544daf36cd26f8e4d03d466cf9ff5848d1b96a3a0bf12fe"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-migration-tooling/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-migration-tooling-0.2.0-fh.d53a47cbc15434b3ce1e-javadoc.jar",
+      "hash": "6ae078b1d137b1190e92cb885666215e3074adb2734442b7599380f9fd5b7b10"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-migration-tooling/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-migration-tooling-0.2.0-fh.d53a47cbc15434b3ce1e-kotlin-tooling-metadata.json",
+      "hash": "b26b9d612d0e07f59c5032bf17ca20551a3ddb7d3046fdeca8d4b58fd31246d6"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-migration-tooling/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-migration-tooling-0.2.0-fh.d53a47cbc15434b3ce1e-sources.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-migration-tooling/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-migration-tooling-0.2.0-fh.d53a47cbc15434b3ce1e.jar",
+      "hash": "089e24417bf9f6c34eec5720eebb2cbcc82ea2855ecef90133eb17e1079d5868"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-migration-tooling/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-migration-tooling-0.2.0-fh.d53a47cbc15434b3ce1e.module",
+      "hash": "e2e4327953571af81bcecb73bb2812c4bd655fb07206f4fda385b71efca21ab8"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-migration-tooling/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-migration-tooling-0.2.0-fh.d53a47cbc15434b3ce1e.pom",
+      "hash": "313cf4b5d18f8cc874ad7e8f14aee2beabbc246f066448d4fc97dfc33a33ca0f"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-migration-tooling-jvm/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-migration-tooling-jvm-0.2.0-fh.d53a47cbc15434b3ce1e-javadoc.jar",
+      "hash": "6ae078b1d137b1190e92cb885666215e3074adb2734442b7599380f9fd5b7b10"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-migration-tooling-jvm/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-migration-tooling-jvm-0.2.0-fh.d53a47cbc15434b3ce1e-sources.jar",
+      "hash": "1ee17d01e8cefb0b397a5f89af73afee5de18e85bfac9e5eaacc0bbc4b348d46"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-migration-tooling-jvm/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-migration-tooling-jvm-0.2.0-fh.d53a47cbc15434b3ce1e.jar",
+      "hash": "982d7ff59aad0015bf028d2549437c30a8259667ab889e9d3f7fe59eb5a47605"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-migration-tooling-jvm/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-migration-tooling-jvm-0.2.0-fh.d53a47cbc15434b3ce1e.module",
+      "hash": "b692fe3635de3d08b7d928eabbce6a58dbe96c0738f2e3f2931d5c7dd0640761"
+    },
+    {
+      "path": "com/latenighthack/ktstore/ktstore-migration-tooling-jvm/0.2.0-fh.d53a47cbc15434b3ce1e/ktstore-migration-tooling-jvm-0.2.0-fh.d53a47cbc15434b3ce1e.pom",
+      "hash": "9f9c8a76b99d2e78b3d7fad2eac685a482e83c52bfa2987624e97bd3d09911dd"
+    }
+  ]
+}

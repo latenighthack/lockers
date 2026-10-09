@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="GameFlowTests[jvm]" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:20:21.924Z" hostname="Mikes-MacBook-Pro.local" time="11.494">
+  <properties/>
+  <testcase name="agent step passes manifest path to driver[jvm]" classname="gg.roll.fullhouse.server.services.test.GameFlowTests" time="1.639"/>
+  <testcase name="driver error surfaces as agent failure without failing the lobby write[jvm]" classname="gg.roll.fullhouse.server.services.test.GameFlowTests" time="1.079"/>
+  <testcase name="game result operation publishes complete frames with seat outcomes[jvm]" classname="gg.roll.fullhouse.server.services.test.GameFlowTests" time="1.128"/>
+  <testcase name="lobby update triggers agent and publishes game frames[jvm]" classname="gg.roll.fullhouse.server.services.test.GameFlowTests" time="1.071"/>
+  <testcase name="moves replace saved seat snapshots including accumulated legacy entries[jvm]" classname="gg.roll.fullhouse.server.services.test.GameFlowTests" time="0.013"/>
+  <testcase name="second history step updates game frames[jvm]" classname="gg.roll.fullhouse.server.services.test.GameFlowTests" time="1.123"/>
+  <testcase name="all seats filled with no history produces initial frames[jvm]" classname="gg.roll.fullhouse.server.services.test.GameFlowTests" time="1.072"/>
+  <testcase name="non-lobby locker does not trigger agent[jvm]" classname="gg.roll.fullhouse.server.services.test.GameFlowTests" time="1.119"/>
+  <testcase name="filled seats without started flag do not trigger step[jvm]" classname="gg.roll.fullhouse.server.services.test.GameFlowTests" time="1.066"/>
+  <testcase name="partially filled seats do not trigger step[jvm]" classname="gg.roll.fullhouse.server.services.test.GameFlowTests" time="1.12"/>
+  <testcase name="lobby with empty seats does not produce game frames[jvm]" classname="gg.roll.fullhouse.server.services.test.GameFlowTests" time="1.063"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

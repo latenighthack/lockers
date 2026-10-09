@@ -1,0 +1,723 @@
+{
+  "schema": 1,
+  "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktbuf-review-publish",
+  "revision": "780bcc0bad28f59be37edc7d9ddb4c3c72bd8705",
+  "sourceHash": "3cd9dcf82328783b156d18c2399ea4b16ec49b4d789ce25f4a12c1e4eb40b07d",
+  "inputsHash": "9c3962ea021c76107b844f286dbc672b5718083875ac7832e66f51fd357d76f4",
+  "version": "1.1.10-fh.9c3962ea021c76107b84",
+  "group": "com.latenighthack.ktbuf",
+  "artifacts": [
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "728e747043cf682345ef862e93aebbc11d66f0ba5322b427290598910b542c25"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-1.1.10-fh.9c3962ea021c76107b84-kotlin-tooling-metadata.json",
+      "hash": "4daa3d57328ab1e6d1039e8f0c006305aff3b1b9987356e93491064c5b493d33"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "9827e8e76ca2daa94e3522bdf8e92728bb3f9fa87601a6f5fd5a5de9ac06da2f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-1.1.10-fh.9c3962ea021c76107b84.jar",
+      "hash": "a998ae744eab1910e1ef9edf22b66bfb6dc644204a84206e23a2acefb1721559"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "e8c6957f57ef5d4d3c94cbf9cba11005f3dff78d10bf6d06fbff3829570b8670"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "5f8494f7a7e5b7dc02ff783c1795b1171f79538ce58c7a9b1c3c1deaf3b452a7"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-android-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "20b789b558d8101a8e7dff45c6ea1cb01f628eb19be828800b6e037c044dd867"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-android-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "9827e8e76ca2daa94e3522bdf8e92728bb3f9fa87601a6f5fd5a5de9ac06da2f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-android-1.1.10-fh.9c3962ea021c76107b84.aar",
+      "hash": "28fce31bc83cf9663e162826202ad83f57814501224b5009826aec7e05309826"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-android-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "2bb07eb6c67f0afb820c924e2094ebb0cbd0fdabcbefbbb30ca2523a962d34fc"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-android-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "9f212ecd5469fabca8e98dad4f2e13582e6724720f4e6f205a368e8c3d6f18f7"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iosarm64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "d109df6b8c78b51b062c6f91fb1aa1b71229ced0655bba214cba3716295b151a"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iosarm64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "d109df6b8c78b51b062c6f91fb1aa1b71229ced0655bba214cba3716295b151a"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iosarm64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "9827e8e76ca2daa94e3522bdf8e92728bb3f9fa87601a6f5fd5a5de9ac06da2f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iosarm64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "0e884a3075f04d63165d78322cf218ad211ee519c0de012387f1c0c33bbf2d15"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iosarm64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "444bdfe61fb34939115a133701a363221a5466e774df538afd30e78e763c58a9"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iosarm64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "3f92dfa56a349d6912b9def0d7360e56e634b5ec71c3518d2ede2806de9bc61f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "d109df6b8c78b51b062c6f91fb1aa1b71229ced0655bba214cba3716295b151a"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "d109df6b8c78b51b062c6f91fb1aa1b71229ced0655bba214cba3716295b151a"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "9827e8e76ca2daa94e3522bdf8e92728bb3f9fa87601a6f5fd5a5de9ac06da2f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "16f8f27f445899b670833059f71133296d01cd1238cb0a60ae0d947442235986"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "d0715bc91bfb2f332998d01bc4a3ce34831751782a4f238c226fd65a0ad9d86b"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "927857eb5f78cec98e3ce66c7d48fbae7489533a883c655c33fb661d7a10b001"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iosx64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "728e747043cf682345ef862e93aebbc11d66f0ba5322b427290598910b542c25"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iosx64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "728e747043cf682345ef862e93aebbc11d66f0ba5322b427290598910b542c25"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iosx64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "9827e8e76ca2daa94e3522bdf8e92728bb3f9fa87601a6f5fd5a5de9ac06da2f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iosx64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "ec0267428a4f595e3777b1f6d2e81198cc8e2923c45b2227a45eecd9c9740eee"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iosx64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "8d2861a3103b599bef15ec0eb317d560c81a778af78c9590b2803ccd16a1187b"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-iosx64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "3df5792d03527f6f841149ee6711c9892794552dfab588806488b7efd3cb97f5"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-js-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "728e747043cf682345ef862e93aebbc11d66f0ba5322b427290598910b542c25"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-js-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "9827e8e76ca2daa94e3522bdf8e92728bb3f9fa87601a6f5fd5a5de9ac06da2f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-js-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "7552e2183342a05a5d5d61020363ee14b13a52305bcf9a7f01c67277d6fc7303"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-js-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "58028976177321774b6bda95875e890844aa82a7fd662fd533f5d22959036ab7"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-js-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "a122c8290029eee8fe1a998f3b12f8a6a04600a405be1e8ff8cb8f1d960b354e"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-jvm-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "728e747043cf682345ef862e93aebbc11d66f0ba5322b427290598910b542c25"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-jvm-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "9827e8e76ca2daa94e3522bdf8e92728bb3f9fa87601a6f5fd5a5de9ac06da2f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-jvm-1.1.10-fh.9c3962ea021c76107b84.jar",
+      "hash": "fe1a78bf62eb284a04353c8bd53f4a7f032628b6c47c1eec2ed114778bc3dc29"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-jvm-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "c3bc0f6d29eb3c7ee4ac8694157d55135db79affe48f297d9670682de82f734b"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-jvm-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "076edc30269d8e2472b7edfa270006b14a3354b5fdacc559c855af2ae8518818"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-linuxx64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "10d0b2b3e6e1ab240269384c09fd32d00f50df09eb975e9ce73d6a0590ce8a3f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-linuxx64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "9827e8e76ca2daa94e3522bdf8e92728bb3f9fa87601a6f5fd5a5de9ac06da2f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-linuxx64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "b1d728c40d6d82d7443957301413ddf263c30f58231384f4833be30679e80c3a"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-linuxx64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "1bce3c84d0279ffcfabba4591181e685dfd970948fd432a6fa8f32ff9d7d1798"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-linuxx64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "7f635e121724c7cf6e59884e0c0fb10deb408e1b30e026bc844031fbeb1c4fc4"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-macosarm64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "a97f3fcff9a4dd5016c37df0098e434b15d3603014278aedd1a7e7f27ede4b9e"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-macosarm64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "a97f3fcff9a4dd5016c37df0098e434b15d3603014278aedd1a7e7f27ede4b9e"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-macosarm64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "9827e8e76ca2daa94e3522bdf8e92728bb3f9fa87601a6f5fd5a5de9ac06da2f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-macosarm64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "4a4c4061797e3fd16cb3054c539cc291c8acc761b5acf9892f798700f08cb8eb"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-macosarm64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "761bdac1da2bcee8ba4a51899a382c7f36c1086b311e0bf143159b403b4cf416"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-macosarm64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "c803ca9d2bb8f72bb3554013146ba89b98ece53382fc61150dcb75bdb2ad7f9f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-macosx64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "507ca9e0712a5e4b455fc84cc989904e833162910fd62c02350fedf20c3b6058"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-macosx64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "507ca9e0712a5e4b455fc84cc989904e833162910fd62c02350fedf20c3b6058"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-macosx64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "9827e8e76ca2daa94e3522bdf8e92728bb3f9fa87601a6f5fd5a5de9ac06da2f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-macosx64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "3558ef4d7438130e2cc5a98b764a7b50f8e85608d01137deb1827854f2d58d30"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-macosx64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "c9331a9a1f991e32d7b56bf162b8a7702c8e7b595bbd3d5c66643f9b24100cb7"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-library-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-library-macosx64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "0e00d38d801844709343d2c2d5c8651f3ed34af86f37fe37d3415e8c785c026c"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "f71c11f17b9ea4f829c0100fbadc3c48a8406f9298ed9585a0512360bf5c22f0"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-1.1.10-fh.9c3962ea021c76107b84-kotlin-tooling-metadata.json",
+      "hash": "4daa3d57328ab1e6d1039e8f0c006305aff3b1b9987356e93491064c5b493d33"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "370df06bd1d8ae365ae264de53c4963434ec187eb7e086e812c0dc7c02d6e952"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-1.1.10-fh.9c3962ea021c76107b84.jar",
+      "hash": "06a4cd69c0e4a95a31ff0a0e32c17f5c0da7a989f63afc039a1f4b499b41716d"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "a334c485314249c509cba12f0876c61861ff4a84f6cd8d48301887ad72677f31"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "747f5d833d67ab1298627eab62f4340f793b7114e98997f9c86840915154a047"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-android-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "507ca9e0712a5e4b455fc84cc989904e833162910fd62c02350fedf20c3b6058"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-android-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "370df06bd1d8ae365ae264de53c4963434ec187eb7e086e812c0dc7c02d6e952"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-android-1.1.10-fh.9c3962ea021c76107b84.aar",
+      "hash": "0968feba22cb110a3996eeca97d25bf70713363f5895d39f0880605d21da2c60"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-android-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "f0e17423266f2f9cb5567e5c2508bca3d1593ae385759b1cf4239eba57dbc4ce"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-android-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "28099372b91391512a08eb8c0da5d522981bdb19a28bd77919db7fc6ee4ceaa5"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iosarm64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "6908241db7d3fd65b11b8639f860b8c27ae0052b2d166781f6391f1a4240df41"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iosarm64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "6908241db7d3fd65b11b8639f860b8c27ae0052b2d166781f6391f1a4240df41"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iosarm64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "370df06bd1d8ae365ae264de53c4963434ec187eb7e086e812c0dc7c02d6e952"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iosarm64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "3bbc67244c78f46dad84601bd523eebf32e2c9dca4cc25a3a776416fe2a81df1"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iosarm64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "8adce843d89300726a4eb2cf13562e0a7296933eeef753e9896970c98aa894e7"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iosarm64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "87781284abe5246f35aabce01571e344170b5e4ed1cdf44a9b4d5df9cdb5e8be"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "6908241db7d3fd65b11b8639f860b8c27ae0052b2d166781f6391f1a4240df41"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "6908241db7d3fd65b11b8639f860b8c27ae0052b2d166781f6391f1a4240df41"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "370df06bd1d8ae365ae264de53c4963434ec187eb7e086e812c0dc7c02d6e952"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "1c61461c2fd282d5f252dc5de8b931914507048b86e02db03e4e5b505236df1f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "a85196d85a9b16d685b2834ef7e681c40215055b009a71f60470b7fbe65e4813"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "b900b01c969463d578f9f303f0254c7d59985a5b47c26d3ce17d1ff3c172d18a"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iosx64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "f71c11f17b9ea4f829c0100fbadc3c48a8406f9298ed9585a0512360bf5c22f0"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iosx64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "f71c11f17b9ea4f829c0100fbadc3c48a8406f9298ed9585a0512360bf5c22f0"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iosx64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "370df06bd1d8ae365ae264de53c4963434ec187eb7e086e812c0dc7c02d6e952"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iosx64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "fda794730b21a3e826d78a17c47fb7f2b54b63b2d06685ea47f318140db20553"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iosx64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "cf5918b715f55cd0359f592045602293c7f1b9f2745ee4446c67ec4a4ac44bd1"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-iosx64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "94be50b59300292e936d0b45a610357e92e135b117a9d56307bef8dbd0f9ec4c"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-js-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "f71c11f17b9ea4f829c0100fbadc3c48a8406f9298ed9585a0512360bf5c22f0"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-js-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "370df06bd1d8ae365ae264de53c4963434ec187eb7e086e812c0dc7c02d6e952"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-js-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "bbc9313a064d628196968aa1a5e2bc7388c7cff13f5509f68ed1761004ea3776"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-js-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "ff4da624ffc646a9171ce9f7ea8a0c21931fb48b3b735998fea482a93d6feffd"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-js-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "867fd7b6466c7aacc2031609ea8bfca1f97c32dbb8be495cb8f886aebef699d3"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-jvm-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "f71c11f17b9ea4f829c0100fbadc3c48a8406f9298ed9585a0512360bf5c22f0"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-jvm-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "370df06bd1d8ae365ae264de53c4963434ec187eb7e086e812c0dc7c02d6e952"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-jvm-1.1.10-fh.9c3962ea021c76107b84.jar",
+      "hash": "9cf8c26f14ef52db4acffb1a9876cd5c0ec9849d3d1e54e57caaa56a6839dbfe"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-jvm-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "ec61dc4dd14ac295c243fae28477bd3ee6b4bf073df4893a524420b6302bbbd3"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-jvm-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "19cd2a2d0b9938b44bb4b24bf648810f05424bf83a19945e8fcb61f764a66137"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-linuxx64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "f71c11f17b9ea4f829c0100fbadc3c48a8406f9298ed9585a0512360bf5c22f0"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-linuxx64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "370df06bd1d8ae365ae264de53c4963434ec187eb7e086e812c0dc7c02d6e952"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-linuxx64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "3f155848009d409b44ce5bcf624dad38fe17406100f9961e7a129e1b2c2a62db"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-linuxx64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "82d2e1d74dec18cb6e497b347d62cb546db6151be68a2fadc3758873e7037872"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-linuxx64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "198054b72bd5785eaac3d358794f1123ea082edf75b518d0fe4328dd0d8dbe84"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-macosarm64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "9d5ddf3bd13874882061797a97d8685b60d3768efbbfadb21abf23406255fbc5"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-macosarm64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "9d5ddf3bd13874882061797a97d8685b60d3768efbbfadb21abf23406255fbc5"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-macosarm64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "370df06bd1d8ae365ae264de53c4963434ec187eb7e086e812c0dc7c02d6e952"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-macosarm64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "51cbb43ef62c6e8b765ae384a81cdfd8618cfd1c2c916c0432e9175897275485"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-macosarm64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "cfef5019b630fafecffc49c8779f2d6f062dd23d8e2afb80fe3a2583965a509d"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-macosarm64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "6e35f8ee2f72669d285735ee31884045ce0fd5b87c3bdf124ccadbb2f204e107"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-macosx64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "29127f0c2ba238a910cf87d7aac0599878cfaa5a0495a26725a9fa82b9d7842b"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-macosx64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "29127f0c2ba238a910cf87d7aac0599878cfaa5a0495a26725a9fa82b9d7842b"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-macosx64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "370df06bd1d8ae365ae264de53c4963434ec187eb7e086e812c0dc7c02d6e952"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-macosx64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "f709d5f2ea908d7287d31089618e38474fe422e92331c046061715c602e955c7"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-macosx64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "fd842f2b075f1e2c6d2e35b7dc96e0ad259a8134a8393b3ce09d134d975889d2"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-patch-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-patch-macosx64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "d5168ceccf17df406e892f8b7ded1fa20062df365d76d9a436f1d634aa4b8b1b"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "c3788f0f322adec78a9967f9320c7b7624dca040ff203953ff0c891c0c3f0695"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-1.1.10-fh.9c3962ea021c76107b84-kotlin-tooling-metadata.json",
+      "hash": "4daa3d57328ab1e6d1039e8f0c006305aff3b1b9987356e93491064c5b493d33"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "d2aa82072a3bb304852ec6ac87947a394288d26c2c043e0bf383687ba03de6ee"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-1.1.10-fh.9c3962ea021c76107b84.jar",
+      "hash": "0f8793ec1470f8f65026cd2509b19152f7015b7a37dad37df0c9293667ca8799"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "d694afc60383af47de27b5e26c35053311832d00c5c7bfb247ac31ca557f0f7f"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "73134e87001c5f3c558ec21cf61a61a47da7e4e524cae2e5dc0a9bf912e57d66"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-android-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "29127f0c2ba238a910cf87d7aac0599878cfaa5a0495a26725a9fa82b9d7842b"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-android-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "cc682e3cbd5e16718a96f9486ba6d62a4c93ef245f8e9b334b31f09b76256d6c"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-android-1.1.10-fh.9c3962ea021c76107b84.aar",
+      "hash": "18589b267eb2edc122851f1c6aca8830adb9b049d08f95eeb49922f6bae5eae1"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-android-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "6d1b030d01609bb84342a09c9e247bf25dd433f2e71efa00e2cf012fddd4c1be"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-android/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-android-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "bc11e71d49fcffa82812c9ebe43b450f7043e58d1b5822e2c33e187d7dbf711a"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iosarm64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "988b452cdd776e09de62ec4891a86d31c4b874fb36d022b9aaefadeff4e63019"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iosarm64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "c21696b9701937c605a7272769ffb3687a0dffb0cdc85707e9cf01a1c053d85a"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iosarm64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "d2aa82072a3bb304852ec6ac87947a394288d26c2c043e0bf383687ba03de6ee"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iosarm64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "19ddebb8ada6712d76aa9e0649b2b5685b186eefc690e2ce97854b8b46554e5b"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iosarm64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "226f12b7b6e75000750f77ecc398c414c27a9bb2a9a3dc51879e1c1ccbd19d3b"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iosarm64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "3ee750fbbe29b2cb699504ad5b94dff6372af8cee566d1e1ed5092c08c6fc724"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "988b452cdd776e09de62ec4891a86d31c4b874fb36d022b9aaefadeff4e63019"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "c21696b9701937c605a7272769ffb3687a0dffb0cdc85707e9cf01a1c053d85a"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "d2aa82072a3bb304852ec6ac87947a394288d26c2c043e0bf383687ba03de6ee"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "623edb00ed055b8220d838f975d6e13e36a065af2d6a052ecccac0ac03d51d6e"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "aacac935b1219a140dc83101cde934491acc79be0b05c212a56030738d85f2a1"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iossimulatorarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iossimulatorarm64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "1f310d7216292e1087c95affe7925bfccceb5692a35d64239eb6a201186317a9"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iosx64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "c3788f0f322adec78a9967f9320c7b7624dca040ff203953ff0c891c0c3f0695"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iosx64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "bf2000affa7632e31bb06b99a1cb1411275d755817a0d930af30e3eaecee3b57"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iosx64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "d2aa82072a3bb304852ec6ac87947a394288d26c2c043e0bf383687ba03de6ee"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iosx64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "bc4069e8df7ed0cfa7527a5c501574e1b56f9998ae30770e30391940257b1b2e"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iosx64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "757f9a84c88e8cadb13be29219f628ee8ed909dc1a568db099af3112482089d6"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-iosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-iosx64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "7c1f2b4548fb593df273fa936cbcac555852f0528811e34b05e1840ef93f761e"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-js-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "c3788f0f322adec78a9967f9320c7b7624dca040ff203953ff0c891c0c3f0695"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-js-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "46db66d844b0fb827ad6def67ee6b982c8c8cbb58db9460f51138a9d169a2dc6"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-js-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "63eec873bae5be6abd293a9915226bef2f39d874170b40f3f448d694c47852e2"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-js-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "66f992e89854a8a0d64afbf48add160103d5e33703532c91a681d92bcc1fe0f3"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-js/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-js-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "e8cc38eb7c56a33b4b8b01c1514e4b4d5a780059fb1a86cc4ce1544d0b53dfe5"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-jvm-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "c3788f0f322adec78a9967f9320c7b7624dca040ff203953ff0c891c0c3f0695"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-jvm-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "840845485eb3bb8d1b287b6a422a100e654cb71fd16fe8ecdbc9a23c6f0c4495"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-jvm-1.1.10-fh.9c3962ea021c76107b84.jar",
+      "hash": "44b6fd393b743d6099c4e7ab6bc54dac8c6e7e12beea49fc32bd3d88461993dc"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-jvm-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "74710c96955f7c085206f801df5e813618cb73fb8b891fbd1a46c955c8fa8526"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-jvm/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-jvm-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "91d2a574b4b1b2183bec95ab6ff9ba9c26096cf0f2d94ecbbd5773c7d5f499a2"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-linuxx64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "8384472ba56f4cb7e3e6d613e188742fd0eb62e267e929254eddf0d78477679a"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-linuxx64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "6e39351ecc1a820ad2f1fc83d0328a68656a5a591394ef6264163c9a663b3c13"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-linuxx64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "6607ba8cdc34811b9b7e80169a1b555e315ec0ea931dd2aba156b978f8f75ffa"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-linuxx64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "cfeb288f89c011c347472e20868a6ff14300c71d0b40cec8c9aafb8a0a6ffbb7"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-linuxx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-linuxx64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "cd74d9f6ee58c587c2068869a19c249c4041852be9d7d0f95a5aaaf07fab8b8d"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-macosarm64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "35b679912fffec394c51eb8ebdb37308360eb4a57e0b2085ffbb28319d785675"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-macosarm64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "fcef038f38e43f8977504fb6df5b7d559e8a23fcd45d2c5effcf2e0817ebee31"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-macosarm64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "d2aa82072a3bb304852ec6ac87947a394288d26c2c043e0bf383687ba03de6ee"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-macosarm64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "3e22784723e6503c226317a96c86d0ecded40c1ac665a2afbca439c13149b372"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-macosarm64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "646ecd86dae8b79dd7c6d7efc0fa4c1aa30a25c191027c6ab181f6f709f4b961"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-macosarm64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-macosarm64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "9f567f272ee2fb6126d9f1bbf0119a7a9ce35014179f93204acdbb93712c77b9"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-macosx64-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "35b679912fffec394c51eb8ebdb37308360eb4a57e0b2085ffbb28319d785675"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-macosx64-1.1.10-fh.9c3962ea021c76107b84-metadata.jar",
+      "hash": "fcef038f38e43f8977504fb6df5b7d559e8a23fcd45d2c5effcf2e0817ebee31"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-macosx64-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "d2aa82072a3bb304852ec6ac87947a394288d26c2c043e0bf383687ba03de6ee"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-macosx64-1.1.10-fh.9c3962ea021c76107b84.klib",
+      "hash": "ab9f6c41c2c921c0cc06c63e18bab4450c81c0ff9c93658bcb5878bfa347f76d"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-macosx64-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "aa937425a9ec392122becf864865a72304dee6e6e9dcd56c432514e63e9ebe1a"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-rpc-macosx64/1.1.10-fh.9c3962ea021c76107b84/ktbuf-rpc-macosx64-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "6cef8d99e293c391f536e1fe2f6805d0b4932475e5872834e3e851732f0c794e"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-server/1.1.10-fh.9c3962ea021c76107b84/ktbuf-server-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "35b679912fffec394c51eb8ebdb37308360eb4a57e0b2085ffbb28319d785675"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-server/1.1.10-fh.9c3962ea021c76107b84/ktbuf-server-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "64ae589f8307e8748eab1819e4446e8698fc1f8af575577197238c11e00ef09e"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-server/1.1.10-fh.9c3962ea021c76107b84/ktbuf-server-1.1.10-fh.9c3962ea021c76107b84.jar",
+      "hash": "418a46672343997279d53a0edb92e29d9f7dac81e53d9ae7bc910052e772141e"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-server/1.1.10-fh.9c3962ea021c76107b84/ktbuf-server-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "4b3e176f5301ac6d481dda346d8ce9da1e5f8190c1e6d1748b9e9146468b9ba9"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-server/1.1.10-fh.9c3962ea021c76107b84/ktbuf-server-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "cf72f121f192d75dadaa06ea2f0e3e25f190c9eff257a7f7700b0312f94587ac"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-test/1.1.10-fh.9c3962ea021c76107b84/ktbuf-test-1.1.10-fh.9c3962ea021c76107b84-javadoc.jar",
+      "hash": "3168f3e9c1bef78560936b8377d9df0324ad16bd5374b68506821ab2c9ce0436"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-test/1.1.10-fh.9c3962ea021c76107b84/ktbuf-test-1.1.10-fh.9c3962ea021c76107b84-sources.jar",
+      "hash": "9a107e92b14f87df076df1279c927d92f43e388d7c10a89309e610d5256b6330"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-test/1.1.10-fh.9c3962ea021c76107b84/ktbuf-test-1.1.10-fh.9c3962ea021c76107b84.jar",
+      "hash": "fbd0647ea413d53f6b1bae2f9c3c6aa379bc09de3700d0175b463bed8f8bfe72"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-test/1.1.10-fh.9c3962ea021c76107b84/ktbuf-test-1.1.10-fh.9c3962ea021c76107b84.module",
+      "hash": "2528ec1213849251c6e0b0885e5988b59f37702e58ea86a325880e3d105f6d08"
+    },
+    {
+      "path": "com/latenighthack/ktbuf/ktbuf-test/1.1.10-fh.9c3962ea021c76107b84/ktbuf-test-1.1.10-fh.9c3962ea021c76107b84.pom",
+      "hash": "cd2140147b2140e5c7e6441be8eba43cfaaa91a0b124a1f0234d9a858caa2279"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AccountSettingsViewModelTests[jvm]" tests="3" skipped="1" failures="0" errors="0" timestamp="2026-10-09T05:20:40.607Z" hostname="Mikes-MacBook-Pro.local" time="1.696">
+  <properties/>
+  <testcase name="account row taps navigate to subpages[jvm]" classname="gg.roll.viewmodel.core.AccountSettingsViewModelTests" time="0.667"/>
+  <testcase name="appearance dropdown selection persists[jvm]" classname="gg.roll.viewmodel.core.AccountSettingsViewModelTests" time="1.028"/>
+  <testcase name="edit display name updates profile[jvm]" classname="gg.roll.viewmodel.core.AccountSettingsViewModelTests" time="0.0">
+    <skipped/>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

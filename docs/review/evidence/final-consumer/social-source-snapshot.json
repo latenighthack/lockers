@@ -1,0 +1,2209 @@
+{
+  "originalPath": "/Users/mikeroberts/workspace/latenighthack/social",
+  "snapshotPath": "/Users/mikeroberts/workspace/latenighthack/.worktrees/social-review-lockers-consumer",
+  "originalRevision": "016b7d36cfc4da7ac11d6bbc01c38165707fe06f",
+  "originalStatus": " M .gitignore\n M account-domain/src/commonMain/kotlin/com/latenighthack/social/account/domain/AccountManagerImpl.kt\n M account-domain/src/commonMain/kotlin/com/latenighthack/social/account/domain/AccountProviders.kt\n M account-domain/src/jvmTest/kotlin/com/latenighthack/social/account/domain/AccountManagerIntegrationTest.kt\n M account-domain/src/jvmTest/kotlin/com/latenighthack/social/account/domain/AccountManagerRestoreIntegrationTest.kt\n M avatars-usecase/src/commonMain/kotlin/com/latenighthack/social/avatars/usecase/AvatarsUseCaseProviders.kt\n M avatars-usecase/src/commonMain/kotlin/com/latenighthack/social/avatars/usecase/SetMyAvatarUseCase.kt\n M avatars-usecase/src/commonMain/kotlin/com/latenighthack/social/avatars/usecase/SetRoomAvatarUseCase.kt\n M build.gradle.kts\n M contacts-domain/src/commonMain/kotlin/com/latenighthack/social/contacts/domain/ContactsManagerImpl.kt\n M contacts-domain/src/commonMain/kotlin/com/latenighthack/social/contacts/domain/ContactsProviders.kt\n M contacts-domain/src/jvmTest/kotlin/com/latenighthack/social/contacts/domain/ContactsManagerIntegrationTest.kt\n M debug-domain/src/commonMain/kotlin/com/latenighthack/social/debug/domain/DebugManagerImpl.kt\n M debug-domain/src/commonMain/kotlin/com/latenighthack/social/debug/domain/DebugProviders.kt\n M debug-domain/src/jvmTest/kotlin/com/latenighthack/social/debug/domain/DebugManagerIntegrationTest.kt\n M gradle/libs.versions.toml\n M login-apple-service/src/main/kotlin/com/latenighthack/social/login/apple/service/OidcTokenVerifier.kt\n M login-apple-usecase/src/commonMain/kotlin/com/latenighthack/social/login/apple/usecase/AuthenticateWithAppleUseCase.kt\n M login-apple-usecase/src/commonMain/kotlin/com/latenighthack/social/login/apple/usecase/LoginAppleUseCaseProviders.kt\n M login-apple-usecase/src/jvmTest/kotlin/com/latenighthack/social/login/apple/usecase/LoginAccountIntegrationTest.kt\n M login-core-domain/build.gradle.kts\n M login-core-domain/src/commonMain/kotlin/com/latenighthack/social/login/core/domain/LoginClient.kt\n M login-core-domain/src/commonMain/kotlin/com/latenighthack/social/login/core/domain/LoginCoreProviders.kt\n M login-core-service/build.gradle.kts\n M login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/ChallengeStore.kt\n M login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/CredentialStore.kt\n M login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/LoginServerExtension.kt\n M login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/LoginServiceImpl.kt\n M login-core-service/src/test/kotlin/com/latenighthack/social/login/core/service/LoginServiceHardeningTest.kt\n M login-core-service/src/test/kotlin/com/latenighthack/social/login/core/service/LoginServiceTest.kt\n M login-google-service/src/main/kotlin/com/latenighthack/social/login/google/service/OidcTokenVerifier.kt\n M login-google-usecase/src/commonMain/kotlin/com/latenighthack/social/login/google/usecase/AuthenticateWithGoogleUseCase.kt\n M login-google-usecase/src/commonMain/kotlin/com/latenighthack/social/login/google/usecase/LoginGoogleUseCaseProviders.kt\n M messages-domain/build.gradle.kts\n M messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/DeadLetterStore.kt\n M messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/DraftStore.kt\n M messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/DraftsManagerImpl.kt\n M messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessageStore.kt\n M messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessagesManagerImpl.kt\n M messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessagesProviders.kt\n M messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/PendingMessageStore.kt\n M messages-domain/src/jvmTest/kotlin/com/latenighthack/social/messages/domain/DraftsManagerIntegrationTest.kt\n M messages-domain/src/jvmTest/kotlin/com/latenighthack/social/messages/domain/MessagesManagerIntegrationTest.kt\n M profiles-domain/build.gradle.kts\n M profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/MyProfilesManagerImpl.kt\n M profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfileStore.kt\n M profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfilesManagerImpl.kt\n M profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfilesProviders.kt\n M profiles-domain/src/jvmTest/kotlin/com/latenighthack/social/profiles/domain/MyProfilesManagerIntegrationTest.kt\n M profiles-domain/src/jvmTest/kotlin/com/latenighthack/social/profiles/domain/ProfilesManagerIntegrationTest.kt\n M read-receipts-domain/src/commonMain/kotlin/com/latenighthack/social/readreceipts/domain/ReadReceiptsManagerImpl.kt\n M read-receipts-domain/src/commonMain/kotlin/com/latenighthack/social/readreceipts/domain/ReadReceiptsProviders.kt\n M read-receipts-domain/src/jvmTest/kotlin/com/latenighthack/social/readreceipts/domain/ReadReceiptsManagerIntegrationTest.kt\n M remote-content-domain/build.gradle.kts\n M remote-content-domain/src/commonMain/kotlin/com/latenighthack/social/remotecontent/domain/PendingUploadStore.kt\n M remote-content-domain/src/commonMain/kotlin/com/latenighthack/social/remotecontent/domain/RemoteContentClient.kt\n M remote-content-domain/src/commonMain/kotlin/com/latenighthack/social/remotecontent/domain/RemoteContentProviders.kt\n M remote-content-domain/src/commonMain/kotlin/com/latenighthack/social/remotecontent/domain/RemoteContentUploader.kt\n M remote-content-domain/src/jvmTest/kotlin/com/latenighthack/social/remotecontent/domain/RemoteContentUploaderTest.kt\n M remote-content-service/build.gradle.kts\n M remote-content-service/src/main/kotlin/com/latenighthack/social/remotecontent/service/RemoteContentExtension.kt\n M remote-content-service/src/main/kotlin/com/latenighthack/social/remotecontent/service/RemoteContentRoutes.kt\n M remote-content-service/src/main/kotlin/com/latenighthack/social/remotecontent/service/RemoteContentServiceImpl.kt\n M rooms-domain/src/commonMain/kotlin/com/latenighthack/social/rooms/domain/JoinClient.kt\n M rooms-domain/src/commonMain/kotlin/com/latenighthack/social/rooms/domain/RoomsManagerImpl.kt\n M rooms-domain/src/commonMain/kotlin/com/latenighthack/social/rooms/domain/RoomsProviders.kt\n M rooms-domain/src/jvmTest/kotlin/com/latenighthack/social/rooms/domain/DerivedRoomsIntegrationTest.kt\n M rooms-domain/src/jvmTest/kotlin/com/latenighthack/social/rooms/domain/RoomsManagerIntegrationTest.kt\n M rooms-service/build.gradle.kts\n M rooms-service/src/main/kotlin/com/latenighthack/social/rooms/service/JoinServiceImpl.kt\n M rooms-service/src/main/kotlin/com/latenighthack/social/rooms/service/RoomsServerExtension.kt\n M settings.gradle.kts\n M social-runtime/build.gradle.kts\n M social-runtime/src/commonMain/kotlin/com/latenighthack/social/runtime/DomainLifecycle.kt\n M typing-domain/src/commonMain/kotlin/com/latenighthack/social/typing/domain/TypingManagerImpl.kt\n M typing-domain/src/commonMain/kotlin/com/latenighthack/social/typing/domain/TypingProviders.kt\n M typing-domain/src/jvmTest/kotlin/com/latenighthack/social/typing/domain/TypingManagerIntegrationTest.kt\n?? AGENTS.md\n?? docs/storage.md\n?? login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/ChallengeStoreDefinitionsV1.kt\n?? login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/CredentialStoreDefinitionsV1.kt\n?? login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/LoginStorage.kt\n?? login-core-service/src/test/kotlin/com/latenighthack/social/login/core/service/StorageAdoptionTest.kt\n?? messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/DeadLetterStoreDefinitionsV1.kt\n?? messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/DraftStoreDefinitionsV1.kt\n?? messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessageStoreDefinitionsV1.kt\n?? messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessagesStorage.kt\n?? messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/PendingMessageStoreDefinitionsV1.kt\n?? messages-domain/src/jvmTest/kotlin/com/latenighthack/social/messages/domain/StorageAdoptionTest.kt\n?? observability/\n?? profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfileStoreDefinitionsV1.kt\n?? profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfilesStorage.kt\n?? profiles-domain/src/jvmTest/kotlin/com/latenighthack/social/profiles/domain/StorageAdoptionTest.kt\n?? remote-content-domain/src/commonMain/kotlin/com/latenighthack/social/remotecontent/domain/PendingUploadStoreDefinitionsV1.kt\n?? remote-content-domain/src/commonMain/kotlin/com/latenighthack/social/remotecontent/domain/RemoteContentStorage.kt\n?? remote-content-domain/src/jvmTest/kotlin/com/latenighthack/social/remotecontent/domain/StorageAdoptionTest.kt\n?? social-observability-client/\n?? social-observability-core/\n?? social-observability-server/\n?? tools/\n",
+  "capturedFiles": {
+    ".github/workflows/release.yml": {
+      "sha256": "2f5b9c46f16d8eaf1473e4226f03d0df2e3b2b48fd50a45a710b1f05fb2acb5a",
+      "mode": 420,
+      "size": 2084
+    },
+    ".gitignore": {
+      "sha256": "36516020b371d882131cd55b8a85d0ddbc43a24d8f8f2b953eac7c4a5b1bf9ea",
+      "mode": 420,
+      "size": 846
+    },
+    "AGENTS.md": {
+      "sha256": "e373912dc3e0b0783cdbbc745e2d9d15bd8e218848b6e6c0d4bfd3248ca50fd8",
+      "mode": 420,
+      "size": 1243
+    },
+    "account-api/build.gradle.kts": {
+      "sha256": "44214b6cf6d69b577523e0eff9501b916e931677584cfff117cbb0639da910cd",
+      "mode": 420,
+      "size": 39
+    },
+    "account-api/proto/account/v1/model.proto": {
+      "sha256": "3832293391c9b596ceeb628307e4355b8bc710779ecfd8edb789132f49d61ee4",
+      "mode": 420,
+      "size": 831
+    },
+    "account-domain/build.gradle.kts": {
+      "sha256": "0517341ebc3f0b3d63138be77d4458102e70af8f002c39930970ec88b05d95a8",
+      "mode": 420,
+      "size": 1456
+    },
+    "account-domain/src/commonMain/kotlin/com/latenighthack/social/account/domain/AccountKeySource.kt": {
+      "sha256": "b0a9a9128d6714256eea68982090e3ab589eb1e87f1c63571731677872d8e01e",
+      "mode": 420,
+      "size": 1174
+    },
+    "account-domain/src/commonMain/kotlin/com/latenighthack/social/account/domain/AccountKeyspaces.kt": {
+      "sha256": "9efdbcea3cc6dd2ad3136933ce5c384d31f23ec50579eecf6c4ac0c2465fb96c",
+      "mode": 420,
+      "size": 581
+    },
+    "account-domain/src/commonMain/kotlin/com/latenighthack/social/account/domain/AccountManager.kt": {
+      "sha256": "321f1e47659bb9ff3db99e3accbad3dd38a40667a1c25b93d364966fbec6595e",
+      "mode": 420,
+      "size": 3724
+    },
+    "account-domain/src/commonMain/kotlin/com/latenighthack/social/account/domain/AccountManagerImpl.kt": {
+      "sha256": "90dfa9e2bbd95847e04f62ab30c0ac2838b4ba7d5588dd7fb9ec5093f8a6ebf4",
+      "mode": 420,
+      "size": 11148
+    },
+    "account-domain/src/commonMain/kotlin/com/latenighthack/social/account/domain/AccountProviders.kt": {
+      "sha256": "cd2cde2eed84848759c13c9de7397a0faaa2780b2f5beb878adf54a1ca6e9abf",
+      "mode": 420,
+      "size": 1680
+    },
+    "account-domain/src/jvmTest/kotlin/com/latenighthack/social/account/domain/AccountManagerIdentityTest.kt": {
+      "sha256": "35843f6f5e78609c82c968e8b6e1a349131033515cef60e4e408f0f717165d51",
+      "mode": 420,
+      "size": 1502
+    },
+    "account-domain/src/jvmTest/kotlin/com/latenighthack/social/account/domain/AccountManagerIntegrationTest.kt": {
+      "sha256": "0b97279ffdd117dae692cac36ba148d9dd87032e2ea8aed84826db06026183dc",
+      "mode": 420,
+      "size": 7390
+    },
+    "account-domain/src/jvmTest/kotlin/com/latenighthack/social/account/domain/AccountManagerRestoreIntegrationTest.kt": {
+      "sha256": "79cfaee96b60d5e4b51ed3082e7c792fbe997ff6d82f08681c71333e2e9bd030",
+      "mode": 420,
+      "size": 6697
+    },
+    "account-usecase/build.gradle.kts": {
+      "sha256": "3310c5729eded17ef2a3ab364acccc5ae7d89b68d0f236ff8a9aa104a2d8e204",
+      "mode": 420,
+      "size": 391
+    },
+    "account-usecase/src/commonMain/kotlin/com/latenighthack/social/account/usecase/AccountResult.kt": {
+      "sha256": "61c06886bdc473517d68f0e7d09d788d0a9d6770be67a7dbdd24dd2aefa9ad90",
+      "mode": 420,
+      "size": 416
+    },
+    "account-usecase/src/commonMain/kotlin/com/latenighthack/social/account/usecase/AccountUseCaseProviders.kt": {
+      "sha256": "5e880b179eea5282059df86fd185b7b8de66a8f1061cfbb2ec59bb9e14399195",
+      "mode": 420,
+      "size": 533
+    },
+    "account-usecase/src/commonMain/kotlin/com/latenighthack/social/account/usecase/CreateAccountUseCase.kt": {
+      "sha256": "5daf74e0271f5507d56336e6f7f49b332813d576238fb32709e2813f94575200",
+      "mode": 420,
+      "size": 586
+    },
+    "account-usecase/src/commonMain/kotlin/com/latenighthack/social/account/usecase/SignOutUseCase.kt": {
+      "sha256": "c82917bc2274c6a7f4920312f695b4fc8beea2cb01512e1fc9a1dd2c393452ee",
+      "mode": 420,
+      "size": 554
+    },
+    "account-usecase/src/jvmTest/kotlin/com/latenighthack/social/account/usecase/AccountUseCaseTest.kt": {
+      "sha256": "256352b8b9cca350f41599d7ffb0805d3e99adcc04dffdde96db8a3db993fe40",
+      "mode": 420,
+      "size": 1848
+    },
+    "avatars-usecase/build.gradle.kts": {
+      "sha256": "5095455209151dadbc76c9a975dd419e2361bad606a1d030af8be86334d8c857",
+      "mode": 420,
+      "size": 822
+    },
+    "avatars-usecase/src/commonMain/kotlin/com/latenighthack/social/avatars/usecase/AvatarsUseCaseProviders.kt": {
+      "sha256": "925798cec54630b5ba4350e33e319a3f6fcff8688f9e5b7b149efc19198e87d2",
+      "mode": 420,
+      "size": 1196
+    },
+    "avatars-usecase/src/commonMain/kotlin/com/latenighthack/social/avatars/usecase/SetMyAvatarUseCase.kt": {
+      "sha256": "9cf3a3bd0a5dbba5d9bc50346d87cf1faf911691793f220efa3485a5e7d25a11",
+      "mode": 420,
+      "size": 1522
+    },
+    "avatars-usecase/src/commonMain/kotlin/com/latenighthack/social/avatars/usecase/SetRoomAvatarUseCase.kt": {
+      "sha256": "adc576f84c8c7c97c35f5be6b6643bab3b3b37f0b7ba7c291033d0861dc28bd1",
+      "mode": 420,
+      "size": 1400
+    },
+    "avatars-usecase/src/jvmTest/kotlin/com/latenighthack/social/avatars/usecase/SetMyAvatarUseCaseTest.kt": {
+      "sha256": "1bb522f9a38eae030333a2cd967779deb771cc7bfb14de9fd5cf4f37650be7b9",
+      "mode": 420,
+      "size": 4140
+    },
+    "avatars-usecase/src/jvmTest/kotlin/com/latenighthack/social/avatars/usecase/SetRoomAvatarUseCaseTest.kt": {
+      "sha256": "b1aec83a7ed56773bf8c5bdc44d8dbee581aa553779ac50822f11beba3bcad8b",
+      "mode": 420,
+      "size": 3800
+    },
+    "buf.gen.yaml": {
+      "sha256": "fca9ff74dd7ec4b935af8e79cd11ec0cc15be3bc9353196dab664150d98915eb",
+      "mode": 420,
+      "size": 732
+    },
+    "buf.yaml": {
+      "sha256": "d87f26c28469df64a1e28f169ef3da89d5d79f75c5b301c618f5a0a865f455de",
+      "mode": 420,
+      "size": 456
+    },
+    "build-logic/build.gradle.kts": {
+      "sha256": "1fe8c2d5c39ad07a749832b352179e9e3a1b520246559c34d8ffc187d60ecfac",
+      "mode": 420,
+      "size": 623
+    },
+    "build-logic/settings.gradle.kts": {
+      "sha256": "3d59e5bdf13eaa9a0eea4c97494e36e9fa6e22eb70c52b2bb1812e4e022a8b7a",
+      "mode": 420,
+      "size": 362
+    },
+    "build-logic/src/main/kotlin/social.jvm-service.gradle.kts": {
+      "sha256": "7ddf5b603e83f46d7914d42236b98887bc310421623be6fc7e0a9846ff27f20c",
+      "mode": 420,
+      "size": 1652
+    },
+    "build-logic/src/main/kotlin/social.kmp-library.gradle.kts": {
+      "sha256": "3567d8f245dcd4e63cbed34f75a209273abd88430b68eb38da93c6a524eeb151",
+      "mode": 420,
+      "size": 1867
+    },
+    "build-logic/src/main/kotlin/social.kmp-proto.gradle.kts": {
+      "sha256": "01343da9e75cf871b89d44c7d7843f45dd81295fda1a2b3c1a4a88fd5e4e3063",
+      "mode": 420,
+      "size": 4612
+    },
+    "build.gradle.kts": {
+      "sha256": "0cfb917bf0b466a1428ede817ee9d39b7f41a0c9d8a7b0ce5eeb03b25a4d7e8c",
+      "mode": 420,
+      "size": 1962
+    },
+    "contacts-api/build.gradle.kts": {
+      "sha256": "44214b6cf6d69b577523e0eff9501b916e931677584cfff117cbb0639da910cd",
+      "mode": 420,
+      "size": 39
+    },
+    "contacts-api/proto/contacts/v1/model.proto": {
+      "sha256": "9eaad34a1f1d4367512ca9d72edf781c83401f3f60c1a57c71142af245400ef4",
+      "mode": 420,
+      "size": 578
+    },
+    "contacts-domain/build.gradle.kts": {
+      "sha256": "2662775ca333926382d603205d5cf87f1e0a5f5f53c7e30c1d14a89f5601abcc",
+      "mode": 420,
+      "size": 1653
+    },
+    "contacts-domain/src/commonMain/kotlin/com/latenighthack/social/contacts/domain/Contact.kt": {
+      "sha256": "89244130dbfd46ece54a6f04e4c4d4a0073c729628dedab63c1b4d10ba6e5491",
+      "mode": 420,
+      "size": 496
+    },
+    "contacts-domain/src/commonMain/kotlin/com/latenighthack/social/contacts/domain/ContactsKeyspaces.kt": {
+      "sha256": "ffaa32a17e2f9c72b8da9f399d51d3369d029d8f7b33a0f1799ea8f446596a78",
+      "mode": 420,
+      "size": 737
+    },
+    "contacts-domain/src/commonMain/kotlin/com/latenighthack/social/contacts/domain/ContactsManager.kt": {
+      "sha256": "f7c900a66fa8d12e7d38fc35482208944b2af8c044458f3751ace74a97106bc3",
+      "mode": 420,
+      "size": 1294
+    },
+    "contacts-domain/src/commonMain/kotlin/com/latenighthack/social/contacts/domain/ContactsManagerImpl.kt": {
+      "sha256": "34cab26096a014693d4fa99c4aaf2c4692ec6b981f797c39fd0558423189cf1b",
+      "mode": 420,
+      "size": 6434
+    },
+    "contacts-domain/src/commonMain/kotlin/com/latenighthack/social/contacts/domain/ContactsProviders.kt": {
+      "sha256": "0f39aaaeb15461007253016918b3a19f3f8340b234f16d665a672f68b04aaa71",
+      "mode": 420,
+      "size": 1138
+    },
+    "contacts-domain/src/jvmTest/kotlin/com/latenighthack/social/contacts/domain/ContactsManagerIntegrationTest.kt": {
+      "sha256": "a7632192900aba2345fa77050b60361530cecd6fe44ee8fe4cdf4f0563bc272e",
+      "mode": 420,
+      "size": 6417
+    },
+    "contacts-usecase/build.gradle.kts": {
+      "sha256": "b7962e9b8051202b723fe1ccb6cd8c1a1b73f1c75e79ab0bb10c595266e3aaca",
+      "mode": 420,
+      "size": 208
+    },
+    "contacts-usecase/src/commonMain/kotlin/com/latenighthack/social/contacts/usecase/AddContactUseCase.kt": {
+      "sha256": "c0d02ba0febd7adb92b437f233183233da2f1675833318a7d0e99573b8d51af9",
+      "mode": 420,
+      "size": 359
+    },
+    "contacts-usecase/src/commonMain/kotlin/com/latenighthack/social/contacts/usecase/BlockContactUseCase.kt": {
+      "sha256": "a0e5acf4e5350a4bcba97855aa619567c24e606bb335cb7b6607cdb0701c8f68",
+      "mode": 420,
+      "size": 345
+    },
+    "contacts-usecase/src/commonMain/kotlin/com/latenighthack/social/contacts/usecase/ContactsUseCaseProviders.kt": {
+      "sha256": "551d0c3397df0c44489be8af0a85f448b9927183a8c2f39e2ad7dffff8328c31",
+      "mode": 420,
+      "size": 930
+    },
+    "contacts-usecase/src/commonMain/kotlin/com/latenighthack/social/contacts/usecase/UnblockContactUseCase.kt": {
+      "sha256": "f6a53b54d2727a13ff315647dd7b7c9ec02fd36ce3099c59a703b1e6d3d316f0",
+      "mode": 420,
+      "size": 353
+    },
+    "contacts-usecase/src/commonMain/kotlin/com/latenighthack/social/contacts/usecase/UnfriendContactUseCase.kt": {
+      "sha256": "39401b70203afb0aac00c8454edd36b6592e8fb613b93c56ffaf5ba4a7795bcd",
+      "mode": 420,
+      "size": 379
+    },
+    "contacts-usecase/src/commonMain/kotlin/com/latenighthack/social/contacts/usecase/WatchContactsUseCase.kt": {
+      "sha256": "be03f72876d592f474ec5583b2be4c22f210f36a44b5831bba7019a58170c7af",
+      "mode": 420,
+      "size": 430
+    },
+    "debug-domain/build.gradle.kts": {
+      "sha256": "84303bb237360e405ca056edd4ec136c00d7154556a1c0ec70e8db247ed2f0ee",
+      "mode": 420,
+      "size": 1774
+    },
+    "debug-domain/src/commonMain/kotlin/com/latenighthack/social/debug/domain/DebugManager.kt": {
+      "sha256": "f1199225190ec97044a623b142651ec37d9a0ddf1af1f4a631916b025be0ad0c",
+      "mode": 420,
+      "size": 920
+    },
+    "debug-domain/src/commonMain/kotlin/com/latenighthack/social/debug/domain/DebugManagerImpl.kt": {
+      "sha256": "e210246f23183b5ec268071ad1b1dfe1c12176b30ae5d05d13321dfaf51c120e",
+      "mode": 420,
+      "size": 3534
+    },
+    "debug-domain/src/commonMain/kotlin/com/latenighthack/social/debug/domain/DebugProviders.kt": {
+      "sha256": "9f6fb4312bcec4ff0cc16ff364f5331514c4c0f0d0638849d62d0d1d5d7938b2",
+      "mode": 420,
+      "size": 994
+    },
+    "debug-domain/src/commonMain/kotlin/com/latenighthack/social/debug/domain/LockerCodec.kt": {
+      "sha256": "ba3a99ff58ec01ae9c83b32a1163faaa676fb63c19f34753129c4fa72c9b5970",
+      "mode": 420,
+      "size": 524
+    },
+    "debug-domain/src/commonMain/kotlin/com/latenighthack/social/debug/domain/LockerCodecs.kt": {
+      "sha256": "293f0ba543df1bee09f7c4a86e5de57a2a19c7cd03823ef472462ccce656bb5b",
+      "mode": 420,
+      "size": 1456
+    },
+    "debug-domain/src/jvmTest/kotlin/com/latenighthack/social/debug/domain/DebugManagerIntegrationTest.kt": {
+      "sha256": "1a81de815f186b3e7b8e94afcf2027d205096e9b0acb9455e96b6bbf439bfc62",
+      "mode": 420,
+      "size": 6736
+    },
+    "debug-usecase/build.gradle.kts": {
+      "sha256": "7f0f83b3d0d03326b4218693d52ac4c89010d04aa0917a595bd4c52ab4723d5d",
+      "mode": 420,
+      "size": 205
+    },
+    "debug-usecase/src/commonMain/kotlin/com/latenighthack/social/debug/usecase/DebugUseCaseProviders.kt": {
+      "sha256": "c665e8414fd3ccf490ce7995ab9f9356627ac3e10ae2cd3ebf6c7a0a610f27d6",
+      "mode": 420,
+      "size": 399
+    },
+    "debug-usecase/src/commonMain/kotlin/com/latenighthack/social/debug/usecase/WatchLockersUseCase.kt": {
+      "sha256": "219c9ea7bc7913d74fac805ddd225359767d56c444c3349f836f50a1105a5cb3",
+      "mode": 420,
+      "size": 448
+    },
+    "docs/di.md": {
+      "sha256": "1164430c5f3902b52f2256afd35fdbb7ea9c176b76e47502bbc7ec2e939530ac",
+      "mode": 420,
+      "size": 7610
+    },
+    "docs/keyspaces.md": {
+      "sha256": "40a0dd6c1c5ffd3bf6e0df5148e405c69b8680ecc1b73b53d13baa7fbafb660b",
+      "mode": 420,
+      "size": 2302
+    },
+    "docs/rooms/groups.md": {
+      "sha256": "c80d77025ff85d5ce2c1a7d3ed826a4638623c167daf1e1f4ad174d7bf97ccc7",
+      "mode": 420,
+      "size": 7235
+    },
+    "docs/rooms/overview.md": {
+      "sha256": "fe936d957258d7bfc3aa2ba83b2e6373dbaedc172c1ab6a0200fd979d8bb7468",
+      "mode": 420,
+      "size": 6512
+    },
+    "docs/rooms/rendezvous.md": {
+      "sha256": "356253d979cbe4bb5e0dab282c0f2e9c202dceff90980fdff419612e653a7697",
+      "mode": 420,
+      "size": 3156
+    },
+    "docs/rooms/sealing.md": {
+      "sha256": "6890add2d17fa302f86723a13cdb0aa3da443b5512c6c070024371f776553ac1",
+      "mode": 420,
+      "size": 3671
+    },
+    "docs/storage.md": {
+      "sha256": "7e089c317fb87b0e44a15f197d1c5478d1a38d378383d55ac57a12d2be289001",
+      "mode": 420,
+      "size": 1181
+    },
+    "gradle.properties": {
+      "sha256": "155419f036a0df67a9f7ec512639ca510bc99a94b1ed160ab7644684c02cc556",
+      "mode": 420,
+      "size": 1247
+    },
+    "gradle/fh-workspace.settings.gradle": {
+      "sha256": "29fe6fb195c29754e5071f83a38a00847daf69a930e05a8610e9e934560c99ab",
+      "mode": 420,
+      "size": 5359
+    },
+    "gradle/libs.versions.toml": {
+      "sha256": "109e480e2d7b916bbf388c76c73ecf3e188e763cfb4382b98970b98b1f4a135e",
+      "mode": 420,
+      "size": 6793
+    },
+    "gradle/wrapper/gradle-wrapper.jar": {
+      "sha256": "2db75c40782f5e8ba1fc278a5574bab070adccb2d21ca5a6e5ed840888448046",
+      "mode": 420,
+      "size": 43583
+    },
+    "gradle/wrapper/gradle-wrapper.properties": {
+      "sha256": "d8bfc5d38a726e7ecb4830c8503cafd0080a27527c073c2a64ed335df5773d90",
+      "mode": 420,
+      "size": 252
+    },
+    "gradlew": {
+      "sha256": "a3648413b47ef77af21d5ebc36c687c7d103aaef3e17f33de7d4f080a6f300a3",
+      "mode": 493,
+      "size": 8762
+    },
+    "gradlew.bat": {
+      "sha256": "57931b17dd228e5c24dac90e815d0bf82477e831a4618dfab4136f5446b42a9f",
+      "mode": 420,
+      "size": 2966
+    },
+    "kotlin-js-store/yarn.lock": {
+      "sha256": "bd7cc0a6d24ef499d1ba01b69c2355581cfcb00f36f550479f00e6598c0b38b5",
+      "mode": 420,
+      "size": 105348
+    },
+    "login-apple-domain/build.gradle.kts": {
+      "sha256": "2c8ae7bd7fb9a746ad553dbf5a5848b43a140476768f425c567fbc56cfbe3df3",
+      "mode": 420,
+      "size": 41
+    },
+    "login-apple-domain/src/commonMain/kotlin/com/latenighthack/social/login/apple/domain/AppleSignInClient.kt": {
+      "sha256": "424c49c91a10a8a09f8cb3b56946b53cd02513109a8d88acb66be6bdc8737ea1",
+      "mode": 420,
+      "size": 1103
+    },
+    "login-apple-domain/src/iosMain/kotlin/com/latenighthack/social/login/apple/domain/IosAppleSignInClient.kt": {
+      "sha256": "63fb6f598b80bd1a893059f851bcbcf60e0b9ce3295ee1e54a5fd7f4c9d15c16",
+      "mode": 420,
+      "size": 5213
+    },
+    "login-apple-service/build.gradle.kts": {
+      "sha256": "1e5b926c62858e8a8b4484fe3e78816f34ddb897f82a68b4d83287f9b9af9d3d",
+      "mode": 420,
+      "size": 576
+    },
+    "login-apple-service/src/main/kotlin/com/latenighthack/social/login/apple/service/AppleLoginProviderFactory.kt": {
+      "sha256": "883aeab68ce0f2907f235acaa0b72a2b100e68dd59ef4f64fdf9841438768e73",
+      "mode": 420,
+      "size": 1143
+    },
+    "login-apple-service/src/main/kotlin/com/latenighthack/social/login/apple/service/OidcTokenVerifier.kt": {
+      "sha256": "7c87052d59a3ce1a17d09797e1c011047e3d22c2b481dc8e58b684dafc6a3674",
+      "mode": 420,
+      "size": 2642
+    },
+    "login-apple-service/src/main/resources/META-INF/services/com.latenighthack.social.login.core.service.LoginProviderFactory": {
+      "sha256": "c918355142e44db0625a1331948000289c4e22d480f8dda6706133e294a84324",
+      "mode": 420,
+      "size": 71
+    },
+    "login-apple-service/src/test/kotlin/com/latenighthack/social/login/apple/service/AppleLoginProviderFactoryTest.kt": {
+      "sha256": "8a95b12fd5c31806ed4cab5e31189ddb019b9e3d48fbd63d6c8dfb0f18bed8c2",
+      "mode": 420,
+      "size": 916
+    },
+    "login-apple-usecase/build.gradle.kts": {
+      "sha256": "371f2a6e7487d73894bddedf1d73d5fe6bdfdbb58efa52bf0275fb59f300955b",
+      "mode": 420,
+      "size": 1651
+    },
+    "login-apple-usecase/src/commonMain/kotlin/com/latenighthack/social/login/apple/usecase/AuthenticateWithAppleUseCase.kt": {
+      "sha256": "67f54d62f41fbe103cfe1d6049430710c0f74277a21ef939165f113588917e06",
+      "mode": 420,
+      "size": 2651
+    },
+    "login-apple-usecase/src/commonMain/kotlin/com/latenighthack/social/login/apple/usecase/LoginAppleUseCaseProviders.kt": {
+      "sha256": "c853ed171a1d961a361501089912f04c8d2685e684e6ca9284b19678b26324dc",
+      "mode": 420,
+      "size": 918
+    },
+    "login-apple-usecase/src/jvmTest/kotlin/com/latenighthack/social/login/apple/usecase/LoginAccountIntegrationTest.kt": {
+      "sha256": "5ed19602c9d18eebad819444d4a97b48039761b9310518298fe2ef2935ef50f5",
+      "mode": 420,
+      "size": 6975
+    },
+    "login-core-api/build.gradle.kts": {
+      "sha256": "44214b6cf6d69b577523e0eff9501b916e931677584cfff117cbb0639da910cd",
+      "mode": 420,
+      "size": 39
+    },
+    "login-core-api/proto/login/v1/login_service.proto": {
+      "sha256": "6ebac077d75017739cf8e9845dee4f7bf621c2d476b9dfc98ada74c49a0af1a7",
+      "mode": 420,
+      "size": 5583
+    },
+    "login-core-api/proto/login/v1/storage.proto": {
+      "sha256": "3f02303d87059de4375e491695c707996e0b3c3da77bc870ebb612af578f92d1",
+      "mode": 420,
+      "size": 2165
+    },
+    "login-core-domain/build.gradle.kts": {
+      "sha256": "f6f2165b6b1921a5ccd8e28e7e35066847481e4c671cd70ad89b44d1c624420e",
+      "mode": 420,
+      "size": 667
+    },
+    "login-core-domain/src/commonMain/kotlin/com/latenighthack/social/login/core/domain/LoginClient.kt": {
+      "sha256": "fd19e669b4e4c36aa9fe3200f095587b0092896eb5504852628348734f474bb2",
+      "mode": 420,
+      "size": 3708
+    },
+    "login-core-domain/src/commonMain/kotlin/com/latenighthack/social/login/core/domain/LoginCoreProviders.kt": {
+      "sha256": "e396dca7efff4def73443bd947c07a65186c96c9f17f33e847cf5bef51e70c59",
+      "mode": 420,
+      "size": 780
+    },
+    "login-core-service/build.gradle.kts": {
+      "sha256": "7e7b4ce73159f1931990d34b75e0895875929a33d09cd4378d6943c47e499b8a",
+      "mode": 420,
+      "size": 1015
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/ChallengeStore.kt": {
+      "sha256": "7b0a9967d2b146e6cdd5fe6643c8bd3571f104166fac770e5f90c05198debfc0",
+      "mode": 420,
+      "size": 1075
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/ChallengeStoreDefinitionsV1.kt": {
+      "sha256": "d3ca7c07719c2e70d727bf928578f854ba6025c8340584947f2df096aa9dacda",
+      "mode": 420,
+      "size": 590
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/CredentialStore.kt": {
+      "sha256": "fa037efe0b36b9de6710d5bbc129808c492c0f32fe7ac6768d9004d81d7fbac5",
+      "mode": 420,
+      "size": 994
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/CredentialStoreDefinitionsV1.kt": {
+      "sha256": "c79c75fce7fafea8468914d25267cb13d3a6ff528ff87d2e31af41eb2285970b",
+      "mode": 420,
+      "size": 598
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/CustodyCrypto.kt": {
+      "sha256": "6f20cbfe5bf4315f4cb4f84950c8fa0ef4b8bc1e014f4cac08751d98b53917a5",
+      "mode": 420,
+      "size": 4642
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/EmailSender.kt": {
+      "sha256": "54ae4d9ef988858a3d12d5b72aa4ed74cdb33cc6853f504c98dcacab34d6bec0",
+      "mode": 420,
+      "size": 465
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/LoginConfig.kt": {
+      "sha256": "afb59166e1069d4140e73298afb06fc59e03620ae333acb05143d8d1e5de4ef6",
+      "mode": 420,
+      "size": 1580
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/LoginProviderSpi.kt": {
+      "sha256": "f51704ba5cfc0989ddad19fe0e497e115183d6ea22aa18c1b88ab63f0632bdca",
+      "mode": 420,
+      "size": 1271
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/LoginServerExtension.kt": {
+      "sha256": "20dd9dffb72e5e8cd772a462cb305906a985aff0e627a47498b3bba67fc9582e",
+      "mode": 420,
+      "size": 5146
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/LoginServiceImpl.kt": {
+      "sha256": "f46892f85f31960b8c61d52e1360f43c789b00ad6b2fbe273e1aedb6d6bc5c06",
+      "mode": 420,
+      "size": 16934
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/LoginStorage.kt": {
+      "sha256": "8cca10b252943e107d9c52699f31448926388bb35271679a7b2eab1de447a1bb",
+      "mode": 420,
+      "size": 709
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/NonceService.kt": {
+      "sha256": "5fcf16c24e48400c709342788823e863840a228771cb434ee131e3f1d26786ec",
+      "mode": 420,
+      "size": 2146
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/Pbkdf2Hasher.kt": {
+      "sha256": "b363b679973a0dbaafe3ed1b005cc348afb9473dd144096c431b7253ac017d62",
+      "mode": 420,
+      "size": 1813
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/SmsSender.kt": {
+      "sha256": "98239c5b66b5b7bcab8eb2e31f79cb94e7f8fe0fe11266d81526d8912adb7eb7",
+      "mode": 420,
+      "size": 372
+    },
+    "login-core-service/src/main/kotlin/com/latenighthack/social/login/core/service/SocialTokenVerifier.kt": {
+      "sha256": "c8d44e05cd1b9b3ecea2cca45d8f945548a8548c6f03b650569baf3853c10cf3",
+      "mode": 420,
+      "size": 1386
+    },
+    "login-core-service/src/main/resources/META-INF/services/com.latenighthack.lockers.server.ServerExtensionFactory": {
+      "sha256": "29d5d8e5ea2ab4a4b3b402297d08fac6c17cdabaee481b0c15791ad0a436ee93",
+      "mode": 420,
+      "size": 72
+    },
+    "login-core-service/src/test/kotlin/com/latenighthack/social/login/core/service/CustodyCryptoTest.kt": {
+      "sha256": "a0037ef3e071aedb995c6496760f803d94f4d4c977c26a86169c45c4b49af250",
+      "mode": 420,
+      "size": 4896
+    },
+    "login-core-service/src/test/kotlin/com/latenighthack/social/login/core/service/LoginServiceHardeningTest.kt": {
+      "sha256": "96af6e967b3b6684c0691f6412221a6d4fe05dddebea536f86634a7ff7545a64",
+      "mode": 420,
+      "size": 8983
+    },
+    "login-core-service/src/test/kotlin/com/latenighthack/social/login/core/service/LoginServiceTest.kt": {
+      "sha256": "a221a1f53ce472059c4a89122061c3d08ea996eeb5680c9ff35b939fbf8331a4",
+      "mode": 420,
+      "size": 11863
+    },
+    "login-core-service/src/test/kotlin/com/latenighthack/social/login/core/service/Pbkdf2HasherTest.kt": {
+      "sha256": "f3ea6e3e689f9db6aebcf9d233233c247866cb842809b4c90aa10af93d147aaa",
+      "mode": 420,
+      "size": 1179
+    },
+    "login-core-service/src/test/kotlin/com/latenighthack/social/login/core/service/StorageAdoptionTest.kt": {
+      "sha256": "2e763e89fe3c0e81d357c1feabb3397e0211f17e037f069e03d75094bd35070a",
+      "mode": 420,
+      "size": 2294
+    },
+    "login-core-usecase/build.gradle.kts": {
+      "sha256": "3b18fb9765756631c69c43fdb45e562e126db43d975baaa58874f99c584f2d01",
+      "mode": 420,
+      "size": 802
+    },
+    "login-core-usecase/src/commonMain/kotlin/com/latenighthack/social/login/core/usecase/BindCurrentAccountUseCase.kt": {
+      "sha256": "8fa50b1167834564d1bc2d02a943374b39c3883d668435fadbcc6879494b631b",
+      "mode": 420,
+      "size": 1690
+    },
+    "login-core-usecase/src/commonMain/kotlin/com/latenighthack/social/login/core/usecase/LoginCoreUseCaseProviders.kt": {
+      "sha256": "80a8bb0ebf7e7e2763cab113481b6a1b5a21d8d190af9e3bbd84d32e25f9c568",
+      "mode": 420,
+      "size": 661
+    },
+    "login-core-usecase/src/commonMain/kotlin/com/latenighthack/social/login/core/usecase/LoginResults.kt": {
+      "sha256": "4464d3e564a06a57c0a95b0351447e5832127e230c987dc8954756b21d80e8db",
+      "mode": 420,
+      "size": 4445
+    },
+    "login-email-service/build.gradle.kts": {
+      "sha256": "09763195764bdf99f91a4c44148c14dfe6a3c3801bf4bedb7adfa74df6eefdba",
+      "mode": 420,
+      "size": 459
+    },
+    "login-email-service/src/main/kotlin/com/latenighthack/social/login/email/service/EmailLoginProviderFactory.kt": {
+      "sha256": "ce851fda26102d71cd2197ebf352f97e52a8a464ed3fa61ed5b790fc39f35ac2",
+      "mode": 420,
+      "size": 1572
+    },
+    "login-email-service/src/main/kotlin/com/latenighthack/social/login/email/service/EmailSenders.kt": {
+      "sha256": "c9f62657c84bdcf8646a56fe7665faa49484b726ab0de6f830abdcc9052158c5",
+      "mode": 420,
+      "size": 3665
+    },
+    "login-email-service/src/main/resources/META-INF/services/com.latenighthack.social.login.core.service.LoginProviderFactory": {
+      "sha256": "85eee7344bdfb8d05b9a48610a58abe3851b17bbcedcd87a1deacb5022da0256",
+      "mode": 420,
+      "size": 71
+    },
+    "login-email-service/src/test/kotlin/com/latenighthack/social/login/email/service/EmailLoginProviderFactoryTest.kt": {
+      "sha256": "cd8497b3acd5b4e0b29ad4a19856ca311a167e567c8dc10a0793697c5ce85bc7",
+      "mode": 420,
+      "size": 653
+    },
+    "login-email-usecase/build.gradle.kts": {
+      "sha256": "8a070e17fc56a35768362420b160328400a127646a2b50b347c0e4ef1da81cc0",
+      "mode": 420,
+      "size": 561
+    },
+    "login-email-usecase/src/commonMain/kotlin/com/latenighthack/social/login/email/usecase/CompleteEmailLinkUseCase.kt": {
+      "sha256": "69816e6708c54459c28cb2546f27e68a3379b0bb86c3b3bd73b7d81c8385c6cb",
+      "mode": 420,
+      "size": 924
+    },
+    "login-email-usecase/src/commonMain/kotlin/com/latenighthack/social/login/email/usecase/LoginEmailUseCaseProviders.kt": {
+      "sha256": "9a32f5acbd3bd8b16a5d3337af72cb526b5e56a8421b0d09e766addc6b2876c8",
+      "mode": 420,
+      "size": 758
+    },
+    "login-email-usecase/src/commonMain/kotlin/com/latenighthack/social/login/email/usecase/RequestEmailLinkUseCase.kt": {
+      "sha256": "ebde6c896bc342bc1f881eac50bf1a81557837656ae95a047dbdec3ce0934cd7",
+      "mode": 420,
+      "size": 827
+    },
+    "login-google-domain/build.gradle.kts": {
+      "sha256": "7aeeb23f35e2e962578df668e9b858940cd688b84b3cc7bd8c6044c8b48e7d7c",
+      "mode": 420,
+      "size": 440
+    },
+    "login-google-domain/src/androidMain/kotlin/com/latenighthack/social/login/google/domain/AndroidGoogleSignInClient.kt": {
+      "sha256": "a85f9c81983ffafacf43c557628b7e15a1a8c700f666e04e79f8ce84222872cd",
+      "mode": 420,
+      "size": 1431
+    },
+    "login-google-domain/src/commonMain/kotlin/com/latenighthack/social/login/google/domain/GoogleSignInClient.kt": {
+      "sha256": "2246da195022328d7a2844cc1cac9fa2fa0fd025a6eac83db033d22f0bc8210d",
+      "mode": 420,
+      "size": 573
+    },
+    "login-google-service/build.gradle.kts": {
+      "sha256": "893fed14467c41b4c7a28b399bf3307ecdb5e947150dd2d39c224b12ff4f8a09",
+      "mode": 420,
+      "size": 578
+    },
+    "login-google-service/src/main/kotlin/com/latenighthack/social/login/google/service/GoogleLoginProviderFactory.kt": {
+      "sha256": "c27e78cbdf8cca9548412dbd81b209444bd028dd876fda109d56116f0d8c270c",
+      "mode": 420,
+      "size": 1183
+    },
+    "login-google-service/src/main/kotlin/com/latenighthack/social/login/google/service/OidcTokenVerifier.kt": {
+      "sha256": "8ef7e634f9ead282e410d37203523ffccd59b7dcfac9363e161a7ff4c8068b83",
+      "mode": 420,
+      "size": 2644
+    },
+    "login-google-service/src/main/resources/META-INF/services/com.latenighthack.social.login.core.service.LoginProviderFactory": {
+      "sha256": "0368964e175bf3f5a650b02f136f40b6f2c9ac2fd92fe54823ce1ccd0d19d2e8",
+      "mode": 420,
+      "size": 73
+    },
+    "login-google-service/src/test/kotlin/com/latenighthack/social/login/google/service/GoogleLoginProviderFactoryTest.kt": {
+      "sha256": "8be2b2120c7372f95e467a1f53da41fc93a9f7c286638874567def337860b441",
+      "mode": 420,
+      "size": 922
+    },
+    "login-google-usecase/build.gradle.kts": {
+      "sha256": "f00959405a052627960f0e1fefa6c590d1d0f01585ea1639399f558870c7ab4b",
+      "mode": 420,
+      "size": 585
+    },
+    "login-google-usecase/src/commonMain/kotlin/com/latenighthack/social/login/google/usecase/AuthenticateWithGoogleUseCase.kt": {
+      "sha256": "78ab429efa41cf42de2eddcfe3334db0b45ee1365a74240cedb739129fb2d4db",
+      "mode": 420,
+      "size": 2150
+    },
+    "login-google-usecase/src/commonMain/kotlin/com/latenighthack/social/login/google/usecase/LoginGoogleUseCaseProviders.kt": {
+      "sha256": "4d3f9aeedd33dcc572f86f8841345288e6fbf44567395b2cb3317c68e217f606",
+      "mode": 420,
+      "size": 930
+    },
+    "login-phone-service/build.gradle.kts": {
+      "sha256": "c29962d13f35d39bd50111e89262ab172ece1a26c28fd5864ff9412bca812d22",
+      "mode": 420,
+      "size": 342
+    },
+    "login-phone-service/src/main/kotlin/com/latenighthack/social/login/phone/service/PhoneLoginProviderFactory.kt": {
+      "sha256": "2513b55194473ad4a120c754c94454995bb0a997d29c8f3d02e73c4725849d06",
+      "mode": 420,
+      "size": 1210
+    },
+    "login-phone-service/src/main/kotlin/com/latenighthack/social/login/phone/service/SmsSenders.kt": {
+      "sha256": "641ce2bb96f3d34dc3d03653a71a4f987e4fc563988f25008ae9a19e7fe675e7",
+      "mode": 420,
+      "size": 1668
+    },
+    "login-phone-service/src/main/resources/META-INF/services/com.latenighthack.social.login.core.service.LoginProviderFactory": {
+      "sha256": "fbac5ed8d85482e221be3f58f78ef33b7854c64b8b52ba3d758bc11490cfc6b4",
+      "mode": 420,
+      "size": 71
+    },
+    "login-phone-service/src/test/kotlin/com/latenighthack/social/login/phone/service/PhoneLoginProviderFactoryTest.kt": {
+      "sha256": "fcd6568cdb465e4537b9aa56576b5d396c5792bf72c72dfe7014e4fab1fd2d80",
+      "mode": 420,
+      "size": 649
+    },
+    "login-phone-usecase/build.gradle.kts": {
+      "sha256": "57e760c3e074fb704f79624d9c6bb249c4499b2ea14ae7204d77e70bbf578c34",
+      "mode": 420,
+      "size": 559
+    },
+    "login-phone-usecase/src/commonMain/kotlin/com/latenighthack/social/login/phone/usecase/LoginPhoneUseCaseProviders.kt": {
+      "sha256": "2644bd76b30161318b63aba8dc515488ac0b0d096d21b924df66baea85177af3",
+      "mode": 420,
+      "size": 745
+    },
+    "login-phone-usecase/src/commonMain/kotlin/com/latenighthack/social/login/phone/usecase/RequestPhoneCodeUseCase.kt": {
+      "sha256": "ce08ee0894ceb51e98dfb7eed2017fedec022941e3a0ce05742b75cfbd834816",
+      "mode": 420,
+      "size": 705
+    },
+    "login-phone-usecase/src/commonMain/kotlin/com/latenighthack/social/login/phone/usecase/VerifyPhoneCodeUseCase.kt": {
+      "sha256": "b77ed11ede5edef63f56f6c89fef042a9dac96e0302f507791e67dca50146bbb",
+      "mode": 420,
+      "size": 892
+    },
+    "messages-api/build.gradle.kts": {
+      "sha256": "d584bf79486fba43d709b21816deb300027333a67c7c11034c9f5d20378d5315",
+      "mode": 420,
+      "size": 505
+    },
+    "messages-api/proto/messages/v1/components.proto": {
+      "sha256": "7ba09ec4da4cbd8d78e5d47a5c35516f4aa760434a2cfc71fd83f5ed84648978",
+      "mode": 420,
+      "size": 2803
+    },
+    "messages-api/proto/messages/v1/model.proto": {
+      "sha256": "8f4dee6f88ed7a64257cdced55f2bcaf7c3ff04ae50607b788b5f2a7c72d043c",
+      "mode": 420,
+      "size": 3498
+    },
+    "messages-domain/build.gradle.kts": {
+      "sha256": "513e4a6df3b98e4a56a8a0245af586cdf4d7b8aceae895305419bd518fc5ec30",
+      "mode": 420,
+      "size": 1917
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/ComponentContent.kt": {
+      "sha256": "947b13bdce1ff7f4edcb9d6f57ea8d6dfd816638c61ae0cc1af2b54eea591664",
+      "mode": 420,
+      "size": 808
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/DeadLetterStore.kt": {
+      "sha256": "1b2c6df5bdb44cf979f9732aa32d4b1d26940013af29ad64b68a6f7b065f35b3",
+      "mode": 420,
+      "size": 1687
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/DeadLetterStoreDefinitionsV1.kt": {
+      "sha256": "e2d9ac8eea1916c4e76c12ed6af698da0c976b16485d40d4588892bb175ecb64",
+      "mode": 420,
+      "size": 1045
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/DraftStore.kt": {
+      "sha256": "4d52906e0fbb9351b41762b49330ff0a0dd6a2569cacfe732b35dedf013e6285",
+      "mode": 420,
+      "size": 865
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/DraftStoreDefinitionsV1.kt": {
+      "sha256": "67971da87c9b394be640d6c38afcc8bc3a59b254f0b90f0c67ff0f1ec5380c90",
+      "mode": 420,
+      "size": 596
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/DraftsManager.kt": {
+      "sha256": "9a718bf09a0390b1fb6f8d54b552e96e46c7633bafe562ba621eba29fa33ccdf",
+      "mode": 420,
+      "size": 1420
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/DraftsManagerImpl.kt": {
+      "sha256": "ba6ea69921619a13374f49c98d5960ce95ab645d04c19ddfcc077c1539e83dcc",
+      "mode": 420,
+      "size": 4152
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessageSigning.kt": {
+      "sha256": "e6fc7a7ed0f3a9c3f4c207124d4845a2332c3d42d4698a50680a2676826bc77e",
+      "mode": 420,
+      "size": 1348
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessageStore.kt": {
+      "sha256": "bb844c66991e64b13bbb7dc74594f8a9fd09f5e1f8fc8edc8f58077992119544",
+      "mode": 420,
+      "size": 1842
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessageStoreDefinitionsV1.kt": {
+      "sha256": "1b0e89d9fbfac4c9518e334c8b1d746a0362a40693abb552b4f1ecae902c6997",
+      "mode": 420,
+      "size": 1014
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessagesKeyspaces.kt": {
+      "sha256": "487a6e51e0f3bcb2e8e29eb73044f066735fdc764d7df18ea74fad2cb61f8c87",
+      "mode": 420,
+      "size": 896
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessagesManager.kt": {
+      "sha256": "ac24e083c8b44457305977200103d34c1f601372a2116e15a2a447a29ddece4e",
+      "mode": 420,
+      "size": 2185
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessagesManagerImpl.kt": {
+      "sha256": "a9f05c982b3fa93e10627e8564a7e3e7d74f1221c532a9f66113ddeca82a3202",
+      "mode": 420,
+      "size": 21041
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessagesProviders.kt": {
+      "sha256": "6ae051ee9977e89d74d98e05632ca67d105d322e96ed4b9afde96f4bc013bc86",
+      "mode": 420,
+      "size": 1717
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/MessagesStorage.kt": {
+      "sha256": "4f5018a89f77aa874eb13f1c4f12796eaf286058ca9744ba029d93f29e92bccc",
+      "mode": 420,
+      "size": 859
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/PendingMessageStore.kt": {
+      "sha256": "38fa02295590fcf97b742bc1b5792229019a324985a150859e793c85b949982e",
+      "mode": 420,
+      "size": 1539
+    },
+    "messages-domain/src/commonMain/kotlin/com/latenighthack/social/messages/domain/PendingMessageStoreDefinitionsV1.kt": {
+      "sha256": "8104b8aa0737de8fa467506f1af2ab0665dd641e33d93873870f5b7c36202c9d",
+      "mode": 420,
+      "size": 1045
+    },
+    "messages-domain/src/jvmTest/kotlin/com/latenighthack/social/messages/domain/DraftsManagerIntegrationTest.kt": {
+      "sha256": "9a96cbfb5f5862293a19008b2859ee0902fbf65e7eeedc9facd563fc0a22d13c",
+      "mode": 420,
+      "size": 7583
+    },
+    "messages-domain/src/jvmTest/kotlin/com/latenighthack/social/messages/domain/MessagesManagerIntegrationTest.kt": {
+      "sha256": "61dbe5fd20217455b1452946e59534eed7968769b02a27696a7ba20464290d1d",
+      "mode": 420,
+      "size": 22222
+    },
+    "messages-domain/src/jvmTest/kotlin/com/latenighthack/social/messages/domain/StorageAdoptionTest.kt": {
+      "sha256": "1d6cb092f8b93c1b1cef5f0f1e5b2a2b00a319401e66af7301bc1f21355848e6",
+      "mode": 420,
+      "size": 2748
+    },
+    "messages-usecase/build.gradle.kts": {
+      "sha256": "2859223303af9da0ef015d54b6cc8e22ba0c3246db62e415a710d79b45676d5b",
+      "mode": 420,
+      "size": 525
+    },
+    "messages-usecase/src/commonMain/kotlin/com/latenighthack/social/messages/usecase/MarkReadUseCase.kt": {
+      "sha256": "36de8839cdbc0e21187ef61b3d05d0ac5bec45aa7def04e63e505c1d03a01abf",
+      "mode": 420,
+      "size": 434
+    },
+    "messages-usecase/src/commonMain/kotlin/com/latenighthack/social/messages/usecase/Message.kt": {
+      "sha256": "89295abbe7a2f9ea75b0ae050766cb7aa061fde0a73f1c3fa8909434cd1cbb84",
+      "mode": 420,
+      "size": 748
+    },
+    "messages-usecase/src/commonMain/kotlin/com/latenighthack/social/messages/usecase/MessagesUseCaseProviders.kt": {
+      "sha256": "0be087df87fe7aa46c5a4565f20190edf7bcb5ce1eedbf376d3f77566f85b569",
+      "mode": 420,
+      "size": 1772
+    },
+    "messages-usecase/src/commonMain/kotlin/com/latenighthack/social/messages/usecase/PhotoAttachUseCase.kt": {
+      "sha256": "e783f42d1bfa3f17191fdbcfb02ec3e66d29bf55b815cd32c5a5591eaed97ab5",
+      "mode": 420,
+      "size": 1368
+    },
+    "messages-usecase/src/commonMain/kotlin/com/latenighthack/social/messages/usecase/RemoveDraftAttachmentUseCase.kt": {
+      "sha256": "411c427f3b98e9f92e9b034ea3cbefcac7c39cf52f553a893cd38dee13c58626",
+      "mode": 420,
+      "size": 419
+    },
+    "messages-usecase/src/commonMain/kotlin/com/latenighthack/social/messages/usecase/RetryFailedMessageUseCase.kt": {
+      "sha256": "1b58688895d888ab0e62923c5afaf46e0c5ab541cdae919f72058be3d55adcaf",
+      "mode": 420,
+      "size": 502
+    },
+    "messages-usecase/src/commonMain/kotlin/com/latenighthack/social/messages/usecase/SaveDraftUseCase.kt": {
+      "sha256": "b58243fa1675f8b938e0532fefc06c047f1dc9b1a2c456557927eabb353184dc",
+      "mode": 420,
+      "size": 408
+    },
+    "messages-usecase/src/commonMain/kotlin/com/latenighthack/social/messages/usecase/SendMessageUseCase.kt": {
+      "sha256": "5308822e0b0f2e58967b2988d1376317bdbb88f1a6fae8616db9b6a67ecc34da",
+      "mode": 420,
+      "size": 585
+    },
+    "messages-usecase/src/commonMain/kotlin/com/latenighthack/social/messages/usecase/WatchDraftUseCase.kt": {
+      "sha256": "5f3a04096c6048dfbdb92fb4874364aa69b28208775661438f7a77e39f690cce",
+      "mode": 420,
+      "size": 476
+    },
+    "messages-usecase/src/commonMain/kotlin/com/latenighthack/social/messages/usecase/WatchMessagesUseCase.kt": {
+      "sha256": "79b8e06c870de38f430e7b0219cd8db6a8908457d7c2a573e7aa8acaf02fb713",
+      "mode": 420,
+      "size": 1854
+    },
+    "messages-view/Makefile": {
+      "sha256": "1c59fd83b52571ce97eea47dbe1ec61c1b2c23648542e003457b1eab84777813",
+      "mode": 420,
+      "size": 3354
+    },
+    "messages-view/README.md": {
+      "sha256": "a24a2d93ad08ea0b29153db13bd3d027272bc3cc7e06487fb1ef318db4de6c51",
+      "mode": 420,
+      "size": 3236
+    },
+    "messages-view/android/build.gradle.kts": {
+      "sha256": "5e56f68493d91920beefdcee4f87f6380ba0f318ee928fee496c500034e064b9",
+      "mode": 420,
+      "size": 786
+    },
+    "messages-view/android/src/main/AndroidManifest.xml": {
+      "sha256": "daa0fb1f32ba7ea85a07ef6302ab3d58c3407d7fd2aa03ec132cb9e38e8d9849",
+      "mode": 420,
+      "size": 52
+    },
+    "messages-view/android/src/main/kotlin/com/latenighthack/social/messages/view/Internal.kt": {
+      "sha256": "ba88c0469c4a8797f94e7afb5c5817ed59697eccbc140a1d19e42ec60d9f77a6",
+      "mode": 420,
+      "size": 726
+    },
+    "messages-view/android/src/main/kotlin/com/latenighthack/social/messages/view/Layouts.kt": {
+      "sha256": "21959bcea4a12e394b4adb2b044635d7a29f5095e01f3c8eeee5adc0c3e2bbb0",
+      "mode": 420,
+      "size": 4864
+    },
+    "messages-view/android/src/main/kotlin/com/latenighthack/social/messages/view/MessageLayoutBuilder.kt": {
+      "sha256": "1af5c9aa110b89276b9110f67b1e3a48f56319f9270841ada41232281cfcecc2",
+      "mode": 420,
+      "size": 14849
+    },
+    "messages-view/android/src/main/kotlin/com/latenighthack/social/messages/view/MessageTheme.kt": {
+      "sha256": "9b41057a3c038dbebb6e9d68b799809eb8e3b58d3f0fa1d9b35b28ef56f4d2fb",
+      "mode": 420,
+      "size": 3643
+    },
+    "messages-view/android/src/main/kotlin/com/latenighthack/social/messages/view/Spans.kt": {
+      "sha256": "1dc3618c4e8aec2a9fd8330e41a21e69ef79ef8cdc465b65cdf27809cabb19ec",
+      "mode": 420,
+      "size": 3901
+    },
+    "messages-view/android/src/main/kotlin/com/latenighthack/social/messages/view/Widgets.kt": {
+      "sha256": "308be4971827a92ca99bb750c074023eaeca445f1d72f1fd5c15730a32400b14",
+      "mode": 420,
+      "size": 8600
+    },
+    "messages-view/demo/android/build.gradle.kts": {
+      "sha256": "da4c7bb6e13c3a65140772579b0f70bcf239d6ab6ca03d2d4ce593652ee0d7bd",
+      "mode": 420,
+      "size": 1231
+    },
+    "messages-view/demo/android/src/main/AndroidManifest.xml": {
+      "sha256": "9174ec4b266653486ab272f67ba5acb647ac3ddeffcde2cb3dd549f5fa9745e4",
+      "mode": 420,
+      "size": 609
+    },
+    "messages-view/demo/android/src/main/kotlin/com/latenighthack/social/messages/view/demo/Fixtures.kt": {
+      "sha256": "d4bfe91e38e5ce70d862c7a2857bddb369a6c750cc75a4b16fbb326473d1a5ee",
+      "mode": 420,
+      "size": 1533
+    },
+    "messages-view/demo/android/src/main/kotlin/com/latenighthack/social/messages/view/demo/MainActivity.kt": {
+      "sha256": "2a1b116eaa673a6c61b3cf16018446c81d44f375a4b30f5e8fed531232162b14",
+      "mode": 420,
+      "size": 1380
+    },
+    "messages-view/demo/android/src/main/res/values/themes.xml": {
+      "sha256": "194e1aff6f0d947895b081b1c9cc796b9b64118089205da238cd5b0355c6cc2e",
+      "mode": 420,
+      "size": 154
+    },
+    "messages-view/demo/android/src/test/kotlin/com/latenighthack/social/messages/view/demo/ScreenshotTest.kt": {
+      "sha256": "afcec28784282f16c334b58586824139eb5aa84762db23000c75ba70928e2b62",
+      "mode": 420,
+      "size": 2145
+    },
+    "messages-view/demo/android/src/test/resources/robolectric.properties": {
+      "sha256": "1677b7f2d72770b793899012e2c43baef205b920211375a76efb13cef4b33e8f",
+      "mode": 420,
+      "size": 32
+    },
+    "messages-view/demo/gen-fixtures/package.json": {
+      "sha256": "ed77fe6c08cd384312a1b4cb4f7ba3066074e235fd7252670f9bcfa25c821ed7",
+      "mode": 420,
+      "size": 371
+    },
+    "messages-view/demo/gen-fixtures/src/index.ts": {
+      "sha256": "15f0e9764524af069fb2696606450c8bfbd0b30fe1dfb5ded4f92bc06818f83f",
+      "mode": 420,
+      "size": 7664
+    },
+    "messages-view/demo/ios/Info.plist": {
+      "sha256": "19289429c28efa7f7ad15d66cc7e00c330475a67ed46a2bc9605f2beb452a959",
+      "mode": 420,
+      "size": 737
+    },
+    "messages-view/demo/ios/Shared/FixtureLoader.swift": {
+      "sha256": "99e975cb3c4a76539399c23d46760ac8a16664d9a067bd5d7d8a0d786a496457",
+      "mode": 420,
+      "size": 1460
+    },
+    "messages-view/demo/ios/Sources/AppDelegate.swift": {
+      "sha256": "3dc8377a15bdc0c880bd00fd34d5cff332304a5b7f6f673ee4405bb361617564",
+      "mode": 420,
+      "size": 494
+    },
+    "messages-view/demo/ios/Sources/GalleryViewController.swift": {
+      "sha256": "29ec599db5ab378e99b04d60c520e59cf889bdb744d9a415a11f8a16800a5911",
+      "mode": 420,
+      "size": 2569
+    },
+    "messages-view/demo/ios/Tests/ScreenshotTests.swift": {
+      "sha256": "471bef1242bfb718a1dd4dd33c17ada6140244327f02f16dae76db0d6877452c",
+      "mode": 420,
+      "size": 3544
+    },
+    "messages-view/demo/ios/project.yml": {
+      "sha256": "709294d3c3243eb4ffba07688a3d7e87920da02bd13544be52659be18b0d471a",
+      "mode": 420,
+      "size": 892
+    },
+    "messages-view/demo/web/index.html": {
+      "sha256": "8219bd934599f44ce01c5fbdd6a989ce9f355c4db948e310bcc768e0dac299d7",
+      "mode": 420,
+      "size": 375
+    },
+    "messages-view/demo/web/package.json": {
+      "sha256": "734f88075fba70eea543b7c8b1335ff61bd22bedf7f06af31b51c1728d3183b5",
+      "mode": 420,
+      "size": 640
+    },
+    "messages-view/demo/web/scripts/screenshots.mjs": {
+      "sha256": "d063502928727b8670303190a5105121353f3f4a6fb2bdc7cdc8ad7a9272aa3a",
+      "mode": 420,
+      "size": 1593
+    },
+    "messages-view/demo/web/src/main.tsx": {
+      "sha256": "840a1ed24ae117e61463db5016f2b0daa64bad1e1da6359602be8d53804c2e47",
+      "mode": 420,
+      "size": 1914
+    },
+    "messages-view/demo/web/vite.config.ts": {
+      "sha256": "e1e615049f97b633a24b2201214eede8fe5db1012ccf5db578f32eb4ebe549be",
+      "mode": 420,
+      "size": 181
+    },
+    "messages-view/ios/Package.resolved": {
+      "sha256": "05db3b85af8ad62e91eca763e33658d18a8d394a834dfb5fe7ecb35765041ede",
+      "mode": 420,
+      "size": 311
+    },
+    "messages-view/ios/Package.swift": {
+      "sha256": "c450d77ec555868cf680bed2a8522cbe45854fb6d9f880dbdf39a8f473d415c0",
+      "mode": 420,
+      "size": 553
+    },
+    "messages-view/ios/Sources/MessagesView/MessageComponentView.swift": {
+      "sha256": "c47f765af86b91152cb66aa51633f5216709b064b3fa815beeda94dfcb8cd604",
+      "mode": 420,
+      "size": 19681
+    },
+    "messages-view/ios/Sources/MessagesView/MessagePreviewView.swift": {
+      "sha256": "591abd49eee5068488dbf70f81b07333ebf1b393deeb69b4303b661bea86e4a6",
+      "mode": 420,
+      "size": 2975
+    },
+    "messages-view/ios/Sources/MessagesView/MessageTheme.swift": {
+      "sha256": "15c2d79493445da5c59d511b33446fa1cf63cea6df9102f59dda2409384e3a7b",
+      "mode": 420,
+      "size": 3400
+    },
+    "messages-view/ios/Sources/MessagesView/Types.swift": {
+      "sha256": "7a9f958f71c762acc8e54356b3603b0a14e8384d69e63f0c721025b037493af5",
+      "mode": 420,
+      "size": 898
+    },
+    "messages-view/package.json": {
+      "sha256": "4d4885cf9e60cdc2f03135202b7f0866a8d8620c9807e95315d7a039c3ad7c71",
+      "mode": 420,
+      "size": 84
+    },
+    "messages-view/pnpm-lock.yaml": {
+      "sha256": "786552e8668d5af96f599431a632736d623f6dee5a99d9f4b05c1b9942609c54",
+      "mode": 420,
+      "size": 47662
+    },
+    "messages-view/pnpm-workspace.yaml": {
+      "sha256": "971eb9e0e350fb046802c07a8ba3bd5d4683d0f3b9517ab79e27589bba3003cc",
+      "mode": 420,
+      "size": 59
+    },
+    "messages-view/web/package.json": {
+      "sha256": "b1e13ca7aaf1b758737722c451fed0667cab72161f0c600e46810cfc358815de",
+      "mode": 420,
+      "size": 498
+    },
+    "messages-view/web/src/MessageComponent.tsx": {
+      "sha256": "fdf39bc2da22ba62831dea178d92ddec33a2fb794eca577ce6613c9b29be5421",
+      "mode": 420,
+      "size": 14002
+    },
+    "messages-view/web/src/MessagePreview.tsx": {
+      "sha256": "e1875614a703d79e6c3f5c47b1ea78bfa37e3b2ea32900d495473ddd070b4006",
+      "mode": 420,
+      "size": 2571
+    },
+    "messages-view/web/src/index.ts": {
+      "sha256": "7451c36c1b111456be5bfadb0e2eb7909181b8543665f33dedbed625724424ac",
+      "mode": 420,
+      "size": 849
+    },
+    "messages-view/web/src/theme.ts": {
+      "sha256": "e85a2f25bb95ad11ca90f7570d339e3c79068931046a687549845554ff3733da",
+      "mode": 420,
+      "size": 2087
+    },
+    "messages-view/web/tsconfig.json": {
+      "sha256": "b6eaed7d2f0575804a4fe9d9aa0488f717560652e9e39bdf7ff3dde537695e89",
+      "mode": 420,
+      "size": 279
+    },
+    "observability/README.md": {
+      "sha256": "254dd26eed0e03b78f702dd5678635178031cb8859ae3a36b2d2b3167c131e37",
+      "mode": 420,
+      "size": 7416
+    },
+    "observability/grafana/datasources.example.yml": {
+      "sha256": "802d5f7ee3ec613ada5647d56812dbc0e5196a600a233b86c1083d6a7164d4fe",
+      "mode": 420,
+      "size": 544
+    },
+    "observability/grafana/provisioning.example.yml": {
+      "sha256": "938717d8146fd0931a619842c5dd156f9fce1097981769a04a88d3bdd5f71a78",
+      "mode": 420,
+      "size": 158
+    },
+    "observability/grafana/social-account.json": {
+      "sha256": "e9af6f271401fc457207f709d9784fd91fef47d479ca43c95725fc01cee1bd32",
+      "mode": 420,
+      "size": 18703
+    },
+    "observability/grafana/social-avatars.json": {
+      "sha256": "61cf8455474defd9678033378444ed60a5f7458bbb91d5049d7a9283488bc29e",
+      "mode": 420,
+      "size": 18664
+    },
+    "observability/grafana/social-contacts.json": {
+      "sha256": "f3ea70ed27eeb23cba37e03bc407893134a41d7d018897df61a7002e19fbfb27",
+      "mode": 420,
+      "size": 18727
+    },
+    "observability/grafana/social-debug.json": {
+      "sha256": "0ca41ce22e5740b8ba9a03ed7e296c21bd5a68d04994b5063c2b9fa966ae3021",
+      "mode": 420,
+      "size": 18655
+    },
+    "observability/grafana/social-login.json": {
+      "sha256": "b6bf8668f966e0458432c02db973517c93d32554210b4691f3f97ce6d2026f22",
+      "mode": 420,
+      "size": 18625
+    },
+    "observability/grafana/social-messages.json": {
+      "sha256": "9c022625b26a2d057069d471fe7194756f67957438c7bd1c8b967d273ea5a567",
+      "mode": 420,
+      "size": 18727
+    },
+    "observability/grafana/social-overview.json": {
+      "sha256": "13aa8db8d190805e8c25a431c4cb9169e8fe8723c9bb7f8ba64df1e33519ef90",
+      "mode": 420,
+      "size": 18651
+    },
+    "observability/grafana/social-profiles.json": {
+      "sha256": "ca00587752191d8e0682c8374bd994568273453b94cee6c9967e4a1e00ca3710",
+      "mode": 420,
+      "size": 18727
+    },
+    "observability/grafana/social-read-receipts.json": {
+      "sha256": "dc34fce77d9fa4461687a5280baa363f3707d02baaa2f7a2cc45f9cb9286b1d6",
+      "mode": 420,
+      "size": 18847
+    },
+    "observability/grafana/social-remote-content.json": {
+      "sha256": "914862025d15ba9e99329dff8b7eb1ac7ebc88db025553e9b6894bc8ca110e32",
+      "mode": 420,
+      "size": 18839
+    },
+    "observability/grafana/social-rooms.json": {
+      "sha256": "0768507acba2524553eac68e10356968360bde02108d41bbd324cc024683e38d",
+      "mode": 420,
+      "size": 18655
+    },
+    "observability/grafana/social-runtime.json": {
+      "sha256": "1882a1b22ff8da77c1c200dd3a69cc1f2c430ccaa0a05f7e4c3b534c45b3f9ae",
+      "mode": 420,
+      "size": 18813
+    },
+    "observability/grafana/social-typing.json": {
+      "sha256": "68965e3fa1016baeb8843b5a495d6603a36b2986ca5097471241682874f64405",
+      "mode": 420,
+      "size": 18679
+    },
+    "observability/manifest.json": {
+      "sha256": "a14093cf1a2373de0819b216dc18bf46f3d37fcfe4fb6c1a7f51efef3ed37eec",
+      "mode": 420,
+      "size": 1594
+    },
+    "observability/packs/account/README.md": {
+      "sha256": "8e7f6baab26c0bb0f52b28303c0264031c8b83912c68f62c348f0cab7316a7d2",
+      "mode": 420,
+      "size": 439
+    },
+    "observability/packs/account/alerts.yml": {
+      "sha256": "455b4e2455c8186e6f1f3863927b6d14617532dde6214f1e158a943efbfc38ed",
+      "mode": 420,
+      "size": 955
+    },
+    "observability/packs/account/manifest.json": {
+      "sha256": "11239e76696e75f44ffe64ee7a4492b42dedf741ca19956ae03b2218c0e35dca",
+      "mode": 420,
+      "size": 215
+    },
+    "observability/packs/account/social-account.json": {
+      "sha256": "e9af6f271401fc457207f709d9784fd91fef47d479ca43c95725fc01cee1bd32",
+      "mode": 420,
+      "size": 18703
+    },
+    "observability/packs/avatars/README.md": {
+      "sha256": "680e5687303a52b257c01e689e4ba04e831283fcef1bae5f7e7ec9a0dac36f57",
+      "mode": 420,
+      "size": 439
+    },
+    "observability/packs/avatars/alerts.yml": {
+      "sha256": "2cc0269dceda7530f08587720cb511e9d7fd269f9046017d9bd2b789f25f2506",
+      "mode": 420,
+      "size": 955
+    },
+    "observability/packs/avatars/manifest.json": {
+      "sha256": "80a8aa587d72a8e6ba1bf0bf91a54c47d9afb37f2cf8f6d99c14c315f17a8afd",
+      "mode": 420,
+      "size": 215
+    },
+    "observability/packs/avatars/social-avatars.json": {
+      "sha256": "61cf8455474defd9678033378444ed60a5f7458bbb91d5049d7a9283488bc29e",
+      "mode": 420,
+      "size": 18664
+    },
+    "observability/packs/contacts/README.md": {
+      "sha256": "d3e1c68acf5e35d64c1d9cf6272540bbd2ba804bd13c663b704b3b93a5176023",
+      "mode": 420,
+      "size": 441
+    },
+    "observability/packs/contacts/alerts.yml": {
+      "sha256": "635b76ca5a1b4a89b92d1999400e46e3fdcae2733b354eddc9d78a4a5585a395",
+      "mode": 420,
+      "size": 960
+    },
+    "observability/packs/contacts/manifest.json": {
+      "sha256": "61cb91a26c7b7801d7d482102e64129298049431f60efb41d208b07209b9c351",
+      "mode": 420,
+      "size": 217
+    },
+    "observability/packs/contacts/social-contacts.json": {
+      "sha256": "f3ea70ed27eeb23cba37e03bc407893134a41d7d018897df61a7002e19fbfb27",
+      "mode": 420,
+      "size": 18727
+    },
+    "observability/packs/debug/README.md": {
+      "sha256": "ea410a06bca94ce89cca73b15a36e954106acc6901de6b1173db5ae50c9b1ee3",
+      "mode": 420,
+      "size": 435
+    },
+    "observability/packs/debug/alerts.yml": {
+      "sha256": "cee74ed6aafa8e66fad87c15678ef6731440143c654dd5b115f5e65dab0f44ff",
+      "mode": 420,
+      "size": 945
+    },
+    "observability/packs/debug/manifest.json": {
+      "sha256": "1bcb16bbb0de68fc331cbb5fb2a9526d47319655c9ee71452e12cd9d8daa78ba",
+      "mode": 420,
+      "size": 211
+    },
+    "observability/packs/debug/social-debug.json": {
+      "sha256": "0ca41ce22e5740b8ba9a03ed7e296c21bd5a68d04994b5063c2b9fa966ae3021",
+      "mode": 420,
+      "size": 18655
+    },
+    "observability/packs/login/README.md": {
+      "sha256": "a0ef4539f04cbbda053143755581e5a5a2b02e7189d450fa4d0b416ac76265ad",
+      "mode": 420,
+      "size": 587
+    },
+    "observability/packs/login/alerts.yml": {
+      "sha256": "59f9bb086cd8d31bbfd3f1f246a690429a83a972cb4e1f6e05fd719a0f7e04f8",
+      "mode": 420,
+      "size": 945
+    },
+    "observability/packs/login/manifest.json": {
+      "sha256": "f916cc620c39bae5d2c43ba1dc6012f75978b9d9ced67ba04d9a1b16c447a35d",
+      "mode": 420,
+      "size": 211
+    },
+    "observability/packs/login/social-login.json": {
+      "sha256": "b6bf8668f966e0458432c02db973517c93d32554210b4691f3f97ce6d2026f22",
+      "mode": 420,
+      "size": 18625
+    },
+    "observability/packs/messages/README.md": {
+      "sha256": "89431deb697742bdf0f1207b6d65a7ef46d92e77d112a48fd90c2f1cf7e5b8f5",
+      "mode": 420,
+      "size": 629
+    },
+    "observability/packs/messages/alerts.yml": {
+      "sha256": "ad4315b3365b0b3fbdd7da28f1f215119a7ddda2faeaa519d91af72fa7e485c9",
+      "mode": 420,
+      "size": 1535
+    },
+    "observability/packs/messages/manifest.json": {
+      "sha256": "9692305258ec84f4a97250eb19ae205197b97e2a06cdf1bc684d0b83dc8ce6ac",
+      "mode": 420,
+      "size": 217
+    },
+    "observability/packs/messages/social-messages.json": {
+      "sha256": "9c022625b26a2d057069d471fe7194756f67957438c7bd1c8b967d273ea5a567",
+      "mode": 420,
+      "size": 18727
+    },
+    "observability/packs/overview/README.md": {
+      "sha256": "0978bc6a75ec6970eb7a744791be7eaee8fae56d2fca66f0953768abfc7ba569",
+      "mode": 420,
+      "size": 441
+    },
+    "observability/packs/overview/alerts.yml": {
+      "sha256": "00c450bfc0111c992571993b78b12891321c9b8ad8eab420aae803ae4b6a11e2",
+      "mode": 420,
+      "size": 2618
+    },
+    "observability/packs/overview/manifest.json": {
+      "sha256": "0ac7c213445290ef82f627af9586c433be6d18b2a309dc9db5b5f642db511e86",
+      "mode": 420,
+      "size": 217
+    },
+    "observability/packs/overview/social-overview.json": {
+      "sha256": "13aa8db8d190805e8c25a431c4cb9169e8fe8723c9bb7f8ba64df1e33519ef90",
+      "mode": 420,
+      "size": 18651
+    },
+    "observability/packs/profiles/README.md": {
+      "sha256": "12cc3ef04c6d6d84e1ed53fc2c5007e209ef27ba27f2c31befad9681d262cb33",
+      "mode": 420,
+      "size": 441
+    },
+    "observability/packs/profiles/alerts.yml": {
+      "sha256": "015b466a9979fa0e0e7a2a82fd6f59b7b0b7aad4b9ba172dda3cbdf0269b4c11",
+      "mode": 420,
+      "size": 960
+    },
+    "observability/packs/profiles/manifest.json": {
+      "sha256": "58589a0064766d531c29e32a7cb26929b6f19b6058363f8696fee7bd88087f54",
+      "mode": 420,
+      "size": 217
+    },
+    "observability/packs/profiles/social-profiles.json": {
+      "sha256": "ca00587752191d8e0682c8374bd994568273453b94cee6c9967e4a1e00ca3710",
+      "mode": 420,
+      "size": 18727
+    },
+    "observability/packs/read-receipts/README.md": {
+      "sha256": "9e1d3dd272786c19f0bfa326060756b0a3287e7f91784d6038781dc94c0e5aa6",
+      "mode": 420,
+      "size": 451
+    },
+    "observability/packs/read-receipts/alerts.yml": {
+      "sha256": "7359508cfc9b6a43ab500bcdb2180b5b766bcc6f8e162740c322c1f25212539a",
+      "mode": 420,
+      "size": 984
+    },
+    "observability/packs/read-receipts/manifest.json": {
+      "sha256": "7044feda7e243debe6d2ab4eefcbe00485ed30444cfd20f74591042e06ae8a38",
+      "mode": 420,
+      "size": 227
+    },
+    "observability/packs/read-receipts/social-read-receipts.json": {
+      "sha256": "dc34fce77d9fa4461687a5280baa363f3707d02baaa2f7a2cc45f9cb9286b1d6",
+      "mode": 420,
+      "size": 18847
+    },
+    "observability/packs/remote-content/README.md": {
+      "sha256": "e3f5150b9446177cdf8aa84495a81b7983e2b43e7d1b855d55827cbea9c3441e",
+      "mode": 420,
+      "size": 570
+    },
+    "observability/packs/remote-content/alerts.yml": {
+      "sha256": "d902672a08249662f6ddd656fa72dfc4cb8ddc5f260245c9084d357c8886f0c6",
+      "mode": 420,
+      "size": 989
+    },
+    "observability/packs/remote-content/manifest.json": {
+      "sha256": "de4175a42a4ea28a5d70472c38a84a4668b3d3af62eee39e7f87184d05ebc91a",
+      "mode": 420,
+      "size": 229
+    },
+    "observability/packs/remote-content/social-remote-content.json": {
+      "sha256": "914862025d15ba9e99329dff8b7eb1ac7ebc88db025553e9b6894bc8ca110e32",
+      "mode": 420,
+      "size": 18839
+    },
+    "observability/packs/rooms/README.md": {
+      "sha256": "ea8b6575902066643a0eeefd3db153370d790257e3e0d574bde07c4639faeb38",
+      "mode": 420,
+      "size": 435
+    },
+    "observability/packs/rooms/alerts.yml": {
+      "sha256": "6b74109c565d0df7f1602721a7528fa67aede388be59c7ba7784e8563eab03a9",
+      "mode": 420,
+      "size": 945
+    },
+    "observability/packs/rooms/manifest.json": {
+      "sha256": "4bae7a05f3864d36a357f33ea0b8d22ec73bbd2f196e18b7056df4c59850a419",
+      "mode": 420,
+      "size": 211
+    },
+    "observability/packs/rooms/social-rooms.json": {
+      "sha256": "0768507acba2524553eac68e10356968360bde02108d41bbd324cc024683e38d",
+      "mode": 420,
+      "size": 18655
+    },
+    "observability/packs/runtime/README.md": {
+      "sha256": "bec08f4a769ca5d9ec72c15665e403c0349c893a8faadac64ebc6823fe8c05d5",
+      "mode": 420,
+      "size": 439
+    },
+    "observability/packs/runtime/alerts.yml": {
+      "sha256": "91bf22939db1d8fc96a42135a06ecb1160aa3bb5b762bcfc9522ee5b769ab0c4",
+      "mode": 420,
+      "size": 1156
+    },
+    "observability/packs/runtime/manifest.json": {
+      "sha256": "e3b68bd10ad92e5c4b6c371eb779aa60eda8a9328c971d940593ff9666e78991",
+      "mode": 420,
+      "size": 215
+    },
+    "observability/packs/runtime/social-runtime.json": {
+      "sha256": "1882a1b22ff8da77c1c200dd3a69cc1f2c430ccaa0a05f7e4c3b534c45b3f9ae",
+      "mode": 420,
+      "size": 18813
+    },
+    "observability/packs/typing/README.md": {
+      "sha256": "6cda501c3354ea99d405209aca5528e92485a47b14eb6df91e1229bbed58a03f",
+      "mode": 420,
+      "size": 566
+    },
+    "observability/packs/typing/alerts.yml": {
+      "sha256": "36661c4b830dfb247e069704f16ffe70749b2c1cf2cc67c48657807a61020144",
+      "mode": 420,
+      "size": 950
+    },
+    "observability/packs/typing/manifest.json": {
+      "sha256": "4e331730b2d5b90521c303a5628df4565d067ba7c477d51f85dc36fd9090cbd8",
+      "mode": 420,
+      "size": 213
+    },
+    "observability/packs/typing/social-typing.json": {
+      "sha256": "68965e3fa1016baeb8843b5a495d6603a36b2986ca5097471241682874f64405",
+      "mode": 420,
+      "size": 18679
+    },
+    "observability/prometheus/alerts.test.yml": {
+      "sha256": "16f1dcba40ff8cf7d61b4ce29795478cfbb33d3687d52ea481178c8e63a0327c",
+      "mode": 420,
+      "size": 5367
+    },
+    "observability/prometheus/alerts.yml": {
+      "sha256": "00c450bfc0111c992571993b78b12891321c9b8ad8eab420aae803ae4b6a11e2",
+      "mode": 420,
+      "size": 2618
+    },
+    "profiles-api/build.gradle.kts": {
+      "sha256": "8d0214d6cc72285e1064d0570c76186764d8b7f974f0bdb8a509cd4e89d904e3",
+      "mode": 420,
+      "size": 500
+    },
+    "profiles-api/proto/profiles/v1/model.proto": {
+      "sha256": "8e7bbdeb2f07536548064f20759dc767ce390ba93b7a2373b539c2ca37789431",
+      "mode": 420,
+      "size": 1800
+    },
+    "profiles-domain/build.gradle.kts": {
+      "sha256": "707304656c605302c823e0c29ce726f737ccdd5ccc9ed1ebc5f848778a43820c",
+      "mode": 420,
+      "size": 1700
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/Disclosures.kt": {
+      "sha256": "17ca74d77c9ecb2748ec524858643a390af4abe2f896c44b32d374d3a09b10e6",
+      "mode": 420,
+      "size": 1836
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/MyProfilesManager.kt": {
+      "sha256": "279ef1a204b19446da4650612459a7e3121d0fe3628ee368e2a3063064145b9d",
+      "mode": 420,
+      "size": 3476
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/MyProfilesManagerImpl.kt": {
+      "sha256": "2ad09307e5a886395242f2935947d93ab74bbeab75cb2fdd02d74f6a211a08a0",
+      "mode": 420,
+      "size": 11618
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfileBuilders.kt": {
+      "sha256": "263aca76cfbc2ddd3afd25d3061874d7fbc970cda8e82664b472619506632fd4",
+      "mode": 420,
+      "size": 1234
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfileContent.kt": {
+      "sha256": "cbac41fb1f490cbbdc11ca4768553f0e59016b6af360c8b9aad788bf55bdca18",
+      "mode": 420,
+      "size": 861
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfileKeySource.kt": {
+      "sha256": "ad281d713516569d77f2f4b65613f8d4c84e63830751b8fbdccb2f0e9e2425df",
+      "mode": 420,
+      "size": 924
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfileKeyspaces.kt": {
+      "sha256": "b34405f56f970b2dc9010d486b9ce906771f310ad1590865b881416a20887d33",
+      "mode": 420,
+      "size": 1274
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfileStore.kt": {
+      "sha256": "6a5fa130d8728211eea76aa3e8cb425f821d8b1e77fff5f483f430a8d55bb152",
+      "mode": 420,
+      "size": 872
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfileStoreDefinitionsV1.kt": {
+      "sha256": "f8a18166b6688828a46eb3cf8b295080a96407301aded084ab3c880fc595162a",
+      "mode": 420,
+      "size": 753
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfilesManager.kt": {
+      "sha256": "36fbb69f05f33c493fda678af30ea4f63fae7e430d53f715c7ab7b04c529e296",
+      "mode": 420,
+      "size": 1002
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfilesManagerImpl.kt": {
+      "sha256": "c8602f47bf5f3eef2a6c1646f94e4c0a4075e0f48c8a755dd65be7ec99b6b304",
+      "mode": 420,
+      "size": 6125
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfilesProviders.kt": {
+      "sha256": "f236742358236ac09469133e5dec24bbf78f6a2759766ce80dc82d04c0d41781",
+      "mode": 420,
+      "size": 1882
+    },
+    "profiles-domain/src/commonMain/kotlin/com/latenighthack/social/profiles/domain/ProfilesStorage.kt": {
+      "sha256": "e4f5b236c47170bf3f93aa0a7518f38bac4926ffc5cf9b6070827cb5cf271886",
+      "mode": 420,
+      "size": 626
+    },
+    "profiles-domain/src/jvmTest/kotlin/com/latenighthack/social/profiles/domain/MyProfilesManagerIntegrationTest.kt": {
+      "sha256": "a6db43bb40081cdcb673fd5b7fbda9da32462198df367a7aba2bb5961625d901",
+      "mode": 420,
+      "size": 4815
+    },
+    "profiles-domain/src/jvmTest/kotlin/com/latenighthack/social/profiles/domain/ProfilesManagerIntegrationTest.kt": {
+      "sha256": "3f49259043635bd00181625451ca29cf051cc0d10712dd62c2007f10cedd940c",
+      "mode": 420,
+      "size": 4648
+    },
+    "profiles-domain/src/jvmTest/kotlin/com/latenighthack/social/profiles/domain/StorageAdoptionTest.kt": {
+      "sha256": "2310403fc47a872e14311e0c6db24911d8d1a8569c8ff84328c3d2ce3e00e48d",
+      "mode": 420,
+      "size": 2185
+    },
+    "profiles-usecase/build.gradle.kts": {
+      "sha256": "7bf358b57c03b3b2a2924529a0b8ae13ea36a86abfb8cbc13e540f1dffb4aede",
+      "mode": 420,
+      "size": 208
+    },
+    "profiles-usecase/src/commonMain/kotlin/com/latenighthack/social/profiles/usecase/HasCachedProfileUseCase.kt": {
+      "sha256": "2486f8c6762272086892123608d39b3c044ec46d350322a93fab1dbac0488d42",
+      "mode": 420,
+      "size": 802
+    },
+    "profiles-usecase/src/commonMain/kotlin/com/latenighthack/social/profiles/usecase/HasProfileUseCase.kt": {
+      "sha256": "05cd8be61612c0b06582e03d05c2f62035817042fbb5fdab83078d815948a764",
+      "mode": 420,
+      "size": 677
+    },
+    "profiles-usecase/src/commonMain/kotlin/com/latenighthack/social/profiles/usecase/MyProfileInfoUseCase.kt": {
+      "sha256": "cdd34fa6996dfa3266b04ff3c0cd9cc86c80033a05495a13eef0f651ec372ae1",
+      "mode": 420,
+      "size": 914
+    },
+    "profiles-usecase/src/commonMain/kotlin/com/latenighthack/social/profiles/usecase/MyProfileInvitationUseCase.kt": {
+      "sha256": "22ef3964ff633d38bf3845d14fd107e40754a00145b3eeff374712a0b9682c14",
+      "mode": 420,
+      "size": 879
+    },
+    "profiles-usecase/src/commonMain/kotlin/com/latenighthack/social/profiles/usecase/ProfileInfoUseCase.kt": {
+      "sha256": "b350bedb852d9472b8312e2ad91ea72ab57810bb8897b91b6b22f33f8e1d37cf",
+      "mode": 420,
+      "size": 552
+    },
+    "profiles-usecase/src/commonMain/kotlin/com/latenighthack/social/profiles/usecase/ProfilesUseCaseProviders.kt": {
+      "sha256": "5e84d47f4347f68e9ff9662bdcf92772082e2e544f06df5b479d6c6187a4b170",
+      "mode": 420,
+      "size": 1368
+    },
+    "profiles-usecase/src/commonMain/kotlin/com/latenighthack/social/profiles/usecase/UpdateMyDisplayNameUseCase.kt": {
+      "sha256": "516d4bdc19b6a957778b21b31841ade2d0b8cda30f5fb9ad72c62db0cb2a295b",
+      "mode": 420,
+      "size": 800
+    },
+    "profiles-usecase/src/commonMain/kotlin/com/latenighthack/social/profiles/usecase/WatchMyProfileUseCase.kt": {
+      "sha256": "00c791f64cdce3bb43c631acfdf86146cf51fd7b7ab85d458d6dff3546fb8fce",
+      "mode": 420,
+      "size": 1169
+    },
+    "read-receipts-api/build.gradle.kts": {
+      "sha256": "44214b6cf6d69b577523e0eff9501b916e931677584cfff117cbb0639da910cd",
+      "mode": 420,
+      "size": 39
+    },
+    "read-receipts-api/proto/readreceipts/v1/model.proto": {
+      "sha256": "f4da8d27e50a70d6fe5806b7520f30a2adb530870ce2d5e63850c9666c86b00d",
+      "mode": 420,
+      "size": 447
+    },
+    "read-receipts-domain/build.gradle.kts": {
+      "sha256": "20ad4a8179b949b4714f8787036f86c6aae212ba9c14d2dbdf4c262cb4ddb99a",
+      "mode": 420,
+      "size": 2011
+    },
+    "read-receipts-domain/src/commonMain/kotlin/com/latenighthack/social/readreceipts/domain/ReadReceiptsKeyspaces.kt": {
+      "sha256": "8e25575f127b22fda44b14e03ab523e827647ab5f15300ebda6f0ff7a57b7594",
+      "mode": 420,
+      "size": 815
+    },
+    "read-receipts-domain/src/commonMain/kotlin/com/latenighthack/social/readreceipts/domain/ReadReceiptsManager.kt": {
+      "sha256": "8290d037f2215ea32221edbdeab9c17dcaaaae03a947e72cacc3a5cde48c686f",
+      "mode": 420,
+      "size": 1251
+    },
+    "read-receipts-domain/src/commonMain/kotlin/com/latenighthack/social/readreceipts/domain/ReadReceiptsManagerImpl.kt": {
+      "sha256": "ccb0c5b5e2a7124b63e4486a69f804f883dfd3f1589f6ac49952bcb9352399d5",
+      "mode": 420,
+      "size": 4165
+    },
+    "read-receipts-domain/src/commonMain/kotlin/com/latenighthack/social/readreceipts/domain/ReadReceiptsProviders.kt": {
+      "sha256": "c212fbe9a48ee304de85c955bf4dfb0462b59dc09f6c54783c2b0a11d9a6610a",
+      "mode": 420,
+      "size": 1242
+    },
+    "read-receipts-domain/src/jvmTest/kotlin/com/latenighthack/social/readreceipts/domain/ReadReceiptsManagerIntegrationTest.kt": {
+      "sha256": "fcbe06334f76bf4de3503ad093c305dbe58f952e254f0919ed3347b273fe863a",
+      "mode": 420,
+      "size": 10491
+    },
+    "remote-content-api/build.gradle.kts": {
+      "sha256": "44214b6cf6d69b577523e0eff9501b916e931677584cfff117cbb0639da910cd",
+      "mode": 420,
+      "size": 39
+    },
+    "remote-content-api/proto/remotecontent/v1/model.proto": {
+      "sha256": "1ff8cbae0aa071942bc9398fd7528185689af2d2dff0b7d47f82f74eee05a61b",
+      "mode": 420,
+      "size": 1770
+    },
+    "remote-content-domain/build.gradle.kts": {
+      "sha256": "9a9439dce5ad03e91cb3476f4a8e2d1d61e6401cf544f227c8c69f8f66d02a6a",
+      "mode": 420,
+      "size": 1707
+    },
+    "remote-content-domain/src/commonMain/kotlin/com/latenighthack/social/remotecontent/domain/PendingUploadStore.kt": {
+      "sha256": "d3525fd932e06b53f89e54749e473c2be427f85c81b2c0155e7d4c328cdf6108",
+      "mode": 420,
+      "size": 1020
+    },
+    "remote-content-domain/src/commonMain/kotlin/com/latenighthack/social/remotecontent/domain/PendingUploadStoreDefinitionsV1.kt": {
+      "sha256": "4458eee16eeef7a280e99f8c32f0cd7ca318d777ead9fe1d8f4ab2dd04f58007",
+      "mode": 420,
+      "size": 798
+    },
+    "remote-content-domain/src/commonMain/kotlin/com/latenighthack/social/remotecontent/domain/RemoteContentClient.kt": {
+      "sha256": "765d5bcab0857a10382015fcdf99615c70eb46e6c20e0f5e08b8e663efa6698f",
+      "mode": 420,
+      "size": 5701
+    },
+    "remote-content-domain/src/commonMain/kotlin/com/latenighthack/social/remotecontent/domain/RemoteContentProviders.kt": {
+      "sha256": "c7c66d742e7b81cdb3a4b08290b2ca1c5a43ef7f5cf918faa9d123aa46a842a7",
+      "mode": 420,
+      "size": 1673
+    },
+    "remote-content-domain/src/commonMain/kotlin/com/latenighthack/social/remotecontent/domain/RemoteContentStorage.kt": {
+      "sha256": "949c5ccc8b7a299ad5da59af545b298bd2343ee5d19eb7d6afb141fcf2fcec88",
+      "mode": 420,
+      "size": 652
+    },
+    "remote-content-domain/src/commonMain/kotlin/com/latenighthack/social/remotecontent/domain/RemoteContentUploader.kt": {
+      "sha256": "25e68118c39f5b2e2c694c19c880bc31aac13328b07caf560ba4f28a9a6efe6a",
+      "mode": 420,
+      "size": 9039
+    },
+    "remote-content-domain/src/jvmTest/kotlin/com/latenighthack/social/remotecontent/domain/RemoteContentTransferTest.kt": {
+      "sha256": "9cc0eff93519aa1672a3d084b96e8d22fe875e71884e4461d2d3ec8411dc1ae1",
+      "mode": 420,
+      "size": 3651
+    },
+    "remote-content-domain/src/jvmTest/kotlin/com/latenighthack/social/remotecontent/domain/RemoteContentUploaderTest.kt": {
+      "sha256": "f99161e868d16e5482d04250fb20d723c7f769904733994d674bae9abeaeb935",
+      "mode": 420,
+      "size": 7531
+    },
+    "remote-content-domain/src/jvmTest/kotlin/com/latenighthack/social/remotecontent/domain/StorageAdoptionTest.kt": {
+      "sha256": "e5fe3dcd13b6864ed61424b934e038caba35f6fb4684644a89f5970a8e116dbc",
+      "mode": 420,
+      "size": 2207
+    },
+    "remote-content-service/build.gradle.kts": {
+      "sha256": "5635c380e8bc819aae1f2bda32549ec54d98f1987d99039e98562d97db602040",
+      "mode": 420,
+      "size": 808
+    },
+    "remote-content-service/src/main/kotlin/com/latenighthack/social/remotecontent/service/ContentStore.kt": {
+      "sha256": "70001b2604773942a737c83099026712b896c82f414ad6ae101193a95a1def20",
+      "mode": 420,
+      "size": 713
+    },
+    "remote-content-service/src/main/kotlin/com/latenighthack/social/remotecontent/service/ContentUrls.kt": {
+      "sha256": "611685c507556b927cf7323286251aa745cd310a047278d1a28c2192ccbf2f19",
+      "mode": 420,
+      "size": 1081
+    },
+    "remote-content-service/src/main/kotlin/com/latenighthack/social/remotecontent/service/FileContentStore.kt": {
+      "sha256": "93688a840f1df1fa6ce608cafc967db710a3d479098687f438b79039b6c693a7",
+      "mode": 420,
+      "size": 1978
+    },
+    "remote-content-service/src/main/kotlin/com/latenighthack/social/remotecontent/service/InMemoryContentStore.kt": {
+      "sha256": "333e7f0a4f076d5ed6ed1509fcc54f01ed581cc26651bf24ae482d612e24e9f4",
+      "mode": 420,
+      "size": 972
+    },
+    "remote-content-service/src/main/kotlin/com/latenighthack/social/remotecontent/service/RemoteContentExtension.kt": {
+      "sha256": "d215b61605cddb3a4ebfff9d6b713f1c9c308d5e58fcd88837ef2dd43d0a2ecc",
+      "mode": 420,
+      "size": 2912
+    },
+    "remote-content-service/src/main/kotlin/com/latenighthack/social/remotecontent/service/RemoteContentRoutes.kt": {
+      "sha256": "82f0242b4c00e179cef575125a55cef76a3331e7bf05b84c4b4d1ca809192e83",
+      "mode": 420,
+      "size": 2073
+    },
+    "remote-content-service/src/main/kotlin/com/latenighthack/social/remotecontent/service/RemoteContentServiceImpl.kt": {
+      "sha256": "9c0364c18eda1ff9c54cb6dfdb0cb98ae3238acfb7bb42c438865172b7bda0bf",
+      "mode": 420,
+      "size": 1678
+    },
+    "remote-content-service/src/main/resources/META-INF/services/com.latenighthack.lockers.server.ServerExtensionFactory": {
+      "sha256": "5ed65d3b122feee306ee581fd2d7f999dce7efc2e93cf0f07d55f366514209a7",
+      "mode": 420,
+      "size": 77
+    },
+    "remote-content-service/src/test/kotlin/com/latenighthack/social/remotecontent/service/RemoteContentIntegrationTest.kt": {
+      "sha256": "4236d790159ef2ff688356849be138997bba0e5bd8970065c77fd10eb867d392",
+      "mode": 420,
+      "size": 3779
+    },
+    "rooms-api/build.gradle.kts": {
+      "sha256": "f44833ba60278e5dba8628d545ff9a1fae870ad5376ac4220e48483e40faa0f8",
+      "mode": 420,
+      "size": 498
+    },
+    "rooms-api/proto/rooms/v1/join_service.proto": {
+      "sha256": "200c58d1ba9b801ae8f1b7f05923789f6a14220893478fb22e48f46f0d07e11a",
+      "mode": 420,
+      "size": 3331
+    },
+    "rooms-api/proto/rooms/v1/model.proto": {
+      "sha256": "548d338a3d2cc1636b8e41cf6da7710082882733dd14623e585e38673ac13839",
+      "mode": 420,
+      "size": 3726
+    },
+    "rooms-domain/build.gradle.kts": {
+      "sha256": "0f64bb04f3ddb3fa24b18cbc2602615232d4dac5a83aa6856f89ee33e59eb386",
+      "mode": 420,
+      "size": 1891
+    },
+    "rooms-domain/src/commonMain/kotlin/com/latenighthack/social/rooms/domain/JoinClient.kt": {
+      "sha256": "5e3c6bca3e67709374d292e15329a6d9f1264d0628c9668923405068b7828ca9",
+      "mode": 420,
+      "size": 1667
+    },
+    "rooms-domain/src/commonMain/kotlin/com/latenighthack/social/rooms/domain/RoomInfoBuilders.kt": {
+      "sha256": "57eda1199dbecd874f27a26ab56b31042edc48368044612b1153ee7b6b20e873",
+      "mode": 420,
+      "size": 1215
+    },
+    "rooms-domain/src/commonMain/kotlin/com/latenighthack/social/rooms/domain/RoomInfoContent.kt": {
+      "sha256": "0361ae4b71d922ce7e84bdf43cb427587bf80955f0c3eec5682b3fb7a0db7b4f",
+      "mode": 420,
+      "size": 831
+    },
+    "rooms-domain/src/commonMain/kotlin/com/latenighthack/social/rooms/domain/RoomInfoDisclosures.kt": {
+      "sha256": "5e9dfe409e57092867a852a3f7074b2273be24f936a65bea696557627f8c2ac5",
+      "mode": 420,
+      "size": 1888
+    },
+    "rooms-domain/src/commonMain/kotlin/com/latenighthack/social/rooms/domain/RoomsKeySource.kt": {
+      "sha256": "b7ea6d79eafb5804dec94e980deef4010a6432b6fce577642426abd23bb9b3b7",
+      "mode": 420,
+      "size": 924
+    },
+    "rooms-domain/src/commonMain/kotlin/com/latenighthack/social/rooms/domain/RoomsKeyspaces.kt": {
+      "sha256": "04bc998c6da2de01ebc42f9b97f4651416caa0f7e60ba42f42799d50ecbc7102",
+      "mode": 420,
+      "size": 1692
+    },
+    "rooms-domain/src/commonMain/kotlin/com/latenighthack/social/rooms/domain/RoomsManager.kt": {
+      "sha256": "3599641407f1e5cc1e6d4741ef01029a5703ce9d491348039dfff78ac50b6c47",
+      "mode": 420,
+      "size": 5410
+    },
+    "rooms-domain/src/commonMain/kotlin/com/latenighthack/social/rooms/domain/RoomsManagerImpl.kt": {
+      "sha256": "cfe600c151a9dc29f8f77050b170a1454534124dd20318ff71e203310758d228",
+      "mode": 420,
+      "size": 30755
+    },
+    "rooms-domain/src/commonMain/kotlin/com/latenighthack/social/rooms/domain/RoomsProviders.kt": {
+      "sha256": "44bd6818561fab0cafd11a66e975c619c08cae7cf01f5f2386acf3eff5fbb353",
+      "mode": 420,
+      "size": 1884
+    },
+    "rooms-domain/src/jvmTest/kotlin/com/latenighthack/social/rooms/domain/DerivedRoomsIntegrationTest.kt": {
+      "sha256": "cc0f19c476ded30fb750706bec80b8f3101439ee7dee6616d2dcfd7052973e25",
+      "mode": 420,
+      "size": 5795
+    },
+    "rooms-domain/src/jvmTest/kotlin/com/latenighthack/social/rooms/domain/RoomsManagerIntegrationTest.kt": {
+      "sha256": "992cf28a5fae5fcbd4a56ebdd759a37a0d2ac73de13d7385f535bfb719d6499c",
+      "mode": 420,
+      "size": 21642
+    },
+    "rooms-service/build.gradle.kts": {
+      "sha256": "4a679ab5d5ec6109a67ff4462b8081f239e36a289b1ca4206e5b7c6ca991490d",
+      "mode": 420,
+      "size": 1149
+    },
+    "rooms-service/src/main/kotlin/com/latenighthack/social/rooms/service/InviteCodeStore.kt": {
+      "sha256": "6ca350220136d8658673e64fb20ad5ab96a2e6f993b332bbec9e03a68322f2a7",
+      "mode": 420,
+      "size": 2431
+    },
+    "rooms-service/src/main/kotlin/com/latenighthack/social/rooms/service/JoinServiceImpl.kt": {
+      "sha256": "d1052110ec9a3d36295acfb2ea564a64205af7c06e93fba731bb3045915aba41",
+      "mode": 420,
+      "size": 6399
+    },
+    "rooms-service/src/main/kotlin/com/latenighthack/social/rooms/service/RoomsServerExtension.kt": {
+      "sha256": "237acefc62ceba8865fce3201be3d2485fb0596ab655680c2d13a6cb9c59f8b4",
+      "mode": 420,
+      "size": 1933
+    },
+    "rooms-service/src/main/resources/META-INF/services/com.latenighthack.lockers.server.ServerExtensionFactory": {
+      "sha256": "cc51cc2466c163769692b7ae6154b3b0445ee81b2e1ddc8db99da2268df85dde",
+      "mode": 420,
+      "size": 67
+    },
+    "rooms-service/src/test/kotlin/com/latenighthack/social/rooms/service/JoinServiceIntegrationTest.kt": {
+      "sha256": "52c2559edb5f0d0e61bed8c1589016af7d4356f3ad8cfdbd1d509fa732b6534c",
+      "mode": 420,
+      "size": 7963
+    },
+    "rooms-usecase/build.gradle.kts": {
+      "sha256": "eef11d3369fb87039c30a85bb8ef6753fe6939274a3b66c01ed5934f5bddfad6",
+      "mode": 420,
+      "size": 205
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/CreateGroupUseCase.kt": {
+      "sha256": "b754f4c587f6dd0f4bb6f90859053f0b34f60d879cac192fe2c3771419dfb856",
+      "mode": 420,
+      "size": 365
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/CreateInviteCodeUseCase.kt": {
+      "sha256": "aef88a7860aa762abfc6510fbed81e1244cbe4f3ddf186c34ea27397f4a31eca",
+      "mode": 420,
+      "size": 433
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/InviteToRoomUseCase.kt": {
+      "sha256": "dd3afc2e0c34949f13a41b21b889e26d6082bc967933de3170e5328673609407",
+      "mode": 420,
+      "size": 544
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/JoinByCodeUseCase.kt": {
+      "sha256": "3c9bee2165e9b99ff117c1a23680cc29b5c843e8631cff3a4d834ca43a895ef5",
+      "mode": 420,
+      "size": 434
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/LeaveRoomUseCase.kt": {
+      "sha256": "5466c8e3fd5fb24fc4adaec5f1553bf08a5cc557b1ba77dc0b884245c4422fca",
+      "mode": 420,
+      "size": 358
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/OpenRendezvousUseCase.kt": {
+      "sha256": "eb6c06f365dd56b216cecbcab30b0312f2a79dd9b809786e22637b792bc6420e",
+      "mode": 420,
+      "size": 456
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/RevokeInviteCodeUseCase.kt": {
+      "sha256": "5ab59f2e21c5ed7b765a9c2bc7971a5c4f3a9000318a902fc14f2e1313804cd3",
+      "mode": 420,
+      "size": 461
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/Room.kt": {
+      "sha256": "6d04eb3114a0d5a6f5225875806cc4227636ee7266e8ac990bb69de00ddaa478",
+      "mode": 420,
+      "size": 321
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/RoomMember.kt": {
+      "sha256": "377228170e1b1109309e5288a8ef544baaa36e45736b5b03a932d8b301be451b",
+      "mode": 420,
+      "size": 312
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/RoomMembers.kt": {
+      "sha256": "3892eb1eae9efc378a43fef17c91feafdcefbd8eeaa0a1e9bd4f598aa2a53008",
+      "mode": 420,
+      "size": 896
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/RoomsUseCaseProviders.kt": {
+      "sha256": "c72181184605c5797d740cddfad82c328a5f254365dcaf4dec48ae4e40dfd258",
+      "mode": 420,
+      "size": 1708
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/UpdateRoomInfoUseCase.kt": {
+      "sha256": "0ff9b41f70b2561a032c130ca2afd06458a25c7303039254dfaa26d5a09e79d1",
+      "mode": 420,
+      "size": 503
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/WatchMembersUseCase.kt": {
+      "sha256": "d6aaeca4c1d19184d218b06171accc665068e74c932140ece9852868a9a7fea0",
+      "mode": 420,
+      "size": 540
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/WatchRoomInfoUseCase.kt": {
+      "sha256": "9952b18e19814c7eb03e7b12569d67aa6631403193c0f6c52b0f3f2e3d72142b",
+      "mode": 420,
+      "size": 424
+    },
+    "rooms-usecase/src/commonMain/kotlin/com/latenighthack/social/rooms/usecase/WatchRoomsUseCase.kt": {
+      "sha256": "ec42ba91b4b4b3ee32e72a24e1c2ea1dd4504860d8e99008c54fcebe6c8a8504",
+      "mode": 420,
+      "size": 1741
+    },
+    "settings.gradle.kts": {
+      "sha256": "7271e746686ec7c7550a990bebdb77002422e9529b7c1868be3ecde45970487f",
+      "mode": 420,
+      "size": 10667
+    },
+    "social-common-api/build.gradle.kts": {
+      "sha256": "22c01f3878edddb37212b044041f73117da9b5d6229f1abecfee196e095c04a6",
+      "mode": 420,
+      "size": 204
+    },
+    "social-common-api/proto/common/v1/sealing.proto": {
+      "sha256": "314ae3e45c29da61ca86287b3415c4afe103b7690b12922760111edf84042815",
+      "mode": 420,
+      "size": 874
+    },
+    "social-common-api/proto/common/v1/signing.proto": {
+      "sha256": "2f91c3e3290911ae05e83ede9aebe3fdf0ee0e69ebc3c57a7da67ef2dc57551b",
+      "mode": 420,
+      "size": 1342
+    },
+    "social-common-domain/build.gradle.kts": {
+      "sha256": "b81bd97e085520959f1a36e9afa8b642883a232bbe5c287528fc60ce86355a35",
+      "mode": 420,
+      "size": 853
+    },
+    "social-common-domain/src/commonMain/kotlin/com/latenighthack/social/common/domain/Sealing.kt": {
+      "sha256": "f55a5b6800f94393a4b20e288b9e0864be5cdb0015aecd83be11d00bd8852259",
+      "mode": 420,
+      "size": 2616
+    },
+    "social-common-domain/src/commonMain/kotlin/com/latenighthack/social/common/domain/SignedContent.kt": {
+      "sha256": "76dfb1b0e562b4945fca0d230820cfe1beb8f5e4c84b2288cef477d28bace811",
+      "mode": 420,
+      "size": 3447
+    },
+    "social-common-domain/src/jvmTest/kotlin/com/latenighthack/social/common/domain/SignedContentTest.kt": {
+      "sha256": "edf9ff03fc1c4479834c0bcb22a2e592c9b9293596684d86719f6d78ed5cf2ef",
+      "mode": 420,
+      "size": 2638
+    },
+    "social-observability-client/build.gradle.kts": {
+      "sha256": "766d4124a532fbfc7159966bcd267cff63273b42c7e11d060d073854feb30100",
+      "mode": 420,
+      "size": 497
+    },
+    "social-observability-client/src/androidMain/kotlin/com/latenighthack/social/observability/client/Platform.kt": {
+      "sha256": "8153798ef0131fcf4e15e27315b04a4812e1e858d381ce5257161eae9f89f649",
+      "mode": 420,
+      "size": 273
+    },
+    "social-observability-client/src/commonMain/kotlin/com/latenighthack/social/observability/client/ClientTraceContext.kt": {
+      "sha256": "2d9ef5f2d36aabad614ff4ff7e418fdf94d9842b239c64d12404cfbc0d8c3b04",
+      "mode": 420,
+      "size": 5449
+    },
+    "social-observability-client/src/commonMain/kotlin/com/latenighthack/social/observability/client/LegacyClientSpanExporter.kt": {
+      "sha256": "888ba35ae61c24e1aa9bab4687987bd582ea5a551d606116f43e401adb87c434",
+      "mode": 420,
+      "size": 2594
+    },
+    "social-observability-client/src/commonMain/kotlin/com/latenighthack/social/observability/client/Platform.kt": {
+      "sha256": "0c24d38f7f73d16a65ce13cc6de7036c1fae77a9ca48265327c19c8500aa98a7",
+      "mode": 420,
+      "size": 159
+    },
+    "social-observability-client/src/commonMain/kotlin/com/latenighthack/social/observability/client/SocialClientTelemetry.kt": {
+      "sha256": "2ee973a80f071badb5f0df3b263ea3d98303459de2a14ba8d343f0a3948da74f",
+      "mode": 420,
+      "size": 7309
+    },
+    "social-observability-client/src/commonTest/kotlin/com/latenighthack/social/observability/client/ClientTelemetryTest.kt": {
+      "sha256": "fc20bb42a22dc4d6f143645bda2b6fcffec2993fdcd2976da1ead26912087210",
+      "mode": 420,
+      "size": 5929
+    },
+    "social-observability-client/src/iosMain/kotlin/com/latenighthack/social/observability/client/Platform.kt": {
+      "sha256": "de8c9da292a883ca3fb232d872a85fe11ec36d5b089f47d3e678555198854884",
+      "mode": 420,
+      "size": 276
+    },
+    "social-observability-client/src/jsMain/kotlin/com/latenighthack/social/observability/client/Platform.kt": {
+      "sha256": "7ce242ae11112e9fbb1fe0991c371120967346a9c4453e707b3760c249217d9f",
+      "mode": 420,
+      "size": 330
+    },
+    "social-observability-client/src/jvmMain/kotlin/com/latenighthack/social/observability/client/Platform.kt": {
+      "sha256": "3a989938da3d8314dd9c65e6abad5bcb0f5eefddf0e52689dfb6cd006e168d9f",
+      "mode": 420,
+      "size": 269
+    },
+    "social-observability-core/build.gradle.kts": {
+      "sha256": "d7babfb2881e7a26bd72071ac3ab7744f57889d47fad8dc869b3678ed8f6c7a8",
+      "mode": 420,
+      "size": 323
+    },
+    "social-observability-core/src/commonMain/kotlin/com/latenighthack/social/observability/SocialCatalogue.kt": {
+      "sha256": "6618327594c9837b80c7b4629fc2806c3ce0fab64ba3b1385882dfcbb28e2a17",
+      "mode": 420,
+      "size": 3362
+    },
+    "social-observability-core/src/commonMain/kotlin/com/latenighthack/social/observability/SocialReport.kt": {
+      "sha256": "0f2632ad22a8e209a88c364da0e5d28754b2d61232be182d23d40e18bdc6ffb3",
+      "mode": 420,
+      "size": 3962
+    },
+    "social-observability-core/src/commonMain/kotlin/com/latenighthack/social/observability/SocialTelemetry.kt": {
+      "sha256": "97ce9e3e8214c59188276df16aacdee96683edea9021431b4b5ab7b68684729b",
+      "mode": 420,
+      "size": 4280
+    },
+    "social-observability-core/src/commonTest/kotlin/com/latenighthack/social/observability/TelemetryTest.kt": {
+      "sha256": "90674360eefdc270f980f9f3f75a8a112294846bb687595555e99dd1124ef93d",
+      "mode": 420,
+      "size": 4048
+    },
+    "social-observability-server/build.gradle.kts": {
+      "sha256": "f8aff93a541c8927a10cb8c01e6fefb19029769701092a902ce12a31df802a5d",
+      "mode": 420,
+      "size": 1175
+    },
+    "social-observability-server/src/main/kotlin/com/latenighthack/social/observability/server/LegacyClientSpanRelay.kt": {
+      "sha256": "55a4a2f2682c5e5b52d0c6395205e5acc85c09afff91f6336e9e458a4de15679",
+      "mode": 420,
+      "size": 6992
+    },
+    "social-observability-server/src/main/kotlin/com/latenighthack/social/observability/server/SocialCollectorConfig.kt": {
+      "sha256": "ae5facf7c9de92ff19e2960d83ef57503d098f1bd6a1520a5a42a7a0b9870d75",
+      "mode": 420,
+      "size": 1462
+    },
+    "social-observability-server/src/main/kotlin/com/latenighthack/social/observability/server/SocialReportRelay.kt": {
+      "sha256": "68747dfc71547d78c6fcab00f2832cdbca2f43a5c1b92d9f9a804c6ed9658f27",
+      "mode": 420,
+      "size": 8207
+    },
+    "social-observability-server/src/main/kotlin/com/latenighthack/social/observability/server/SocialServerTelemetry.kt": {
+      "sha256": "05321882b9bc2dfd4432a4b35c1be14c3bfd11dabfd90b70b432cdbb783652e6",
+      "mode": 420,
+      "size": 6882
+    },
+    "social-observability-server/src/test/kotlin/com/latenighthack/social/observability/server/RelayTest.kt": {
+      "sha256": "e741f96f7d342385fa5bfa899eb01c52fa32ee0c6163a59253986d0e972f4c99",
+      "mode": 420,
+      "size": 4120
+    },
+    "social-observability-server/src/test/kotlin/com/latenighthack/social/observability/server/SocialSmokeServer.kt": {
+      "sha256": "919e013b46dbe6cbc121ada41d97c96109e61481bdc7901fbfea6c9780e332ac",
+      "mode": 420,
+      "size": 2328
+    },
+    "social-runtime/build.gradle.kts": {
+      "sha256": "7fcffbd5ad767154b18d8e1451bd83a621a7693dd7b3a671fd3e3c2f64631f9a",
+      "mode": 420,
+      "size": 504
+    },
+    "social-runtime/src/commonMain/kotlin/com/latenighthack/social/runtime/DomainLifecycle.kt": {
+      "sha256": "e9e17de357f362c5d402322e357687a6360274714e86453fe451b69ded5d5b8b",
+      "mode": 420,
+      "size": 530
+    },
+    "social-runtime/src/commonMain/kotlin/com/latenighthack/social/runtime/SocialScope.kt": {
+      "sha256": "38d0b879ac2c8e7765a209f591bf9b3697e769fc62cb9dfeb6ac029a6793feb6",
+      "mode": 420,
+      "size": 437
+    },
+    "tools/generate-observability.py": {
+      "sha256": "ae333210b9b95abb84abeddb74c8df1562d0f997271b3915ed383a78880c5ad3",
+      "mode": 420,
+      "size": 10933
+    },
+    "typing-api/build.gradle.kts": {
+      "sha256": "44214b6cf6d69b577523e0eff9501b916e931677584cfff117cbb0639da910cd",
+      "mode": 420,
+      "size": 39
+    },
+    "typing-api/proto/typing/v1/model.proto": {
+      "sha256": "b75073bc5d786bc7ff665987b6768cb12fa2d9e1a77f832ba6201ac6a3da09d5",
+      "mode": 420,
+      "size": 580
+    },
+    "typing-domain/build.gradle.kts": {
+      "sha256": "3e7b2b2b5405f85bd2c3a80b3080c540ac1c28c3c19723de1b49e78f99223986",
+      "mode": 420,
+      "size": 1756
+    },
+    "typing-domain/src/commonMain/kotlin/com/latenighthack/social/typing/domain/TypingKeyspaces.kt": {
+      "sha256": "f4f016822d895cf24db577ed55bd9dbbd3f7508ff2a889f08ac59536cd53db84",
+      "mode": 420,
+      "size": 752
+    },
+    "typing-domain/src/commonMain/kotlin/com/latenighthack/social/typing/domain/TypingManager.kt": {
+      "sha256": "031172841addaefae79ea527d8606d3086a0de406ce92ed09dae456187c6a7d4",
+      "mode": 420,
+      "size": 1446
+    },
+    "typing-domain/src/commonMain/kotlin/com/latenighthack/social/typing/domain/TypingManagerImpl.kt": {
+      "sha256": "96cfd3d974951a20d6e0e7baa61079fdb4657adb792ee578a3b3715fca28c369",
+      "mode": 420,
+      "size": 8250
+    },
+    "typing-domain/src/commonMain/kotlin/com/latenighthack/social/typing/domain/TypingProviders.kt": {
+      "sha256": "9b3186a6ffbc4bd520594ab3c4bb8d074850d5bb6a29e31115176e1b1df25ff9",
+      "mode": 420,
+      "size": 1016
+    },
+    "typing-domain/src/jvmTest/kotlin/com/latenighthack/social/typing/domain/TypingManagerIntegrationTest.kt": {
+      "sha256": "82d0b5c159b9fcab2703841d5ebd2a36e90884d28a8989b007b2db648ea52607",
+      "mode": 420,
+      "size": 12703
+    },
+    "typing-usecase/build.gradle.kts": {
+      "sha256": "bc7e178d0331082a02ec652ff9f181cfc66b14ccea4e0f83574bb1cb5a7fef27",
+      "mode": 420,
+      "size": 206
+    },
+    "typing-usecase/src/commonMain/kotlin/com/latenighthack/social/typing/usecase/SetTypingUseCase.kt": {
+      "sha256": "91cfe5e0862044b88208c4b9cb7838a5046634c2f97f10ba36d02a3bd423fff6",
+      "mode": 420,
+      "size": 428
+    },
+    "typing-usecase/src/commonMain/kotlin/com/latenighthack/social/typing/usecase/TypingUseCaseProviders.kt": {
+      "sha256": "8ff51d75a751981e3eed62515c1d7d4d95213bc60f386a0faeb45757eb8acccc",
+      "mode": 420,
+      "size": 517
+    },
+    "typing-usecase/src/commonMain/kotlin/com/latenighthack/social/typing/usecase/WatchTypingUseCase.kt": {
+      "sha256": "19ebd9af57467b40d97036f8a207c872203c5f4daafcf15a324ab019e6e9a06d",
+      "mode": 420,
+      "size": 498
+    }
+  },
+  "stableDuringCopy": true
+}

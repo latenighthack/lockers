@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="EmptyStateViewModelTests[jvm]" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:20:47.991Z" hostname="Mikes-MacBook-Pro.local" time="7.317">
+  <properties/>
+  <testcase name="select friends shows the placeholder, clears it, and restores it on an empty search[jvm]" classname="gg.roll.viewmodel.core.EmptyStateViewModelTests" time="1.821"/>
+  <testcase name="home placeholder is replaced by the room row once a room exists[jvm]" classname="gg.roll.viewmodel.core.EmptyStateViewModelTests" time="1.36"/>
+  <testcase name="contacts placeholder is replaced once a contact is added[jvm]" classname="gg.roll.viewmodel.core.EmptyStateViewModelTests" time="1.079"/>
+  <testcase name="home rooms section carries the placeholder row before any room exists[jvm]" classname="gg.roll.viewmodel.core.EmptyStateViewModelTests" time="1.014"/>
+  <testcase name="home placeholder CTA navigates to select friends[jvm]" classname="gg.roll.viewmodel.core.EmptyStateViewModelTests" time="1.017"/>
+  <testcase name="contacts carries the placeholder while the actions section keeps its rows[jvm]" classname="gg.roll.viewmodel.core.EmptyStateViewModelTests" time="1.024"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

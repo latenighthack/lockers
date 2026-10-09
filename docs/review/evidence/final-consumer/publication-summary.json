@@ -1,0 +1,26 @@
+{
+  "ktstore": {
+    "version": "0.2.0-fh.d53a47cbc15434b3ce1e",
+    "artifacts": 67,
+    "receipt_sha256": "a6621895f298ac610e3a20258bf089440fcbd4eded05f3d4deaa08361cd96fb0",
+    "source": "f5e9eaa801ff90c7c81538025a9d545a6c75056a"
+  },
+  "ktbuf": {
+    "version": "1.1.10-fh.9c3962ea021c76107b84",
+    "artifacts": 178,
+    "receipt_sha256": "e4661aa95489b228b4d2da595de8d22589aafed358441138f09d02af0b38336f",
+    "source": "780bcc0bad28f59be37edc7d9ddb4c3c72bd8705"
+  },
+  "lockers": {
+    "version": "0.1.16-fh.4e06269cd00da3235cb0",
+    "artifacts": 176,
+    "receipt_sha256": "d20621868c588bb19eee98c2e9d931c19e0ae9c96d16163db48874ea72d15fb5",
+    "source": "00a0990f61a6f655b26cc02913bed90a04dc789b"
+  },
+  "social": {
+    "version": "0.1.11-fh.4b1be6049821d9db7f78",
+    "artifacts": 1561,
+    "receipt_sha256": "f7740058a0578b13c0863b73ab24e4a1f3f3be3f049fcae7173a08f39aac6d70",
+    "source": "3f51e905cf16f30b1da8f47b28dcff16c9a38934"
+  }
+}

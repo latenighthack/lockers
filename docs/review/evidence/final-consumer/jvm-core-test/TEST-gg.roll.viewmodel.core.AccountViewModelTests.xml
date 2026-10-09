@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AccountViewModelTests[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:20:42.518Z" hostname="Mikes-MacBook-Pro.local" time="3.146">
+  <properties/>
+  <testcase name="profile photo upload streams progress and binds avatar[jvm]" classname="gg.roll.viewmodel.core.AccountViewModelTests" time="2.12"/>
+  <testcase name="logout clears auth keys and persisted settings[jvm]" classname="gg.roll.viewmodel.core.AccountViewModelTests" time="1.025"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>
