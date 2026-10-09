@@ -226,6 +226,23 @@ class RoomServiceImpl(
         return sessions
     }
 
+    override suspend fun getWriteOutcome(context: GrpcRequestContext, request: GetWriteOutcomeRequest): GetWriteOutcomeResponse {
+        val room = request.roomId
+        if (room == null || room.rawValue.isEmpty() || room.rawValue.size > 256 || request.writeRequestId.size !in 16..64)
+            return GetWriteOutcomeResponse(result = GetWriteOutcomeResponse.Result.INVALID)
+        val receipt = deliveryOutbox?.receipt(room, request.writeRequestId)
+            ?: return GetWriteOutcomeResponse(result = GetWriteOutcomeResponse.Result.NOT_FOUND)
+        val response = PostLockerChangesResponse.fromByteArray(receipt.encodedOutcome)
+        // Historical pending receipts have no recoverable agent input. Never promise replay.
+        val state = when {
+            response.agentPending || response.agentIndeterminate -> WriteOutcome.AgentState.INDETERMINATE
+            response.agentFailed -> WriteOutcome.AgentState.FAILED
+            else -> WriteOutcome.AgentState.APPLIED
+        }
+        return GetWriteOutcomeResponse(outcome = WriteOutcome(roomId = room, writeRequestId = request.writeRequestId,
+            sourceVersions = response.changes.map { WriteSourceVersion(version = it.version) }, agentState = state))
+    }
+
     override suspend fun capabilities(context: GrpcRequestContext, request: CapabilitiesRequest) = meterRegistry.trackRpc(TelemetryOperation.ROOM_CAPABILITIES, telemetry) { CapabilitiesResponse(
         authorityV2 = true,
         subscribeAndSnapshot = config.deliveryOutboxEnabled, getLockers = true,
