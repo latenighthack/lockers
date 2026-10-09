@@ -4,6 +4,8 @@ package com.latenighthack.lockers.server
 data class ServerResourceLimits(
     val maxSessions: Int = 100_000,
     val maxReservedSessionIds: Int = 1_000_000,
+    val maxOutstandingProofs: Int = 1_000_000,
+    val maxOutstandingProofsPerSession: Int = 4096,
     val maxInboxEvents: Int = 1_000_000,
     val maxInboxEventsPerSession: Int = 10_000,
     val maxRoomClaims: Int = 1_000_000,
@@ -22,6 +24,7 @@ data class ServerResourceLimits(
 ) {
     init {
         require(maxSessions > 0 && maxReservedSessionIds >= maxSessions)
+        require(maxOutstandingProofs > 0 && maxOutstandingProofsPerSession in 1..maxOutstandingProofs)
         require(maxInboxEvents > 0 && maxInboxEventsPerSession in 1..maxInboxEvents)
         require(maxRoomClaims > 0)
         require(maxLockers > 0 && maxLockersPerRoom in 1..maxLockers)
@@ -37,6 +40,8 @@ data class ServerResourceLimits(
             return ServerResourceLimits(
                 maxSessions = limit("LOCKERS_MAX_SESSIONS", 100_000),
                 maxReservedSessionIds = limit("LOCKERS_MAX_RESERVED_SESSION_IDS", 1_000_000),
+                maxOutstandingProofs = limit("LOCKERS_MAX_PROOFS", 1_000_000),
+                maxOutstandingProofsPerSession = limit("LOCKERS_MAX_SESSION_PROOFS", 4096),
                 maxInboxEvents = limit("LOCKERS_MAX_INBOX_EVENTS", 1_000_000),
                 maxInboxEventsPerSession = limit("LOCKERS_MAX_SESSION_INBOX_EVENTS", 10_000),
                 maxRoomClaims = limit("LOCKERS_MAX_ROOM_CLAIMS", 1_000_000),

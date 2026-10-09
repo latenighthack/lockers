@@ -28,6 +28,7 @@ object ServerStorage {
         com.latenighthack.lockers.server.services.push.v1.PushCredentialDefinitionV2,
         com.latenighthack.lockers.server.services.session.v1.SessionInboxMetadataDefinitionV2,
         com.latenighthack.lockers.server.services.session.v1.UsedSessionProofDefinitionV2,
+        com.latenighthack.lockers.server.services.session.v1.UsedSessionProofOwnersDefinitionV2,
         com.latenighthack.lockers.server.services.session.v1.RevokedSessionDefinitionV2,
     )
     val definitions = legacyDefinitionsV3 + additionsV4

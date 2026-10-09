@@ -25,27 +25,31 @@ object UsedSessionProofDefinitionV2 : StoreDefinition<UsedSessionProof>(
 
 /** Public unary RPC boundary. Proof consumption and local mutation are one transaction. */
 class SessionProofVerifier(private val database: Database, private val sessions: SessionStore,
-    private val clock: () -> Long = System::currentTimeMillis) {
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val limits: com.latenighthack.lockers.server.ServerResourceLimits = com.latenighthack.lockers.server.ServerResourceLimits()) {
     private class ProofStore(database: Database) : Store<UsedSessionProof>(database, UsedSessionProofDefinitionV2) {
         suspend fun find(identity: ByteArray) = get(UsedSessionProofDefinitionV2.identity.eq(identity))
         suspend fun put(row: UsedSessionProof) = save(row)
     }
+    private class OwnerStore(database: Database) : Store<UsedSessionProofOwner>(database, UsedSessionProofOwnersDefinitionV2) {
+        suspend fun put(row: UsedSessionProofOwner) = save(row)
+    }
     private val used = ProofStore(database)
+    private val owners = OwnerStore(database)
 
     suspend fun <T> authorize(operation: String, sessionId: SessionId?, proof: SessionProof?,
         encodedRequest: ByteArray, rejected: () -> T, mutation: suspend () -> T): T {
         if (sessionId == null || sessionId.rawValue.size !in 1..128 || proof == null ||
-            proof.nonce.size != 32 || proof.signature?.signingVersion != 2 || encodedRequest.size > 8 * 1024 * 1024) return rejected()
+            proof.nonce.size != 32 || proof.signature?.signingVersion != 2 || proof.toByteArray().size > 512 ||
+            proof.signature?.signature?.size !in 8..80 || encodedRequest.size > 8 * 1024 * 1024) return rejected()
         val now = clock()
         if (proof.issuedAtMs < now - WINDOW_MS || proof.issuedAtMs > now + FUTURE_SKEW_MS) return rejected()
         val digest = SHA256.digest(encodedRequest)
         val identity = SHA256.digest(sessionId.toByteArray() + proof.nonce)
-        database.transaction(setOf(UsedSessionProofDefinitionV2.storeName)) {
-            deleteBatch(UsedSessionProofDefinitionV2.storeName, UsedSessionProofDefinitionV2.expires.query(256, upper = now, upperInclusive = false))
-        }
         return database.transaction("lockers.session-authority") {
             val session = sessions.getSessionById(ServerSessionId(sessionId.rawValue)) ?: return@transaction rejected()
             if (used.find(identity) != null) return@transaction rejected()
+            if (!com.latenighthack.lockers.server.ProtocolValidation.publicKey(session.authorizedPublicKey)) return@transaction rejected()
             val valid = try {
                 Secp256r1PublicKey.decode(session.authorizedPublicKey).verify(
                     SessionSigning.context(operation, sessionId, digest, proof.issuedAtMs, proof.nonce),
@@ -54,8 +58,28 @@ class SessionProofVerifier(private val database: Database, private val sessions:
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { false }
             if (!valid) return@transaction rejected()
-            used.put(UsedSessionProof(identity, proof.issuedAtMs + WINDOW_MS + FUTURE_SKEW_MS))
+            enforceProofCapacity(sessionId, now)
+            val expires = proof.issuedAtMs + WINDOW_MS + FUTURE_SKEW_MS
+            used.put(UsedSessionProof(identity, expires))
+            owners.put(UsedSessionProofOwner(identity, sessionId.rawValue, expires))
             mutation()
+        }
+    }
+
+    private suspend fun enforceProofCapacity(sessionId: SessionId, now: Long) {
+        val replay = UsedSessionProofDefinitionV2
+        val ownership = UsedSessionProofOwnersDefinitionV2
+        database.deleteBatch(replay.storeName, replay.expires.query(256, upper = now, upperInclusive = false))
+        database.deleteBatch(ownership.storeName, ownership.expires.query(256, upper = now, upperInclusive = false))
+        val total = database.count(replay.storeName, replay.identity.query(1))
+        val owned = database.count(ownership.storeName, ownership.identity.query(1))
+        val perSession = database.count(ownership.storeName, ownership.session.query(1,
+            lower = sessionId.rawValue, upper = sessionId.rawValue))
+        // Old rows lack recoverable owner IDs: conservatively charge all unowned rows to each SID.
+        val unknown = (total - owned).coerceAtLeast(0)
+        if (total >= limits.maxOutstandingProofs || perSession + unknown >= limits.maxOutstandingProofsPerSession) {
+            throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.RESOURCE_EXHAUSTED,
+                "Outstanding session proof capacity exhausted")
         }
     }
 
