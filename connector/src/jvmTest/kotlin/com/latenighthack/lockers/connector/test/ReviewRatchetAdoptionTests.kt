@@ -130,7 +130,7 @@ class ReviewRatchetAdoptionTests {
             "Capabilities" -> CapabilitiesResponse(writeReceipts = true).toByteArray()
             "PostLockerChange" -> { submitted = PostLockerChangeRequest.fromByteArray(bytes); PostLockerChangeResponse(version = 1).toByteArray() }
             "GetLocker" -> GetLockerResponse(locker = IdentifiedLocker(submitted!!.lockerId, version = 1,
-                lockState = LockState(locked = true, publicKey = submitted!!.ratchet!!.newPublicKey))).toByteArray()
+                lockState = LockState(locked = true, publicKey = submitted.ratchet!!.newPublicKey))).toByteArray()
             else -> error(method.methodName)
         } }
         val client = reviewClient(rpc, object : LockKeySource { override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = old }, db)
