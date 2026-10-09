@@ -1,0 +1,23 @@
+diff --git a/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/NotificationCodecTests.kt b/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/NotificationCodecTests.kt
+index e5b4aa5..86f8966 100644
+--- a/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/NotificationCodecTests.kt
++++ b/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/NotificationCodecTests.kt
+@@ -150,7 +150,9 @@ class NotificationCodecTests {
+         val job = launch {
+             typedDefault.notifications.onStart { ready.complete(Unit) }.first().let { defaultPayload.complete(it.payload) }
+         }
++        val releaseOtherCollector = CompletableDeferred<Unit>()
+         val job2 = launch {
++            releaseOtherCollector.await()
+             typedOther.notifications.first().let { otherPayload.complete(it.payload) }
+         }
+ 
+@@ -161,6 +163,8 @@ class NotificationCodecTests {
+         typedDefault.updateLocker(roomId, randomLockerId(KEYSPACE), { payload { rawValue = byteArrayOf(0x10) } }) { it.copy { } }
+         typedOther.updateLocker(roomId, randomLockerId(OTHER_KEYSPACE), { payload { rawValue = byteArrayOf(0x10) } }) { it.copy { } }
+ 
++        releaseOtherCollector.complete(Unit) // Both notifications were written before this collector can begin.
++
+         // Default keyspace: no codec, payload unchanged.
+         assertEquals(0x10.toByte(), defaultPayload.await().single())
+         // Other keyspace: decode flips the bits.

@@ -1,0 +1,45 @@
+diff --git a/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/NotificationCodecTests.kt b/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/NotificationCodecTests.kt
+index e5b4aa5..a2be657 100644
+--- a/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/NotificationCodecTests.kt
++++ b/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/NotificationCodecTests.kt
+@@ -25,6 +25,14 @@ import kotlin.test.Test
+ import kotlin.test.assertEquals
+ 
+ class NotificationCodecTests {
++    @Test(timeout = 15_000)
++    fun `repeated per-keyspace diagnostic`() {
++        repeat(300) { index ->
++            println("codec attempt $index")
++            `a per-keyspace codec applies only to its keyspace`()
++        }
++    }
++
+ 
+     private val KEYSPACE = LockerKeyspace { value = 1L }
+     private val OTHER_KEYSPACE = LockerKeyspace { value = 30L }
+@@ -154,19 +162,22 @@ class NotificationCodecTests {
+             typedOther.notifications.first().let { otherPayload.complete(it.payload) }
+         }
+ 
+-        ready.await()
++        ready.await(); println("codec ready")
+         typedDefault.subscribeToRoom(roomId)
+-        typedOther.subscribeToRoom(roomId)
++        typedOther.subscribeToRoom(roomId); println("codec subscribed")
+ 
+         typedDefault.updateLocker(roomId, randomLockerId(KEYSPACE), { payload { rawValue = byteArrayOf(0x10) } }) { it.copy { } }
+         typedOther.updateLocker(roomId, randomLockerId(OTHER_KEYSPACE), { payload { rawValue = byteArrayOf(0x10) } }) { it.copy { } }
+ 
++        println("codec writes completed")
+         // Default keyspace: no codec, payload unchanged.
+         assertEquals(0x10.toByte(), defaultPayload.await().single())
++        println("codec default received")
+         // Other keyspace: decode flips the bits.
+         assertEquals((0x10 xor 0xFF).toByte(), otherPayload.await().single())
++        println("codec other received")
+         job.cancel()
+         job2.cancel()
+-        client.close()
++        client.close(); println("codec closed")
+     }
+ }

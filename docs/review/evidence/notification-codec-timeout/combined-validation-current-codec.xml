@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="NotificationCodecTests[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:17:42.987Z" hostname="Mikes-MacBook-Pro.local" time="0.901">
+  <properties/>
+  <testcase name="symmetric codec round-trips encode then decode[jvm]" classname="com.latenighthack.lockers.connector.test.NotificationCodecTests" time="0.808"/>
+  <testcase name="a codec returning null drops the notification[jvm]" classname="com.latenighthack.lockers.connector.test.NotificationCodecTests" time="0.038"/>
+  <testcase name="codecs compose and decode reverses their order[jvm]" classname="com.latenighthack.lockers.connector.test.NotificationCodecTests" time="0.026"/>
+  <testcase name="a per-keyspace codec applies only to its keyspace[jvm]" classname="com.latenighthack.lockers.connector.test.NotificationCodecTests" time="0.028"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

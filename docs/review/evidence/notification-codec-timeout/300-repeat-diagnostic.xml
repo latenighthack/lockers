@@ -1,0 +1,2110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="NotificationCodecTests[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:17:10.946Z" hostname="Mikes-MacBook-Pro.local" time="6.595">
+  <properties/>
+  <testcase name="repeated per-keyspace diagnostic[jvm]" classname="com.latenighthack.lockers.connector.test.NotificationCodecTests" time="6.594"/>
+  <system-out><![CDATA[codec attempt 0
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 1
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 2
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 3
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 4
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 5
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 6
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 7
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 8
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 9
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 10
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 11
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 12
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 13
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 14
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 15
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 16
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 17
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 18
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 19
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 20
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 21
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 22
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 23
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 24
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 25
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 26
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 27
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 28
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 29
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 30
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 31
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 32
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 33
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 34
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 35
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 36
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 37
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 38
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 39
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 40
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 41
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 42
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 43
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 44
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 45
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 46
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 47
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 48
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 49
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 50
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 51
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 52
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 53
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 54
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 55
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 56
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 57
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 58
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 59
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 60
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 61
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 62
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 63
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 64
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 65
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 66
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 67
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 68
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 69
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 70
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 71
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 72
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 73
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 74
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 75
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 76
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 77
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 78
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 79
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 80
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 81
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 82
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 83
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 84
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 85
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 86
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 87
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 88
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 89
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 90
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 91
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 92
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 93
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 94
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 95
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 96
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 97
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 98
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 99
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 100
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 101
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 102
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 103
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 104
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 105
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 106
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 107
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 108
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 109
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 110
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 111
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 112
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 113
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 114
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 115
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 116
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 117
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 118
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 119
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 120
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 121
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 122
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 123
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 124
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 125
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 126
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 127
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 128
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 129
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 130
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 131
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 132
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 133
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 134
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 135
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 136
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 137
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 138
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 139
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 140
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 141
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 142
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 143
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 144
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 145
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 146
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 147
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 148
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 149
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 150
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 151
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 152
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 153
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 154
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 155
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 156
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 157
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 158
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 159
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 160
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 161
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 162
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 163
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 164
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 165
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 166
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 167
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 168
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 169
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 170
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 171
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 172
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 173
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 174
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 175
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 176
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 177
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 178
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 179
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 180
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 181
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 182
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 183
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 184
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 185
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 186
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 187
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 188
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 189
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 190
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 191
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 192
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 193
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 194
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 195
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 196
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 197
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 198
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 199
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 200
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 201
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 202
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 203
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 204
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 205
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 206
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 207
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 208
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 209
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 210
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 211
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 212
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 213
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 214
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 215
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 216
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 217
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 218
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 219
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 220
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 221
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 222
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 223
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 224
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 225
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 226
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 227
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 228
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 229
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 230
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 231
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 232
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 233
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 234
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 235
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 236
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 237
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 238
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 239
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 240
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 241
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 242
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 243
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 244
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 245
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 246
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 247
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 248
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 249
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 250
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 251
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 252
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 253
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 254
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 255
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 256
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 257
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 258
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 259
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 260
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 261
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 262
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 263
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 264
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 265
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 266
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 267
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 268
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 269
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 270
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 271
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 272
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 273
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 274
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 275
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 276
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 277
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 278
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 279
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 280
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 281
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 282
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 283
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 284
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 285
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 286
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 287
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 288
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 289
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 290
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 291
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 292
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 293
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 294
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 295
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 296
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 297
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 298
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+codec attempt 299
+codec ready
+codec subscribed
+codec writes completed
+codec default received
+codec other received
+codec closed
+]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>
