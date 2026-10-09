@@ -27,7 +27,13 @@ class SubscriptionStoreImpl(private val database: Database, private val limits: 
     private val intents = SubscriptionIntents(database, limits)
     override fun supportsIntentRevisions() = true
     override suspend fun <T> withIntent(sessionId: ServerSessionId, roomId: ServerRoomId, revision: Long, subscribed: Boolean, mutation: suspend () -> T) = intents.apply(sessionId, roomId, revision, subscribed, mutation)
-    override suspend fun <T> observeIntent(sessionId: ServerSessionId, roomId: ServerRoomId, revision: Long, mutation: suspend () -> T) = intents.observe(sessionId, roomId, revision, mutation)
+    override suspend fun <T> observeIntent(sessionId: ServerSessionId, roomId: ServerRoomId, revision: Long, mutation: suspend () -> T): SubscriptionIntentResult<T> {
+        val sid = ServerSessionId(sessionId.rawValue.copyOf()); val room = ServerRoomId(roomId.rawValue.copyOf())
+        return intents.observe(sid, room, revision, active = {
+            get(sessionIdAndRoomIdKey.eq(listOf(BoundStoreKey.SerializedKey(sessionIdKey.name.value, sid.toByteArray()),
+                BoundStoreKey.SerializedKey(roomIdKey.name.value, room.toByteArray())))) != null
+        }, mutation = mutation)
+    }
     private val sessionIdKey = SubscriptionStoreImplDefinitionV1.sessionIdKey
     private val roomIdKey = SubscriptionStoreImplDefinitionV1.roomIdKey
     private val sessionIdAndRoomIdKey = SubscriptionStoreImplDefinitionV1.sessionIdAndRoomIdKey

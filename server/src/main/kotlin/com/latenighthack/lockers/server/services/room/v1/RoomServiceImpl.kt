@@ -386,8 +386,8 @@ class RoomServiceImpl(
     private suspend fun observedSubscribeAndSnapshot(context: GrpcRequestContext, request: SubscribeAndSnapshotRequest): SubscribeAndSnapshotResponse {
         if (request.keyspaces.size > 64 || request.toByteArray().size > ProtocolValidation.MAX_ENVELOPE_BYTES ||
             !ProtocolValidation.identity(request.sessionId?.rawValue)) invalidArgument("Invalid snapshot request")
-        val room = request.roomId ?: invalidArgument("Missing room identity")
-        val session = requireNotNull(request.sessionId)
+        val room = request.roomId?.let { RoomId(it.rawValue.copyOf()) } ?: invalidArgument("Missing room identity")
+        val session = SessionId(requireNotNull(request.sessionId).rawValue.copyOf())
         validateRead(room)
         snapshots.validate(request.pageSize, request.pageToken)
         val spaces = request.keyspaces.map { it.value }.toSet()
@@ -679,10 +679,10 @@ class RoomServiceImpl(
         context: GrpcRequestContext,
         request: SubscriptionRequest
     ) = meterRegistry.trackResponse("lockers.room.locker.subscribe", SubscriptionResponse::result, telemetry) {
-        val roomId = request.roomId ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
-        val sessionId = request.sessionId ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
+        val roomId = request.roomId?.let { RoomId(it.rawValue.copyOf()) } ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
+        val sessionId = request.sessionId?.let { SessionId(it.rawValue.copyOf()) } ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
 
-        ProtocolValidation.room(roomId)
+        if (!ProtocolValidation.room(roomId)) invalidArgument("Invalid subscription room identity")
         if (request.intentRevision < 0) invalidArgument("Negative subscription intent revision")
         val subscribed = when (request.kind) {
             is SubscriptionRequest.OneOfKind.subscribe -> true

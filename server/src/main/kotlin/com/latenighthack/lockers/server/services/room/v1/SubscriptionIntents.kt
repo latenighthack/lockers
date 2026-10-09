@@ -5,6 +5,7 @@ import com.latenighthack.ktbuf.net.RpcResponseException
 import com.latenighthack.ktbuf.proto.Codes
 import com.latenighthack.lockers.server.ServerResourceLimits
 import com.latenighthack.lockers.server.invalidArgument
+import com.latenighthack.lockers.server.ProtocolValidation
 import com.latenighthack.lockers.server.storage.v1.*
 import java.io.*
 import kotlinx.coroutines.ensureActive
@@ -37,11 +38,13 @@ class SubscriptionIntents(private val database: Database, private val limits: Se
         BoundStoreKey.SerializedKey(SubscriptionIntentDefinitionV2.session.name.value, session.rawValue),
         BoundStoreKey.SerializedKey(SubscriptionIntentDefinitionV2.room.name.value, room.rawValue)))
     private fun conflict(message: String): Nothing = throw RpcResponseException("", "RPC", Codes.FAILED_PRECONDITION, message)
-    suspend fun <T> apply(session: ServerSessionId, room: ServerRoomId, revision: Long, subscribed: Boolean, mutation: suspend () -> T): SubscriptionIntentResult<T> =
-        database.transaction("lockers.session-authority") { database.transaction(roomMutationKey(room)) { database.transaction("lockers.subscription-admission") admission@{
+    suspend fun <T> apply(session: ServerSessionId, room: ServerRoomId, revision: Long, subscribed: Boolean, mutation: suspend () -> T): SubscriptionIntentResult<T> {
+        val sid = ServerSessionId(session.rawValue.copyOf()); val rid = ServerRoomId(room.rawValue.copyOf())
+        if (!ProtocolValidation.identity(sid.rawValue) || !ProtocolValidation.identity(rid.rawValue)) invalidArgument("Invalid subscription intent identity")
+        return database.transaction("lockers.session-authority") { database.transaction(roomMutationKey(rid)) { database.transaction("lockers.subscription-admission") admission@{
             prepare()
             if (revision < 0) invalidArgument("Negative subscription intent revision")
-            val existing = get(key(session, room))
+            val existing = get(key(sid, rid))
             val floor = existing?.revision ?: 0L
             if (revision < floor) return@admission SubscriptionIntentResult<T>(floor, true)
             if (revision > 0 && revision == floor && existing!!.subscribed != subscribed) conflict("Subscription intent revision reused for a different desired state")
@@ -49,26 +52,34 @@ class SubscriptionIntents(private val database: Database, private val limits: Se
                 if (existing == null) {
                     val definition = SubscriptionIntentDefinitionV2
                     val total = database.count(definition.storeName, definition.session.query(1))
-                    val owned = database.count(definition.storeName, definition.session.query(1, lower = session.rawValue, upper = session.rawValue))
+                    val owned = database.count(definition.storeName, definition.session.query(1, lower = sid.rawValue, upper = sid.rawValue))
                     if (total >= limits.maxSubscriptionIntents || owned >= limits.maxSubscriptionIntentsPerSession)
                         conflict("Subscription intent identity namespace exhausted; replace the session or perform trusted namespace maintenance")
                 }
-                save(SubscriptionIntent(session.rawValue.copyOf(), room.rawValue.copyOf(), revision, subscribed))
+                save(SubscriptionIntent(sid.rawValue.copyOf(), rid.rawValue.copyOf(), revision, subscribed))
             }
             SubscriptionIntentResult(revision, false, mutation())
         } } }
+    }
     /** Continuation pages cannot restore or change an intent; they observe exactly its active revision. */
-    suspend fun <T> observe(session: ServerSessionId, room: ServerRoomId, revision: Long, mutation: suspend () -> T): SubscriptionIntentResult<T> =
-        database.transaction("lockers.session-authority") {
+    suspend fun <T> observe(session: ServerSessionId, room: ServerRoomId, revision: Long, active: suspend () -> Boolean = { true }, mutation: suspend () -> T): SubscriptionIntentResult<T> {
+        val sid = ServerSessionId(session.rawValue.copyOf()); val rid = ServerRoomId(room.rawValue.copyOf())
+        if (!ProtocolValidation.identity(sid.rawValue) || !ProtocolValidation.identity(rid.rawValue)) invalidArgument("Invalid subscription intent identity")
+        return database.transaction("lockers.session-authority") {
             prepare()
             if (revision < 0) invalidArgument("Negative subscription intent revision")
-            val existing = get(key(session, room)); val floor = existing?.revision ?: 0L
-            if (revision != floor || (revision > 0 && existing?.subscribed != true)) SubscriptionIntentResult(floor, true)
+            val existing = get(key(sid, rid)); val floor = existing?.revision ?: 0L
+            if (revision != floor || (revision > 0 && (existing?.subscribed != true || !active()))) SubscriptionIntentResult(floor, true)
             else SubscriptionIntentResult(floor, false, mutation())
         }
-    suspend fun clearForSession(session: ServerSessionId) = database.transaction("lockers.session-authority") {
-        prepare()
-        while (database.deleteBatch(SubscriptionIntentDefinitionV2.storeName,
-            SubscriptionIntentDefinitionV2.session.query(256, lower = session.rawValue, upper = session.rawValue)) > 0) kotlinx.coroutines.currentCoroutineContext().ensureActive()
+    }
+    suspend fun clearForSession(session: ServerSessionId) {
+        val sid = session.rawValue.copyOf()
+        if (!ProtocolValidation.identity(sid)) invalidArgument("Invalid subscription intent session")
+        return database.transaction("lockers.session-authority") {
+            prepare()
+            while (database.deleteBatch(SubscriptionIntentDefinitionV2.storeName,
+                SubscriptionIntentDefinitionV2.session.query(256, lower = sid, upper = sid)) > 0) kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        }
     }
 }

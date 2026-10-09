@@ -5,7 +5,7 @@ import com.latenighthack.ktbuf.proto.Codes
 import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.server.services.room.v1.*
 import com.latenighthack.lockers.server.storage.v1.*
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import java.io.File
 import kotlin.test.*
 
@@ -46,6 +46,20 @@ class SubscriptionIntentStoreTest {
             SubscriptionIntents(db, ServerResourceLimits()).clearForSession(sid)
             assertFalse(store.withIntent(sid, ServerRoomId(byteArrayOf(3)), 2, false) { Unit }.stale)
         } finally { db.close() }
+    }
+    @Test fun `intent identity bytes are frozen before waiting for a transaction owner`() = runBlocking {
+        val db = ServerStorage.inMemory(); db.open(); val ledger = SubscriptionIntents(db, ServerResourceLimits())
+        val rawSid = byteArrayOf(1); val rawRoom = byteArrayOf(2)
+        val sid = ServerSessionId(rawSid); val room = ServerRoomId(rawRoom)
+        val held = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
+        val owner = async { db.transaction("lockers.session-authority") { held.complete(Unit); release.await() } }
+        held.await()
+        try {
+            val queued = async(start = CoroutineStart.UNDISPATCHED) { ledger.apply(sid, room, 1, true) { Unit } }
+            rawSid[0] = 9; rawRoom[0] = 8; release.complete(Unit); owner.await(); queued.await()
+            assertTrue(ledger.apply(ServerSessionId(byteArrayOf(1)), ServerRoomId(byteArrayOf(2)), 0, true) { error("original frozen authority exists") }.stale)
+            assertFalse(ledger.apply(sid, room, 0, true) { Unit }.stale)
+        } finally { release.complete(Unit); owner.await(); db.close() }
     }
     @Test fun `V4 SQLite subscriptions migrate without losing rows and intent revisions survive reopen`() = runBlocking {
         val file = File.createTempFile("subscription-intent", ".db")
