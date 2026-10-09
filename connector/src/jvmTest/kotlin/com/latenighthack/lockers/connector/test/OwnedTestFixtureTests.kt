@@ -30,7 +30,12 @@ class OwnedTestFixtureTests {
             }
         }
         assertTrue(captured!!.connection.value is StreamConnectionState.Closed)
-        runBlocking { assertFailsWith<IllegalStateException> { transport!!.unaryCall(RpcMethodSpecifier("test", "Test", "Call"), emptyMap(), byteArrayOf()) } }
+        runBlocking {
+            val rejected = assertFailsWith<RpcResponseException> {
+                transport!!.unaryCall(RpcMethodSpecifier("test", "Test", "Call"), emptyMap(), byteArrayOf())
+            }
+            assertEquals(com.latenighthack.ktbuf.proto.Codes.CANCELLED, rejected.code)
+        }
     }
     @Test(timeout = 10_000) fun `normal fixture return drains forgotten SDK clients`() {
         var captured: LockersClient? = null; var collectorJoined = false
