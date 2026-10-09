@@ -53,7 +53,7 @@ class ReviewAuthorityV2Tests {
             assertTrue(parent.publicKey.verify(LockerSigning.grantContextV2(room, scope, grant.publicKey!!.rawValue, 7, 3), grant.parentSignature!!.signature))
             client.unlockLocker(room, scope, child, 4)
             assertEquals(2, unlockRequest!!.signature!!.signingVersion)
-            assertTrue(child.publicKey.verify(LockerSigning.unlockContextV2(room, scope, 4), unlockRequest!!.signature!!.signature))
+            assertTrue(child.publicKey.verify(LockerSigning.unlockContextV2(room, scope, 4), unlockRequest.signature!!.signature))
         } finally { client.closeAndJoin() }
     }
     @Test fun `ambiguous response reuses its transformed and encoded request without recomputing`() = runBlocking {

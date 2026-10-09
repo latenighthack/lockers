@@ -44,7 +44,7 @@ class OwnedTestFixtureTests {
                     override suspend fun revokeKeys() {}
                 }, Version()).also { it.awaitConnected() }
             launch(start = CoroutineStart.UNDISPATCHED) {
-                try { captured!!.lockers.notifications.first() } finally { collectorJoined = true }
+                try { captured.lockers.notifications.first() } finally { collectorJoined = true }
             }
         }
         assertTrue(collectorJoined)

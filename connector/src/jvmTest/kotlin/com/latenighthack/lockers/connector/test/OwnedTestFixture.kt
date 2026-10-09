@@ -27,7 +27,7 @@ private class FixtureResources : AbstractCoroutineContextElement(Key) {
     suspend fun closeAndJoin() = withContext(NonCancellable) {
         val resources = mutex.withLock { (cleanup.asReversed().toList() to databases.toList()).also { cleanup.clear(); databases.clear() } }
         var failed: Throwable? = null
-        suspend fun close(action: suspend () -> Unit) { try { action() } catch (failure: Throwable) { if (failed == null) failed = failure else failed!!.addSuppressed(failure) } }
+        suspend fun close(action: suspend () -> Unit) { try { action() } catch (failure: Throwable) { if (failed == null) failed = failure else failed.addSuppressed(failure) } }
         resources.first.forEach { close(it) }
         resources.second.forEach { db -> close { db.close() } }
         failed?.let { throw it }

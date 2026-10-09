@@ -53,7 +53,7 @@ class ReviewConnectorTests {
         try {
             runCatching { client.updateLocker(RoomId(byteArrayOf(1)), LockerId(byteArrayOf(2)), ratchet = true) { byteArrayOf(3) } }
             assertNotNull(adopted, "Source committed, so its new authority must be adopted before reporting agent status")
-            assertContentEquals(submitted!!.ratchet!!.newPublicKey!!.rawValue, adopted!!.publicKey.encode())
+            assertContentEquals(submitted!!.ratchet!!.newPublicKey!!.rawValue, adopted.publicKey.encode())
             assertEquals(1, client.getAllKnownLockers().size)
         } finally { client.stop() }
     }
@@ -87,7 +87,7 @@ class ReviewConnectorTests {
             replacement.start()
             withTimeout(5_000) { while (LockerStoreImpl(database).pendingRatchets().isNotEmpty()) delay(10) }
             assertNotNull(adopted)
-            assertContentEquals(PostLockerChangeRequest.fromByteArray(requestBytes!!).ratchet!!.newPublicKey!!.rawValue, adopted!!.publicKey.encode())
+            assertContentEquals(PostLockerChangeRequest.fromByteArray(requestBytes!!).ratchet!!.newPublicKey!!.rawValue, adopted.publicKey.encode())
             assertEquals(2, calls)
             assertEquals(1, replacement.getAllKnownLockers().size)
         } finally { replacement.stop() }

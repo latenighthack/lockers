@@ -144,7 +144,7 @@ class ReviewExpiredRatchetTests {
             assertEquals(2, calls); assertEquals(1, transforms)
             assertFalse((failure as Throwable) is LockerSourceCommittedException)
             assertContentEquals(submitted!!.writeRequestId, failure.writeRequestId)
-            assertContentEquals(submitted!!.ratchet!!.newPublicKey!!.rawValue, active.publicKey.encode())
+            assertContentEquals(submitted.ratchet!!.newPublicKey!!.rawValue, active.publicKey.encode())
             assertEquals(1, LockerStoreImpl(database).pendingRatchets().size)
             assertTrue(LockerStoreImpl(database).archivedRatchets().isEmpty())
             assertEquals(1, scopes.size); assertEquals<LockScopeKind>(LockScopeKind.LOCK_SCOPE_ROOM, scopes.single())
