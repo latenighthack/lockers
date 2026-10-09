@@ -43,17 +43,19 @@ object ServerStorage {
         com.latenighthack.lockers.server.services.session.v1.RevokedSessionDefinitionV2,
         com.latenighthack.lockers.server.services.session.v1.RevokedSessionAuthorityDefinitionV2,
     )
-    val definitions = legacyDefinitionsV3.map { definition ->
+    val definitionsV4 = legacyDefinitionsV3.map { definition ->
         if (definition === com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreImplDefinitionV1)
             com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreDefinitionV2
         else if (definition === com.latenighthack.lockers.server.services.room.v1.LockerStoreImplDefinitionV1)
             com.latenighthack.lockers.server.services.room.v1.LockerStoreDefinitionV2 else definition
     } + additionsV4
+    val definitions = definitionsV4 + com.latenighthack.lockers.server.services.room.v1.SubscriptionIntentDefinitionV2
     fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()): DatabaseConfiguration {
         val historical = definitionDatabaseConfiguration(identity, legacyDefinitionsV3 + additional)
+        val previous = (definitionsV4 + additional).map { it.declaration }
         val declarations = (definitions + additional).map { it.declaration }
-        return historical.copy(version = 4, stores = declarations, migrations = historical.migrations +
-            DatabaseMigration.configured(3, 4, historical.stores, declarations) {
+        return historical.copy(version = 5, stores = declarations, migrations = historical.migrations +
+            DatabaseMigration.configured(3, 4, historical.stores, previous) {
                 for (definition in additionsV4) createStore(definition.declaration)
                 val inbox = com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreDefinitionV2
                 rebuildStore(inbox.storeName, inbox.declaration) { raw ->
@@ -63,6 +65,8 @@ object ServerStorage {
                 rebuildStore(lockers.storeName, lockers.declaration) { raw ->
                     StoreRow(raw.copyOf(), lockers.encodeRow(lockers.decode(raw)).keys)
                 }
+            } + DatabaseMigration.configured(4, 5, previous, declarations) {
+                createStore(com.latenighthack.lockers.server.services.room.v1.SubscriptionIntentDefinitionV2.declaration)
             })
     }
     fun inMemory(identity: String = "ServerStorage-test", meterRegistry: MeterRegistry? = null, telemetry: LockersTelemetry = LockersTelemetry.NONE) =

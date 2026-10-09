@@ -337,7 +337,7 @@ class RoomServiceImpl(
     }
 
     override suspend fun capabilities(context: GrpcRequestContext, request: CapabilitiesRequest) = meterRegistry.trackRpc(TelemetryOperation.ROOM_CAPABILITIES, telemetry) { CapabilitiesResponse(
-        authorityV2 = true, deleteReceipts = true, snapshotPaging = lockerStore.supportsSnapshotPaging(), writeOutcomes = true,
+        subscriptionRevisions = subscriptionStore.supportsIntentRevisions(), authorityV2 = true, deleteReceipts = true, snapshotPaging = lockerStore.supportsSnapshotPaging(), writeOutcomes = true,
         subscribeAndSnapshot = config.deliveryOutboxEnabled, getLockers = true,
         postLockerChanges = config.deliveryOutboxEnabled, writeReceipts = config.deliveryOutboxEnabled,
         maxBatchItems = 64, maxBatchBytes = minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)
@@ -391,21 +391,30 @@ class RoomServiceImpl(
         validateRead(room)
         snapshots.validate(request.pageSize, request.pageToken)
         val spaces = request.keyspaces.map { it.value }.toSet()
+        if (request.intentRevision < 0) invalidArgument("Negative subscription intent revision")
         if (request.pageToken.isNotEmpty()) {
-            val page = snapshots.next(1, room, session, spaces, request.pageSize, request.pageToken)
-            return SubscribeAndSnapshotResponse(SubscriptionResponse.Result.OK, page.lockers, page.roomSequence, page.nextPageToken)
+            val observed = subscriptionStore.observeIntent(ServerSessionId(session.rawValue), ServerRoomId(room.rawValue), request.intentRevision) {
+                val page = snapshots.next(1, room, session, spaces, request.pageSize, request.pageToken, request.intentRevision)
+                SubscribeAndSnapshotResponse(SubscriptionResponse.Result.OK, page.lockers, page.roomSequence, page.nextPageToken)
+            }
+            return if (observed.stale) SubscribeAndSnapshotResponse(result = SubscriptionResponse.Result.STALE_INTENT, currentRevision = observed.currentRevision)
+                else requireNotNull(observed.value).copy(currentRevision = observed.currentRevision)
         }
         check(config.deliveryOutboxEnabled)
-        return requireNotNull(deliveryOutbox).atomic(room) {
-            val reads = captureSnapshot(room, spaces)
-            if (reads.any { !it.valid }) return@atomic SubscribeAndSnapshotResponse(result = SubscriptionResponse.Result.INVALID_DATA,
-                lockers = listOf(reads.first { !it.valid }.value))
-            val page = snapshots.create(1, room, session, spaces, request.pageSize,
-                requireNotNull(deliveryOutbox).watermark(room), reads.map { it.value })
-            subscriptionStore.addSubscription(ServerSessionId(session.rawValue), ServerRoomId(room.rawValue))
-            roomToSessionCache.invalidate(room)
-            SubscribeAndSnapshotResponse(SubscriptionResponse.Result.OK, page.lockers, page.roomSequence, page.nextPageToken)
+        val changed = subscriptionStore.withIntent(ServerSessionId(session.rawValue), ServerRoomId(room.rawValue), request.intentRevision, true) {
+            requireNotNull(deliveryOutbox).atomic(room) {
+                val reads = captureSnapshot(room, spaces)
+                if (reads.any { !it.valid }) return@atomic SubscribeAndSnapshotResponse(result = SubscriptionResponse.Result.INVALID_DATA,
+                    lockers = listOf(reads.first { !it.valid }.value))
+                val page = snapshots.create(1, room, session, spaces, request.pageSize,
+                    requireNotNull(deliveryOutbox).watermark(room), reads.map { it.value }, request.intentRevision)
+                subscriptionStore.addSubscription(ServerSessionId(session.rawValue), ServerRoomId(room.rawValue))
+                roomToSessionCache.invalidate(room)
+                SubscribeAndSnapshotResponse(SubscriptionResponse.Result.OK, page.lockers, page.roomSequence, page.nextPageToken)
+            }
         }
+        return if (changed.stale) SubscribeAndSnapshotResponse(result = SubscriptionResponse.Result.STALE_INTENT, currentRevision = changed.currentRevision)
+            else requireNotNull(changed.value).copy(currentRevision = changed.currentRevision)
     }
 
     private fun canonicalLockerId(id: LockerId) = LockerId(id.rawValue, LockerKeyspace(id.keyspace?.value ?: 0L))
@@ -673,33 +682,30 @@ class RoomServiceImpl(
         val roomId = request.roomId ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
         val sessionId = request.sessionId ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
 
+        ProtocolValidation.room(roomId)
+        if (request.intentRevision < 0) invalidArgument("Negative subscription intent revision")
+        val subscribed = when (request.kind) {
+            is SubscriptionRequest.OneOfKind.subscribe -> true
+            is SubscriptionRequest.OneOfKind.unsubscribe -> false
+            null -> return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
+        }
         val startTime = System.nanoTime()
-        return@trackResponse dispatchers.runOnDispatcher(roomId) {
-            dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
-            val cachedSet = lookupSessions(roomId)
-            val updatedSet = when (request.kind) {
-                is SubscriptionRequest.OneOfKind.subscribe -> {
-                    meterRegistry.counter("lockers.room.subscriptions", "operation", "subscribe", "result", "OK").increment()
-                    subscriptionStore.addSubscription(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue))
-                    cachedSet + sessionId
+        val changed = subscriptionStore.withIntent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue), request.intentRevision, subscribed) {
+            dispatchers.runOnDispatcher(roomId) {
+                dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
+                val cachedSet = lookupSessions(roomId)
+                val updatedSet = if (subscribed) {
+                    subscriptionStore.addSubscription(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue)); cachedSet + sessionId
+                } else {
+                    subscriptionStore.removeSubscription(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue)); cachedSet - sessionId
                 }
-                is SubscriptionRequest.OneOfKind.unsubscribe -> {
-                    meterRegistry.counter("lockers.room.subscriptions", "operation", "unsubscribe", "result", "OK").increment()
-                    subscriptionStore.removeSubscription(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue))
-                    cachedSet - sessionId
-                }
-                null -> {
-                    meterRegistry.counter("lockers.room.subscriptions", "operation", "unknown", "result", "ERROR").increment()
-                    return@runOnDispatcher SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
-                }
-            }
-
-            roomToSessionCache.put(roomId, updatedSet)
-
-            SubscriptionResponse {
-                result = SubscriptionResponse.Result.OK
+                roomToSessionCache.put(roomId, updatedSet)
+                meterRegistry.counter("lockers.room.subscriptions", "operation", if (subscribed) "subscribe" else "unsubscribe", "result", "OK").increment()
+                SubscriptionResponse(result = SubscriptionResponse.Result.OK)
             }
         }
+        if (changed.stale) SubscriptionResponse(result = SubscriptionResponse.Result.STALE_INTENT, currentRevision = changed.currentRevision)
+        else requireNotNull(changed.value).copy(currentRevision = changed.currentRevision)
     }
 
     override suspend fun getLocker(

@@ -34,6 +34,8 @@ data class ServerResourceLimits(
     val roomReadsPerSecond: Int = 100,
     val roomReadBurst: Int = 200,
     val maxTrackedReadRooms: Int = 4096,
+    val maxSubscriptionIntents: Int = 1_000_000,
+    val maxSubscriptionIntentsPerSession: Int = 10_000,
 ) {
     init {
         require(maxSessions > 0 && maxReservedSessionIds >= maxSessions)
@@ -43,6 +45,7 @@ data class ServerResourceLimits(
         require(maxInboxReceipts > 0 && maxInboxReceiptsPerSession in 1..maxInboxReceipts)
         require(maxRoomClaims > 0)
         require(maxLocks > 0 && maxLocksPerRoom in 1..maxLocks)
+        require(maxSubscriptionIntents > 0 && maxSubscriptionIntentsPerSession in 1..maxSubscriptionIntents)
         require(maxSubscriptions > 0 && maxSubscriptionsPerSession in 1..maxSubscriptions && maxSubscriptionsPerRoom in 1..1024)
         require(maxLockers > 0 && maxLockersPerRoom in 1..maxLockers)
         require(maxSnapshotLeasesPerRoom > 0 && maxSnapshotRetainedBytes > 0)
@@ -75,6 +78,8 @@ data class ServerResourceLimits(
                 maxLockersPerRoom = limit("LOCKERS_MAX_ROOM_LOCKERS", 100_000),
                 maxLocks = limit("LOCKERS_MAX_LOCK_HISTORY", 1_000_000),
                 maxLocksPerRoom = limit("LOCKERS_MAX_ROOM_LOCK_HISTORY", 10_000),
+                maxSubscriptionIntents = limit("LOCKERS_MAX_SUBSCRIPTION_INTENTS", 1_000_000),
+                maxSubscriptionIntentsPerSession = limit("LOCKERS_MAX_SESSION_SUBSCRIPTION_INTENTS", 10_000),
                 maxSubscriptions = limit("LOCKERS_MAX_SUBSCRIPTIONS", 1_000_000),
                 maxSubscriptionsPerSession = limit("LOCKERS_MAX_SESSION_SUBSCRIPTIONS", 10_000),
                 maxSubscriptionsPerRoom = limit("LOCKERS_MAX_ROOM_SUBSCRIPTIONS", 1024),

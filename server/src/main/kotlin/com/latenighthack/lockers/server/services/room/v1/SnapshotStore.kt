@@ -47,26 +47,27 @@ class SnapshotStore(private val database: Database, private val limits: ServerRe
     private val clock: () -> Long = System::currentTimeMillis) : Store<SnapshotRecord>(database, SnapshotDefinitionV2) {
     private val random = SecureRandom()
     private fun exhausted(message: String): Nothing = throw RpcResponseException("", "RPC", Codes.RESOURCE_EXHAUSTED, message)
-    private suspend fun binding(operation: Int, room: RoomId, session: SessionId?, spaces: Set<Long>, pageSize: Int): ByteArray =
+    private suspend fun binding(operation: Int, room: RoomId, session: SessionId?, spaces: Set<Long>, pageSize: Int, intentRevision: Long): ByteArray =
         SHA256.digest(ByteArrayOutputStream().use { buffer ->
             DataOutputStream(buffer).use { out ->
                 out.writeInt(operation); out.writeInt(pageSize); out.writeInt(room.rawValue.size); out.write(room.rawValue)
                 val sid = session?.rawValue ?: byteArrayOf(); out.writeInt(sid.size); out.write(sid)
                 out.writeInt(spaces.size); spaces.sorted().forEach(out::writeLong)
+                if (intentRevision > 0) out.writeLong(intentRevision) // Preserve historical revision-zero token bindings.
             }; buffer.toByteArray()
         })
     fun validate(pageSize: Int, token: ByteArray) {
         if (pageSize !in 0..64 || (token.isNotEmpty() && (pageSize == 0 || token.size != 36))) invalidArgument("Invalid snapshot paging request")
     }
-    suspend fun next(operation: Int, room: RoomId, session: SessionId?, spaces: Set<Long>, pageSize: Int, token: ByteArray): GetAllLockersResponse = database.transaction("snapshot-admission") {
+    suspend fun next(operation: Int, room: RoomId, session: SessionId?, spaces: Set<Long>, pageSize: Int, token: ByteArray, intentRevision: Long = 0): GetAllLockersResponse = database.transaction("snapshot-admission") {
         validate(pageSize, token)
         val row = get(SnapshotDefinitionV2.identity.eq(token)) ?: invalidArgument("Unknown snapshot page")
-        if (row.index < 1 || row.expiry <= clock() || !row.binding.contentEquals(binding(operation, room, session, spaces, pageSize)))
+        if (row.index < 1 || row.expiry <= clock() || !row.binding.contentEquals(binding(operation, room, session, spaces, pageSize, intentRevision)))
             invalidArgument("Expired or foreign snapshot page")
         GetAllLockersResponse.fromByteArray(row.encoded)
     }
     suspend fun create(operation: Int, room: RoomId, session: SessionId?, spaces: Set<Long>, pageSize: Int,
-        sequence: Long, lockers: List<IdentifiedLocker>): GetAllLockersResponse = database.transaction("snapshot-admission") {
+        sequence: Long, lockers: List<IdentifiedLocker>, intentRevision: Long = 0): GetAllLockersResponse = database.transaction("snapshot-admission") {
         validate(pageSize, byteArrayOf())
         var total = 0L
         val chunks = mutableListOf<List<IdentifiedLocker>>(); var chunk = mutableListOf<IdentifiedLocker>(); var chunkBytes = 1024
@@ -100,7 +101,7 @@ class SnapshotStore(private val database: Database, private val limits: ServerRe
             lower = true, upper = true)).records.map { when (it) { is SnapshotRecord -> it; is ByteArray -> SnapshotDefinitionV2.decode(it); else -> error("Invalid snapshot row") } }
         if (leases.size >= limits.maxSnapshotLeases || leases.count { it.room.contentEquals(room.rawValue) } >= limits.maxSnapshotLeasesPerRoom ||
             leases.sumOf { it.bytes } + total > limits.maxSnapshotRetainedBytes) exhausted("Snapshot lease capacity exhausted")
-        val token = ByteArray(32).also(random::nextBytes); val bind = binding(operation, room, session, spaces, pageSize); val expiry = clock() + limits.snapshotLeaseMillis
+        val token = ByteArray(32).also(random::nextBytes); val bind = binding(operation, room, session, spaces, pageSize, intentRevision); val expiry = clock() + limits.snapshotLeaseMillis
         fun pageToken(index: Int) = token + byteArrayOf((index ushr 24).toByte(), (index ushr 16).toByte(), (index ushr 8).toByte(), index.toByte())
         val responses = chunks.mapIndexed { index, rows -> GetAllLockersResponse(lockers = rows, roomSequence = sequence,
             nextPageToken = if (index + 1 < chunks.size) pageToken(index + 1) else byteArrayOf()) }

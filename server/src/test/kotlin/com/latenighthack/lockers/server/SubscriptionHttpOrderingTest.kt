@@ -52,7 +52,18 @@ class SubscriptionHttpOrderingTest {
         val clientDb = ConnectorStorage.inMemory(); clientDb.open()
         val sessionStore = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), clientDb).also { it.prepare() }
         val subscriptions = ClientSubscriptionStoreImpl(clientDb).also { it.prepare() }
-        val controller = SubscriptionController(rpc, subscriptions, sessionStore, MutableStateFlow<SessionId?>(sid), coroutineContext = currentCoroutineContext(), signRequest = { operation, session, bytes ->
+        // Explicit modern generations exercise the server contract independently of SDK negotiation.
+        val revisionRpc = object : RpcClient by rpc {
+            override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray): RpcResponse {
+                if (method.methodName != "Subscription") return rpc.unaryCall(method, headers, request)
+                val decoded = SubscriptionRequest.fromByteArray(request)
+                val unsigned = decoded.copy(proof = null, intentRevision = if (decoded.intentRevision > 0) decoded.intentRevision else if (decoded.kind is SubscriptionRequest.OneOfKind.subscribe) 1 else 2)
+                val issued = System.currentTimeMillis(); val nonce = Random.nextBytes(32)
+                val proof = SessionProof(issued, nonce, Signature(signingVersion = 2, signature = key.privateKey.sign(SessionSigning.context(SessionSigning.SUBSCRIPTION, sid, SHA256.digest(unsigned.toByteArray()), issued, nonce))))
+                return rpc.unaryCall(method, headers, unsigned.copy(proof = proof).toByteArray())
+            }
+        }
+        val controller = SubscriptionController(revisionRpc, subscriptions, sessionStore, MutableStateFlow<SessionId?>(sid), coroutineContext = currentCoroutineContext(), signRequest = { operation, session, bytes ->
             val issued = System.currentTimeMillis(); val nonce = Random.nextBytes(32)
             SessionProof(issued, nonce, Signature(signingVersion = 2, signature = key.privateKey.sign(SessionSigning.context(operation, session, SHA256.digest(bytes), issued, nonce))))
         })
@@ -62,7 +73,9 @@ class SubscriptionHttpOrderingTest {
             withTimeout(5_000) { while (subscriptions.getSubscription(room) != null) delay(10) }
             assertTrue(core.subscriptionStore.getAllSubscriptions(ServerSessionId(sid.rawValue)).isEmpty(), "new HTTP unsubscribe completed")
             release.complete(Unit)
-            assertTrue(withTimeout(5_000) { applied.await() }.result.isOk(), "old authenticated HTTP subscribe actually committed after unsubscribe")
+            val rejected = withTimeout(5_000) { applied.await() }
+            assertEquals(SubscriptionResponse.Result.STALE_INTENT, rejected.result)
+            assertEquals(2L, rejected.currentRevision)
             assertTrue(core.subscriptionStore.getAllSubscriptions(ServerSessionId(sid.rawValue)).isEmpty(), "late old subscribe restored the revoked subscription")
         } finally { release.complete(Unit); controller.closeAndJoin(); rpc.close(); listener.stop(0, 1_000); module.serverImpl.closeAndJoin(); core.closeAndJoin(); clientDb.close(); serverDb.close() }
     } }

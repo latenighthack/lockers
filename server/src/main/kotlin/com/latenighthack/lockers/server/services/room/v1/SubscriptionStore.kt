@@ -4,6 +4,16 @@ import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.server.storage.v1.*
 
 interface SubscriptionStore {
+    fun supportsIntentRevisions(): Boolean = false
+    suspend fun <T> withIntent(sessionId: ServerSessionId, roomId: ServerRoomId, revision: Long, subscribed: Boolean, mutation: suspend () -> T): SubscriptionIntentResult<T> {
+        if (revision != 0L) throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.UNIMPLEMENTED, "Custom subscription store does not support intent revisions")
+        return SubscriptionIntentResult(0, false, mutation())
+    }
+    suspend fun <T> observeIntent(sessionId: ServerSessionId, roomId: ServerRoomId, revision: Long, mutation: suspend () -> T): SubscriptionIntentResult<T> {
+        if (revision != 0L) throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.UNIMPLEMENTED, "Custom subscription store does not support intent revisions")
+        return SubscriptionIntentResult(0, false, mutation())
+    }
+
     suspend fun getAllSubscriptions(sessionId: ServerSessionId): List<ServerRoomId>
 
     suspend fun getAllSessions(roomId: ServerRoomId): List<ServerSessionId>
@@ -14,6 +24,10 @@ interface SubscriptionStore {
 }
 
 class SubscriptionStoreImpl(private val database: Database, private val limits: com.latenighthack.lockers.server.ServerResourceLimits = com.latenighthack.lockers.server.ServerResourceLimits()) : SubscriptionStore, Store<ServerSubscription>(database, SubscriptionStoreImplDefinitionV1) {
+    private val intents = SubscriptionIntents(database, limits)
+    override fun supportsIntentRevisions() = true
+    override suspend fun <T> withIntent(sessionId: ServerSessionId, roomId: ServerRoomId, revision: Long, subscribed: Boolean, mutation: suspend () -> T) = intents.apply(sessionId, roomId, revision, subscribed, mutation)
+    override suspend fun <T> observeIntent(sessionId: ServerSessionId, roomId: ServerRoomId, revision: Long, mutation: suspend () -> T) = intents.observe(sessionId, roomId, revision, mutation)
     private val sessionIdKey = SubscriptionStoreImplDefinitionV1.sessionIdKey
     private val roomIdKey = SubscriptionStoreImplDefinitionV1.roomIdKey
     private val sessionIdAndRoomIdKey = SubscriptionStoreImplDefinitionV1.sessionIdAndRoomIdKey

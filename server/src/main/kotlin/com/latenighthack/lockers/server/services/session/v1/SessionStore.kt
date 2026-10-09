@@ -101,6 +101,7 @@ class SessionStoreImpl(private val database: Database) : SessionStore, Store<Ser
             more = database.deleteBatch(subscriptions.storeName, subscriptions.sessionIdKey.query(256,
                 lower = sessionId.toByteArray(), upper = sessionId.toByteArray())) > 0
         } while (more)
+        com.latenighthack.lockers.server.services.room.v1.SubscriptionIntents(database, ServerResourceLimits()).clearForSession(sessionId)
         inbox.deleteAllEvents(sessionId)
         pushInfo.deletePushInfo(sessionId)
         pushQueue.clearForSession(sessionId)
