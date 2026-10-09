@@ -467,7 +467,17 @@ class SessionServiceImpl(
     private suspend fun observedPostEvents(context: GrpcRequestContext, request: PostEventsRequest): PostEventsResponse {
         if (request.groups.size > 64 || request.groups.sumOf { it.sessionIds.size.toLong() } > ProtocolValidation.MAX_RECIPIENTS ||
             request.toByteArray().size > ProtocolValidation.MAX_ENVELOPE_BYTES) {
-            throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.INVALID_ARGUMENT, "Invalid gateway batch")
+            throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.OUT_OF_RANGE, "Gateway batch exceeds configured bounds")
+        }
+        var expansion = 0L
+        for (group in request.groups) {
+            val eventBytes = group.event?.toByteArray()?.size ?: 0
+            for (sid in group.sessionIds.distinctBy { it.rawValue.toList() }) {
+                expansion += com.latenighthack.lockers.common.InboxAdmission.recipientExpansionBytes(eventBytes, sid.toByteArray().size)
+                if (expansion > com.latenighthack.lockers.common.InboxAdmission.MAX_BATCH_EXPANSION_BYTES)
+                    throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.OUT_OF_RANGE,
+                        "Inbox batch expansion exceeds64MiB")
+            }
         }
         return PostEventsResponse(request.groups.map { postEvent(context, it) })
     }
@@ -524,7 +534,8 @@ class SessionServiceImpl(
     // room-scoped posts and server-wide broadcasts; returns the count enqueued.
     private class GatewayRejected(val result: PostEventResponse.Result) : RuntimeException()
     private data class Enqueued(val accepted: List<SessionId>, val inserted: List<SessionId>)
-    private suspend fun enqueueEvent(sessionIds: List<SessionId>, event: Event): Enqueued {
+    private suspend fun enqueueEvent(sessionIds: List<SessionId>, offered: Event): Enqueued {
+        val event = Event.fromByteArray(offered.toByteArray())
         val receiveTime = System.nanoTime()
         val requestPush = event.notification?.push
         val roomIdRaw = event.roomId?.rawValue ?: byteArrayOf()
@@ -535,8 +546,9 @@ class SessionServiceImpl(
         if (sessionIds.size > ProtocolValidation.MAX_RECIPIENTS || sessionIds.any { !ProtocolValidation.identity(it.rawValue) } ||
             !ProtocolValidation.event(event)) throw GatewayRejected(PostEventResponse.Result.INVALID)
         if (sessionIds.isEmpty()) return Enqueued(emptyList(), emptyList())
+        sessionInboxStore.initializeAdmission()
         val recipients = sessionStore.atomic(ServerSessionId(sessionIds.first().rawValue)) {
-            val accepted = sessionIds.distinct().filter { id ->
+            val accepted = sessionIds.distinctBy { it.rawValue.toList() }.map { SessionId(it.rawValue.copyOf()) }.filter { id ->
                 val sid = ServerSessionId(id.rawValue)
                 if (sessionStore.isRevoked(sid)) false
                 else if (sessionStore.getSessionById(sid) == null) throw GatewayRejected(PostEventResponse.Result.UNKNOWN_SESSION)

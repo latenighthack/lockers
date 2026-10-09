@@ -13,6 +13,27 @@ import kotlin.test.*
 
 class GatewayAdmissionTest {
     private val context = GrpcRequestContext("", emptyMap(), emptyMap(), emptyMap(), SessionGatewayServer.Descriptor, SessionGatewayServer.Descriptor.methods[0])
+    @Test fun completeGatewayBatchExpansionIsRejectedBeforeAnyGroupPersistsAndRawSidAliasesDoNotFanoutTwice() = runBlocking {
+        val db = ServerStorage.inMemory(); db.open()
+        val sessions = SessionStoreImpl(db); val inbox = SessionInboxStoreImpl(db)
+        val service = SessionServiceImpl(sessions, inbox, SimpleMeterRegistry(), object : PushGatewayDiscovery {
+            override suspend fun findServer(sessionId: SessionId): PushGatewayService? = null
+        }, LocalSessionOwnership(), LockersConfig.defaults())
+        try {
+            val sid = SessionId(byteArrayOf(1)); sessions.updateSession(ServerSession(ServerSessionId(sid.rawValue)))
+            val event = Event(eventId = EventId(byteArrayOf(1)), roomId = RoomId(byteArrayOf(9)),
+                locker = IdentifiedLocker(lockerId = LockerId(byteArrayOf(1)),
+                    locker = Locker { open { encodedPayload = ByteArray(1024 * 1024) } }))
+            val groups = (0..1).map { group -> PostEventRequest((1..20).map { SessionId(byteArrayOf((it + group * 20).toByte())) },
+                event.copy(eventId = EventId(byteArrayOf((group + 1).toByte())))) }
+            val failure = assertFailsWith<RpcResponseException> { service.postEvents(context, PostEventsRequest(groups)) }
+            assertEquals(com.latenighthack.ktbuf.proto.Codes.OUT_OF_RANGE, failure.code)
+            assertTrue(inbox.getAllEvents(ServerSessionId(sid.rawValue)).isEmpty())
+            val alias = sid.copy(unknownFields = byteArrayOf(0x78, 0x01))
+            assertTrue(service.postEvent(context, PostEventRequest(listOf(sid, alias), event)).result.isOk())
+            assertEquals(1, inbox.getAllEvents(ServerSessionId(sid.rawValue)).size)
+        } finally { service.close(); db.close() }
+    }
     @Test fun rejectedUnknownAndMalformedRecipientsNeverPersistAndRevokedDeliveryIsAcceptedDiscard() = runBlocking {
         val db = ServerStorage.inMemory(); db.open()
         val limits = ServerResourceLimits(maxInboxEvents = 2, maxInboxEventsPerSession = 1)

@@ -8,6 +8,8 @@ data class ServerResourceLimits(
     val maxOutstandingProofsPerSession: Int = 4096,
     val maxInboxEvents: Int = 1_000_000,
     val maxInboxEventsPerSession: Int = 10_000,
+    val maxInboxBytes: Long = 1024L * 1024 * 1024,
+    val maxInboxBytesPerSession: Long = 64L * 1024 * 1024,
     val maxInboxReceipts: Int = 10_000_000,
     val maxInboxReceiptsPerSession: Int = 1_000_000,
     val maxRoomClaims: Int = 1_000_000,
@@ -36,6 +38,7 @@ data class ServerResourceLimits(
     init {
         require(maxSessions > 0 && maxReservedSessionIds >= maxSessions)
         require(maxOutstandingProofs > 0 && maxOutstandingProofsPerSession in 1..maxOutstandingProofs)
+        require(maxInboxBytes > 0 && maxInboxBytesPerSession in 1..maxInboxBytes)
         require(maxInboxEvents > 0 && maxInboxEventsPerSession in 1..maxInboxEvents)
         require(maxInboxReceipts > 0 && maxInboxReceiptsPerSession in 1..maxInboxReceipts)
         require(maxRoomClaims > 0)
@@ -53,6 +56,9 @@ data class ServerResourceLimits(
             fun limit(name: String, fallback: Int) = env(name)?.let {
                 requireNotNull(it.trim().toIntOrNull()) { "Invalid $name" }
             } ?: fallback
+            fun byteLimit(name: String, fallback: Long) = env(name)?.let {
+                requireNotNull(it.trim().toLongOrNull()) { "Invalid $name" }
+            } ?: fallback
             return ServerResourceLimits(
                 maxSessions = limit("LOCKERS_MAX_SESSIONS", 100_000),
                 maxReservedSessionIds = limit("LOCKERS_MAX_RESERVED_SESSION_IDS", 1_000_000),
@@ -60,6 +66,8 @@ data class ServerResourceLimits(
                 maxOutstandingProofsPerSession = limit("LOCKERS_MAX_SESSION_PROOFS", 4096),
                 maxInboxEvents = limit("LOCKERS_MAX_INBOX_EVENTS", 1_000_000),
                 maxInboxEventsPerSession = limit("LOCKERS_MAX_SESSION_INBOX_EVENTS", 10_000),
+                maxInboxBytes = byteLimit("LOCKERS_MAX_INBOX_BYTES", 1024L * 1024 * 1024),
+                maxInboxBytesPerSession = byteLimit("LOCKERS_MAX_SESSION_INBOX_BYTES", 64L * 1024 * 1024),
                 maxInboxReceipts = limit("LOCKERS_MAX_INBOX_RECEIPTS", 10_000_000),
                 maxInboxReceiptsPerSession = limit("LOCKERS_MAX_SESSION_INBOX_RECEIPTS", 1_000_000),
                 maxRoomClaims = limit("LOCKERS_MAX_ROOM_CLAIMS", 1_000_000),

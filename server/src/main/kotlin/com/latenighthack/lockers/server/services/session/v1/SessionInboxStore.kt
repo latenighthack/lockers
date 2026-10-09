@@ -8,6 +8,10 @@ import com.latenighthack.ktcrypto.SHA256
 import com.latenighthack.ktcrypto.digest
 import com.latenighthack.lockers.server.storage.v1.*
 import com.latenighthack.lockers.common.v1.*
+import com.latenighthack.lockers.common.InboxAdmission
+import com.latenighthack.ktbuf.net.RpcResponseException
+import com.latenighthack.ktbuf.proto.Codes
+import java.util.IdentityHashMap
 import com.latenighthack.lockers.server.ServerResourceLimits
 import com.latenighthack.lockers.server.ResourceLimitException
 
@@ -20,6 +24,7 @@ internal fun ServerSessionEvent.legacyClientEvent() = Event {
 }
 
 interface SessionInboxStore {
+    suspend fun initializeAdmission() = Unit
     /** Finite replay, bounded by both record count and encoded envelope size. */
     fun clientEventPages(sessionId: ServerSessionId, pageSize: Int = 64): Flow<List<Event>> =
         throw UnsupportedOperationException("Inbox extension requires bounded replay pages")
@@ -86,12 +91,100 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
             if (existing + added.size > limits.maxInboxReceiptsPerSession) throw ResourceLimitException("Session receipt capacity exhausted")
         }
     }
+    private class LedgerStore(database: Database) : Store<InboxByteLedger>(database, InboxByteLedgerDefinitionV2) {
+        suspend fun find(scope: ByteArray) = get(InboxByteLedgerDefinitionV2.scope.eq(scope))
+        suspend fun put(row: InboxByteLedger) = save(row)
+    }
+    private val ledger = LedgerStore(database)
+    private val globalLedger = byteArrayOf(0)
+    private fun sessionLedger(sid: ByteArray) = byteArrayOf(1) + sid
+    private fun decodeInbox(value: Any) = when (value) {
+        is ServerSessionEvent -> value; is ByteArray -> SessionInboxStoreDefinitionV2.decode(value); else -> error("Invalid inbox row")
+    }
+    private fun compareBytes(a: ByteArray, b: ByteArray): Int {
+        for (i in 0 until minOf(a.size, b.size)) {
+            val difference = (a[i].toInt() and 255) - (b[i].toInt() and 255)
+            if (difference != 0) return difference
+        }
+        return a.size - b.size
+    }
+    private suspend fun bytesFor(row: ServerSessionEvent): Long = inboxRowBytes(row) +
+        (metadata.find(metadataRelation(requireNotNull(row.eventId), requireNotNull(row.sessionId)))?.let(::inboxRowBytes) ?: 0)
+    /** Every batch releases ownership before the next batch; cursor survives process restart. */
+    override suspend fun initializeAdmission() {
+        while (!backfillByteLedger()) kotlinx.coroutines.yield()
+    }
+    internal suspend fun backfillByteLedger(): Boolean = database.transaction("inbox-metadata") {
+        val current = ledger.find(globalLedger) ?: InboxByteLedger(globalLedger, 0)
+        if (current.complete) return@transaction true
+        val definition = SessionInboxStoreDefinitionV2
+        val page = database.query(definition.storeName, definition.replay.query(4,
+            lower = current.cursor.takeIf { it.isNotEmpty() }, lowerInclusive = false))
+        var total = current.bytes; var cursor = current.cursor
+        for (value in page.records) {
+            val row = decodeInbox(value); val size = bytesFor(row); val sid = requireNotNull(row.sessionId).rawValue
+            val key = sessionLedger(sid); val previous = ledger.find(key) ?: InboxByteLedger(key, 0)
+            check(total <= Long.MAX_VALUE - size && previous.bytes <= Long.MAX_VALUE - size)
+            total += size; ledger.put(previous.copy(bytes = previous.bytes + size))
+            cursor = inboxReplayKey(row)
+        }
+        val complete = page.continuation == null
+        ledger.put(current.copy(bytes = total, cursor = cursor, complete = complete))
+        complete
+    }
+    private suspend fun changeBytes(changes: Map<List<Byte>, Long>, checkCapacity: Boolean) {
+        val current = ledger.find(globalLedger) ?: InboxByteLedger(globalLedger, 0)
+        val delta = changes.values.sum()
+        if (checkCapacity && changes.values.any { it > limits.maxInboxBytesPerSession } || checkCapacity && delta > limits.maxInboxBytes)
+            throw RpcResponseException("", "RPC", Codes.OUT_OF_RANGE, "One inbox delivery exceeds configured byte capacity")
+        if (checkCapacity && current.bytes > limits.maxInboxBytes - delta) throw ResourceLimitException("Global inbox byte capacity exhausted")
+        for ((raw, added) in changes) {
+            val key = sessionLedger(raw.toByteArray()); val old = ledger.find(key) ?: InboxByteLedger(key, 0)
+            if (checkCapacity && old.bytes > limits.maxInboxBytesPerSession - added) throw ResourceLimitException("Session inbox byte capacity exhausted")
+            check(old.bytes + added >= 0) { "Inbox byte ledger underflow" }
+            ledger.put(old.copy(bytes = old.bytes + added))
+        }
+        check(current.bytes + delta >= 0) { "Global inbox byte ledger underflow" }
+        ledger.put(current.copy(bytes = current.bytes + delta))
+    }
+    private suspend fun removeBytes(rows: List<ServerSessionEvent>) {
+        val global = ledger.find(globalLedger) ?: return
+        val changes = mutableMapOf<List<Byte>, Long>()
+        for (row in rows) if (global.complete || global.cursor.isNotEmpty() && compareBytes(inboxReplayKey(row), global.cursor) <= 0) {
+            val sid = requireNotNull(row.sessionId).rawValue.toList()
+            changes[sid] = (changes[sid] ?: 0) - bytesFor(row)
+        }
+        changeBytes(changes, checkCapacity = false)
+    }
     override suspend fun saveClientEvents(events: List<Pair<ServerSessionEvent, Event>>) { acceptClientEvents(events) }
     override suspend fun acceptClientEvents(events: List<Pair<ServerSessionEvent, Event>>): List<Pair<ServerSessionEvent, Event>> {
-        require(events.size <= 1024)
-        // Freeze the bytes before waiting for the database owner: digests and persistence
-        // must describe the same event even when an extension retains mutable arrays.
-        val frozen = events.map { (row, event) -> ServerSessionEvent.fromByteArray(row.toByteArray()) to Event.fromByteArray(event.toByteArray()) }
+        if (events.size > 1024) throw RpcResponseException("", "RPC", Codes.OUT_OF_RANGE, "Inbox recipient batch too large")
+        // Encode and freeze each shared Event once, before per-recipient cloning.
+        data class FrozenEvent(val value: Event, val bytes: ByteArray, val locker: ByteArray, val digest: ByteArray)
+        val cache = IdentityHashMap<Event, FrozenEvent>()
+        val byFrozen = IdentityHashMap<Event, FrozenEvent>()
+        var expansion = 0L
+        val frozen = events.map { (row, offered) ->
+            val info = cache[offered] ?: run {
+                val bytes = offered.toByteArray()
+                val value = Event.fromByteArray(bytes)
+                FrozenEvent(value, bytes, value.locker?.toByteArray() ?: byteArrayOf(), SHA256.digest(bytes))
+                    .also { cache[offered] = it; byFrozen[value] = it }
+            }
+            val event = info.value
+            // No payload serialization per SID: the actual row fields provide exact sizes.
+            val size = maxOf(inboxRowBytes(row) + inboxRowBytes(row, info.bytes.size, 0) + 512,
+                InboxAdmission.recipientExpansionBytes(info.bytes.size, requireNotNull(row.sessionId).toByteArray().size))
+            expansion += size
+            if (expansion > InboxAdmission.MAX_BATCH_EXPANSION_BYTES)
+                throw RpcResponseException("", "RPC", Codes.OUT_OF_RANGE, "Inbox durable batch expansion exceeds64MiB")
+            row.copy(sessionId = row.sessionId?.let { ServerSessionId.fromByteArray(it.toByteArray()) },
+                roomId = row.roomId?.let { ServerRoomId.fromByteArray(it.toByteArray()) },
+                eventId = row.eventId?.let { ServerEventId.fromByteArray(it.toByteArray()) },
+                encodedPayload = event.notification?.payload?.rawValue ?: byteArrayOf(),
+                encodedLocker = info.locker, unknownFields = row.unknownFields?.copyOf()) to event
+        }
+        initializeAdmission()
         return database.transaction("inbox-metadata") {
             val now = clock()
             val definition = InboxDeliveryReceiptDefinitionV2
@@ -103,14 +196,15 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
                 require(sid.size in 1..128 && id.size in 1..128 && event.eventId?.rawValue.contentEquals(id))
                 val identity = sid.toList() to id.toList()
                 val prior = unique.putIfAbsent(identity, pair)
-                if (prior != null && !prior.second.toByteArray().contentEquals(event.toByteArray())) throw EventIdentityReuseException()
+                if (prior != null && !requireNotNull(byFrozen[prior.second]).bytes.contentEquals(requireNotNull(byFrozen[event]).bytes)) throw EventIdentityReuseException()
             }
             val accepted = mutableListOf<Pair<ServerSessionEvent, Event>>()
             val backfills = mutableListOf<Pair<ServerSessionEvent, Event>>()
             val receiptRows = mutableListOf<InboxDeliveryReceipt>()
             for ((row, event) in unique.values) {
                 val sid = requireNotNull(row.sessionId); val id = requireNotNull(row.eventId)
-                val digest = SHA256.digest(event.toByteArray())
+                val info = requireNotNull(byFrozen[event])
+                val digest = info.digest
                 val receipt = receipts.find(sid.rawValue, id.rawValue)
                 if (receipt != null) {
                     if (!receipt.digest.contentEquals(digest)) throw EventIdentityReuseException()
@@ -120,7 +214,7 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
                 if (current != null) {
                     val full = metadata.find(metadataRelation(id, sid))
                     if (full != null) {
-                        if (!full.encodedPayload.contentEquals(event.toByteArray())) throw EventIdentityReuseException()
+                        if (!full.encodedPayload.contentEquals(info.bytes)) throw EventIdentityReuseException()
                     } else if (current.roomSequence != row.roomSequence || !current.encodedLocker.contentEquals(row.encodedLocker) ||
                         !current.encodedPayload.contentEquals(row.encodedPayload) || !current.roomId?.rawValue.contentEquals(row.roomId?.rawValue))
                         throw EventIdentityReuseException()
@@ -128,10 +222,21 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
                 } else accepted.add(row to event)
                 receiptRows.add(InboxDeliveryReceipt(sid.rawValue, id.rawValue, digest, now + INBOX_RECEIPT_RETENTION_MILLIS))
             }
+            val changes = mutableMapOf<List<Byte>, Long>()
+            for ((row, event) in accepted) {
+                val sid = requireNotNull(row.sessionId).rawValue.toList()
+                changes[sid] = (changes[sid] ?: 0) + inboxRowBytes(row) + inboxRowBytes(row, requireNotNull(byFrozen[event]).bytes.size, 0)
+            }
+            for ((row, event) in backfills) {
+                val previous = metadata.find(metadataRelation(requireNotNull(row.eventId), requireNotNull(row.sessionId)))
+                val sid = requireNotNull(row.sessionId).rawValue.toList()
+                changes[sid] = (changes[sid] ?: 0) + inboxRowBytes(row, requireNotNull(byFrozen[event]).bytes.size, 0) - (previous?.let(::inboxRowBytes) ?: 0)
+            }
+            changeBytes(changes, checkCapacity = true)
             validateReceiptAdmission(receiptRows)
             validateAdmission(accepted.map { it.first })
             saveAll(accepted.map { it.first })
-            metadata.saveRows((accepted + backfills).map { (row, event) -> row.copy(encodedPayload = event.toByteArray(), encodedLocker = byteArrayOf()) })
+            metadata.saveRows((accepted + backfills).map { (row, event) -> row.copy(encodedPayload = requireNotNull(byFrozen[event]).bytes, encodedLocker = byteArrayOf()) })
             receipts.putAll(receiptRows)
             accepted
         }
@@ -196,12 +301,20 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
     override suspend fun saveEvent(event: ServerSessionEvent) = saveEvents(listOf(event))
     override suspend fun saveEvents(events: List<ServerSessionEvent>) { acceptClientEvents(events.map { it to it.legacyClientEvent() }) }
     override suspend fun deleteEvents(eventIds: List<ServerEventId>, sessionId: ServerSessionId) = database.transaction("inbox-metadata") {
+        val rows = getMany(eventIds.distinctBy { it.rawValue.toList() }.map { rowRelation(it, sessionId) })
+        removeBytes(rows)
         deleteMany(eventIds.map { rowRelation(it, sessionId) })
         metadata.removeMany(eventIds.map { metadataRelation(it, sessionId) })
     }
     override suspend fun deleteAllEvents(sessionId: ServerSessionId) = database.transaction("inbox-metadata") {
-        delete(sessionIdKey.eq(sessionId.toByteArray()))
-        metadata.remove(SessionInboxMetadataDefinitionV2.sessionIdKey.eq(sessionId.toByteArray()))
+        val definition = SessionInboxStoreDefinitionV2
+        do {
+            val page = database.query(definition.storeName, sessionIdKey.query(4, lower = sessionId.toByteArray(), upper = sessionId.toByteArray()))
+            val rows = page.records.map(::decodeInbox)
+            removeBytes(rows)
+            deleteMany(rows.map { rowRelation(requireNotNull(it.eventId), sessionId) })
+            metadata.removeMany(rows.map { metadataRelation(requireNotNull(it.eventId), sessionId) })
+        } while (rows.isNotEmpty())
     }
     override suspend fun getAllEvents(sessionId: ServerSessionId) = getAll(sessionIdKey.eq(sessionId.toByteArray()))
     override suspend fun deleteEvent(eventId: ServerEventId, sessionId: ServerSessionId) = deleteEvents(listOf(eventId), sessionId)

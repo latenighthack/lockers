@@ -132,5 +132,6 @@ abstract class ServerCore(
         pushDeadLetterStoreImpl.prepare()
 
         storageDelegate.open()
+        sessionInboxStoreImpl.initializeAdmission()
     }
 }
