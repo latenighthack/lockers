@@ -41,6 +41,7 @@ object ServerStorage {
         com.latenighthack.lockers.server.services.session.v1.UsedSessionProofDefinitionV2,
         com.latenighthack.lockers.server.services.session.v1.UsedSessionProofOwnersDefinitionV2,
         com.latenighthack.lockers.server.services.session.v1.RevokedSessionDefinitionV2,
+        com.latenighthack.lockers.server.services.session.v1.RevokedSessionAuthorityDefinitionV2,
     )
     val definitions = legacyDefinitionsV3.map { definition ->
         if (definition === com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreImplDefinitionV1)

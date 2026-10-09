@@ -49,11 +49,13 @@ class SessionProofVerifier(private val database: Database, private val sessions:
         val digest = SHA256.digest(encodedRequest)
         val identity = SHA256.digest(sessionId.toByteArray() + proof.nonce)
         return database.transaction("lockers.session-authority") {
-            val session = sessions.getSessionById(ServerSessionId(sessionId.rawValue)) ?: return@transaction rejected()
-            if (used.find(identity) != null) return@transaction rejected()
-            if (!com.latenighthack.lockers.server.ProtocolValidation.publicKey(session.authorizedPublicKey)) return@transaction rejected()
+            val storedId = ServerSessionId(sessionId.rawValue)
+            val verificationKey = sessions.getSessionById(storedId)?.authorizedPublicKey
+                ?: if (operation == SessionSigning.DESTROY) sessions.revokedVerificationKey(storedId) else null
+            if (verificationKey == null || used.find(identity) != null) return@transaction rejected()
+            if (!com.latenighthack.lockers.server.ProtocolValidation.publicKey(verificationKey)) return@transaction rejected()
             val valid = try {
-                Secp256r1PublicKey.decode(session.authorizedPublicKey).verify(
+                Secp256r1PublicKey.decode(verificationKey).verify(
                     SessionSigning.context(operation, sessionId, digest, proof.issuedAtMs, proof.nonce),
                     requireNotNull(proof.signature).signature,
                 )

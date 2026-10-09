@@ -34,6 +34,9 @@ interface SessionStore {
 
     suspend fun isRevoked(sessionId: ServerSessionId): Boolean
 
+    /** Verification key for confirming an already destroyed identity; never live mutation authority. */
+    suspend fun revokedVerificationKey(sessionId: ServerSessionId): ByteArray? = null
+
     /** Atomically reserve the identity and erase its authority, subscriptions, inbox and push work. */
     suspend fun destroySession(sessionId: ServerSessionId)
 }
@@ -46,6 +49,13 @@ class SessionStoreImpl(private val database: Database) : SessionStore, Store<Ser
         suspend fun contains(id: ServerSessionId) = get(RevokedSessionDefinitionV2.sessionId.eq(id.toByteArray())) != null
         suspend fun reserve(id: ServerSessionId) = save(id)
     }
+    private class RevokedAuthorities(database: Database) : Store<ServerSession>(database, RevokedSessionAuthorityDefinitionV2) {
+        suspend fun find(id: ServerSessionId) = get(RevokedSessionAuthorityDefinitionV2.sessionId.eq(id.toByteArray()))
+        suspend fun remember(session: ServerSession) = save(ServerSession(
+            sessionId = requireNotNull(session.sessionId).copy(rawValue = requireNotNull(session.sessionId).rawValue.copyOf()),
+            authorizedPublicKey = session.authorizedPublicKey.copyOf()))
+    }
+    private val revokedAuthorities = RevokedAuthorities(database)
     private val revocations = Revocations(database)
     private val inbox = SessionInboxStoreImpl(database)
     private val pushInfo = com.latenighthack.lockers.server.services.push.v1.PushSessionStoreImpl(database)
@@ -75,7 +85,14 @@ class SessionStoreImpl(private val database: Database) : SessionStore, Store<Ser
 
     override suspend fun isRevoked(sessionId: ServerSessionId) = revocations.contains(sessionId)
 
+    override suspend fun revokedVerificationKey(sessionId: ServerSessionId): ByteArray? =
+        if (isRevoked(sessionId)) revokedAuthorities.find(sessionId)?.authorizedPublicKey?.copyOf() else null
+
     override suspend fun destroySession(sessionId: ServerSessionId): Unit = atomic(sessionId) {
+        getSessionById(sessionId)?.let { session ->
+            if (com.latenighthack.lockers.server.ProtocolValidation.publicKey(session.authorizedPublicKey))
+                revokedAuthorities.remember(session)
+        }
         revocations.reserve(sessionId)
         delete(sessionIdKey.eq(sessionId.toByteArray()))
         val subscriptions = com.latenighthack.lockers.server.services.room.v1.SubscriptionStoreImplDefinitionV1

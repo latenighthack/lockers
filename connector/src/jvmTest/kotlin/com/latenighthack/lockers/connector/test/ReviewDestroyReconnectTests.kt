@@ -78,4 +78,38 @@ class ReviewDestroyReconnectTests {
             assertFalse(requests[0].proof!!.nonce.contentEquals(requests[1].proof!!.nonce))
         } }
     }
+    @Test fun committedDestroyWithLostReplyCanBeConfirmedByFreshAuthenticatedRetry() {
+        lateinit var core: ServerCore
+        runOwnedTestWithServer({ attachTestServicesWith { core = it } }) { server, _ -> withContext(Dispatchers.Default) {
+            val committed = CompletableDeferred<Unit>()
+            val delegate = server.ownedRpcClient
+            val requests = mutableListOf<DestroySessionRequest>()
+            val held = object : RpcClient by delegate {
+                override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray): RpcResponse {
+                    val response = delegate.unaryCall(method, headers, request)
+                    if (method.methodName == "DestroySession") {
+                        requests.add(DestroySessionRequest.fromByteArray(request))
+                        if (requests.size == 1) { committed.complete(Unit); awaitCancellation() }
+                    }
+                    return response
+                }
+            }
+            val values = KeyValueStore(InMemoryKeyValueStoreDelegate())
+            val client = createOwnedTestClient(held, ConnectorStorage.inMemory(), values, auth(Secp256r1KeyPair.generate()), Version())
+            withTimeout(5000) { client.awaitConnected() }
+            val original = requireNotNull(client.sessionId.value)
+            val destroying = launch { client.destroySession() }
+            withTimeout(5000) { committed.await() }
+            destroying.cancelAndJoin()
+            assertTrue(core.sessionStore.getAllSessions().isEmpty(), "The server already committed destruction")
+            assertTrue(client.connection.value is StreamConnectionState.Closed)
+            withTimeout(5000) { client.destroySession() }
+            assertEquals(2, requests.size)
+            requests.forEach { assertContentEquals(original.rawValue, it.sessionId!!.rawValue) }
+            assertFalse(requests[0].proof!!.nonce.contentEquals(requests[1].proof!!.nonce))
+            assertTrue(core.sessionStore.getAllSessions().isEmpty())
+            assertNull(values.get("session_id", SessionId.Companion::fromByteArray), "Confirmed terminal outcome must clear persisted identity")
+        } }
+    }
+
 }
