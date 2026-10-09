@@ -340,19 +340,27 @@ class RoomServiceImpl(
             request.lockerIds.any { !ProtocolValidation.locker(it) }) invalidArgument("Invalid locker lookup")
         val room = request.roomId ?: invalidArgument("Missing room identity")
         validateRead(room)
-        val all = lockerStore.getLockers(ServerRoomId(room.rawValue), request.lockerIds.map { (it.keyspace?.value ?: 0L) to ServerLockerId(it.rawValue) }).associateBy {
-            LockerId(requireNotNull(it.lockerId).rawValue, LockerKeyspace(it.keyspace))
-        }
-        return boundedResponse(GetLockersResponse(request.lockerIds.map { id ->
-            all[canonicalLockerId(id)]?.let { stored ->
-                val read = storedRead(room, stored)
-                GetLockerResponse(result = if (read.valid) GetLockerResponse.Result.OK else GetLockerResponse.Result.INVALID_DATA,
-                    locker = read.value)
-            }
-                ?: GetLockerResponse(result = GetLockerResponse.Result.OK,
+        val responses = mutableListOf<GetLockerResponse>()
+        val encoding = com.latenighthack.ktbuf.ProtobufOutputStream(limits = com.latenighthack.ktbuf.ProtobufOutputLimits(
+            maxMessageBytes = ProtocolValidation.MAX_ENVELOPE_BYTES))
+        // Each store call may retain large payloads; never fetch the rest after the reply is full.
+        for (chunk in request.lockerIds.chunked(4)) {
+            val all = lockerStore.getLockers(ServerRoomId(room.rawValue), chunk.map { (it.keyspace?.value ?: 0L) to ServerLockerId(it.rawValue) })
+                .associateBy { (it.keyspace to requireNotNull(it.lockerId).rawValue.toList()) }
+            for (id in chunk) {
+                val stored = all[(id.keyspace?.value ?: 0L) to id.rawValue.toList()]
+                val response = stored?.let {
+                    val read = storedRead(room, it)
+                    GetLockerResponse(result = if (read.valid) GetLockerResponse.Result.OK else GetLockerResponse.Result.INVALID_DATA, locker = read.value)
+                } ?: GetLockerResponse(result = GetLockerResponse.Result.OK,
                     locker = IdentifiedLocker(id, version = 0, lockState = lockStateFor(room, id)))
-        }), GetLockersResponse::writeTo)
-
+                try { encoding.write { writer -> writer.encode(1) { response.writeTo(this) } } }
+                catch (_: com.latenighthack.ktbuf.ProtobufOutputLimitException) { protocolCapacityExceeded("Complete response exceeds transport envelope") }
+                catch (_: com.latenighthack.ktbuf.bytes.ByteArrayLimitException) { protocolCapacityExceeded("Complete response exceeds transport envelope") }
+                responses.add(response)
+            }
+        }
+        return GetLockersResponse(responses)
     }
 
     override suspend fun subscribeAndSnapshot(context: GrpcRequestContext, request: SubscribeAndSnapshotRequest): SubscribeAndSnapshotResponse = meterRegistry.trackRpc(TelemetryOperation.ROOM_SNAPSHOT, telemetry, { rpcOutcome(it.result.toString()) }) { observedSubscribeAndSnapshot(context, request) }

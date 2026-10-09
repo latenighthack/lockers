@@ -45,6 +45,28 @@ class ResponseBoundaryTest {
             assertEquals(ids.size, count)
         } finally { service.close(); db.close() }
     }
+    @Test fun bulkReadStopsFetchingAndDecodingOnceCompleteReplyCannotFit() = runBlocking {
+        val db = ServerStorage.inMemory(); db.open(); val store = LockerStoreImpl(db)
+        val fetched = mutableListOf<List<Pair<Long, ServerLockerId>>>()
+        val guarded = object : LockerStore by store {
+            override suspend fun getLockers(roomId: ServerRoomId, ids: List<Pair<Long, ServerLockerId>>): List<ServerLocker> {
+                fetched.add(ids)
+                check(ids.none { it.second.rawValue.single().toInt() > 8 }) { "Fetched beyond exhausted response budget" }
+                return store.getLockers(roomId, ids)
+            }
+        }
+        val service = RoomServiceImpl(SubscriptionStoreImpl(db), guarded, LockStoreImpl(db), object : SessionGatewayDiscovery {
+            override suspend fun findServer(sessionId: SessionId): SessionGatewayService? = null
+        }, LocalRoomOwnership(), LockerAgentRegistry.None, SimpleMeterRegistry(), LockersConfig.defaults().copy(deliveryWorkerEnabled = false))
+        val room = RoomId(byteArrayOf(1)); val ids = (1..64).map { LockerId(byteArrayOf(it.toByte())) }
+        try {
+            val large = Locker { open { encodedPayload = ByteArray(1024 * 1024) } }
+            store.updateLockers(ids.take(8).map { ServerLocker(ServerRoomId(room.rawValue), 0, ServerLockerId(it.rawValue), large.toByteArray(), 1) })
+            val failure = assertFailsWith<RpcResponseException> { LocalRoomServiceRpc(service).getLockers(GetLockersRequest(room, ids)) }
+            assertEquals(Codes.OUT_OF_RANGE, failure.code)
+            assertEquals(listOf(4, 4), fetched.map { it.size })
+        } finally { service.close(); db.close() }
+    }
     @Test fun permanentClaimCapacityMapsToFailedPreconditionWithoutSavingWrite() = runBlocking {
         val (db, store, service) = fixture(object : RoomOwnership {
             override suspend fun resolve(keyspace: Long, roomId: RoomId): RoomOwner = throw RoomClaimCapacityExceeded()
