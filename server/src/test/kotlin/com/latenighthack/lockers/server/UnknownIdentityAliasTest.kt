@@ -2,10 +2,31 @@ package com.latenighthack.lockers.server
 
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.room.v1.*
+import com.latenighthack.ktcrypto.*
 import kotlinx.coroutines.runBlocking
 import kotlin.test.*
 
 class UnknownIdentityAliasTest {
+    @Test fun bulkReadsExposeAuthorityForUnwrittenLockers(): Unit = runBlocking {
+        fixture { rpc ->
+            val key = Secp256r1KeyPair.generate()
+            assertTrue(rpc.lockLocker(LockLockerRequest(roomId = room, grant = LockGrant(
+                scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM),
+                publicKey = Secp256R1Key.PublicKey(key.publicKey.encode()),
+            ))).result.isOk())
+            val ids = listOf(id, LockerId(byteArrayOf(3), LockerKeyspace(7)), id)
+            val bulk = rpc.getLockers(GetLockersRequest(room, ids)).results
+            assertEquals(ids.size, bulk.size)
+            ids.zip(bulk).forEach { (requested, result) ->
+                assertEquals(rpc.getLocker(GetLockerRequest(room, requested)), result)
+                assertTrue(result.result.isOk())
+                val absent = assertNotNull(result.locker)
+                assertEquals(0, absent.version)
+                assertNull(absent.locker)
+                assertEquals(1, assertNotNull(absent.lockState).lockVersion)
+            }
+        }
+    }
     @Test fun duplicateRawLockerIdentityCannotBypassBatchAdmission(): Unit = runBlocking {
         fixture { rpc ->
             val base = change()
