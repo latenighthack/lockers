@@ -282,9 +282,22 @@ private val writeRetryLog = com.diamondedge.logging.logging("LockerWriteRetry")
 open class LockerWriteException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 /** The source and authority committed successfully; only derived work is incomplete. */
-open class LockerSourceCommittedException(val version: Long, val agentPending: Boolean, message: String = "Source committed at version $version; agent ${if (agentPending) "pending" else "failed"}", cause: Throwable? = null) : LockerWriteException(message, cause)
+open class LockerSourceCommittedException(
+    val version: Long, val agentPending: Boolean,
+    message: String = "Source committed at version $version; agent ${if (agentPending) "pending" else "failed"}", cause: Throwable? = null,
+    roomId: RoomId? = null, writeRequestId: ByteArray = byteArrayOf(), sourceVersions: List<WriteSourceVersion> = emptyList(),
+    val agentIndeterminate: Boolean = false,
+) : LockerWriteException(message, cause) {
+    private val roomBytes = roomId?.rawValue?.copyOf()
+    private val requestBytes = writeRequestId.copyOf()
+    private val sources = sourceVersions.map { it.copy(lockerId = it.lockerId?.let { id -> id.copy(rawValue = id.rawValue.copyOf()) }) }
+    val roomId: RoomId? get() = roomBytes?.let { RoomId(it.copyOf()) }
+    val writeRequestId: ByteArray get() = requestBytes.copyOf()
+    val sourceVersions: List<WriteSourceVersion> get() = sources.map { it.copy(lockerId = it.lockerId?.let { id -> id.copy(rawValue = id.rawValue.copyOf()) }) }
+}
 
-class RatchetAdoptionPendingException(version: Long, cause: Throwable? = null) : LockerSourceCommittedException(version, false, "Source committed at version $version; signing key adoption is pending", cause)
+class RatchetAdoptionPendingException(version: Long, cause: Throwable? = null, roomId: RoomId? = null, writeRequestId: ByteArray = byteArrayOf(), sourceVersions: List<WriteSourceVersion> = emptyList()) :
+    LockerSourceCommittedException(version, false, "Source committed at version $version; signing key adoption is pending", cause, roomId, writeRequestId, sourceVersions)
 
 class LockerClient(
     rpcClient: RpcClient,
@@ -348,6 +361,45 @@ class LockerClient(
         return LockerUpdate(RoomId(stored.roomIdRawValue), LockerId(stored.lockerIdRawValue, LockerKeyspace(stored.lockerKeyspace)), stored.version, stored.lockerPayload, stored.deleted, stored.roomSequence)
     }
     /** Recoverable changes; persist the cursor only after processing its change. */
+    /** Cold parent-owned polling. UNKNOWN/NOT_FOUND remain observations until a terminal agent state or deadline.
+     * New server completed receipts are retained at least 31 days; pending/running/indeterminate receipts
+     * remain recoverable. Older receipts can be unavailable. INDETERMINATE needs trusted manual reconciliation;
+     * this helper never resubmits a write or reruns an agent.
+     */
+    fun writeOutcomes(roomId: RoomId, writeRequestId: ByteArray, pollIntervalMillis: Long = 1_000, timeoutMillis: Long = 300_000): Flow<WriteOutcomeObservation> {
+        require(writeRequestId.size in 16..64 && pollIntervalMillis > 0 && timeoutMillis > 0)
+        val room = roomId.copy(rawValue = roomId.rawValue.copyOf()); val requestId = writeRequestId.copyOf()
+        return flow {
+            val deadline = kotlin.time.TimeSource.Monotonic.markNow()
+            val caps = withTimeoutOrNull(timeoutMillis) {
+                cachedCapabilities ?: sync.network(false) {
+                    try { roomService.capabilities(CapabilitiesRequest()) }
+                    catch (failure: RpcResponseException) {
+                        if (failure.code == com.latenighthack.ktbuf.proto.Codes.UNIMPLEMENTED || failure.code == com.latenighthack.ktbuf.proto.Codes.NOT_FOUND) CapabilitiesResponse() else throw failure
+                    }
+                }.also { cachedCapabilities = it }
+            }
+            if (caps == null) { emit(WriteOutcomeObservation.Unavailable(WriteOutcomeObservation.UnavailableReason.DEADLINE_EXCEEDED)); return@flow }
+            if (!caps.writeOutcomes) { emit(WriteOutcomeObservation.Unavailable(WriteOutcomeObservation.UnavailableReason.NOT_SUPPORTED)); return@flow }
+            var last: GetWriteOutcomeResponse? = null
+            while (currentCoroutineContext().isActive) {
+                val remaining = timeoutMillis - deadline.elapsedNow().inWholeMilliseconds
+                val response = if (remaining > 0) withTimeoutOrNull(remaining) {
+                    sync.network(false) { roomService.getWriteOutcome(GetWriteOutcomeRequest(room, requestId.copyOf())) }
+                } else null
+                if (response == null) { emit(WriteOutcomeObservation.Unavailable(WriteOutcomeObservation.UnavailableReason.DEADLINE_EXCEEDED, last)); return@flow }
+                last = response
+                val observation = WriteOutcomeObservation.Response(response)
+                emit(observation)
+                if (observation.terminal) return@flow
+                val next = timeoutMillis - deadline.elapsedNow().inWholeMilliseconds
+                if (next > 0) delay(minOf(pollIntervalMillis, next))
+            }
+        }.distinctUntilChanged()
+    }
+    suspend fun awaitWriteOutcome(roomId: RoomId, writeRequestId: ByteArray, timeoutMillis: Long = 300_000): WriteOutcomeObservation =
+        writeOutcomes(roomId, writeRequestId, timeoutMillis = timeoutMillis).first { it.terminal }
+
     /** All change, notification, broadcast and raw-event consumers share the journal. Supply their minimum durable cursor. */
     suspend fun pruneAcceptedEventsThrough(cursor: Long) = lockerStore.pruneEventsThrough(cursor)
 
@@ -543,12 +595,19 @@ class LockerClient(
                     val response = sync.network { roomService.postLockerChanges(request) }
                     when (response.result) {
                         is PostLockerChangesResponse.Result.OK -> {
+                            check(response.changes.size == request.changes.size && response.changes.all { it.result.isOk() }) { "Incomplete committed batch metadata" }
                             withAcceptance { lockerStore.acceptAtomically {
                                 request.changes.zip(response.changes).forEach { (change, result) ->
-                                    acceptCommitted(LockerUpdate(roomId, change.lockerId!!, result.version, change.locker!!.plaintextPayload()))
+                                    acceptCommitted(LockerUpdate(roomId, change.lockerId!!, result.version, change.locker!!.plaintextPayload()), request.writeRequestId,
+                                        request.changes.zip(response.changes).map { (source, committed) -> WriteSourceVersion(source.lockerId, committed.version) })
                                 }
                             } }
-                            if (response.agentFailed || response.agentPending) throw LockerSourceCommittedException(response.changes.maxOfOrNull { it.version } ?: 0, response.agentPending)
+                            if (response.agentFailed || response.agentPending || response.agentIndeterminate) throw LockerSourceCommittedException(
+                                response.changes.maxOfOrNull { it.version } ?: 0, response.agentPending,
+                                message = "Batch source committed; agent ${if (response.agentIndeterminate) "indeterminate" else if (response.agentPending) "pending" else "failed"}",
+                                roomId = roomId, writeRequestId = request.writeRequestId,
+                                sourceVersions = request.changes.zip(response.changes).map { (change, result) -> WriteSourceVersion(change.lockerId, result.version) },
+                                agentIndeterminate = response.agentIndeterminate)
                         }
                         is PostLockerChangesResponse.Result.CONFLICT -> {
                         telemetry.safeRecord(TelemetryOperation.CONNECTOR_CONFLICT, TelemetryOutcome.CONFLICT)
@@ -569,10 +628,11 @@ class LockerClient(
         }
     }
 
-    private suspend fun acceptCommitted(update: LockerUpdate) {
+    private suspend fun acceptCommitted(update: LockerUpdate, requestId: ByteArray = byteArrayOf(), sources: List<WriteSourceVersion> = listOf(WriteSourceVersion(update.lockerId, update.version))) {
         try { accept(update) }
         catch (failure: ConnectorRetentionExceededException) {
-            throw LockerSourceCommittedException(update.version, false, "Source committed at version ${update.version}; local acceptance needs retention capacity", failure)
+            throw LockerSourceCommittedException(sources.maxOfOrNull { it.version } ?: update.version, false, "Source committed at version ${update.version}; local acceptance needs retention capacity", failure,
+                roomId = update.roomId, writeRequestId = requestId, sourceVersions = sources)
         }
     }
 
@@ -934,7 +994,7 @@ class LockerClient(
                 val result = sync.network { roomService.postLockerChange(request) }
 
                 if (result.result.isOk()) committedResponse = result
-                if (result.result.isOk() && (result.agentFailed || result.agentPending)) committedAgentStatus = result
+                if (result.result.isOk() && (result.agentFailed || result.agentPending || result.agentIndeterminate)) committedAgentStatus = result
                 log.debug { "updated locker=${lockerId.toLogString()} result=${result.result} version=${result.version}" }
 
                 val locker = when (result.result) {
@@ -985,13 +1045,19 @@ class LockerClient(
         }
 
         val result = updatedLocker ?: return null
+        var adoptionPending: RatchetAdoptionPendingException? = null
         if (pendingRatchetKey != null) {
             val request = requireNotNull(submitted)
-            adoptCommittedRatchet(PendingRatchet(request, pendingRatchetKey.privateKey.encode()), requireNotNull(committedResponse))
+            try { adoptCommittedRatchet(PendingRatchet(request, pendingRatchetKey.privateKey.encode()), requireNotNull(committedResponse)) }
+            catch (pending: RatchetAdoptionPendingException) { adoptionPending = pending }
         }
         val update = result.toUpdate(roomId)
-        acceptCommitted(update)
-        committedAgentStatus?.let { throw LockerSourceCommittedException(it.version, it.agentPending) }
+        acceptCommitted(update, requireNotNull(submitted).writeRequestId)
+        adoptionPending?.let { throw it }
+        committedAgentStatus?.let { throw LockerSourceCommittedException(it.version, it.agentPending,
+            message = "Source committed at version ${it.version}; agent ${if (it.agentIndeterminate) "indeterminate" else if (it.agentPending) "pending" else "failed"}",
+            roomId = roomId, writeRequestId = requireNotNull(submitted).writeRequestId,
+            sourceVersions = listOf(WriteSourceVersion(lockerId, it.version)), agentIndeterminate = it.agentIndeterminate) }
 
         return result.locker
     }
@@ -1005,8 +1071,10 @@ class LockerClient(
             val response = sync.network { roomService.postLockerChange(request) }
             when (response.result) {
                 is PostLockerChangeResponse.Result.OK -> {
-                    adoptCommittedRatchet(pending, response)
+                    var adoptionPending: RatchetAdoptionPendingException? = null
+                    try { adoptCommittedRatchet(pending, response) } catch (failure: RatchetAdoptionPendingException) { adoptionPending = failure }
                     accept(LockerUpdate(room, id, response.version, requireNotNull(request.locker).plaintextPayload()))
+                    adoptionPending?.let { throw it }
                 }
                 is PostLockerChangeResponse.Result.NOT_OWNER -> {
                     recordRoomRedirect(room, response.redirect)
@@ -1022,28 +1090,31 @@ class LockerClient(
         if (serialized) resolve() else sync.mutate(room to id.canonical()) { resolve() }
     }
 
+    private fun adoptionPending(archive: ArchivedRatchet, target: LockerId, cause: Throwable? = null) =
+        RatchetAdoptionPendingException(archive.version, cause, archive.room, archive.pending.request.writeRequestId, listOf(WriteSourceVersion(target, archive.version)))
+
     private suspend fun adoptCommittedRatchet(pending: PendingRatchet, response: PostLockerChangeResponse) {
         val archive = ArchivedRatchet(pending, response.lockState, response.version)
         try { lockerStore.archiveRatchet(archive) }
         catch (cancelled: CancellationException) { throw cancelled }
-        catch (failure: Exception) { throw RatchetAdoptionPendingException(archive.version, failure) }
+        catch (failure: Exception) { throw adoptionPending(archive, requireNotNull(archive.pending.request.lockerId), failure) }
         ratchetAdoption.withLock { adoptKey(archive, requireNotNull(pending.request.lockerId)) }
         lockerStore.clearRatchet(pending.request)
     }
 
     private suspend fun adoptKey(archive: ArchivedRatchet, target: LockerId) {
-        val source = lockKeySource ?: throw RatchetAdoptionPendingException(archive.version)
+        val source = lockKeySource ?: throw adoptionPending(archive, target)
         val newKey = requireNotNull(Secp256r1KeyPair.fromPrivateKey(archive.pending.privateKey)) { "Invalid archived ratchet key" }
         val current = source.writeKeyFor(archive.room, target)?.publicKey?.encode()
         if (current?.contentEquals(archive.publicKey) == true) return
         val old = archive.pending.request.writeSignature?.publicKey?.rawValue
         // Never replace a provider's unrelated/newer key with an old completed transition.
-        if (current != null && old != null && !current.contentEquals(old)) throw RatchetAdoptionPendingException(archive.version)
+        if (current != null && old != null && !current.contentEquals(old)) throw adoptionPending(archive, target)
         try { source.onRatcheted(archive.room, target, newKey) }
         catch (cancelled: CancellationException) { throw cancelled }
-        catch (failure: Exception) { throw RatchetAdoptionPendingException(archive.version, failure) }
+        catch (failure: Exception) { throw adoptionPending(archive, requireNotNull(archive.pending.request.lockerId), failure) }
         val resolved = source.writeKeyFor(archive.room, target)?.publicKey?.encode()
-        if (resolved?.contentEquals(archive.publicKey) != true) throw RatchetAdoptionPendingException(archive.version)
+        if (resolved?.contentEquals(archive.publicKey) != true) throw adoptionPending(archive, target)
     }
 
     private suspend fun restoreArchivedRatchet(archive: ArchivedRatchet, target: LockerId = requireNotNull(archive.pending.request.lockerId)) {

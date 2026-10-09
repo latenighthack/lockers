@@ -74,6 +74,11 @@ class LockersClient private constructor(
     /** Cutoff must precede the server's maximum event replay horizon. Legacy confirmations start a conservative age on first maintenance. */
     suspend fun pruneConfirmedAcksBefore(cutoffMillis: Long) = stream.pruneConfirmedAcksBefore(cutoffMillis)
 
+    fun writeOutcomes(roomId: com.latenighthack.lockers.common.v1.RoomId, writeRequestId: ByteArray, pollIntervalMillis: Long = 1_000, timeoutMillis: Long = 300_000): Flow<WriteOutcomeObservation> =
+        lockers.writeOutcomes(roomId, writeRequestId, pollIntervalMillis, timeoutMillis)
+    suspend fun awaitWriteOutcome(roomId: com.latenighthack.lockers.common.v1.RoomId, writeRequestId: ByteArray, timeoutMillis: Long = 300_000): WriteOutcomeObservation =
+        lockers.awaitWriteOutcome(roomId, writeRequestId, timeoutMillis)
+
     /**
      * Registers (or rotates) this device's push credential for its backend. The
      * credential is persisted and re-sent automatically on every reconnect;
