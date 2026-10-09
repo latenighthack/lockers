@@ -36,7 +36,7 @@ import kotlinx.coroutines.flow.*
 import com.latenighthack.lockers.server.agents.IdempotentLockerAgentRegistry
 import com.latenighthack.lockers.server.storage.v2.*
 
-/** Query-param stamp on east-west forwarded writes; its presence means "do not forward again". */
+/** One-hop stamp honored only for authenticated peers, or explicit legacy direct routing. */
 private const val FORWARDED_PARAM = "fwd"
 private const val FORWARD_TIMEOUT_MS = 5_000L
 
@@ -170,51 +170,81 @@ class RoomServiceImpl(
         namespaceExhausted("Permanent room claim namespace exhausted")
     }
 
-    // East-west write forwarding: public clients sit behind one domain (plain HttpRpcClient) and
-    // cannot dial a redirect's cluster-internal owner address, so a NOT_OWNER answer strands any
-    // client whose proxy routing disagrees with claim placement (e.g. a room claimed by a
-    // server-side first write, or claimed before a routing-policy change). Instead the non-owner
-    // proxies the write to the owner over the same east-west HTTP path the gateways use and
-    // relays the owner's response verbatim. Forwarded calls are stamped `?fwd=1`; a node that is
-    // still not the owner for a forwarded call answers NOT_OWNER as before — one hop max, no
-    // ping-pong, and the redirect stays intact for smart routing clients (RoutingRpcClient).
+    // Public clients retry through their public seed. Private owner addresses are only usable
+    // by credentialed peers, so a failed forward or handoff must not seed a public route cache.
+    // Authenticated forwarded calls retain NOT_OWNER and stop after one hop.
+    private fun trustedPeer(context: GrpcRequestContext): Boolean = config.peerToken?.let { token ->
+        com.latenighthack.lockers.server.validPeerToken(token,
+            context.headers.entries.firstOrNull { it.key.equals(com.latenighthack.lockers.server.PEER_TOKEN_HEADER, true) }?.value.orEmpty())
+    } ?: false
+
+    private fun requireRedirectAccess(context: GrpcRequestContext) {
+        if (config.peerToken != null && !trustedPeer(context)) throw com.latenighthack.ktbuf.net.RpcResponseException(
+            context.originalUrl, "POST", com.latenighthack.ktbuf.proto.Codes.UNAVAILABLE, "Room owner temporarily unavailable")
+    }
+
+    private fun isNotOwner(response: Any?): Boolean = when (response) {
+        is PostLockerChangesResponse -> response.result == PostLockerChangesResponse.Result.NOT_OWNER
+        is DeleteLockerResponse -> response.result == DeleteLockerResponse.Result.NOT_OWNER
+        is LockLockerResponse -> response.result == LockLockerResponse.Result.NOT_OWNER
+        is UnlockLockerResponse -> response.result == UnlockLockerResponse.Result.NOT_OWNER
+        else -> false
+    }
+
     private val forwardConnections = com.latenighthack.lockers.server.cluster.PeerConnectionPool(peerToken = config.peerToken)
+
     private val forwardedWritesCounter = meterRegistry.counter("lockers.room.forward.writes")
     private val forwardFailureCounter = meterRegistry.counter("lockers.room.forward.failures")
 
     private suspend fun <R> forwardToOwnerOrNull(
         context: GrpcRequestContext,
+        room: RoomId,
         redirect: ShardRedirect,
         call: suspend (RoomService) -> R,
     ): R? {
-        if (context.query.containsKey(FORWARDED_PARAM)) return null
+        if (context.query.containsKey(FORWARDED_PARAM) && (config.peerToken == null || trustedPeer(context))) return null
         // Advertise addresses are schemeless host:port — exactly what JVM HttpRpcClient wants.
-        val address = redirect.ownerAddress?.takeIf { it.isNotBlank() } ?: return null
-        return try {
+        val address = redirect.ownerAddress?.takeIf { it.isNotBlank() } ?: run {
+            roomOwnership.invalidate(room)
+            requireRedirectAccess(context)
+            return null
+        }
+        val response = try {
             val stub = RoomServiceRpc(forwardConnections.clientFor(address)) { _, _ -> mapOf(FORWARDED_PARAM to "1") }
             kotlinx.coroutines.withTimeout(FORWARD_TIMEOUT_MS) { call(stub) }
                 .also { forwardedWritesCounter.increment() }
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            // A caller deadline is cancellation, not a private-owner routing failure.
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
             forwardFailureCounter.increment()
-            logger.warn("write forward to {} timed out; answering NOT_OWNER", address)
+            logger.warn("write forward to {} timed out", address)
             forwardConnections.evict(address)
+
             null
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
             forwardFailureCounter.increment()
-            logger.warn("write forward to {} failed ({}); answering NOT_OWNER", address, e.message)
+            logger.warn("write forward to {} failed ({})", address, e.message)
             forwardConnections.evict(address)
+
             null
         }
+        if (response == null || isNotOwner(response)) {
+            roomOwnership.invalidate(room)
+            forwardConnections.evict(address)
+            requireRedirectAccess(context)
+        }
+        return response
     }
 
-    private suspend fun <T> runRoomMutation(room: RoomId, onLost: suspend () -> T, block: suspend () -> T): T {
+    private suspend fun <T> runRoomMutation(context: GrpcRequestContext, room: RoomId, onLost: suspend () -> T, block: suspend () -> T): T {
         return try {
             val fence = roomOwnership.mutationFence(0, room)
             kotlinx.coroutines.withContext(fence) { dispatchers.runOnDispatcher(room, block) }
-        } catch (lost: RoomOwnershipLost) { roomOwnership.invalidate(room); onLost() }
+        } catch (lost: RoomOwnershipLost) { roomOwnership.invalidate(room); requireRedirectAccess(context); onLost() }
         catch (_: com.latenighthack.lockers.server.claim.RoomClaimCapacityExceeded) { namespaceExhausted("Permanent room claim namespace exhausted") }
+
     }
 
     private val gatewayLookupFailureCounter = meterRegistry.counter("lockers.room.gateway.lookup.failures")
@@ -389,7 +419,7 @@ class RoomServiceImpl(
 
         for (space in changes.map { it.lockerId?.keyspace?.value ?: 0L }.distinct()) {
             trace.phase("ownership") { redirectIfNotOwner(space, room) }?.let { redirect ->
-                trace.phase("forward") { forwardToOwnerOrNull(context, redirect) { it.postLockerChanges(request) } }?.let { return it }
+                trace.phase("forward") { forwardToOwnerOrNull(context, room, redirect) { it.postLockerChanges(request) } }?.let { return it }
                 return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_OWNER, redirect = redirect)
             }
         }
@@ -397,7 +427,7 @@ class RoomServiceImpl(
         val outbox = requireNotNull(deliveryOutbox)
         val digest = com.latenighthack.ktcrypto.SHA256.digest(request.toByteArray())
         val queuedAt = System.nanoTime()
-        val committed = runRoomMutation(room, onLost = { PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, room)) }) {
+        val committed = runRoomMutation(context, room, onLost = { PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, room)) }) {
             meterRegistry.timer("lockers.write.phase", "phase", "room_queue").record(System.nanoTime() - queuedAt, java.util.concurrent.TimeUnit.NANOSECONDS)
             val events = mutableListOf<Event>()
             var replay: PostLockerChangesResponse? = null
@@ -852,8 +882,9 @@ class RoomServiceImpl(
             return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
         val lockerId = requireNotNull(id)
         redirectIfNotOwner(lockerId.keyspace?.value ?: 0L, room)?.let { redirect ->
-            forwardToOwnerOrNull(context, redirect) { it.deleteLocker(request) }?.let { return@trackResponse it }
+            forwardToOwnerOrNull(context, room, redirect) { it.deleteLocker(request) }?.let { return@trackResponse it }
             return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.NOT_OWNER, redirect = redirect)
+
         }
         if (!rateLimiter.tryAcquire(room)) {
             rateLimitedCounter.increment()
@@ -861,10 +892,11 @@ class RoomServiceImpl(
         }
         val outbox = requireNotNull(deliveryOutbox)
         val digest = com.latenighthack.ktcrypto.SHA256.digest("delete:v1".encodeToByteArray() + request.toByteArray())
-        return@trackResponse runRoomMutation(room, onLost = {
+        return@trackResponse runRoomMutation(context, room, onLost = {
             DeleteLockerResponse(result = DeleteLockerResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, room))
         }) {
             val events = mutableListOf<Event>()
+
             val recipients = mutableListOf<SessionId>()
             outbox.commit(room, recipients, events) {
                 if (request.writeRequestId.isNotEmpty()) {
@@ -936,7 +968,7 @@ class RoomServiceImpl(
         if (!ProtocolValidation.room(requestRoomId) || !ProtocolValidation.grant(grant) || request.parentLockVersion < 0)
             return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.NOT_AUTHORIZED)
         redirectIfNotOwner(grant.scope?.keyspace?.value ?: 0L, requestRoomId)?.let { redirect ->
-            forwardToOwnerOrNull(context, redirect) { it.lockLocker(request) }?.let {
+            forwardToOwnerOrNull(context, requestRoomId, redirect) { it.lockLocker(request) }?.let {
                 return@trackResponse it
             }
             return@trackResponse LockLockerResponse {
@@ -945,7 +977,7 @@ class RoomServiceImpl(
             }
         }
 
-        return@trackResponse runRoomMutation(requestRoomId, onLost = { LockLockerResponse(result = LockLockerResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, requestRoomId)) }) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
+        return@trackResponse runRoomMutation(context, requestRoomId, onLost = { LockLockerResponse(result = LockLockerResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, requestRoomId)) }) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
             when (val outcome = lockVerifier.applyLock(requestRoomId, grant, request.parentLockVersion)) {
                 is LockVerifier.LockOutcome.Ok -> {
                     LockLockerResponse {
@@ -977,7 +1009,7 @@ class RoomServiceImpl(
             !ProtocolValidation.signature(request.signature, required = true))
             return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.SIGNATURE_INVALID)
         redirectIfNotOwner(scope.keyspace?.value ?: 0L, requestRoomId)?.let { redirect ->
-            forwardToOwnerOrNull(context, redirect) { it.unlockLocker(request) }?.let {
+            forwardToOwnerOrNull(context, requestRoomId, redirect) { it.unlockLocker(request) }?.let {
                 return@trackResponse it
             }
             return@trackResponse UnlockLockerResponse {
@@ -986,7 +1018,7 @@ class RoomServiceImpl(
             }
         }
 
-        return@trackResponse runRoomMutation(requestRoomId, onLost = { UnlockLockerResponse(result = UnlockLockerResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, requestRoomId)) }) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
+        return@trackResponse runRoomMutation(context, requestRoomId, onLost = { UnlockLockerResponse(result = UnlockLockerResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, requestRoomId)) }) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
             val outcome = lockVerifier.applyUnlock(requestRoomId, scope, request.signature, request.parentLockVersion)
             when (outcome) {
                 is LockVerifier.UnlockOutcome.Ok -> {

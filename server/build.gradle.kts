@@ -54,6 +54,7 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(projects.server.test)
+    testImplementation(projects.connector)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.ktbuf.test)
     testImplementation(libs.assertk)
