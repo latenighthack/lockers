@@ -281,6 +281,12 @@ private val writeRetryLog = com.diamondedge.logging.logging("LockerWriteRetry")
  */
 open class LockerWriteException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
+/** Delete is a compare-and-set operation; retrying a conflict requires a new explicit caller decision. */
+class LockerDeleteConflictException(
+    val expectedVersion: Long, val actualVersion: Long, val mayHaveCommitted: Boolean, cause: Throwable? = null,
+) : LockerWriteException("Delete expected version $expectedVersion but found $actualVersion" +
+    if (mayHaveCommitted) "; an earlier legacy attempt may have committed" else "", cause)
+
 /** The source and authority committed successfully; only derived work is incomplete. */
 open class LockerSourceCommittedException(
     val version: Long, val agentPending: Boolean,
@@ -877,6 +883,12 @@ class LockerClient(
         acceptRead(roomId, response.locker, before)
     } }
 
+    /**
+     * Delete the cached version, fetching once when this client has no cached version.
+     * A conflict refreshes the cache and throws [LockerDeleteConflictException]; the caller
+     * must decide whether to delete the newly observed content. Ambiguous retries reuse the
+     * original request, receipt, signature and notification, including on legacy servers.
+     */
     suspend fun deleteLocker(roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.() -> Unit = {}) =
         sync.mutate(roomId to lockerId.canonical()) { telemetry.observe(TelemetryOperation.CONNECTOR_DELETE) { deleteLockerSerialized(roomId, lockerId.canonical(), notificationBuilder) } }
 
@@ -885,59 +897,62 @@ class LockerClient(
         lockerId: LockerId,
         notificationBuilder: NotificationBuilder.() -> Unit = {}
     ) {
-        val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
-        var parentVersion = cached?.version ?: 0L
+        var cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
+        if (cached == null) {
+            fetchLocker(roomId, lockerId)
+            cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
+        }
+        val parentVersion = cached?.version ?: 0L
         restoreArchivedKeyFor(roomId, lockerId)
         val signingKey = lockKeySource?.writeKeyFor(roomId, lockerId)
-
+        val caps = capabilities()
+        val notif = encodedNotification(roomId, lockerId) { this.notificationBuilder() }
+        val authority = if (signingKey != null && caps.authorityV2) currentAuthorityVersion(roomId, lockerId) else 0L
+        val signature = signingKey?.let { signWrite(it, roomId, lockerId, parentVersion, ByteArray(0), authority, notif, caps.authorityV2) }
+        val request = DeleteLockerRequest.fromByteArray(DeleteLockerRequest {
+            this.roomId = roomId; this.lockerId = lockerId; this.parentVersion = parentVersion
+            this.writeSignature = signature; this.notification = notif
+            if (caps.deleteReceipts) writeRequestId = kotlin.random.Random.nextBytes(32)
+        }.toByteArray())
+        var legacyAmbiguity = false
         val deletedVersion = try {
-            repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
-                val caps = capabilities()
-                val notif = encodedNotification(roomId, lockerId) { this.notificationBuilder() }
-                val authority = if (signingKey != null && caps.authorityV2) currentAuthorityVersion(roomId, lockerId) else 0
-                val signature = signingKey?.let { signWrite(it, roomId, lockerId, parentVersion, ByteArray(0), authority, notif, caps.authorityV2) }
-
-                val result = sync.network { roomService.deleteLocker(DeleteLockerRequest {
-                    this.roomId = roomId
-                    this.lockerId = lockerId
-                    this.parentVersion = parentVersion
-                    if (signature != null) this.writeSignature = signature
-
-                    this.notification = notif
-                }) }
-
+            repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = { failure ->
+                val retryable = WRITE_EXCEPTION_HANDLER(failure)
+                if (retryable && !caps.deleteReceipts) legacyAmbiguity = true
+                retryable
+            }) {
+                val result = sync.network { roomService.deleteLocker(request) }
                 when (result.result) {
-                    is DeleteLockerResponse.Result.OK -> result.version
+                    is DeleteLockerResponse.Result.OK -> {
+                        if (caps.deleteReceipts && !result.writeRequestId.contentEquals(request.writeRequestId)) {
+                            acceptCommitted(LockerUpdate(roomId, lockerId, result.version, byteArrayOf(), deleted = true), request.writeRequestId)
+                            throw LockerSourceCommittedException(result.version, false, "Delete committed but its receipt identifier is invalid",
+                                roomId = roomId, writeRequestId = request.writeRequestId,
+                                sourceVersions = listOf(WriteSourceVersion(lockerId, result.version)))
+                        }
+                        result.version
+                    }
                     is DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION -> {
                         telemetry.safeRecord(TelemetryOperation.CONNECTOR_CONFLICT, TelemetryOutcome.CONFLICT)
-                        parentVersion = result.version
-                        retry()
+                        var repairFailure: Throwable? = null
+                        try { fetchLocker(roomId, lockerId) }
+                        catch (cancelled: CancellationException) { throw cancelled }
+                        catch (failure: Exception) { repairFailure = failure }
+                        throw LockerDeleteConflictException(parentVersion, result.version, legacyAmbiguity, repairFailure)
                     }
-                    is DeleteLockerResponse.Result.NOT_OWNER -> {
-                        // This node doesn't own the room's shard; cache the redirect and retry so
-                        // the routing client re-targets the owner on the next attempt.
-                        recordRoomRedirect(roomId, result.redirect)
-                        retry()
-                    }
-                    is DeleteLockerResponse.Result.SIGNATURE_REQUIRED ->
-                        throw LockerWriteException("locker is locked; a signing key is required to delete")
-                    is DeleteLockerResponse.Result.SIGNATURE_INVALID ->
-                        throw LockerWriteException("locker delete signature was rejected")
-                    is DeleteLockerResponse.Result.NOT_AUTHORIZED ->
-                        throw LockerWriteException("locker delete not authorized")
-                    else -> {
-                        // See updateLocker: rebase on server state before retrying an unknown result.
-                        fetchLocker(roomId, lockerId)?.let { parentVersion = it.version }
-                        retry()
-                    }
+                    is DeleteLockerResponse.Result.NOT_OWNER -> { recordRoomRedirect(roomId, result.redirect); retry() }
+                    is DeleteLockerResponse.Result.REQUEST_ID_REUSED -> throw LockerWriteException("delete receipt identifier was reused with different request bytes")
+                    is DeleteLockerResponse.Result.SIGNATURE_REQUIRED -> throw LockerWriteException("locker is locked; a signing key is required to delete")
+                    is DeleteLockerResponse.Result.SIGNATURE_INVALID -> throw LockerWriteException("locker delete signature was rejected")
+                    is DeleteLockerResponse.Result.NOT_AUTHORIZED -> throw LockerWriteException("locker delete not authorized")
+                    else -> { if (!caps.deleteReceipts) legacyAmbiguity = true; retry() }
                 }
             }
         } catch (e: RetryLimitExceeded) {
             throw LockerWriteException("locker delete failed after $WRITE_RETRY_LIMIT attempts: $e")
         }
-
         deletedVersion?.let {
-            acceptCommitted(LockerUpdate(roomId, lockerId, it, byteArrayOf(), deleted = true))
+            acceptCommitted(LockerUpdate(roomId, lockerId, it, byteArrayOf(), deleted = true), request.writeRequestId)
         }
     }
 
