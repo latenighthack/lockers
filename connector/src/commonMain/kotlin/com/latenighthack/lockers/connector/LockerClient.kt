@@ -42,8 +42,8 @@ private fun IdentifiedLocker.toUpdate(roomId: RoomId, roomSequence: Long = 0L) =
 
 private fun StoredLocker.toIdentifiedLocker(): IdentifiedLocker {
     val storedVersion = version
-    val storedLockerId = LockerId(lockerIdRawValue, LockerKeyspace { value = lockerKeyspace })
-    val storedPayload = lockerPayload
+    val storedLockerId = LockerId(lockerIdRawValue.copyOf(), LockerKeyspace { value = lockerKeyspace })
+    val storedPayload = lockerPayload.copyOf()
 
     return IdentifiedLocker {
         lockerId = storedLockerId
@@ -57,10 +57,10 @@ internal fun LockerId.canonical() = copy(keyspace = keyspace ?: LockerKeyspace(0
 private fun LockerId.keyspaceOrDefault() = keyspace ?: LockerKeyspace { value = 0L }
 
 private fun LockerClient.LockerUpdate.toStored() = StoredLocker {
-    roomIdRawValue = roomId.rawValue
-    lockerIdRawValue = lockerId.rawValue
+    roomIdRawValue = roomId.rawValue.copyOf()
+    lockerIdRawValue = lockerId.rawValue.copyOf()
     lockerKeyspace = lockerId.keyspace?.value ?: 0L
-    lockerPayload = payload
+    lockerPayload = payload.copyOf()
     version = this@toStored.version
     deleted = this@toStored.deleted
     roomSequence = this@toStored.roomSequence
@@ -400,6 +400,18 @@ class LockerClient(
     suspend fun awaitWriteOutcome(roomId: RoomId, writeRequestId: ByteArray, timeoutMillis: Long = 300_000): WriteOutcomeObservation =
         writeOutcomes(roomId, writeRequestId, timeoutMillis = timeoutMillis).first { it.terminal }
 
+    /** Consume every cursor before recording an application watermark, including uninterested variants. */
+    fun acceptedEventsAfter(cursor: Long): Flow<AcceptedConnectorEvent> = lockerStore.changesAfter(cursor).map { entry ->
+        when (entry.kind) {
+            1 -> AcceptedConnectorEvent.LockerChanged(entry.cursor, entry.toChange())
+            2 -> AcceptedConnectorEvent.SessionEvent(entry.cursor, Event.fromByteArray(entry.payload))
+            else -> error("Unsupported accepted event kind ${entry.kind}")
+        }
+    }
+    fun notificationsAfter(cursor: Long): Flow<AcceptedNotification> = stream.eventsAfter(cursor).mapNotNull { accepted ->
+        decodeNotification(accepted.event)?.let { AcceptedNotification(accepted.cursor, it) }
+    }
+
     /** All change, notification, broadcast and raw-event consumers share the journal. Supply their minimum durable cursor. */
     suspend fun pruneAcceptedEventsThrough(cursor: Long) = lockerStore.pruneEventsThrough(cursor)
 
@@ -425,7 +437,7 @@ class LockerClient(
 
     val notifications: Flow<IncomingNotification>
         get() {
-            return stream.eventsAfter(0).mapNotNull { decodeNotification(it.event) }
+            return notificationsAfter(0).map { it.notification }
         }
 
     private val roomService = ShardedRoomServiceRpc(rpcClient)
@@ -794,10 +806,10 @@ class LockerClient(
     suspend fun getAllKnownLockers(): List<LockerUpdate> =
         lockerStore.getAllLockers().filterNot { it.deleted }.map { stored ->
             LockerUpdate(
-                RoomId(stored.roomIdRawValue),
-                LockerId(stored.lockerIdRawValue, LockerKeyspace { value = stored.lockerKeyspace }),
+                RoomId(stored.roomIdRawValue.copyOf()),
+                LockerId(stored.lockerIdRawValue.copyOf(), LockerKeyspace { value = stored.lockerKeyspace }),
                 stored.version,
-                stored.lockerPayload,
+                stored.lockerPayload.copyOf(),
             )
         }
 

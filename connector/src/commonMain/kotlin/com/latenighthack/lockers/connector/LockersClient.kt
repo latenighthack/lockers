@@ -67,6 +67,9 @@ class LockersClient private constructor(
     fun lockerChangesAfter(cursor: Long): Flow<AcceptedLockerChange> = lockers.changesAfter(cursor)
     /** Raw accepted session events, including notification metadata, for durable consumption. */
     fun eventsAfter(cursor: Long): Flow<AcceptedSessionEvent> = stream.eventsAfter(cursor)
+    /** Advance independent consumer cursors through every variant, including events they intentionally ignore. */
+    fun acceptedEventsAfter(cursor: Long): Flow<AcceptedConnectorEvent> = lockers.acceptedEventsAfter(cursor)
+    fun notificationsAfter(cursor: Long): Flow<AcceptedNotification> = lockers.notificationsAfter(cursor)
     val broadcasts: Flow<IncomingBroadcast> get() = lockers.broadcasts
     fun broadcastsAfter(cursor: Long): Flow<IncomingBroadcast> = lockers.broadcastsAfter(cursor)
     /** Advance only through the minimum persisted cursor of every independent application consumer. */
