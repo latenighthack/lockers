@@ -12,6 +12,15 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 class AuthorityRepairPortabilityTest {
+    private var debugLogging = false
+    @BeforeTest fun avoidPlatformDebugLogging() {
+        // Pure protocol tests also run on the Android JVM, where android.util.Log is a stub.
+        debugLogging = com.diamondedge.logging.KmLogging.isLoggingDebug
+        com.diamondedge.logging.KmLogging.isLoggingDebug = false
+    }
+    @AfterTest fun restoreDebugLogging() {
+        com.diamondedge.logging.KmLogging.isLoggingDebug = debugLogging
+    }
     @Test fun authorityOnlyConflictPreservesFrozenContentOnEveryTarget() = exercise(false)
     @Test fun unlockedAuthorityHistoryCanBeRelockedWithTheOwnedKey() = exercise(true)
     private fun exercise(unlockedHistory: Boolean) = runTest {
