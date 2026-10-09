@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="jsBrowserTest.com.latenighthack.lockers.connector.PortableContractTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:13:52.230Z" hostname="Mikes-MacBook-Pro.local" time="0.0">
+  <properties/>
+  <testcase name="scopedCodecCompositionUnwrapsInReverseAndStopsAtDrop[js, browser, ChromeHeadless155.0.0.0, MacOS10.15.7]" classname="jsBrowserTest.com.latenighthack.lockers.connector.PortableContractTest" time="0.0"/>
+  <testcase name="composedStorageIndexesRoundTripOnEveryTarget[js, browser, ChromeHeadless155.0.0.0, MacOS10.15.7]" classname="jsBrowserTest.com.latenighthack.lockers.connector.PortableContractTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

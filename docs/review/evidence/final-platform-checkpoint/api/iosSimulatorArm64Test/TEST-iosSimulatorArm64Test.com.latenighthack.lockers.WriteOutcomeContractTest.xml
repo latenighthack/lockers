@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="iosSimulatorArm64Test.com.latenighthack.lockers.WriteOutcomeContractTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:12:54.840Z" hostname="Mikes-MacBook-Pro.local" time="0.0">
+  <properties/>
+  <testcase name="write outcome exposes immutable metadata and preserves indeterminate state[iosSimulatorArm64]" classname="iosSimulatorArm64Test.com.latenighthack.lockers.WriteOutcomeContractTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

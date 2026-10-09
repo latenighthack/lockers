@@ -1,0 +1,102 @@
+{
+  "checkpoint": "4a93a9e",
+  "manifest": "dependencies-indexeddb-final.json",
+  "manifest_sha256": "74c98576c29a7b0285e1219986ba71ee0cbf8c9247b91ce7a349f85354282c56",
+  "ktstore": "0.2.0-fh.d53a47cbc15434b3ce1e",
+  "ktbuf": "1.1.10-fh.9c3962ea021c76107b84",
+  "android_device": "emulator-5590",
+  "production_android_compile": [
+    ":api:compileDebugKotlinAndroid",
+    ":connector:compileDebugKotlinAndroid",
+    ":observability-api:compileDebugKotlinAndroid",
+    ":observability-connector:compileDebugKotlinAndroid"
+  ],
+  "targets": [
+    {
+      "module": "api",
+      "task": "jsNodeTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "module": "api",
+      "task": "iosSimulatorArm64Test",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "module": "connector",
+      "task": "jsNodeTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "module": "connector",
+      "task": "iosSimulatorArm64Test",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "module": "connector",
+      "task": "jsBrowserTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "module": "connector",
+      "task": "connectedDebugAndroidTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "module": "observability-api",
+      "task": "jsNodeTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "module": "observability-api",
+      "task": "iosSimulatorArm64Test",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "module": "observability-connector",
+      "task": "jsNodeTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "module": "observability-connector",
+      "task": "iosSimulatorArm64Test",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "totals": {
+    "tests": 65,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+}

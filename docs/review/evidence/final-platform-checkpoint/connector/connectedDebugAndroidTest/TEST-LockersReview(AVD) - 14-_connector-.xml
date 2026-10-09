@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.latenighthack.lockers.connector.AndroidStorageContractTest" tests="7" failures="0" errors="0" skipped="0" time="2.241" timestamp="2026-10-09T04:14:09" hostname="localhost">
+  <properties>
+    <property name="device" value="LockersReview(AVD) - 14" />
+    <property name="flavor" value="" />
+    <property name="project" value=":connector" />
+  </properties>
+  <testcase name="sqliteConnectorStoreSurvivesCloseAndReopen" classname="com.latenighthack.lockers.connector.AndroidStorageContractTest" time="0.289" />
+  <testcase name="sdkMutationsCommitRollbackAndReopenSqlite" classname="com.latenighthack.lockers.connector.AndroidStorageContractTest" time="0.711" />
+  <testcase name="historicalSqliteSchemasPreservePrivateBytesAndNormalizeAliases" classname="com.latenighthack.lockers.connector.AndroidStorageContractTest" time="0.817" />
+  <testcase name="savedAndAcceptedRowsDoNotRetainCallerArrays" classname="com.latenighthack.lockers.connector.LockerStoreIsolationTest" time="0.031" />
+  <testcase name="everyPublicReadDetachesStoredRows" classname="com.latenighthack.lockers.connector.LockerStoreIsolationTest" time="0.001" />
+  <testcase name="composedStorageIndexesRoundTripOnEveryTarget" classname="com.latenighthack.lockers.connector.PortableContractTest" time="0.0" />
+  <testcase name="scopedCodecCompositionUnwrapsInReverseAndStopsAtDrop" classname="com.latenighthack.lockers.connector.PortableContractTest" time="0.028" />
+</testsuite>

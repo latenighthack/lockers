@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="jsNodeTest.com.latenighthack.lockers.common.ProtocolPortabilityTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:12:55.164Z" hostname="Mikes-MacBook-Pro.local" time="0.0">
+  <properties/>
+  <testcase name="lockerIdentityRetainsBinaryKeyspaceAcrossProtoSerialization[js, node]" classname="jsNodeTest.com.latenighthack.lockers.common.ProtocolPortabilityTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
