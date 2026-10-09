@@ -19,6 +19,7 @@ service Room {
   rpc DeleteLocker(DeleteLockerRequest) returns (DeleteLockerResponse);
   rpc LockLocker(LockLockerRequest) returns (LockLockerResponse);
   rpc UnlockLocker(UnlockLockerRequest) returns (UnlockLockerResponse);
+  rpc GetWriteOutcome(GetWriteOutcomeRequest) returns (GetWriteOutcomeResponse);
 }
 
 message SubscriptionRequest {
@@ -92,6 +93,8 @@ message PostLockerChangeResponse {
   int64 version = 3;
   common.v1.LockState lock_state = 4;
   common.v1.ShardRedirect redirect = 5;
+  bytes write_request_id = 8;
+  bool agent_indeterminate = 9;
 }
 
 message DeleteLockerRequest {
@@ -220,6 +223,7 @@ message CapabilitiesResponse {
   int32 max_batch_items = 5;
   int32 max_batch_bytes = 6;
   bool snapshot_paging = 8;
+  bool write_outcomes = 14;
 }
 message SubscribeAndSnapshotRequest {
   common.v1.SessionProof proof = 20;
@@ -255,6 +259,30 @@ message PostLockerChangesResponse {
   common.v1.ShardRedirect redirect = 4;
   bool agent_failed = 5;
   bool agent_pending = 6;
+  bytes write_request_id = 7;
+  bool agent_indeterminate = 8;
+}
+
+// Public metadata read, following GetLocker's read contract. No payloads or request digests.
+message GetWriteOutcomeRequest {
+  common.v1.RoomId room_id = 1;
+  bytes write_request_id = 2;
+}
+message WriteSourceVersion {
+  common.v1.LockerId locker_id = 1;
+  int64 version = 2;
+}
+message WriteOutcome {
+  enum AgentState { UNKNOWN = 0; PENDING = 1; RUNNING = 2; APPLIED = 3; FAILED = 4; INDETERMINATE = 5; }
+  common.v1.RoomId room_id = 1;
+  bytes write_request_id = 2;
+  repeated WriteSourceVersion source_versions = 3;
+  AgentState agent_state = 4;
+}
+message GetWriteOutcomeResponse {
+  enum Result { OK = 0; NOT_FOUND = 1; INVALID = 2; UNKNOWN_ERROR = 10; }
+  Result result = 1;
+  WriteOutcome outcome = 2;
 }
 
 // Explicit authority-state discovery for optimistic V2 grant/unlock signing.
