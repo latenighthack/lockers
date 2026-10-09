@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.server
 
+import com.latenighthack.ktbuf.server.serveAll
+import io.ktor.server.routing.Routing
 import com.latenighthack.ktbuf.net.RpcClient
 import com.latenighthack.ktbuf.rpc.HttpRpcClient
 import com.latenighthack.ktbuf.test.server.TestServer
@@ -32,7 +34,7 @@ suspend fun Application.attachTestServicesWithConfig(config: LockersConfig) {
     core.setup()
 
     routing {
-        monolith(core)
+        trustedTestMonolith(MonolithComponent(core))
     }
 }
 
@@ -50,7 +52,7 @@ suspend fun Application.attachTestServicesWith(configureCore: (ServerCore) -> Un
     component.start()
 
     routing {
-        monolith(component)
+        trustedTestMonolith(component)
     }
 
     return component
@@ -109,4 +111,10 @@ class RecordingPushProvider(
         if (recorded.size >= count) return
         signal.first { it >= count }
     }
+}
+
+/** Explicitly trusted all-service fixture. Never install this test-artifact router on a public host. */
+fun Routing.trustedTestMonolith(component: MonolithComponent) {
+    for (service in component.allServices) serveAll(service.server as Any, service.descriptor)
+    for (extension in component.extensions) extension.install(this)
 }

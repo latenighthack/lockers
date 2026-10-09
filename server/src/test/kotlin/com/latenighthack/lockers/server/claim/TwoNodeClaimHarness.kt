@@ -9,7 +9,7 @@ import com.latenighthack.lockers.server.MonolithComponent
 import com.latenighthack.lockers.server.ServerCore
 import com.latenighthack.lockers.server.cluster.PeerConnectionPool
 import com.latenighthack.lockers.server.create
-import com.latenighthack.lockers.server.monolith
+import com.latenighthack.lockers.server.trustedTestMonolith
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
@@ -118,7 +118,7 @@ suspend fun startClaimNode(
 
     val server = embeddedServer(CIO, port = port) {
         install(WebSockets)
-        routing { monolith(component) }
+        routing { trustedTestMonolith(component) }
     }
     server.start(wait = false)
     return ClaimNode(nodeId, port, component, registry, server)
@@ -150,7 +150,7 @@ suspend fun startLocalMonolithNode(delegate: Database): ClaimNode {
     component.start()
     val server = embeddedServer(CIO, port = port) {
         install(WebSockets)
-        routing { monolith(component) }
+        routing { trustedTestMonolith(component) }
     }
     server.start(wait = false)
     return ClaimNode("monolith", port, component, registry, server)

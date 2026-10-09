@@ -4,17 +4,8 @@ import com.latenighthack.ktbuf.server.serveAll
 import com.latenighthack.ktbuf.server.serveUnary
 import io.ktor.server.routing.Routing
 
-/**
- * Mounts every service (public + admin) plus extension HTTP routes onto one
- * router. Used by the in-process test harness; production splits public and
- * admin across separate listeners ([monolithClient] / [monolithAdmin]).
- */
-fun Routing.monolith(component: MonolithComponent) {
-    serveServices(component.allServices)
-    for (extension in component.extensions) {
-        extension.install(this)
-    }
-}
+/** Public monolith routing; privileged peers and admin services require separate listeners. */
+fun Routing.monolith(component: MonolithComponent) = monolithClient(component)
 
 /** Mounts public client services plus extension HTTP routes. */
 fun Routing.monolithClient(component: MonolithComponent) {

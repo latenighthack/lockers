@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.server
 
+import io.ktor.server.application.install
+import io.ktor.server.websocket.WebSockets
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.routing.routing
@@ -37,6 +39,22 @@ class GatewayBoundaryTest {
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 assertEquals(401, response.statusCode(), "$uri ${response.body()} ${response.headers()}")
             }
+        } finally { server.stop(0, 1000); component.stop() }
+    }
+
+    @Test fun `default monolith router does not expose privileged gateway RPCs`(): Unit = runBlocking {
+        val core = ServerCore::class.create(LockersConfig.defaults(), ServerStorage.inMemory())
+        core.setup()
+        val component = MonolithComponent(core)
+        val server = embeddedServer(CIO, host = "127.0.0.1", port = 0) { install(WebSockets); routing { monolith(component) } }
+        server.start(wait = false)
+        try {
+            val port = server.engine.resolvedConnectors().single().port
+            val descriptor = component.sessionGatewayServiceModule.descriptor
+            val uri = URI("http://127.0.0.1:$port/api/${descriptor.packageName}.${descriptor.serviceName}/${descriptor.methods.last().methodName}")
+            val request = HttpRequest.newBuilder(uri).POST(HttpRequest.BodyPublishers.ofByteArray(byteArrayOf(10, 0))).build()
+            val response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString())
+            assertEquals(404, response.statusCode(), "Public convenience routing must preserve the peer authentication boundary")
         } finally { server.stop(0, 1000); component.stop() }
     }
 
