@@ -3,7 +3,7 @@ package com.latenighthack.lockers.server
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
-import com.latenighthack.ktstore.JdbcDriver
+import com.latenighthack.ktstore.createDatabase
 import com.latenighthack.ktstore.SqlStoreDelegate
 import com.latenighthack.lockers.server.services.room.v1.LockerStoreImpl
 import com.latenighthack.lockers.server.storage.v1.ServerLocker
@@ -40,10 +40,10 @@ class PersistenceTest {
 
         // First boot: create schema, write a locker, then discard the delegate.
         run {
-            val delegate = SqlStoreDelegate(JdbcDriver(jdbcDb, "sqlite"), blobType = "BLOB")
+            val delegate = createDatabase(ServerStorage.configuration(dbFile.name), jdbcDb)
             val store = LockerStoreImpl(delegate)
             store.prepare()
-            delegate.createStores()
+            delegate.open()
             store.updateLocker(
                 ServerLocker {
                     this.roomId = roomId
@@ -53,15 +53,16 @@ class PersistenceTest {
                     this.version = 1L
                 }
             )
+            delegate.close()
         }
 
         // Second boot: a fresh delegate + store over the SAME file must see the locker.
         val reloaded = run {
-            val delegate = SqlStoreDelegate(JdbcDriver(jdbcDb, "sqlite"), blobType = "BLOB")
+            val delegate = createDatabase(ServerStorage.configuration(dbFile.name), jdbcDb)
             val store = LockerStoreImpl(delegate)
             store.prepare()
-            delegate.createStores()
-            store.getLocker(roomId, keyspace, lockerId)
+            delegate.open()
+            try { store.getLocker(roomId, keyspace, lockerId) } finally { delegate.close() }
         }
 
         assertThat(reloaded).isNotNull()

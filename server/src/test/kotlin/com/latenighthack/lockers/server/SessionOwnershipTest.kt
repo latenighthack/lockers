@@ -9,7 +9,7 @@ import com.latenighthack.ktbuf.net.StreamControlEvent
 import com.latenighthack.ktcrypto.Secp256r1KeyPair
 import com.latenighthack.ktcrypto.encode
 import com.latenighthack.ktcrypto.generate
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.SessionId
 import com.latenighthack.lockers.push.v1.PushGatewayService
 import com.latenighthack.lockers.server.cluster.RingSessionOwnership
@@ -50,10 +50,10 @@ class SessionOwnershipTest {
     }
 
     private suspend fun sessionImplWith(ownership: SessionOwnership): Pair<SessionServiceImpl, SessionStoreImpl> {
-        val delegate = InMemoryStoreDelegate()
+        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
         val sessionStore = SessionStoreImpl(delegate).also { it.prepare() }
         val inboxStore = SessionInboxStoreImpl(delegate).also { it.prepare() }
-        delegate.createStores()
+        delegate.open()
         val impl = SessionServiceImpl(
             sessionStore, inboxStore, SimpleMeterRegistry(), noPushGateway, ownership, LockersConfig.defaults(),
         )

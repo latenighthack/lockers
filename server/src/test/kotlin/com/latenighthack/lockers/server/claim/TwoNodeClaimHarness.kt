@@ -2,7 +2,7 @@ package com.latenighthack.lockers.server.claim
 
 import com.latenighthack.ktbuf.net.RpcClient
 import com.latenighthack.ktbuf.rpc.HttpRpcClient
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.room.v1.RoomServiceRpc
 import com.latenighthack.lockers.server.LockersConfig
 import com.latenighthack.lockers.server.MonolithComponent
@@ -53,7 +53,7 @@ class ClaimNode(
 
 class ClaimCluster(
     val nodes: List<ClaimNode>,
-    val delegate: InMemoryStoreDelegate,
+    val delegate: Database,
     val roomClaims: RoomClaimStore,
     val sessionGateways: SessionGatewayStore,
 ) : AutoCloseable {
@@ -69,7 +69,7 @@ class ClaimCluster(
 class TwoNodeClaimCluster(
     val node1: ClaimNode,
     val node2: ClaimNode,
-    val delegate: InMemoryStoreDelegate,
+    val delegate: Database,
     val roomClaims: RoomClaimStore,
     val sessionGateways: SessionGatewayStore,
 ) : AutoCloseable {
@@ -89,7 +89,7 @@ private fun freePort(): Int = ServerSocket(0).use { it.localPort }
  */
 suspend fun startClaimNode(
     nodeId: String,
-    delegate: InMemoryStoreDelegate,
+    delegate: Database,
     roomClaims: RoomClaimStore,
     sessionGateways: SessionGatewayStore,
     ttlMs: Long,
@@ -130,7 +130,7 @@ suspend fun startClaimClusterOfSize(
     ttlMs: Long = 500,
     renewMs: Long = 100,
 ): ClaimCluster {
-    val delegate = InMemoryStoreDelegate()
+    val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
     val roomClaims = InMemoryRoomClaimStore()
     val sessionGateways = InMemorySessionGatewayStore()
     val nodes = (1..size).map { i ->
@@ -140,7 +140,7 @@ suspend fun startClaimClusterOfSize(
 }
 
 /** A plain monolith (no ring, no claim) behind loopback HTTP — the baseline for load comparisons. */
-suspend fun startLocalMonolithNode(delegate: InMemoryStoreDelegate): ClaimNode {
+suspend fun startLocalMonolithNode(delegate: Database): ClaimNode {
     val port = freePort()
     val registry = SimpleMeterRegistry()
     val core = ServerCore::class.create(LockersConfig.defaults(), delegate)
@@ -163,7 +163,7 @@ suspend fun startTwoNodeClaimCluster(
     roomClaimsForNode: (String, RoomClaimStore) -> RoomClaimStore = { _, shared -> shared },
     configureCore: (String, ServerCore) -> Unit = { _, _ -> },
 ): TwoNodeClaimCluster {
-    val delegate = InMemoryStoreDelegate()
+    val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
     val roomClaims = InMemoryRoomClaimStore()
     val sessionGateways = InMemorySessionGatewayStore()
     val node1 = startClaimNode(

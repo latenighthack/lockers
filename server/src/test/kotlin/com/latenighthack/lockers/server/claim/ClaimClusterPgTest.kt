@@ -4,7 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotEmpty
 import assertk.assertions.isTrue
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.Locker
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.LockerKeyspace
@@ -58,7 +58,7 @@ class ClaimClusterPgTest {
     }
 
     private suspend fun twoPgNodes(ttlMs: Long = 500, renewMs: Long = 100): Pair<ClaimNode, ClaimNode> {
-        val delegate = InMemoryStoreDelegate()
+        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
         val roomClaims = JdbcRoomClaimStore(pool)
         val sessionGateways = JdbcSessionGatewayStore(pool)
         val node1 = startClaimNode("node1", delegate, roomClaims, sessionGateways, ttlMs, renewMs)

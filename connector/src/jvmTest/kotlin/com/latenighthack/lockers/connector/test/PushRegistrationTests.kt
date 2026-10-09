@@ -4,7 +4,7 @@ import com.latenighthack.ktbuf.net.RpcClient
 import com.latenighthack.ktbuf.test.server.runTestWithServer
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.ktstore.InMemoryKeyValueStoreDelegate
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.ktstore.KeyValueStore
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.LockerKeyspace
@@ -35,7 +35,7 @@ class PushRegistrationTests {
         }
         return LockersClient.create(
             rpcClient = rpcClient,
-            storeDelegate = InMemoryStoreDelegate(),
+            database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory(),
             keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate()),
             keySource = keySource,
             appVersion = Version(0, 0, 1),

@@ -1,8 +1,6 @@
 package com.latenighthack.lockers.server.services.session.v1
 
-import com.latenighthack.ktstore.BoundStoreKey
-import com.latenighthack.ktstore.Store
-import com.latenighthack.ktstore.StoreDelegate
+import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.server.storage.v1.*
 
 interface SessionInboxStore {
@@ -15,22 +13,17 @@ interface SessionInboxStore {
     suspend fun deleteEvent(eventId: ServerEventId, sessionId: ServerSessionId)
 }
 
-class SessionInboxStoreImpl(delegate: StoreDelegate): SessionInboxStore, Store<ServerSessionEvent>(
-    delegate,
-    "inbox",
-    ServerSessionEvent::toByteArray,
-    ServerSessionEvent.Companion::fromByteArray
-) {
-    private val sessionIdKey = serializedIndex(ServerSessionEvent::sessionId, ServerSessionId::toByteArray)
-    private val eventIdKey = serializedIndex(ServerSessionEvent::eventId, ServerEventId::toByteArray)
-    private val sessionIdEventIdKey = compositeIndex(sessionIdKey, eventIdKey).also { primaryKey(it) }
+class SessionInboxStoreImpl(delegate: Database): SessionInboxStore, Store<ServerSessionEvent>(delegate, SessionInboxStoreImplDefinitionV1) {
+    private val sessionIdKey = SessionInboxStoreImplDefinitionV1.sessionIdKey
+    private val eventIdKey = SessionInboxStoreImplDefinitionV1.eventIdKey
+    private val sessionIdEventIdKey = SessionInboxStoreImplDefinitionV1.sessionIdEventIdKey
 
     override suspend fun saveEvent(event: ServerSessionEvent) = save(event)
     override suspend fun saveEvents(events: List<ServerSessionEvent>) = saveAll(events)
     override suspend fun deleteEvents(eventIds: List<ServerEventId>, sessionId: ServerSessionId) = deleteMany(eventIds.map {
         sessionIdEventIdKey.eq(listOf(
-            BoundStoreKey.SerializedKey(sessionIdKey.name, sessionId.toByteArray()),
-            BoundStoreKey.SerializedKey(eventIdKey.name, it.toByteArray())
+            BoundStoreKey.SerializedKey(sessionIdKey.name.value, sessionId.toByteArray()),
+            BoundStoreKey.SerializedKey(eventIdKey.name.value, it.toByteArray())
         ))
     })
 
@@ -38,8 +31,8 @@ class SessionInboxStoreImpl(delegate: StoreDelegate): SessionInboxStore, Store<S
 
     override suspend fun deleteEvent(eventId: ServerEventId, sessionId: ServerSessionId) = delete(sessionIdEventIdKey.eq(
         listOf(
-            BoundStoreKey.SerializedKey(sessionIdKey.name, sessionId.toByteArray()),
-            BoundStoreKey.SerializedKey(eventIdKey.name, eventId.toByteArray()),
+            BoundStoreKey.SerializedKey(sessionIdKey.name.value, sessionId.toByteArray()),
+            BoundStoreKey.SerializedKey(eventIdKey.name.value, eventId.toByteArray()),
         )
     ))
 }

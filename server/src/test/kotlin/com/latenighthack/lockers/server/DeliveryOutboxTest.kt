@@ -1,6 +1,6 @@
 package com.latenighthack.lockers.server
 
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.room.v1.*
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
@@ -14,9 +14,9 @@ import kotlin.test.*
 
 class DeliveryOutboxTest {
     @Test fun slowGatewayDoesNotBlockNewWorkForAnotherRoom() = runBlocking {
-        val db = InMemoryStoreDelegate()
+        val db = com.latenighthack.lockers.server.ServerStorage.inMemory()
         val outbox = DeliveryOutboxStore(db).also { it.prepareStores() }
-        db.createStores()
+        db.open()
         val slowEntered = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()
         val fastDelivered = CompletableDeferred<Unit>()
@@ -42,11 +42,11 @@ class DeliveryOutboxTest {
     }
 
     @Test fun lostGatewayAcknowledgementReplaysOneDurableInboxEntry() = runBlocking {
-        val db = InMemoryStoreDelegate()
+        val db = com.latenighthack.lockers.server.ServerStorage.inMemory()
         val outbox = DeliveryOutboxStore(db).also { it.prepareStores() }
         val inbox = SessionInboxStoreImpl(db).also { it.prepare() }
         val sessions = SessionStoreImpl(db).also { it.prepare() }
-        db.createStores()
+        db.open()
         val service = SessionServiceImpl(sessions, inbox, SimpleMeterRegistry(), object : com.latenighthack.lockers.server.services.push.v1.PushGatewayDiscovery {
             override suspend fun findServer(sessionId: SessionId): com.latenighthack.lockers.push.v1.PushGatewayService? = null
         }, LocalSessionOwnership(), LockersConfig.defaults())
@@ -77,10 +77,10 @@ class DeliveryOutboxTest {
     private fun event(id: Int) = Event(roomId = room, eventId = EventId(byteArrayOf(id.toByte())))
 
     @Test fun commitRollbackLeaseRecoveryAndRecipientProgress() = runBlocking {
-        val db = InMemoryStoreDelegate()
+        val db = com.latenighthack.lockers.server.ServerStorage.inMemory()
         val outbox = DeliveryOutboxStore(db).also { it.prepareStores() }
         val lockers = LockerStoreImpl(db).also { it.prepare() }
-        db.createStores()
+        db.open()
         val a = SessionId(byteArrayOf(1)); val b = SessionId(byteArrayOf(2))
         assertFailsWith<IllegalStateException> {
             outbox.commit(room, listOf(a, b), listOf(event(1))) {
@@ -105,9 +105,9 @@ class DeliveryOutboxTest {
 
     @Test fun gatewayCallsScaleWithNodesAndWritesNeverWaitForDelivery() = runBlocking {
         for (count in listOf(1, 10, 100)) {
-            val db = InMemoryStoreDelegate()
+            val db = com.latenighthack.lockers.server.ServerStorage.inMemory()
             val outbox = DeliveryOutboxStore(db).also { it.prepareStores() }
-            db.createStores()
+            db.open()
             var calls = 0
             val gateway = object : SessionGatewayService {
                 override suspend fun postEvent(request: PostEventRequest): PostEventResponse { calls++; return PostEventResponse() }
@@ -128,12 +128,12 @@ class DeliveryOutboxTest {
     }
 
     @Test fun atomicConflictRollsBackAndAcceptedReplayDoesNotRerunAgent() = runBlocking {
-        val db = InMemoryStoreDelegate()
+        val db = com.latenighthack.lockers.server.ServerStorage.inMemory()
         val outbox = DeliveryOutboxStore(db).also { it.prepareStores() }
         val lockers = LockerStoreImpl(db).also { it.prepare() }
         val locks = LockStoreImpl(db).also { it.prepare() }
         val subs = SubscriptionStoreImpl(db).also { it.prepare() }
-        db.createStores()
+        db.open()
         var agentCalls = 0
         val agent = object : LockerAgentRegistry {
             override suspend fun processPayload(roomId: RoomId, lockerId: LockerId, locker: Locker): List<LockerAgentRegistry.LockerWrite> {

@@ -32,10 +32,10 @@ class SubscriptionRecoveryTests {
     @Test(timeout = 15_000)
     fun `session replacement requires a new acknowledgment and restores every room`() =
         runTestWithServer(Application::attachTestServices) { server, _ -> withContext(Dispatchers.Default) {
-            val store = InMemoryStoreDelegate()
+            val store = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
             val sessions = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), store)
             val subscriptions = SubscriptionStoreImpl(store)
-            sessions.prepare(); subscriptions.prepare(); store.createStores()
+            sessions.prepare(); subscriptions.prepare(); store.open()
             val source = MutableStateFlow<SessionId?>(SessionId(byteArrayOf(1)))
             val rpc = GatedClient(server.rpcClient)
             val controller = SubscriptionController(rpc, subscriptions, sessions, source)
@@ -62,10 +62,10 @@ class SubscriptionRecoveryTests {
     @Test(timeout = 15_000)
     fun `unsubscribe supersedes a pending subscribe and survives session replacement`() =
         runTestWithServer(Application::attachTestServices) { server, _ -> withContext(Dispatchers.Default) {
-            val store = InMemoryStoreDelegate()
+            val store = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
             val sessions = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), store)
             val subscriptions = SubscriptionStoreImpl(store)
-            sessions.prepare(); subscriptions.prepare(); store.createStores()
+            sessions.prepare(); subscriptions.prepare(); store.open()
             val source = MutableStateFlow<SessionId?>(SessionId(byteArrayOf(4)))
             val rpc = GatedClient(server.rpcClient)
             val controller = SubscriptionController(rpc, subscriptions, sessions, source)

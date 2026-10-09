@@ -14,6 +14,7 @@ import com.latenighthack.lockers.server.services.push.v1.providers.WebPushProvid
 import com.latenighthack.lockers.server.storage.v1.*
 import com.latenighthack.lockers.server.tools.*
 import io.micrometer.core.instrument.MeterRegistry
+import com.latenighthack.lockers.observability.*
 import io.micrometer.core.instrument.Tag
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -92,6 +93,7 @@ class PushServiceImpl(
     private val meterRegistry: MeterRegistry,
     private val pushProviders: List<PushProvider>,
     private val dispatch: PushDispatchConfig = PushDispatchConfig.DEFAULT,
+    private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
 ) : BaseServiceImpl(), PushServer, PushGatewayServer, PushAdminServer {
     private val logger = LoggerFactory.getLogger(PushServiceImpl::class.java)
 
@@ -112,6 +114,9 @@ class PushServiceImpl(
     private val deadLetterDepth = PushBackendKind.entries.associateWith { AtomicInteger(0) }
 
     init {
+        for (backend in PushBackendKind.entries) {
+            meterRegistry.gauge("lockers.push.provider.configured", listOf(Tag.of("backend", backend.tag)), providersByBackend[backend]?.isConfigured == true) { if (it) 1.0 else 0.0 }
+        }
         meterRegistry.gauge("lockers.push.queue.size", totalQueueGauge) { it.get().toDouble() }
         for ((backend, gauge) in queueDepth) {
             meterRegistry.gauge("lockers.push.queue.depth", listOf(Tag.of("backend", backend.tag)), gauge) { it.get().toDouble() }
@@ -208,7 +213,7 @@ class PushServiceImpl(
         val result = sendSemaphores.getValue(backend).withPermit {
             val startNanos = System.nanoTime()
             val sendResult = try {
-                provider.send(registration, Push.fromByteArray(push.encodedPush))
+                telemetry.observe(TelemetryOperation.PUSH_SEND, { when (it) { is PushResult.Accepted -> TelemetryOutcome.OK; is PushResult.Rejected -> TelemetryOutcome.REJECTED; is PushResult.Retryable -> TelemetryOutcome.ERROR } }) { provider.send(registration, Push.fromByteArray(push.encodedPush)) }
             } catch (e: Exception) {
                 PushResult.Retryable(e.message ?: "send threw")
             }
@@ -301,7 +306,7 @@ class PushServiceImpl(
     override suspend fun registerSession(
         context: GrpcRequestContext,
         request: RegisterSessionRequest,
-    ) = meterRegistry.trackResponse("lockers.push.register", RegisterSessionResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.push.register", RegisterSessionResponse::result, telemetry) {
         try {
             val rawSessionId = request.sessionId?.rawValue
             val registration = request.registration
@@ -339,7 +344,7 @@ class PushServiceImpl(
     override suspend fun unregisterSession(
         context: GrpcRequestContext,
         request: UnregisterSessionRequest,
-    ) = meterRegistry.trackResponse("lockers.push.unregister", UnregisterSessionResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.push.unregister", UnregisterSessionResponse::result, telemetry) {
         try {
             val rawSessionId = request.sessionId?.rawValue
             if (rawSessionId == null || rawSessionId.isEmpty()) {
@@ -356,7 +361,7 @@ class PushServiceImpl(
     override suspend fun getPushConfig(
         context: GrpcRequestContext,
         request: GetPushConfigRequest,
-    ) = meterRegistry.trackResponse("lockers.push.config", GetPushConfigResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.push.config", GetPushConfigResponse::result, telemetry) {
         val supported = pushProviders
             .filter { it.isConfigured }
             .map { PushBackend.fromInt(it.backend.protoValue) }
@@ -374,7 +379,7 @@ class PushServiceImpl(
     override suspend fun sendPush(
         context: GrpcRequestContext,
         request: SendPushRequest,
-    ) = meterRegistry.trackResponse("lockers.push.sendpush", SendPushResponse::result) {
+    ) = meterRegistry.trackResponse("lockers.push.sendpush", SendPushResponse::result, telemetry) {
         try {
             val rawSessionId = request.sessionId?.rawValue
             val push = request.push

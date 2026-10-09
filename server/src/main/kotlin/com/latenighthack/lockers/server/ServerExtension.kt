@@ -33,5 +33,8 @@ interface ServerExtension {
  * metrics on the same registry as the core services.
  */
 interface ServerExtensionFactory {
+    val storeDefinitions: List<com.latenighthack.ktstore.StoreDefinition<*>> get() = emptyList()
+    fun create(meterRegistry: MeterRegistry, database: com.latenighthack.ktstore.Database): ServerExtension = create(meterRegistry)
+
     fun create(meterRegistry: MeterRegistry): ServerExtension
 }

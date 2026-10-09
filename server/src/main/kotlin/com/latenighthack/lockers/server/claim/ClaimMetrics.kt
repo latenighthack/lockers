@@ -19,6 +19,10 @@ import java.util.concurrent.atomic.AtomicInteger
  *  - `lockers.gateway.registry.misses`  — counter, session_gateway lookups that found no live row.
  */
 class ClaimMetrics(registry: MeterRegistry) {
+    val renewFailures: Counter = registry.counter("lockers.claim.renew.failures")
+    private val lastRenewSuccess = java.util.concurrent.atomic.AtomicLong(0)
+    fun onRenewSuccess() { lastRenewSuccess.set(System.currentTimeMillis() / 1000) }
+    init { registry.gauge("lockers.claim.renew.last.success.timestamp", lastRenewSuccess) { it.get().toDouble() } }
     val acquires: Counter = registry.counter("lockers.claim.acquires")
     val steals: Counter = registry.counter("lockers.claim.steals")
     val lost: Counter = registry.counter("lockers.claim.lost")

@@ -1,8 +1,6 @@
 package com.latenighthack.lockers.server.services.room.v1
 
-import com.latenighthack.ktstore.BoundStoreKey
-import com.latenighthack.ktstore.Store
-import com.latenighthack.ktstore.StoreDelegate
+import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.server.storage.v1.*
 
 /**
@@ -18,28 +16,12 @@ interface LockStore {
     suspend fun deleteLock(roomId: ServerRoomId, scopeKind: Long, keyspace: Long, lockerId: ServerLockerId)
 }
 
-class LockStoreImpl(delegate: StoreDelegate) : LockStore, Store<ServerLock>(
-    delegate,
-    "locks",
-    ServerLock::toByteArray,
-    ServerLock.Companion::fromByteArray
-) {
-    private val roomIdKey = serializedIndex(
-        ServerLock::roomId,
-        ServerRoomId::toByteArray
-    )
-    private val scopeKindKey = longIndex(ServerLock::scopeKind)
-    private val keyspaceKey = longIndex(ServerLock::keyspace)
-    private val lockerIdKey = serializedIndex(
-        ServerLock::lockerId,
-        ServerLockerId::toByteArray
-    )
-    private val primary = compositeIndex(
-        roomIdKey,
-        scopeKindKey,
-        keyspaceKey,
-        lockerIdKey
-    ).also { primaryKey(it) }
+class LockStoreImpl(delegate: Database) : LockStore, Store<ServerLock>(delegate, LockStoreImplDefinitionV1) {
+    private val roomIdKey = LockStoreImplDefinitionV1.roomIdKey
+    private val scopeKindKey = LockStoreImplDefinitionV1.scopeKindKey
+    private val keyspaceKey = LockStoreImplDefinitionV1.keyspaceKey
+    private val lockerIdKey = LockStoreImplDefinitionV1.lockerIdKey
+    private val primary = LockStoreImplDefinitionV1.primary
 
     override suspend fun getLock(
         roomId: ServerRoomId,
@@ -48,10 +30,10 @@ class LockStoreImpl(delegate: StoreDelegate) : LockStore, Store<ServerLock>(
         lockerId: ServerLockerId
     ): ServerLock? = get(primary.eq(
         listOf(
-            BoundStoreKey.SerializedKey(roomIdKey.name, roomId.toByteArray()),
-            BoundStoreKey.LongKey(scopeKindKey.name, scopeKind),
-            BoundStoreKey.LongKey(keyspaceKey.name, keyspace),
-            BoundStoreKey.SerializedKey(lockerIdKey.name, lockerId.toByteArray())
+            BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.toByteArray()),
+            BoundStoreKey.LongKey(scopeKindKey.name.value, scopeKind),
+            BoundStoreKey.LongKey(keyspaceKey.name.value, keyspace),
+            BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.toByteArray())
         )
     ))
 
@@ -67,10 +49,10 @@ class LockStoreImpl(delegate: StoreDelegate) : LockStore, Store<ServerLock>(
         lockerId: ServerLockerId
     ) = delete(primary.eq(
         listOf(
-            BoundStoreKey.SerializedKey(roomIdKey.name, roomId.toByteArray()),
-            BoundStoreKey.LongKey(scopeKindKey.name, scopeKind),
-            BoundStoreKey.LongKey(keyspaceKey.name, keyspace),
-            BoundStoreKey.SerializedKey(lockerIdKey.name, lockerId.toByteArray())
+            BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.toByteArray()),
+            BoundStoreKey.LongKey(scopeKindKey.name.value, scopeKind),
+            BoundStoreKey.LongKey(keyspaceKey.name.value, keyspace),
+            BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.toByteArray())
         )
     ))
 }

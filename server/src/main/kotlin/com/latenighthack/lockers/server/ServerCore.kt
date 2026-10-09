@@ -1,6 +1,7 @@
 package com.latenighthack.lockers.server
 
-import com.latenighthack.ktstore.StoreDelegate
+import com.latenighthack.ktstore.Database
+import com.latenighthack.lockers.observability.LockersTelemetry
 import com.latenighthack.lockers.server.agents.ExampleLockerAgent
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
 import com.latenighthack.lockers.server.services.push.v1.PushDeadLetterStore
@@ -35,16 +36,15 @@ annotation class ServerCoreScope
 /**
  * The root of the dependency-injection graph, shared by every locker service
  * module. Everything `@Provides`-ed here is injectable into any service's
- * constructor. All state is backed by the injected [StoreDelegate] (in-memory in
+ * constructor. All state is backed by the injected [Database] (in-memory in
  * tests, a persistent delegate in production).
  */
 @ServerCoreScope
 @Component
 abstract class ServerCore(
     @get:Provides val config: LockersConfig,
-    storageDelegate: StoreDelegate
+    private val storageDelegate: Database
 ) {
-    private val storageDelegate = com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(storageDelegate)
     private val pushDeliveryImpl by lazy { com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore(storageDelegate) }
     @get:Provides val pushDelivery: com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore? get() = pushDeliveryImpl
     private val deliveryOutboxImpl by lazy { com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStore(storageDelegate) }
@@ -68,9 +68,28 @@ abstract class ServerCore(
     @get:Provides val pushQueueStore: PushQueueStore = pushQueueStoreImpl
     @get:Provides val pushDeadLetterStore: PushDeadLetterStore = pushDeadLetterStoreImpl
 
+    private val registryHolder = lazy { overrideMeterRegistry ?: SimpleMeterRegistry() }
     var overrideMeterRegistry: MeterRegistry? = null
-    private val _meterRegistry by lazy { overrideMeterRegistry ?: SimpleMeterRegistry() }
-    @get:Provides val meterRegistry: MeterRegistry get() = _meterRegistry
+        set(value) { check(!registryHolder.isInitialized()) { "Registry must be configured before service construction" }; field = value }
+    @get:Provides val meterRegistry: MeterRegistry get() = registryHolder.value
+    var overrideTelemetry: LockersTelemetry = LockersTelemetry.NONE
+        set(value) { check(!setupStarted) { "Telemetry must be configured before setup" }; field = value }
+    @get:Provides val telemetry: LockersTelemetry get() = overrideTelemetry
+    var setupStarted: Boolean = false
+        private set
+
+    /** COUNT queries only; callers cache the snapshot outside the scrape path. */
+    suspend fun backlogCounts(): Map<String, Long> = storageDelegate.transaction(
+        setOf(com.latenighthack.ktstore.StoreName("delivery_outbox"), com.latenighthack.ktstore.StoreName("push_delivery_outbox"), com.latenighthack.ktstore.StoreName("push"), com.latenighthack.ktstore.StoreName("push_deadletter")),
+        com.latenighthack.ktstore.TransactionMode.READ_ONLY,
+    ) {
+        mapOf(
+            "room" to count(com.latenighthack.ktstore.StoreName("delivery_outbox"), com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStoreDefinitionV1("delivery").id.query(1)),
+            "push_delivery" to count(com.latenighthack.ktstore.StoreName("push_delivery_outbox"), com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStoreDefinitionV1("push_delivery").id.query(1)),
+            "push" to count(com.latenighthack.ktstore.StoreName("push"), com.latenighthack.lockers.server.services.push.v1.PushQueueStoreImplDefinitionV1.pushIdKey.query(1)),
+            "deadletter" to count(com.latenighthack.ktstore.StoreName("push_deadletter"), com.latenighthack.lockers.server.services.push.v1.PushDeadLetterStoreImplDefinitionV1.pushIdKey.query(1)),
+        )
+    }
 
     /** Test seam: set before [setup] to swap the real backends for fakes. */
     var overridePushProviders: List<PushProvider>? = null
@@ -89,6 +108,7 @@ abstract class ServerCore(
     @get:Provides val agentRegistry: LockerAgentRegistry get() = _agentRegistry
 
     suspend fun setup() {
+        setupStarted = true
         deliveryOutboxImpl.prepareStores()
         pushDeliveryImpl.outbox.prepareStores()
         sessionStoreImpl.prepare()
@@ -100,6 +120,6 @@ abstract class ServerCore(
         pushQueueStoreImpl.prepare()
         pushDeadLetterStoreImpl.prepare()
 
-        storageDelegate.createStores()
+        storageDelegate.open()
     }
 }

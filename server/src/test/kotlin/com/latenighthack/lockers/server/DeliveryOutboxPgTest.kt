@@ -15,10 +15,10 @@ class DeliveryOutboxPgTest {
         DriverManager.getConnection(base).use { it.createStatement().use { statement -> statement.execute("CREATE SCHEMA $schema") } }
         val url = base + (if ('?' in base) "&" else "?") + "currentSchema=$schema"
         try {
-            suspend fun store(): Pair<SqlStoreDelegate, DeliveryOutboxStore> {
-                val db = SqlStoreDelegate(JdbcDriver(url.removePrefix("jdbc:postgresql:"), "postgresql"), "BYTEA")
+            suspend fun store(): Pair<Database, DeliveryOutboxStore> {
+                val db = ServerStorage.postgres(url)
                 val outbox = DeliveryOutboxStore(db).also { it.prepareStores() }
-                db.createStores()
+                db.open()
                 return db to outbox
             }
             val (_, a) = store(); val (_, b) = store()

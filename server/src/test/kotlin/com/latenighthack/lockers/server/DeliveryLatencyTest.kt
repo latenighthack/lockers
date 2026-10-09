@@ -1,6 +1,6 @@
 package com.latenighthack.lockers.server
 
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.room.v1.*
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
@@ -17,12 +17,12 @@ import kotlin.test.*
 class DeliveryLatencyTest {
     @Test fun reportsAcknowledgementAndDerivedDeliverySeparately() = runBlocking {
         for (outboxEnabled in listOf(false, true)) {
-            val db = InMemoryStoreDelegate()
+            val db = com.latenighthack.lockers.server.ServerStorage.inMemory()
             val outbox = DeliveryOutboxStore(db).also { it.prepareStores() }
             val lockers = LockerStoreImpl(db).also { it.prepare() }
             val locks = LockStoreImpl(db).also { it.prepare() }
             val subs = SubscriptionStoreImpl(db).also { it.prepare() }
-            db.createStores()
+            db.open()
             val room = RoomId(ByteArray(32) { 1 })
             val sourceId = LockerId(ByteArray(32) { 2 }, LockerKeyspace(99))
             val derivedId = LockerId(ByteArray(32) { 3 }, LockerKeyspace(100))

@@ -5,7 +5,7 @@ import assertk.assertions.containsExactlyInAnyOrder
 import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.broadcast.v1.BroadcastRequest
 import com.latenighthack.lockers.broadcast.v1.LocalBroadcastAdminServiceRpc
 import com.latenighthack.lockers.common.v1.SessionId
@@ -45,12 +45,12 @@ class BroadcastServiceTest {
     )
 
     private suspend fun harness(config: LockersConfig = LockersConfig.defaults()): Harness {
-        val delegate = InMemoryStoreDelegate()
+        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
         val sessionStore = SessionStoreImpl(delegate)
         val inboxStore = SessionInboxStoreImpl(delegate)
         sessionStore.prepare()
         inboxStore.prepare()
-        delegate.createStores()
+        delegate.open()
         val push = RecordingPushGateway()
         val impl = SessionServiceImpl(sessionStore, inboxStore, SimpleMeterRegistry(), push, LocalSessionOwnership(), config)
         return Harness(impl, sessionStore, inboxStore, push, LocalBroadcastAdminServiceRpc(impl))

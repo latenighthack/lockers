@@ -1,0 +1,36 @@
+groups:
+  - name: lockers-operational
+    rules:
+      - alert: LockersUnexpectedRpcErrors
+        expr: (sum by(service_name,environment)(rate(lockers_rpc_requests_total{outcome="error"}[5m])) / sum by(service_name,environment)(rate(lockers_rpc_requests_total[5m])) > 0.01) and (sum by(service_name,environment)(rate(lockers_rpc_requests_total[5m])) >= 1)
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "Lockers unexpected RPC error rate exceeds 1%", description: "Inspect RPC outcomes, related logs and traces in the Rooms/Sessions/Push packs. See monitoring/RUNBOOKS.md."}
+      - alert: LockersDeliveryStalled
+        expr: (max by(service_name,environment,queue)(lockers_backlog_pending{queue=~"room|push_delivery"}) > 0) and on(service_name,environment,queue) (sum by(service_name,environment,queue)(increase(lockers_delivery_accepted_total[5m])) == 0) and on(service_name,environment) (max by(service_name,environment)(lockers_monitoring_component_enabled{component="delivery_worker"}) == 1)
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "Lockers durable delivery has stopped making progress", description: "Check gateway failures, backlog sample freshness and worker configuration. See monitoring/RUNBOOKS.md."}
+      - alert: LockersPushStalled
+        expr: (max by(service_name,environment)(lockers_backlog_pending{queue="push"}) > 0) and on(service_name,environment) (sum by(service_name,environment)(increase(lockers_push_sent_total[10m])) == 0) and on(service_name,environment) (max by(service_name,environment)(lockers_monitoring_component_enabled{component="push_worker"}) == 1)
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "Lockers push queue has stopped making progress", description: "Inspect provider configuration and send outcomes. See monitoring/RUNBOOKS.md."}
+      - alert: LockersNewDeadLetters
+        expr: sum by(service_name,environment,backend)(increase(lockers_push_deadlettered_total[5m])) > 0
+        labels: {severity: warning}
+        annotations: {summary: "Lockers push work entered the dead-letter store", description: "Inspect the Push pack and use the existing protected administration API. See monitoring/RUNBOOKS.md."}
+      - alert: LockersAgentFailures
+        expr: sum by(service_name,environment)(increase(lockers_room_agent_failures_total[5m])) > 0
+        labels: {severity: warning}
+        annotations: {summary: "Lockers agent execution failed", description: "Source writes may already be committed; inspect agent traces before retrying. See monitoring/RUNBOOKS.md."}
+      - alert: LockersClaimRenewalOverdue
+        expr: (time() - lockers_claim_renew_last_success_timestamp > 2 * lockers_claim_renew_interval_seconds) and on(job,instance,service_name,environment) (lockers_monitoring_component_enabled{component="claim"} == 1)
+        for: 10s
+        labels: {severity: warning}
+        annotations: {summary: "Lockers claim renewal is overdue", description: "Check database connectivity and renewal failures. See monitoring/RUNBOOKS.md."}
+      - alert: LockersBacklogSnapshotStale
+        expr: (time() - lockers_backlog_sample_timestamp > 60) or (lockers_backlog_sample_healthy == 0)
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: "Lockers backlog telemetry is unavailable", description: "Do not interpret the cached queue depth as current. See monitoring/RUNBOOKS.md."}

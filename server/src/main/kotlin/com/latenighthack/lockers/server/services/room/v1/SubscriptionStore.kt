@@ -1,8 +1,6 @@
 package com.latenighthack.lockers.server.services.room.v1
 
-import com.latenighthack.ktstore.BoundStoreKey
-import com.latenighthack.ktstore.Store
-import com.latenighthack.ktstore.StoreDelegate
+import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.server.storage.v1.*
 
 interface SubscriptionStore {
@@ -15,24 +13,10 @@ interface SubscriptionStore {
     suspend fun removeSubscription(sessionId: ServerSessionId, roomId: ServerRoomId)
 }
 
-class SubscriptionStoreImpl(delegate: StoreDelegate) : SubscriptionStore, Store<ServerSubscription>(
-    delegate,
-    "subscriptions",
-    ServerSubscription::toByteArray,
-    ServerSubscription.Companion::fromByteArray
-) {
-    private val sessionIdKey = serializedIndex(
-        ServerSubscription::sessionId,
-        ServerSessionId::toByteArray
-    )
-    private val roomIdKey = serializedIndex(
-        ServerSubscription::roomId,
-        ServerRoomId::toByteArray
-    )
-    private val sessionIdAndRoomIdKey = compositeIndex(
-        sessionIdKey,
-        roomIdKey
-    ).also { primaryKey(it) }
+class SubscriptionStoreImpl(delegate: Database) : SubscriptionStore, Store<ServerSubscription>(delegate, SubscriptionStoreImplDefinitionV1) {
+    private val sessionIdKey = SubscriptionStoreImplDefinitionV1.sessionIdKey
+    private val roomIdKey = SubscriptionStoreImplDefinitionV1.roomIdKey
+    private val sessionIdAndRoomIdKey = SubscriptionStoreImplDefinitionV1.sessionIdAndRoomIdKey
 
     override suspend fun getAllSubscriptions(sessionId: ServerSessionId): List<ServerRoomId> = getAll(sessionIdKey.eq(sessionId.toByteArray()))
         .mapNotNull {
@@ -48,8 +32,8 @@ class SubscriptionStoreImpl(delegate: StoreDelegate) : SubscriptionStore, Store<
 
     override suspend fun removeSubscription(sessionId: ServerSessionId, roomId: ServerRoomId) = delete(sessionIdAndRoomIdKey.eq(
         listOf(
-            BoundStoreKey.SerializedKey(sessionIdKey.name, sessionId.toByteArray()),
-            BoundStoreKey.SerializedKey(roomIdKey.name, roomId.toByteArray())
+            BoundStoreKey.SerializedKey(sessionIdKey.name.value, sessionId.toByteArray()),
+            BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.toByteArray())
         )
     ))
 }

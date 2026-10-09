@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.connector.test
 
+import com.latenighthack.lockers.observability.observe
+
 import com.latenighthack.lockers.connector.LockerSyncCoordinator
 import kotlinx.coroutines.*
 import kotlin.test.*
@@ -40,5 +42,29 @@ class LockerSyncCoordinatorTest {
         var version = 0
         (0 until 20).map { async { coordinator.mutate("locker") { val read = version; yield(); version = read + 1 } } }.awaitAll()
         assertEquals(20, version)
+    }
+}
+
+class SharedReadTelemetryTest {
+    private class Trace : kotlin.coroutines.AbstractCoroutineContextElement(Key) {
+        companion object Key : kotlin.coroutines.CoroutineContext.Key<Trace>
+    }
+    @kotlin.test.Test
+    fun `client owned reads inherit tracing without inheriting waiter cancellation`() = kotlinx.coroutines.runBlocking {
+        val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
+        val trace = Trace()
+        val observer = object : com.latenighthack.lockers.observability.LockersTelemetry {
+            override suspend fun startSpan(operation: com.latenighthack.lockers.observability.TelemetryOperation) = object : com.latenighthack.lockers.observability.TelemetrySpan {
+                override val context = trace
+                override fun finish(outcome: com.latenighthack.lockers.observability.TelemetryOutcome) {}
+            }
+        }
+        try {
+            val coordinator = com.latenighthack.lockers.connector.LockerSyncCoordinator(scope)
+            val result = observer.observe( com.latenighthack.lockers.observability.TelemetryOperation.CONNECTOR_GET) {
+                coordinator.read("key") { kotlinx.coroutines.currentCoroutineContext()[Trace] }
+            }
+            kotlin.test.assertSame(trace, result)
+        } finally { scope.coroutineContext[kotlinx.coroutines.Job]?.cancel() }
     }
 }

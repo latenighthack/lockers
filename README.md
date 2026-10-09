@@ -64,8 +64,8 @@ safe local-dev default; production must set at least `LOCKERS_DB_URL`.
 
 ### Persistence
 
-Durable storage uses ktstore's Postgres-backed `StoreDelegate`
-(`SqlStoreDelegate` over a JDBC driver, `BYTEA` blobs). Set `LOCKERS_DB_URL` to a
+Durable storage uses ktstore's configured `Database` via `ServerStorage.postgres`,
+with all server and extension definitions composed before opening. Set `LOCKERS_DB_URL` to a
 Postgres JDBC URL, e.g.:
 
 ```bash
@@ -79,6 +79,8 @@ SQL delegate.
 
 ### Observability
 
+Independent Grafana packs, optional Prometheus/OTel adapters and connector telemetry are documented in [monitoring/README.md](monitoring/README.md). Dashboards select existing data sources and need no recording rules.
+
 - **Metrics**: Prometheus exposition at `GET /metrics` (Micrometer). All metrics are
   namespaced `lockers.*`.
 - **Health**: `GET /healthz` (liveness) and `GET /readyz` (readiness).
@@ -86,6 +88,21 @@ SQL delegate.
   ingestible by Loki/Promtail, ELK, or Datadog.
 
 ## Connector usage
+
+Compose `ConnectorStorage.definitions` with all application/social definitions before
+creating the shared handle. Pass it as `database` to `LockersClient.create`; opening
+is idempotent. `ConnectorStorage.inMemory()` is a configured test factory.
+`ServerExtensionFactory.storeDefinitions` declares extension stores before server
+startup, and the factory receives the shared database.
+
+V1 definitions preserve historical persisted names and encodings. The configured
+version 3 adoption migrates legacy browser version 1, Android version 2 and
+unversioned SQL stores: it derives keys from records, preserves original payload
+bytes and creates previously unregistered stores. Historical definitions are
+immutable migration contracts; future formats need a new definition and explicit
+consecutive migration. Adoption, duplicate-key failure and reopen are covered by
+frozen protobuf fixtures, including Android's legacy text blob bindings.
+
 
 The client wraps lockers as typed values. See
 `connector/src/jvmTest/.../LockerClientTests.kt` for complete, runnable examples.

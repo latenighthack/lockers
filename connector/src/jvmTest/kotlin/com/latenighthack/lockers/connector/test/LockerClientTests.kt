@@ -9,9 +9,8 @@ import com.latenighthack.ktbuf.proto.Codes
 import com.latenighthack.ktbuf.test.server.runTestWithServer
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.ktstore.InMemoryKeyValueStoreDelegate
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.ktstore.KeyValueStore
-import com.latenighthack.ktstore.StoreDelegate
 import com.latenighthack.lockers.example.v1.*
 import com.latenighthack.lockers.common.RoomKeying
 import com.latenighthack.lockers.common.v1.*
@@ -50,7 +49,7 @@ class LockerClientTests {
     private suspend fun createClient(
         rpcClient: RpcClient,
         lockKeySource: LockKeySource? = null,
-        storeDelegate: StoreDelegate = InMemoryStoreDelegate(),
+        database: Database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory(),
         awaitConnected: Boolean = true,
     ): ClientContext {
         val sessionKeyPair = Secp256r1KeyPair.generate()
@@ -63,7 +62,7 @@ class LockerClientTests {
 
         val lockers = LockersClient.create(
             rpcClient = rpcClient,
-            storeDelegate = storeDelegate,
+            database = database,
             keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate()),
             keySource = keySource,
             appVersion = Version(0, 0, 1),
@@ -1179,27 +1178,14 @@ class LockerClientTests {
         ): Unit = throw FaultInjectingRpcClient.rpcError(Codes.UNAVAILABLE, "offline")
     }
 
-    // InMemoryStoreDelegate.createStores wipes table data on every call, so a second client
-    // sharing the delegate would lose the first's cache; make creation once-only instead.
-    private class SharedStoreDelegate(
-        private val inner: InMemoryStoreDelegate = InMemoryStoreDelegate(),
-    ) : StoreDelegate by inner {
-        private var created = false
-        override suspend fun createStores() {
-            if (created) return
-            created = true
-            inner.createStores()
-        }
-    }
-
     @Test(timeout = 15_000)
     fun `watchAll emits cached lockers while offline`() = runTestWithServer(Application::attachTestServices) { server, _ ->
-        val storeDelegate = SharedStoreDelegate()
+        val database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
         val roomId = randomRoomId()
         val lockerId = randomLockerId()
 
         // Online: write a locker and wait for it to land in the local cache.
-        val online = createClient(server.rpcClient, storeDelegate = storeDelegate)
+        val online = createClient(server.rpcClient, database = database)
         online.typedClient.subscribeToRoom(roomId)
         online.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "cached" } }
         while (online.client.getAllLockers(roomId, DEFAULT_KEYSPACE, revalidate = false).isEmpty()) {
@@ -1209,7 +1195,7 @@ class LockerClientTests {
 
         // Offline: a fresh client over the same store must still hydrate watchers from cache
         // (no subscription ACK can ever arrive).
-        val offline = createClient(OfflineRpcClient(), storeDelegate = storeDelegate, awaitConnected = false)
+        val offline = createClient(OfflineRpcClient(), database = database, awaitConnected = false)
         val lockers = offline.typedClient.watchAll(roomId).first { it.isNotEmpty() }
         assertEquals("cached", lockers.values.single().title)
 

@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.connector
 
+import com.latenighthack.lockers.observability.*
+
 import com.diamondedge.logging.KmLog
 import com.diamondedge.logging.logging
 import com.latenighthack.ktbuf.bytes.toBase64String
@@ -276,12 +278,14 @@ class LockerClient(
     private val stream: Stream,
     private val lockerStore: LockerStore,
     private val lockKeySource: LockKeySource? = null,
-    private val codecs: NotificationCodecs = NotificationCodecs.identity(),
-    internal val log: KmLog = logging()
+    codecs: NotificationCodecs = NotificationCodecs.identity(),
+    internal val log: KmLog = logging(),
+    private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
 ) {
+    private val codecs = codecs.withTelemetry(telemetry)
     private val processingJob = SupervisorJob()
     private val processingScope = GlobalScope + processingJob
-    private val sync = LockerSyncCoordinator(processingScope)
+    private val sync = LockerSyncCoordinator(processingScope, telemetry)
     private val acceptance = Mutex()
     private val watched = mutableMapOf<Pair<RoomId, LockerKeyspace>, Flow<List<IdentifiedLocker>>>()
     private val watchMutex = Mutex()
@@ -382,7 +386,9 @@ class LockerClient(
     class Change(val lockerId: LockerId, val transform: suspend (ByteArray) -> ByteArray)
 
     /** Atomic on capable servers. Legacy fallback is selected before submitting any write. */
-    suspend fun updateLockers(roomId: RoomId, changes: List<Change>, initialKey: Secp256r1KeyPair? = null) {
+    suspend fun updateLockers(roomId: RoomId, changes: List<Change>, initialKey: Secp256r1KeyPair? = null) = telemetry.observe(TelemetryOperation.CONNECTOR_BATCH_WRITE) { updateLockersObserved(roomId, changes, initialKey) }
+
+    private suspend fun updateLockersObserved(roomId: RoomId, changes: List<Change>, initialKey: Secp256r1KeyPair?) {
         require(changes.isNotEmpty() && changes.size <= 64 && changes.map { it.lockerId }.distinct().size == changes.size)
         // Room batch lock and stable locker ordering prevent overlapping single writes interleaving.
         suspend fun locked(index: Int, action: suspend () -> Unit) {
@@ -439,6 +445,7 @@ class LockerClient(
                             }
                         }
                         is PostLockerChangesResponse.Result.CONFLICT -> {
+                        telemetry.safeRecord(TelemetryOperation.CONNECTOR_CONFLICT, TelemetryOutcome.CONFLICT)
                             response.changes.forEachIndexed { index, item ->
                                 if (item.result is PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION)
                                     current[changes[index].lockerId] = item.version to (item.existingLocker?.plaintextPayload() ?: byteArrayOf())
@@ -611,8 +618,8 @@ class LockerClient(
             )
         }
 
-    private suspend fun fetchAllLockers(roomId: RoomId, keyspace: LockerKeyspace): List<IdentifiedLocker> =
-        hydrateRoom(roomId).filter { it.locker != null && it.lockerId?.keyspace == keyspace }
+    private suspend fun fetchAllLockers(roomId: RoomId, keyspace: LockerKeyspace): List<IdentifiedLocker> = telemetry.observe(TelemetryOperation.CONNECTOR_GET_ALL) {
+        hydrateRoom(roomId).filter { it.locker != null && it.lockerId?.keyspace == keyspace } }
 
     suspend fun getLocker(roomId: RoomId, lockerId: LockerId, revalidate: Boolean = true): IdentifiedLocker? {
         val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
@@ -648,7 +655,7 @@ class LockerClient(
         }
     }
 
-    private suspend fun fetchLocker(roomId: RoomId, lockerId: LockerId): IdentifiedLocker? = sync.read(roomId to lockerId) {
+    private suspend fun fetchLocker(roomId: RoomId, lockerId: LockerId): IdentifiedLocker? = telemetry.observe(TelemetryOperation.CONNECTOR_GET) {  sync.read(roomId to lockerId) {
         val fetchedLocker = roomService.getLocker(GetLockerRequest {
             this.lockerId = lockerId
             this.roomId = roomId
@@ -659,10 +666,10 @@ class LockerClient(
         }
 
         fetchedLocker
-    }
+    } }
 
     suspend fun deleteLocker(roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.() -> Unit = {}) =
-        sync.mutate(roomId to lockerId) { deleteLockerSerialized(roomId, lockerId, notificationBuilder) }
+        sync.mutate(roomId to lockerId) { telemetry.observe(TelemetryOperation.CONNECTOR_DELETE) { deleteLockerSerialized(roomId, lockerId, notificationBuilder) } }
 
     private suspend fun deleteLockerSerialized(
         roomId: RoomId,
@@ -691,6 +698,7 @@ class LockerClient(
                 when (result.result) {
                     is DeleteLockerResponse.Result.OK -> result.version
                     is DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION -> {
+                        telemetry.safeRecord(TelemetryOperation.CONNECTOR_CONFLICT, TelemetryOutcome.CONFLICT)
                         parentVersion = result.version
                         retry()
                     }
@@ -737,7 +745,7 @@ class LockerClient(
         roomId: RoomId, lockerId: LockerId,
         notificationBuilder: NotificationBuilder.(Locker?) -> Unit = {}, ratchet: Boolean = false,
         transform: suspend (ByteArray) -> ByteArray,
-    ): Locker? = sync.mutate(roomId to lockerId) { updateLockerSerialized(roomId, lockerId, notificationBuilder, ratchet, transform) }
+    ): Locker? = sync.mutate(roomId to lockerId) { telemetry.observe(TelemetryOperation.CONNECTOR_WRITE) { updateLockerSerialized(roomId, lockerId, notificationBuilder, ratchet, transform) } }
 
     private suspend fun updateLockerSerialized(
         roomId: RoomId,
@@ -791,6 +799,7 @@ class LockerClient(
                 val locker = when (result.result) {
                     is PostLockerChangeResponse.Result.OK -> request.locker!!
                     is PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION -> {
+                        telemetry.safeRecord(TelemetryOperation.CONNECTOR_CONFLICT, TelemetryOutcome.CONFLICT)
                         submitted = null
                         currentPlaintext = result.existingLocker?.plaintextPayload() ?: byteArrayOf()
                         parentVersion = result.version

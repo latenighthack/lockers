@@ -1,5 +1,6 @@
 package com.latenighthack.lockers.server.claim
 
+import com.latenighthack.lockers.observability.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -35,6 +36,7 @@ class ClaimRenewalService(
     /** Session-registry drain, run alongside [RoomClaimStore.releaseAll] on stop. */
     private val sessionReleaseAll: suspend () -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
+    private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
 ) {
     private val logger = LoggerFactory.getLogger(ClaimRenewalService::class.java)
     private var job: Job? = null
@@ -47,10 +49,13 @@ class ClaimRenewalService(
             while (isActive) {
                 delay(renewIntervalMs)
                 try {
-                    renewOnce()
+                    telemetry.observe(TelemetryOperation.OWNERSHIP_RENEW) { renewOnce() }
+                    meters.onRenewSuccess()
                     lastSuccess = clock()
                     demotedForStreak = false
                 } catch (t: Exception) {
+                    if (t is kotlinx.coroutines.CancellationException) throw t
+                    meters.renewFailures.increment()
                     logger.warn("claim renew round failed node={}", nodeId, t)
                     if (!demotedForStreak && clock() - lastSuccess > ttlMs) {
                         // Partitioned from the store for a full TTL: our rows are now stealable, so

@@ -1,0 +1,33 @@
+apiVersion: 1
+datasources:
+  - name: Monitoring Prometheus
+    uid: smoke-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+  - name: Monitoring Loki
+    uid: smoke-loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          matcherRegex: '"trace_id"\s*:\s*"([0-9a-f]{32})"'
+          datasourceUid: smoke-tempo
+          url: '$${__value.raw}'
+  - name: Monitoring Tempo
+    uid: smoke-tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: smoke-loki
+        customQuery: true
+        # Relayed client logs have the parent's service name, and can arrive after batching.
+        query: '{service_name=~".+"} | label_format lockers_trace_match=`{{ contains "$${__span.traceId}" __line__ }}` | lockers_trace_match="true" OR trace_id="$${__span.traceId}"'
+        spanStartTimeShift: -2m
+        spanEndTimeShift: 2m
+      lokiSearch: {datasourceUid: smoke-loki}

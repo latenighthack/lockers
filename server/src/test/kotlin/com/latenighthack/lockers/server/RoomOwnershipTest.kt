@@ -5,7 +5,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isTrue
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.LockGrant
 import com.latenighthack.lockers.common.v1.LockScope
 import com.latenighthack.lockers.common.v1.Locker
@@ -49,11 +49,11 @@ class RoomOwnershipTest {
     }
 
     private suspend fun roomServiceWith(ownership: RoomOwnership): LocalRoomServiceRpc {
-        val delegate = InMemoryStoreDelegate()
+        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
         val subs = SubscriptionStoreImpl(delegate).also { it.prepare() }
         val lockers = LockerStoreImpl(delegate).also { it.prepare() }
         val locks = LockStoreImpl(delegate).also { it.prepare() }
-        delegate.createStores()
+        delegate.open()
         val impl = RoomServiceImpl(
             subs, lockers, locks, noSessionGateway, ownership,
             ExampleLockerAgent(), SimpleMeterRegistry(), LockersConfig.defaults(),

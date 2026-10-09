@@ -15,6 +15,7 @@ import com.latenighthack.lockers.server.tools.*
 import com.latenighthack.lockers.server.storage.v1.*
 import com.latenighthack.lockers.session.v1.*
 import io.micrometer.core.instrument.MeterRegistry
+import com.latenighthack.lockers.observability.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -102,6 +103,7 @@ class SessionServiceImpl(
     private val config: LockersConfig,
     private val sessionRegistry: SessionRegistry = SessionRegistry.Noop,
     private val pushDelivery: PushDeliveryStore? = null,
+    private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
 ) : BaseServiceImpl(), SessionServer, SessionGatewayServer, BroadcastAdminServer {
     private val logger = LoggerFactory.getLogger(SessionServiceImpl::class.java)
     private val deliveryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -116,7 +118,7 @@ class SessionServiceImpl(
                 }
                 override suspend fun postEvents(request: PostEventsRequest) = PostEventsResponse(request.groups.map { postEvent(it) })
             }
-        }).also { if (config.deliveryWorkerEnabled) it.start() }
+        }, meterRegistry, telemetry, "push_delivery").also { if (config.deliveryWorkerEnabled) it.start() }
     }
     private val dispatchers = ShardedDispatcher<SessionId>(config.shardCount, "session-shard") {
         it.rawValue.contentHashCode()
@@ -145,6 +147,11 @@ class SessionServiceImpl(
     private val dispatcherWaitTimer = meterRegistry.timer("lockers.session.dispatcher.time")
 
     override suspend fun destroySession(
+        context: GrpcRequestContext,
+        request: DestroySessionRequest
+    ): DestroySessionResponse = meterRegistry.trackRpc(TelemetryOperation.SESSION_DESTROY, telemetry, { rpcOutcome(it.result.toString()) }) { observedDestroySession(context, request) }
+
+    private suspend fun observedDestroySession(
         context: GrpcRequestContext,
         request: DestroySessionRequest
     ): DestroySessionResponse {
@@ -377,7 +384,10 @@ class SessionServiceImpl(
         dispatchers.close()
     }
 
-    override suspend fun postEvents(context: GrpcRequestContext, request: PostEventsRequest): PostEventsResponse {
+    override suspend fun postEvents(context: GrpcRequestContext, request: PostEventsRequest): PostEventsResponse =
+        meterRegistry.trackRpc(TelemetryOperation.SESSION_POST_MANY, telemetry, { if (it.results.all { result -> result.result.isOk() }) TelemetryOutcome.OK else TelemetryOutcome.REJECTED }) { observedPostEvents(context, request) }
+
+    private suspend fun observedPostEvents(context: GrpcRequestContext, request: PostEventsRequest): PostEventsResponse {
         require(request.groups.size <= 64 && request.toByteArray().size <= 8 * 1024 * 1024)
         val rows = request.groups.flatMap { group ->
             val event = requireNotNull(group.event)
@@ -398,7 +408,7 @@ class SessionServiceImpl(
         })
     }
 
-    override suspend fun postEvent(context: GrpcRequestContext, request: PostEventRequest) = meterRegistry.trackResponse("lockers.session.post", PostEventResponse::result) {
+    override suspend fun postEvent(context: GrpcRequestContext, request: PostEventRequest) = meterRegistry.trackResponse("lockers.session.post", PostEventResponse::result, telemetry) {
         val event = request.event ?: return@trackResponse PostEventResponse(result = PostEventResponse.Result.UNKNOWN_ERROR)
         if (event.eventId?.rawValue?.isNotEmpty() != true) return@trackResponse PostEventResponse(result = PostEventResponse.Result.UNKNOWN_ERROR)
         enqueueEvent(request.sessionIds, event)
@@ -412,7 +422,7 @@ class SessionServiceImpl(
     override suspend fun broadcast(context: GrpcRequestContext, request: BroadcastRequest): BroadcastResponse {
         authorizeAdmin(context)
 
-        return meterRegistry.trackResponse("lockers.session.broadcast", BroadcastResponse::result) {
+        return meterRegistry.trackResponse("lockers.session.broadcast", BroadcastResponse::result, telemetry) {
             val targets = when (val kind = request.target?.kind) {
                 is BroadcastTarget.OneOfKind.all ->
                     sessionStore.getAllSessions().mapNotNull { session ->
@@ -502,7 +512,9 @@ class SessionServiceImpl(
         }
     }
 
-    private suspend fun WatchSessionResponse_OpenBuilder.handleOpen(open: WatchSessionRequest.Open): ServerSessionId? {
+    private suspend fun WatchSessionResponse_OpenBuilder.handleOpen(open: WatchSessionRequest.Open): ServerSessionId? = meterRegistry.trackRpc(TelemetryOperation.SESSION_OPEN, telemetry, { if (it == null) TelemetryOutcome.REJECTED else TelemetryOutcome.OK }) { observedHandleOpen(open) }
+
+    private suspend fun WatchSessionResponse_OpenBuilder.observedHandleOpen(open: WatchSessionRequest.Open): ServerSessionId? {
         val serverSessionId = open.sessionId?.rawValue?.let { ServerSessionId(it) }
         val requestSequenceSignature = open.sequenceKeySignature?.signature
 
@@ -578,7 +590,9 @@ class SessionServiceImpl(
         return serverSessionId
     }
 
-    private suspend fun WatchSessionResponse_OpenBuilder.handleCreate(create: WatchSessionRequest.Create): ServerSessionId? {
+    private suspend fun WatchSessionResponse_OpenBuilder.handleCreate(create: WatchSessionRequest.Create): ServerSessionId? = meterRegistry.trackRpc(TelemetryOperation.SESSION_CREATE, telemetry, { if (it == null) TelemetryOutcome.REJECTED else TelemetryOutcome.OK }) { observedHandleCreate(create) }
+
+    private suspend fun WatchSessionResponse_OpenBuilder.observedHandleCreate(create: WatchSessionRequest.Create): ServerSessionId? {
         val serverSessionId = create.sessionId?.rawValue?.let { ServerSessionId(it) }
         val requestPublicKey = create.publicKey?.rawValue
 

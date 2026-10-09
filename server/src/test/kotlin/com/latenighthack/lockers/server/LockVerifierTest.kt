@@ -1,7 +1,7 @@
 package com.latenighthack.lockers.server
 
 import com.latenighthack.ktcrypto.*
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.RoomKeying
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.server.services.room.v1.LockStoreImpl
@@ -22,10 +22,10 @@ import kotlin.test.assertTrue
  */
 class LockVerifierTest {
     private suspend fun newVerifier(): Pair<LockStoreImpl, LockVerifier> {
-        val delegate = InMemoryStoreDelegate()
+        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
         val store = LockStoreImpl(delegate)
         store.prepare()
-        delegate.createStores()
+        delegate.open()
         return store to LockVerifier(store)
     }
 

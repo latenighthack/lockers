@@ -3,7 +3,7 @@ package com.latenighthack.lockers.server
 import com.latenighthack.ktbuf.net.RpcClient
 import com.latenighthack.ktbuf.rpc.HttpRpcClient
 import com.latenighthack.ktbuf.test.server.TestServer
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.Push
 import com.latenighthack.lockers.push.v1.PushRegistration
 import com.latenighthack.lockers.server.services.push.v1.providers.PushBackendKind
@@ -27,7 +27,7 @@ suspend fun Application.attachTestServices() = attachTestServicesWithConfig(Lock
 suspend fun Application.attachFastpathTestServices() = attachTestServicesWithConfig(LockersConfig.defaults().copy(deliveryOutboxEnabled = true))
 
 suspend fun Application.attachTestServicesWithConfig(config: LockersConfig) {
-    val core = ServerCore::class.create(config, InMemoryStoreDelegate())
+    val core = ServerCore::class.create(config, com.latenighthack.lockers.server.ServerStorage.inMemory())
 
     core.setup()
 
@@ -42,7 +42,7 @@ suspend fun Application.attachTestServicesWithConfig(config: LockersConfig) {
  * processor drains its queue. Returns the started [MonolithComponent].
  */
 suspend fun Application.attachTestServicesWith(configureCore: (ServerCore) -> Unit): MonolithComponent {
-    val core = ServerCore::class.create(LockersConfig.defaults(), InMemoryStoreDelegate())
+    val core = ServerCore::class.create(LockersConfig.defaults(), com.latenighthack.lockers.server.ServerStorage.inMemory())
     configureCore(core)
     core.setup()
 

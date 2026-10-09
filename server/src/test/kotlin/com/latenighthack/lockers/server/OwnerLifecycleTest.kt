@@ -8,7 +8,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isTrue
-import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.Locker
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.LockerKeyspace
@@ -48,7 +48,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 
 /**
- * M5 — elastic reshard over the in-process [SimCluster] and one shared [InMemoryStoreDelegate].
+ * M5 — elastic reshard over the in-process [SimCluster] and one shared [Database].
  * Proves: (1) a node add/remove moves ownership only for the affected shards; (2) at most one live
  * lease per `(keyspace, shard)`; (3) a write on a node that lost its lease is rejected NOT_OWNER;
  * (4) after handoff the new owner rebuilds room→session routing from the durable store and delivery
@@ -98,11 +98,11 @@ class OwnerLifecycleTest {
         val locks: LockStoreImpl,
     )
 
-    private suspend fun sharedStore(delegate: InMemoryStoreDelegate): SharedStore {
+    private suspend fun sharedStore(delegate: Database): SharedStore {
         val subs = SubscriptionStoreImpl(delegate).also { it.prepare() }
         val lockers = LockerStoreImpl(delegate).also { it.prepare() }
         val locks = LockStoreImpl(delegate).also { it.prepare() }
-        delegate.createStores()
+        delegate.open()
         return SharedStore(subs, lockers, locks)
     }
 
@@ -182,7 +182,7 @@ class OwnerLifecycleTest {
     fun `node add moves ownership only for affected shards`() = runBlocking {
         val scope = CoroutineScope(Job())
         val sim = SimCluster(listOf(NodeId("a"), NodeId("b")), ShardCounts(shardCount))
-        val a = node(NodeId("a"), sim, sharedStore(InMemoryStoreDelegate()), scope)
+        val a = node(NodeId("a"), sim, sharedStore(com.latenighthack.lockers.server.ServerStorage.inMemory()), scope)
 
         val before = a.router.roomMap()
         sim.addNode(NodeId("c"))
@@ -206,7 +206,7 @@ class OwnerLifecycleTest {
     fun `at most one node holds a live lease per shard across a handoff`() = runBlocking {
         val scope = CoroutineScope(Job())
         val sim = SimCluster(listOf(NodeId("a"), NodeId("b")), ShardCounts(shardCount))
-        val store = sharedStore(InMemoryStoreDelegate())
+        val store = sharedStore(com.latenighthack.lockers.server.ServerStorage.inMemory())
         val a = node(NodeId("a"), sim, store, scope)
         val b = node(NodeId("b"), sim, store, scope)
 
@@ -226,7 +226,7 @@ class OwnerLifecycleTest {
     fun `write on a node that lost its lease is rejected NOT_OWNER`() = runBlocking {
         val scope = CoroutineScope(Job())
         val sim = SimCluster(listOf(NodeId("a"), NodeId("b")), ShardCounts(shardCount))
-        val store = sharedStore(InMemoryStoreDelegate())
+        val store = sharedStore(com.latenighthack.lockers.server.ServerStorage.inMemory())
         val a = node(NodeId("a"), sim, store, scope)
         val b = node(NodeId("b"), sim, store, scope)
 
@@ -253,7 +253,7 @@ class OwnerLifecycleTest {
     fun `after handoff the new owner rebuilds routing from the store and delivery continues`() = runBlocking {
         val scope = CoroutineScope(Job())
         val sim = SimCluster(listOf(NodeId("a"), NodeId("b")), ShardCounts(shardCount))
-        val store = sharedStore(InMemoryStoreDelegate())
+        val store = sharedStore(com.latenighthack.lockers.server.ServerStorage.inMemory())
         val a = node(NodeId("a"), sim, store, scope)
         val b = node(NodeId("b"), sim, store, scope)
 

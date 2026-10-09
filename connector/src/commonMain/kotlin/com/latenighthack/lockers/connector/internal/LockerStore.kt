@@ -1,8 +1,6 @@
 package com.latenighthack.lockers.connector.internal
 
-import com.latenighthack.ktstore.BoundStoreKey
-import com.latenighthack.ktstore.Store
-import com.latenighthack.ktstore.StoreDelegate
+import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.LockerKeyspace
 import com.latenighthack.lockers.common.v1.RoomId
@@ -25,38 +23,33 @@ interface LockerStore {
     suspend fun deleteLocker(roomId: RoomId, keyspace: LockerKeyspace, lockerId: LockerId)
 }
 
-class LockerStoreImpl(delegate: StoreDelegate) : LockerStore, Store<StoredLocker>(
-    delegate,
-    "lockers",
-    StoredLocker::toByteArray,
-    StoredLocker.Companion::fromByteArray
-) {
-    private val roomIdKey = serializedIndex(StoredLocker::roomIdRawValue, ::byteArrayIdentity)
-    private val lockerIdKey = serializedIndex(StoredLocker::lockerIdRawValue, ::byteArrayIdentity)
-    private val lockerKeyspaceKey = longIndex(StoredLocker::lockerKeyspace)
-    private val roomIdLockerKeyspaceKey = compositeIndex(roomIdKey, lockerKeyspaceKey)
-    private val roomIdLockerIdLockerKeyspaceKey = compositeIndex(roomIdKey, lockerIdKey, lockerKeyspaceKey).also { primaryKey(it) }
+class LockerStoreImpl(delegate: Database) : LockerStore, Store<StoredLocker>(delegate, LockerStoreImplDefinitionV1) {
+    private val roomIdKey = LockerStoreImplDefinitionV1.roomIdKey
+    private val lockerIdKey = LockerStoreImplDefinitionV1.lockerIdKey
+    private val lockerKeyspaceKey = LockerStoreImplDefinitionV1.lockerKeyspaceKey
+    private val roomIdLockerKeyspaceKey = LockerStoreImplDefinitionV1.roomIdLockerKeyspaceKey
+    private val roomIdLockerIdLockerKeyspaceKey = LockerStoreImplDefinitionV1.roomIdLockerIdLockerKeyspaceKey
 
     override suspend fun saveLocker(locker: StoredLocker) = save(locker)
 
     override suspend fun getAllLockers() = getAll()
 
     override suspend fun getAllLockers(roomId: RoomId, keyspace: LockerKeyspace) = getAll(roomIdLockerKeyspaceKey.eq(listOf(
-        BoundStoreKey.SerializedKey(roomIdKey.name, roomId.rawValue),
-        BoundStoreKey.LongKey(lockerKeyspaceKey.name, keyspace.value)
+        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue),
+        BoundStoreKey.LongKey(lockerKeyspaceKey.name.value, keyspace.value)
     )))
 
     override suspend fun getAllLockers(roomId: RoomId) = getAll(roomIdKey.eq(roomId.rawValue))
 
     override suspend fun getLocker(roomId: RoomId, keyspace: LockerKeyspace, lockerId: LockerId) = get(roomIdLockerIdLockerKeyspaceKey.eq(listOf(
-        BoundStoreKey.SerializedKey(roomIdKey.name, roomId.rawValue),
-        BoundStoreKey.SerializedKey(lockerIdKey.name, lockerId.rawValue),
-        BoundStoreKey.LongKey(lockerKeyspaceKey.name, keyspace.value)
+        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue),
+        BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.rawValue),
+        BoundStoreKey.LongKey(lockerKeyspaceKey.name.value, keyspace.value)
     )))
 
     override suspend fun deleteLocker(roomId: RoomId, keyspace: LockerKeyspace, lockerId: LockerId) = delete(roomIdLockerIdLockerKeyspaceKey.eq(listOf(
-        BoundStoreKey.SerializedKey(roomIdKey.name, roomId.rawValue),
-        BoundStoreKey.SerializedKey(lockerIdKey.name, lockerId.rawValue),
-        BoundStoreKey.LongKey(lockerKeyspaceKey.name, keyspace.value)
+        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue),
+        BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.rawValue),
+        BoundStoreKey.LongKey(lockerKeyspaceKey.name.value, keyspace.value)
     )))
 }
