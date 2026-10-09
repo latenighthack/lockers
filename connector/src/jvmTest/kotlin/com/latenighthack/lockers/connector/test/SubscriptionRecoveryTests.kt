@@ -20,7 +20,7 @@ class SubscriptionRecoveryTests {
                 calls.send(Call(SubscriptionRequest.fromByteArray(request), release))
                 release.await()
             }
-            return RpcResponse(SubscriptionResponse().toByteArray(), emptyMap())
+            return RpcResponse(SubscriptionResponse(currentRevision = SubscriptionRequest.fromByteArray(request).intentRevision).toByteArray(), emptyMap())
         }
         override suspend fun serverStreamingCall(method: RpcMethodSpecifier, block: suspend RpcServerStream.() -> Unit, readyCallback: () -> Unit) =
             error("not used by subscription actor fixture")

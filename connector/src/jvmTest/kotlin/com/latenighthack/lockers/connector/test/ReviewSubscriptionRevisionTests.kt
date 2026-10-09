@@ -18,7 +18,7 @@ class ReviewSubscriptionRevisionTests {
         val requests = java.util.concurrent.CopyOnWriteArrayList<SubscriptionRequest>()
         val rpc = ReviewRpc { method, bytes -> when (method.methodName) {
             "Capabilities" -> CapabilitiesResponse(subscriptionRevisions = true).toByteArray()
-            "Subscription" -> { requests += SubscriptionRequest.fromByteArray(bytes); SubscriptionResponse().toByteArray() }
+            "Subscription" -> { val request = SubscriptionRequest.fromByteArray(bytes); requests += request; SubscriptionResponse(currentRevision = request.intentRevision).toByteArray() }
             else -> error(method.methodName)
         } }
         fun client() = SubscriptionController(rpc, store, sessions, MutableStateFlow(SessionId(byteArrayOf(1))))
@@ -41,7 +41,7 @@ class ReviewSubscriptionRevisionTests {
             "Capabilities" -> CapabilitiesResponse(subscriptionRevisions = true).toByteArray()
             "Subscription" -> { val request = SubscriptionRequest.fromByteArray(bytes); revisions += request.intentRevision
                 if (request.intentRevision <= 5) SubscriptionResponse(SubscriptionResponse.Result.STALE_INTENT, 5).toByteArray()
-                else SubscriptionResponse().toByteArray() }
+                else SubscriptionResponse(currentRevision = request.intentRevision).toByteArray() }
             else -> error(method.methodName)
         } }, store, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), coroutineContext = coroutineContext)
         try {
@@ -62,7 +62,7 @@ class ReviewSubscriptionRevisionTests {
                 if (request.intentRevision == 1L) {
                     entered.complete(Unit); withContext(NonCancellable) { release.await() }; returned.complete(Unit)
                     SubscriptionResponse(SubscriptionResponse.Result.STALE_INTENT, 100).toByteArray()
-                } else SubscriptionResponse().toByteArray() }
+                } else SubscriptionResponse(currentRevision = request.intentRevision).toByteArray() }
             else -> error(method.methodName)
         } }, store, sessions, MutableStateFlow(SessionId(byteArrayOf(1))))
         try {

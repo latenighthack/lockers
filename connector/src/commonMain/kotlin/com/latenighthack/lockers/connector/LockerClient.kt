@@ -561,6 +561,7 @@ class LockerClient(
             if (response.result is SubscriptionResponse.Result.STALE_INTENT) throw SubscriptionIntentStaleException(response.currentRevision)
             require(response.result !is SubscriptionResponse.Result.INVALID_DATA) { "Subscription has invalid stored data; owner repair required" }
             check(response.result.isOk()) { "Subscription rejected" }
+            require(response.currentRevision == revision) { "Subscription success did not echo the requested intent revision" }
         }
         do {
             val page: List<IdentifiedLocker>
@@ -573,6 +574,7 @@ class LockerClient(
                 if (response.result is SubscriptionResponse.Result.STALE_INTENT) throw SubscriptionIntentStaleException(response.currentRevision)
                 require(response.result !is SubscriptionResponse.Result.INVALID_DATA) { "Snapshot has invalid stored data; owner repair required" }
                 check(response.result.isOk()) { "Subscribe and snapshot rejected" }
+                require(response.currentRevision == revision) { "Snapshot success did not echo the requested intent revision" }
                 page = response.lockers; sequence = response.roomSequence; next = response.nextPageToken
             } else {
                 val response = roomService.getAllLockers(GetAllLockersRequest(roomId = room,

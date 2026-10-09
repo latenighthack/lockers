@@ -36,12 +36,12 @@ class ReviewSessionProofTests {
         val rpc = object : RpcClient {
             override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray): RpcResponse {
                 val bytes = when (method.methodName) {
-                    "Capabilities" -> CapabilitiesResponse().toByteArray()
+                    "Capabilities" -> CapabilitiesResponse(subscriptionRevisions = true).toByteArray()
                     "GetAllLockers" -> GetAllLockersResponse().toByteArray()
                     "Subscription" -> {
                         val decoded = SubscriptionRequest.fromByteArray(request)
                         verify(SessionSigning.SUBSCRIPTION, decoded.sessionId, decoded.proof, decoded.copy(proof = null).toByteArray())
-                        SubscriptionResponse().toByteArray()
+                        SubscriptionResponse(currentRevision = decoded.intentRevision).toByteArray()
                     }
                     "RegisterSession" -> {
                         val decoded = RegisterSessionRequest.fromByteArray(request)

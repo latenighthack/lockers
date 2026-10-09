@@ -183,6 +183,8 @@ class SubscriptionCapacityException : IllegalStateException("Subscription intent
 
 interface SubscriptionStore {
     val maxSubscriptions: Int get() = 1_024
+    suspend fun restoreIntent(room: RoomId): SubscriptionIntentRevision? = throw UnsupportedOperationException("Atomic durable subscription restoration required")
+    suspend fun confirmIntent(room: RoomId, revision: Long, subscribed: Boolean): Boolean = throw UnsupportedOperationException("Atomic durable subscription confirmation required")
     suspend fun ensureIntentRevision(room: RoomId, subscribed: Boolean): Long = throw UnsupportedOperationException("Durable subscription intent revisions required")
     suspend fun commitIntent(room: RoomId, subscribed: Boolean, expectedRevision: Long? = null, minimumRevision: Long = 0): Long = throw UnsupportedOperationException("Durable subscription intent revisions required")
     suspend fun intentRevision(room: RoomId): SubscriptionIntentRevision? = throw UnsupportedOperationException("Durable subscription intent revisions required")
@@ -199,16 +201,33 @@ class SubscriptionStoreImpl(private val database: Database, private val retentio
     override suspend fun intentRevision(room: RoomId): SubscriptionIntentRevision? {
         val room = room.canonical(); prepare(); revisions.prepare(); return revisions.find(room.rawValue)
     }
+    override suspend fun restoreIntent(room: RoomId): SubscriptionIntentRevision? {
+        val room = room.canonical(); prepare(); revisions.prepare()
+        return database.transaction("connector-subscriptions") {
+            val row = getSubscription(room) ?: return@transaction null
+            revisions.find(room.rawValue) ?: SubscriptionIntentRevision(room.rawValue, 1, !row.isPendingRemove).also { revisions.put(it) }
+        }
+    }
+    override suspend fun confirmIntent(room: RoomId, revision: Long, subscribed: Boolean): Boolean {
+        val room = room.canonical(); require(revision > 0); prepare(); revisions.prepare()
+        return database.transaction("connector-subscriptions") {
+            val current = revisions.find(room.rawValue)
+            if (current == null || current.revision != revision || current.subscribed != subscribed) return@transaction false
+            if (subscribed) {
+                val row = getSubscription(room)
+                updateSubscription(row?.copy(isPendingAdd = false, isPendingRemove = false) ?: StoredSubscription(roomIdRawValue = room.rawValue))
+            } else deleteSubscription(room)
+            true
+        }
+    }
     override suspend fun ensureIntentRevision(room: RoomId, subscribed: Boolean): Long {
         val room = room.canonical(); prepare(); revisions.prepare()
         return database.transaction("connector-subscriptions") {
             val current = revisions.find(room.rawValue)
-            if (current != null && current.subscribed == subscribed) current.revision
-            else {
-                val previous = current?.revision ?: 0L
-                if (previous == Long.MAX_VALUE) throw SubscriptionHistoryCapacityException()
-                (previous + 1).also { revisions.put(SubscriptionIntentRevision(room.rawValue, it, subscribed)) }
-            }
+            if (current != null) {
+                if (current.subscribed != subscribed) throw SubscriptionRevisionConflictException(current.revision)
+                current.revision
+            } else 1L.also { revisions.put(SubscriptionIntentRevision(room.rawValue, it, subscribed)) }
         }
     }
     override suspend fun commitIntent(room: RoomId, subscribed: Boolean, expectedRevision: Long?, minimumRevision: Long): Long {
@@ -302,7 +321,7 @@ class SubscriptionController(
         data object Refresh : Change
         data class Finished(val generation: Long) : Change
         data class Confirmed(val roomId: RoomId, val sessionId: SessionId,
-                             val generation: Long, val subscribed: Boolean) : Change
+                             val generation: Long, val subscribed: Boolean, val revision: Long) : Change
         data class Stale(val roomId: RoomId, val sessionId: SessionId, val generation: Long, val revision: Long, val currentRevision: Long) : Change
         data class Failed(val roomId: RoomId, val sessionId: SessionId, val generation: Long, val cause: Throwable) : Change
     }
@@ -334,20 +353,18 @@ class SubscriptionController(
         controllerFailure.value?.let { throw it }
         check(controllerJob.isActive) { "SubscriptionController is closed" }
         if (!started.compareAndSet(false, true)) return
-        val desired = try {
+        val restored = try {
             val rows = subscriptionStore.getAllSubscriptions()
             if (rows.size > subscriptionStore.maxSubscriptions) throw SubscriptionCapacityException()
-            rows.associate { RoomId(it.roomIdRawValue).canonical() to !it.isPendingRemove }.toMutableMap()
+            // Row snapshots are discovery only. Re-read each membership and its current ledger
+            // in one transaction; an opposite newer intent must never be inferred from old rows.
+            rows.mapNotNull { subscriptionStore.restoreIntent(RoomId(it.roomIdRawValue)) }
         } catch (exhausted: RetryLimitExceeded) {
             currentCoroutineContext().ensureActive(); controllerFailure.value = exhausted; stop(); throw exhausted
         } catch (cancelled: CancellationException) { stop(); throw cancelled }
         catch (failure: Exception) { controllerFailure.value = retainedProtocolFailure(failure); stop(); throw failure }
-
-        val revisions = try {
-            desired.mapValues { (room, subscribed) -> subscriptionStore.ensureIntentRevision(room, subscribed) }.toMutableMap()
-        } catch (exhausted: RetryLimitExceeded) { currentCoroutineContext().ensureActive(); controllerFailure.value = exhausted; stop(); throw exhausted }
-        catch (cancelled: CancellationException) { stop(); throw cancelled }
-        catch (failure: Exception) { controllerFailure.value = failure; stop(); throw failure }
+        val desired = restored.associate { RoomId(it.room).canonical() to it.subscribed }.toMutableMap()
+        val revisions = restored.associate { RoomId(it.room).canonical() to it.revision }.toMutableMap()
         controllerScope.launch {
             var sessionId: SessionId? = null
             var nextGeneration = 0L
@@ -381,11 +398,12 @@ class SubscriptionController(
                                     if (response.result is SubscriptionResponse.Result.STALE_INTENT) throw SubscriptionIntentStaleException(response.currentRevision)
                                     require(response.result !is SubscriptionResponse.Result.INVALID_DATA) { "Subscription has invalid stored data; owner repair required" }
                                     check(response.result.isOk()) { "subscription rejected: ${response.result}" }
+                                    require(response.currentRevision == revision) { "Subscription success did not echo the requested intent revision" }
                                 }
                             }
                         }
                         currentCoroutineContext().ensureActive()
-                        changes.send(Change.Confirmed(roomId, targetSession, generation, subscribed))
+                        changes.send(Change.Confirmed(roomId, targetSession, generation, subscribed, revision))
                     } catch (stale: SubscriptionIntentStaleException) {
                         currentCoroutineContext().ensureActive()
                         changes.send(Change.Stale(roomId, targetSession, generation, revision, stale.currentRevision))
@@ -465,15 +483,13 @@ class SubscriptionController(
                             }
                             is Change.Confirmed -> {
                                 if (change.sessionId != sessionId || generations[change.roomId] != change.generation) continue
+                                if (!subscriptionStore.confirmIntent(change.roomId, change.revision, change.subscribed))
+                                    throw SubscriptionRevisionConflictException(subscriptionStore.intentRevision(change.roomId)?.revision ?: 0)
                                 active.remove(change.roomId)
                                 if (change.subscribed) {
-                                    val original = subscriptionStore.getSubscription(change.roomId)
-                                    subscriptionStore.updateSubscription(original?.copy(isPendingAdd = false, isPendingRemove = false)
-                                        ?: StoredSubscription(roomIdRawValue = change.roomId.rawValue))
                                     confirmations.update { it.copy(rooms = it.rooms + change.roomId, failures = it.failures - change.roomId) }
                                     newSubscriptions.tryEmit(change.roomId)
                                 } else {
-                                    subscriptionStore.deleteSubscription(change.roomId)
                                     desired.remove(change.roomId); generations.remove(change.roomId); pending.remove(change.roomId); revisions.remove(change.roomId); repairs.remove(change.roomId)
                                     confirmations.update { it.copy(failures = it.failures - change.roomId) }
                                 }

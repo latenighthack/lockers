@@ -30,7 +30,7 @@ class ReviewSubscriptionFailureTests {
                 entered.send(request.sessionId!!.rawValue[0].toInt())
                 try { withContext(NonCancellable) { release.await() } } finally { active.decrementAndGet() }
             }
-            SubscriptionResponse().toByteArray()
+            SubscriptionResponse(currentRevision = request.intentRevision).toByteArray()
         }, subscriptions, sessions, source, coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         try {
             controller.subscribe(heldRoom); controller.subscribe(healthyRoom)
@@ -61,7 +61,7 @@ class ReviewSubscriptionFailureTests {
                 val count = active.incrementAndGet(); peak.updateAndGet { maxOf(it, count) }; entered.send(Unit)
                 try { withContext(NonCancellable) { release.await() } } finally { active.decrementAndGet() }
             }
-            SubscriptionResponse().toByteArray()
+            SubscriptionResponse(currentRevision = request.intentRevision).toByteArray()
         }, subscriptions, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         try {
             val first = RoomId(byteArrayOf(2)); val second = RoomId(byteArrayOf(3))
@@ -96,7 +96,7 @@ class ReviewSubscriptionFailureTests {
             val request = SubscriptionRequest.fromByteArray(bytes); val room = request.roomId!!.rawValue[0].toInt()
             calls.computeIfAbsent(room) { AtomicInteger() }.incrementAndGet()
             if (room == 2 && reject) throw RpcResponseException("test", "POST", Codes.FAILED_PRECONDITION, "permanent room namespace ceiling")
-            SubscriptionResponse().toByteArray()
+            SubscriptionResponse(currentRevision = request.intentRevision).toByteArray()
         }, subscriptions, sessions, session, coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         try {
             controller.startWatchingSubscriptions(); controller.subscribe(RoomId(byteArrayOf(2)))
@@ -126,7 +126,7 @@ class ReviewSubscriptionFailureTests {
                 throw RpcResponseException("test", "POST", Codes.OUT_OF_RANGE, "old request ceiling")
             }
             if (calls.get() == 2) throw RpcResponseException("test", "POST", Codes.RESOURCE_EXHAUSTED, "temporary quota")
-            SubscriptionResponse().toByteArray()
+            SubscriptionResponse(currentRevision = request.intentRevision).toByteArray()
         }, subscriptions, sessions, source, coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         val room = RoomId(byteArrayOf(2))
         try {
@@ -161,12 +161,12 @@ class ReviewSubscriptionFailureTests {
         val actual = SubscriptionStoreImpl(db).also { it.prepare() }
         val failure = IllegalStateException("subscription confirmation save failed")
         val uncaught = kotlinx.coroutines.channels.Channel<Throwable>(1)
-        val rpc = ReviewRpc { _, _ -> SubscriptionResponse().toByteArray() }
+        val rpc = ReviewRpc { _, bytes -> SubscriptionResponse(currentRevision = SubscriptionRequest.fromByteArray(bytes).intentRevision).toByteArray() }
         val source = MutableStateFlow<SessionId?>(SessionId(byteArrayOf(1)))
         val controller = SubscriptionController(rpc, object : SubscriptionStore by actual {
-            override suspend fun updateSubscription(subscription: StoredSubscription) {
-                if (!subscription.isPendingAdd && !subscription.isPendingRemove) throw failure
-                actual.updateSubscription(subscription)
+            override suspend fun confirmIntent(room: RoomId, revision: Long, subscribed: Boolean): Boolean {
+                if (subscribed) throw failure
+                return actual.confirmIntent(room, revision, subscribed)
             }
         }, sessions, source, coroutineContext = currentCoroutineContext() + CoroutineExceptionHandler { _, error -> uncaught.trySend(error) }, supportsRevisions = { true })
         val room = RoomId(byteArrayOf(2))
@@ -190,10 +190,13 @@ class ReviewSubscriptionFailureTests {
         val actual = SubscriptionStoreImpl(db).also { it.prepare() }
         val failure = IllegalStateException("subscription removal failed")
         val uncaught = kotlinx.coroutines.channels.Channel<Throwable>(1)
-        val rpc = ReviewRpc { _, _ -> SubscriptionResponse().toByteArray() }
+        val rpc = ReviewRpc { _, bytes -> SubscriptionResponse(currentRevision = SubscriptionRequest.fromByteArray(bytes).intentRevision).toByteArray() }
         val source = MutableStateFlow<SessionId?>(SessionId(byteArrayOf(1)))
         val controller = SubscriptionController(rpc, object : SubscriptionStore by actual {
-            override suspend fun deleteSubscription(roomId: RoomId) { throw failure }
+            override suspend fun confirmIntent(room: RoomId, revision: Long, subscribed: Boolean): Boolean {
+                if (!subscribed) throw failure
+                return actual.confirmIntent(room, revision, subscribed)
+            }
         }, sessions, source, coroutineContext = currentCoroutineContext() + CoroutineExceptionHandler { _, error -> uncaught.trySend(error) }, supportsRevisions = { true })
         val room = RoomId(byteArrayOf(2))
         try {
@@ -215,7 +218,7 @@ class ReviewSubscriptionFailureTests {
         val sessions = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), db).also { it.prepare() }
         val actual = SubscriptionStoreImpl(db).also { it.prepare() }
         val failure = IllegalStateException("new intent cannot persist")
-        val controller = SubscriptionController(ReviewRpc { _, _ -> SubscriptionResponse().toByteArray() }, object : SubscriptionStore by actual {
+        val controller = SubscriptionController(ReviewRpc { _, bytes -> SubscriptionResponse(currentRevision = SubscriptionRequest.fromByteArray(bytes).intentRevision).toByteArray() }, object : SubscriptionStore by actual {
             override suspend fun commitIntent(room: RoomId, subscribed: Boolean, expectedRevision: Long?, minimumRevision: Long): Long {
                 if (room.rawValue[0] == 2.toByte()) throw failure
                 return actual.commitIntent(room, subscribed, expectedRevision, minimumRevision)
@@ -236,7 +239,7 @@ class ReviewSubscriptionFailureTests {
         val controller = SubscriptionController(ReviewRpc { _, bytes ->
             val request = SubscriptionRequest.fromByteArray(bytes)
             if (request.kind is SubscriptionRequest.OneOfKind.subscribe) throw RpcResponseException("test", "POST", Codes.FAILED_PRECONDITION, "permanent quota")
-            SubscriptionResponse().toByteArray()
+            SubscriptionResponse(currentRevision = request.intentRevision).toByteArray()
         }, store, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         try {
             repeat(10) { index ->
