@@ -84,7 +84,7 @@ class LocalSessionGatewayDiscovery(private val sessionGatewayServer: SessionGate
 
 
 
-private data class OnlineServerSessionEvent(val event: ServerSessionEvent? = null, val receiveTime: Long = 0L, val sequence: Long = 0L, val clientEvent: Event? = null)
+private data class OnlineServerSessionEvent(val event: ServerSessionEvent? = null, val receiveTime: Long = 0L, val sequence: Long = 0L, val clientEvent: Event? = null, val catchUp: Boolean = false)
 
 private const val BROADCAST_EVENT_ID_BYTES = 16
 
@@ -324,7 +324,11 @@ class SessionServiceImpl(
             var lastSequence = 0L
             // Keyed by List<Byte> — a Set<ByteArray> compares by reference and would never match,
             // re-delivering every open-queued event on the live path too.
-            var storedQueuedEvents: Set<List<Byte>>? = null
+            val seen = object : java.util.LinkedHashMap<List<Byte>, Unit>(16, 0.75f, true) {
+                override fun removeEldestEntry(eldest: MutableMap.MutableEntry<List<Byte>, Unit>) =
+                    size > config.resourceLimits.maxInboxEventsPerSession + 1024
+            }
+            fun remember(events: List<Event>) { events.mapNotNull { it.eventId?.rawValue?.toList() }.forEach { seen[it] = Unit } }
 
             emitAll(incomingEvents
                 .onSubscription {
@@ -332,14 +336,16 @@ class SessionServiceImpl(
                 }
                 .onEach {
                     if (!isFirst) {
-                        if (it.sequence > lastSequence + 1) {
+                        if (it.sequence > lastSequence + 1 || (it.catchUp && it.event?.sessionId?.rawValue.contentEquals(sessionId.rawValue))) {
                             // A slow stream overran the bounded live buffer. Recover from the
                             // durable inbox immediately rather than waiting for reconnect.
-                            val missed = sessionInboxStore.getAllClientEvents(sessionId)
+                            val missed = sessionInboxStore.getAllClientEvents(sessionId).filter { event ->
+                                event.eventId?.rawValue?.toList() !in seen
+                            }
                             if (missed.isNotEmpty()) emit(StreamControlEvent.Message(WatchSessionResponse {
                                 response.events { event = missed }
                             }))
-                            storedQueuedEvents = missed.mapNotNull { event -> event.eventId?.rawValue?.toList() }.toSet()
+                            remember(missed)
                         }
                         lastSequence = it.sequence
                         return@onEach
@@ -354,7 +360,7 @@ class SessionServiceImpl(
 
                         val queuedEvents = sessionInboxStore.getAllClientEvents(sessionId)
 
-                        storedQueuedEvents = queuedEvents.mapNotNull { it.eventId?.rawValue?.toList() }.toSet()
+                        remember(queuedEvents)
 
                         eventsDeliveredQueuedCounter.increment(queuedEvents.size.toDouble())
 
@@ -367,10 +373,10 @@ class SessionServiceImpl(
                     openSent.complete(Unit)
                 }
                 .filter {
-                    it.event?.sessionId?.rawValue.contentEquals(sessionId.rawValue)
+                    !it.catchUp && it.event?.sessionId?.rawValue.contentEquals(sessionId.rawValue)
                 }
                 .mapNotNull {
-                    if (storedQueuedEvents?.contains(it.event?.eventId?.rawValue?.toList()) == true) {
+                    if (it.event?.eventId?.rawValue?.toList() in seen) {
                         return@mapNotNull null
                     }
 
@@ -379,6 +385,8 @@ class SessionServiceImpl(
                     eventsDeliveredCounter.increment()
 
                     val clientEvent = requireNotNull(it.clientEvent)
+                    if (!sessionInboxStore.isPending(requireNotNull(it.event?.eventId), sessionId)) return@mapNotNull null
+                    remember(listOf(clientEvent))
                     StreamControlEvent.Message(WatchSessionResponse {
                         response.events {
                             event = listOf(clientEvent)
@@ -437,10 +445,11 @@ class SessionServiceImpl(
             return@trackResponse PostEventResponse(result = PostEventResponse.Result.INVALID)
         try {
             val accepted = enqueueEvent(request.sessionIds, requireNotNull(request.event))
-            val moved = sessionRegistry.remoteSessions(accepted)
+            val moved = sessionRegistry.remoteSessions(accepted.accepted)
             PostEventResponse(result = if (moved.isEmpty()) PostEventResponse.Result.OK else PostEventResponse.Result.RETRY_ROUTING)
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (rejected: GatewayRejected) { PostEventResponse(result = rejected.result) }
+        catch (_: EventIdentityReuseException) { PostEventResponse(result = PostEventResponse.Result.INVALID) }
         catch (_: ResourceLimitException) { PostEventResponse(result = PostEventResponse.Result.RESOURCE_EXHAUSTED) }
     }
 
@@ -472,7 +481,7 @@ class SessionServiceImpl(
 
             return@trackResponse BroadcastResponse {
                 result = BroadcastResponse.Result.OK
-                this.delivered = delivered.size.toLong()
+                this.delivered = delivered.inserted.size.toLong()
             }
         }
     }
@@ -481,7 +490,8 @@ class SessionServiceImpl(
     // event carries one), persist to the session inbox and emit live. Shared by
     // room-scoped posts and server-wide broadcasts; returns the count enqueued.
     private class GatewayRejected(val result: PostEventResponse.Result) : RuntimeException()
-    private suspend fun enqueueEvent(sessionIds: List<SessionId>, event: Event): List<SessionId> {
+    private data class Enqueued(val accepted: List<SessionId>, val inserted: List<SessionId>)
+    private suspend fun enqueueEvent(sessionIds: List<SessionId>, event: Event): Enqueued {
         val receiveTime = System.nanoTime()
         val requestPush = event.notification?.push
         val roomIdRaw = event.roomId?.rawValue ?: byteArrayOf()
@@ -491,7 +501,7 @@ class SessionServiceImpl(
 
         if (sessionIds.size > ProtocolValidation.MAX_RECIPIENTS || sessionIds.any { !ProtocolValidation.identity(it.rawValue) } ||
             !ProtocolValidation.event(event)) throw GatewayRejected(PostEventResponse.Result.INVALID)
-        if (sessionIds.isEmpty()) return emptyList()
+        if (sessionIds.isEmpty()) return Enqueued(emptyList(), emptyList())
         val recipients = sessionStore.atomic(ServerSessionId(sessionIds.first().rawValue)) {
             val accepted = sessionIds.distinct().filter { id ->
                 val sid = ServerSessionId(id.rawValue)
@@ -503,23 +513,21 @@ class SessionServiceImpl(
                 ServerSessionEvent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomIdRaw),
                     ServerEventId(eventIdRaw), encodedPayload, encodedLocker, event.roomSequence)
             }
-            if (accepted.isNotEmpty()) {
-                if (requestPush != null && pushDelivery != null) {
-                    val room = event.roomId ?: RoomId(byteArrayOf())
-                    pushDelivery.outbox.commit(room, accepted, listOf(event.copy(locker = null))) {
-                        sessionInboxStore.saveClientEvents(events.map { it to event })
-                    }
-                } else sessionInboxStore.saveClientEvents(events.map { it to event })
+            val inserted = sessionInboxStore.acceptClientEvents(events.map { it to event })
+            val newlyAccepted = inserted.map { SessionId(requireNotNull(it.first.sessionId).rawValue) }
+            if (newlyAccepted.isNotEmpty() && requestPush != null && pushDelivery != null) {
+                val room = event.roomId ?: RoomId(byteArrayOf())
+                pushDelivery.outbox.commit(room, newlyAccepted, listOf(event.copy(locker = null))) { }
             }
-            accepted
+            Enqueued(accepted, newlyAccepted)
         }
-        val events = recipients.map { sessionId -> ServerSessionEvent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomIdRaw),
+        val events = recipients.inserted.map { sessionId -> ServerSessionEvent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomIdRaw),
             ServerEventId(eventIdRaw), encodedPayload, encodedLocker, event.roomSequence) }
         inboxSavesCounter.increment(events.size.toDouble())
         eventsPostedCounter.increment(events.size.toDouble())
         eventsQueuedCounter.increment(events.size.toDouble())
         events.forEach { incomingEvents.emit(OnlineServerSessionEvent(it, receiveTime, eventSerial.incrementAndGet(), event)) }
-        if (requestPush != null && pushDelivery == null) recipients.forEach { sessionId ->
+        if (requestPush != null && pushDelivery == null) recipients.inserted.forEach { sessionId ->
             deliveryScope.launch {
                 pushPermits.acquire()
                 try {
@@ -534,6 +542,11 @@ class SessionServiceImpl(
             }
         }
 
+        for (sid in recipients.accepted - recipients.inserted.toSet()) {
+            val serverId = ServerSessionId(sid.rawValue)
+            if (sessionInboxStore.isPending(ServerEventId(eventIdRaw), serverId)) incomingEvents.emit(OnlineServerSessionEvent(
+                ServerSessionEvent(sessionId = serverId), sequence = eventSerial.incrementAndGet(), catchUp = true))
+        }
         return recipients
     }
 

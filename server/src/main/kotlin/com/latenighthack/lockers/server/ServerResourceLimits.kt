@@ -8,6 +8,8 @@ data class ServerResourceLimits(
     val maxOutstandingProofsPerSession: Int = 4096,
     val maxInboxEvents: Int = 1_000_000,
     val maxInboxEventsPerSession: Int = 10_000,
+    val maxInboxReceipts: Int = 10_000_000,
+    val maxInboxReceiptsPerSession: Int = 1_000_000,
     val maxRoomClaims: Int = 1_000_000,
     val maxLockers: Int = 1_000_000,
     val maxLockersPerRoom: Int = 100_000,
@@ -26,6 +28,7 @@ data class ServerResourceLimits(
         require(maxSessions > 0 && maxReservedSessionIds >= maxSessions)
         require(maxOutstandingProofs > 0 && maxOutstandingProofsPerSession in 1..maxOutstandingProofs)
         require(maxInboxEvents > 0 && maxInboxEventsPerSession in 1..maxInboxEvents)
+        require(maxInboxReceipts > 0 && maxInboxReceiptsPerSession in 1..maxInboxReceipts)
         require(maxRoomClaims > 0)
         require(maxLockers > 0 && maxLockersPerRoom in 1..maxLockers)
         require(maxSnapshotLockers > 0 && maxSnapshotBytes > 0 && maxSnapshotLeases > 0)
@@ -44,6 +47,8 @@ data class ServerResourceLimits(
                 maxOutstandingProofsPerSession = limit("LOCKERS_MAX_SESSION_PROOFS", 4096),
                 maxInboxEvents = limit("LOCKERS_MAX_INBOX_EVENTS", 1_000_000),
                 maxInboxEventsPerSession = limit("LOCKERS_MAX_SESSION_INBOX_EVENTS", 10_000),
+                maxInboxReceipts = limit("LOCKERS_MAX_INBOX_RECEIPTS", 10_000_000),
+                maxInboxReceiptsPerSession = limit("LOCKERS_MAX_SESSION_INBOX_RECEIPTS", 1_000_000),
                 maxRoomClaims = limit("LOCKERS_MAX_ROOM_CLAIMS", 1_000_000),
                 maxLockers = limit("LOCKERS_MAX_STORED_LOCKERS", 1_000_000),
                 maxLockersPerRoom = limit("LOCKERS_MAX_ROOM_LOCKERS", 100_000),
