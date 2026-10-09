@@ -44,6 +44,10 @@ interface SessionStore {
     suspend fun updateNextSequenceBytes(rawBytes: ByteArray?)
 
     suspend fun hasReceived(ack: StoredAck): Boolean = getPendingAcks().any { it.roomIdRawValue.contentEquals(ack.roomIdRawValue) && it.eventIdRawValue.contentEquals(ack.eventIdRawValue) }
+    fun pendingAckBatches(): Flow<List<StoredAck>> = flow { getPendingAcks().chunked(64).forEach { emit(it) } }
+    suspend fun pruneEventsThrough(cursor: Long): Unit = throw UnsupportedOperationException("Application cursor retention required")
+    /** Only prune confirmations older than the server's maximum replay horizon. Unknown legacy ages conservatively start retention when first maintained. */
+    suspend fun pruneConfirmedAcksBefore(cutoffMillis: Long): Unit = throw UnsupportedOperationException("ACK age retention required")
     suspend fun getPendingAcks(): List<StoredAck>
     suspend fun addAcks(acks: List<StoredAck>) { acks.forEach { addAck(it) } }
     suspend fun addAck(ack: StoredAck)
@@ -54,8 +58,10 @@ fun byteArrayIdentity(bytes: ByteArray): ByteArray {
     return bytes
 }
 
-class SessionStoreImpl(private val keyValueStore: KeyValueStore, private val database: Database) : Store<StoredAck>(database, SessionStoreImplDefinitionV1), SessionStore {
-    private val eventJournal = ConnectorEventJournal(database)
+class SessionStoreImpl(private val keyValueStore: KeyValueStore, private val database: Database, private val retentionPolicy: ConnectorRetentionPolicy = ConnectorRetentionPolicy()) : Store<StoredAck>(database, SessionStoreImplDefinitionV2), SessionStore {
+    private val eventJournal = ConnectorEventJournal(database, retentionPolicy)
+    private val ackAges = AckConfirmationAges(database)
+    override suspend fun pruneEventsThrough(cursor: Long) = eventJournal.pruneThrough(cursor)
     override fun eventsAfter(cursor: Long) = eventJournal.after(cursor).filter { it.kind == 2 }
     override fun liveEvents() = eventJournal.live().filter { it.kind == 2 }
     override suspend fun receive(event: Event, accept: suspend () -> Boolean) {
@@ -69,9 +75,9 @@ class SessionStoreImpl(private val keyValueStore: KeyValueStore, private val dat
             }
         }
     }
-    private val roomIdKey = SessionStoreImplDefinitionV1.roomIdKey
-    private val eventIdKey = SessionStoreImplDefinitionV1.eventIdKey
-    private val roomIdEventIdKey = SessionStoreImplDefinitionV1.roomIdEventIdKey
+    private val roomIdKey = SessionStoreImplDefinitionV2.roomIdKey
+    private val eventIdKey = SessionStoreImplDefinitionV2.eventIdKey
+    private val roomIdEventIdKey = SessionStoreImplDefinitionV2.roomIdEventIdKey
 
     companion object {
         private val SESSION_ID_KEY = "session_id"
@@ -88,16 +94,76 @@ class SessionStoreImpl(private val keyValueStore: KeyValueStore, private val dat
         keyValueStore.save(NEXT_SEQUENCE_KEY, rawBytes, ::byteArrayIdentity)
     } ?: keyValueStore.delete<ByteArray>(NEXT_SEQUENCE_KEY)
 
-    override suspend fun getPendingAcks(): List<StoredAck> = getAll().filterNot { it.confirmed }
+    override fun pendingAckBatches(): Flow<List<StoredAck>> = flow {
+        prepare()
+        var continuation: LocalContinuation? = null
+        do {
+            val page = database.transaction(setOf(SessionStoreImplDefinitionV2.storeName), TransactionMode.READ_ONLY) {
+                query(SessionStoreImplDefinitionV2.storeName, IndexedQuery(SessionStoreImplDefinitionV2.confirmed.key, 64,
+                    lower = QueryBound(BoundStoreKey.IntegerKey(SessionStoreImplDefinitionV2.confirmed.name.value, 0)),
+                    upper = QueryBound(BoundStoreKey.IntegerKey(SessionStoreImplDefinitionV2.confirmed.name.value, 0)), after = continuation))
+            }
+            val acks = page.records.map { if (it is StoredAck) it else SessionStoreImplDefinitionV2.decode(it as ByteArray) }
+            if (acks.isNotEmpty()) emit(acks)
+            continuation = page.continuation
+        } while (continuation != null)
+    }
+    override suspend fun getPendingAcks(): List<StoredAck> = pendingAckBatches().toList().flatten()
     override suspend fun hasReceived(ack: StoredAck): Boolean = get(roomIdEventIdKey.eq(listOf(
         BoundStoreKey.SerializedKey(roomIdKey.name.value, ack.roomIdRawValue),
         BoundStoreKey.SerializedKey(eventIdKey.name.value, ack.eventIdRawValue)
     ))) != null
 
-    override suspend fun addAck(ack: StoredAck) = save(ack)
-    override suspend fun addAcks(acks: List<StoredAck>) = saveAll(acks)
-
-    override suspend fun clearAck(ack: StoredAck) = save(ack.copy(confirmed = true))
+    override suspend fun addAck(ack: StoredAck) {
+        prepare(); database.transaction("connector-accept") {
+            if (!hasReceived(ack) && database.count(SessionStoreImplDefinitionV2.storeName, IndexedQuery(SessionStoreImplDefinitionV2.confirmed.key, 1)) >= retentionPolicy.maxAcknowledgements)
+                throw ConnectorRetentionExceededException("ACK deduplication store is full; prune confirmations beyond the server replay horizon")
+            save(ack)
+        }
+    }
+    override suspend fun addAcks(acks: List<StoredAck>) { acks.forEach { addAck(it) } }
+    override suspend fun clearAck(ack: StoredAck) {
+        prepare(); ackAges.prepare(); database.transaction("connector-accept") {
+            val original = get(roomIdEventIdKey.eq(listOf(BoundStoreKey.SerializedKey(roomIdKey.name.value, ack.roomIdRawValue), BoundStoreKey.SerializedKey(eventIdKey.name.value, ack.eventIdRawValue))))
+            if (original != null && !original.confirmed) {
+                save(original.copy(confirmed = true))
+                ackAges.put(AckConfirmationAge(ack.roomIdRawValue, ack.eventIdRawValue, com.latenighthack.lockers.connector.internal.longBytes(Clock.System.now().toEpochMilliseconds())))
+            }
+        }
+    }
+    override suspend fun pruneConfirmedAcksBefore(cutoffMillis: Long) {
+        require(cutoffMillis >= 0); prepare(); ackAges.prepare()
+        // Unknown legacy confirmation ages begin a conservative retention clock when first maintained.
+        val observedAt = com.latenighthack.lockers.connector.internal.longBytes(Clock.System.now().toEpochMilliseconds())
+        var continuation: LocalContinuation? = null
+        do {
+            val page = database.transaction("connector-accept") {
+                val page = database.query(SessionStoreImplDefinitionV2.storeName, IndexedQuery(SessionStoreImplDefinitionV2.confirmed.key, 64,
+                    lower = QueryBound(BoundStoreKey.IntegerKey(SessionStoreImplDefinitionV2.confirmed.name.value, 1)),
+                    upper = QueryBound(BoundStoreKey.IntegerKey(SessionStoreImplDefinitionV2.confirmed.name.value, 1)), after = continuation))
+                for (row in page.records) {
+                    val ack = if (row is StoredAck) row else SessionStoreImplDefinitionV2.decode(row as ByteArray)
+                    ackAges.markIfMissing(AckConfirmationAge(ack.roomIdRawValue, ack.eventIdRawValue, observedAt))
+                }
+                page
+            }
+            continuation = page.continuation
+        } while (continuation != null)
+        while (true) {
+            val removed = database.transaction("connector-accept") {
+                val page = database.query(AckConfirmationAgeDefinitionV1.storeName, IndexedQuery(AckConfirmationAgeDefinitionV1.at.key, 64,
+                    upper = QueryBound(BoundStoreKey.SerializedKey(AckConfirmationAgeDefinitionV1.at.name.value, com.latenighthack.lockers.connector.internal.longBytes(cutoffMillis)), false)))
+                for (row in page.records) {
+                    val age = if (row is AckConfirmationAge) row else AckConfirmationAgeDefinitionV1.decode(row as ByteArray)
+                    val identity = roomIdEventIdKey.eq(listOf(BoundStoreKey.SerializedKey(roomIdKey.name.value, age.room), BoundStoreKey.SerializedKey(eventIdKey.name.value, age.event)))
+                    if (get(identity)?.confirmed == true) delete(identity)
+                    ackAges.remove(AckConfirmationAgeDefinitionV1.identity.eq(listOf(BoundStoreKey.SerializedKey(AckConfirmationAgeDefinitionV1.room.name.value, age.room), BoundStoreKey.SerializedKey(AckConfirmationAgeDefinitionV1.event.name.value, age.event))))
+                }
+                page.records.size
+            }
+            if (removed < 64) return
+        }
+    }
 
 }
 
@@ -157,11 +223,11 @@ class SubscriptionController(
     }
 
     private data class Confirmations(val sessionId: SessionId? = null, val rooms: Set<RoomId> = emptySet())
-    private val changes = kotlinx.coroutines.channels.Channel<Change>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+    private val changes = kotlinx.coroutines.channels.Channel<Change>(64)
     private val confirmations = MutableStateFlow(Confirmations())
     private val closed = MutableStateFlow(false)
-    init { controllerJob.invokeOnCompletion { closed.value = true } }
-    private val newSubscriptions = MutableSharedFlow<RoomId>(extraBufferCapacity = 64)
+    init { controllerJob.invokeOnCompletion { closed.value = true; changes.close(StreamClosedException()) } }
+    private val newSubscriptions = MutableSharedFlow<RoomId>(extraBufferCapacity = 64, onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST)
 
     suspend fun resendSubscriptions() {
         changes.send(Change.Refresh)
@@ -240,7 +306,7 @@ class SubscriptionController(
                                 roomIdRawValue = change.roomId.rawValue
                             })
                             confirmations.update { it.copy(rooms = it.rooms + change.roomId) }
-                            newSubscriptions.emit(change.roomId)
+                            newSubscriptions.tryEmit(change.roomId)
                         } else {
                             subscriptionStore.deleteSubscription(change.roomId)
                             desired.remove(change.roomId)
@@ -347,6 +413,7 @@ class Stream(
     internal var acceptanceBoundary: (suspend (suspend () -> Unit) -> Unit)? = null
     /** Live events; use eventsAfter with a persisted application cursor for restart recovery. */
     val events: Flow<Event> get() = sessionStore.liveEvents().map { Event.fromByteArray(it.payload) }
+    suspend fun pruneConfirmedAcksBefore(cutoffMillis: Long) = sessionStore.pruneConfirmedAcksBefore(cutoffMillis)
     fun eventsAfter(cursor: Long): Flow<AcceptedSessionEvent> = sessionStore.eventsAfter(cursor).map {
         AcceptedSessionEvent(it.cursor, Event.fromByteArray(it.payload))
     }
@@ -500,9 +567,7 @@ class Stream(
                 emitAll(
                     merge(outgoingAcks.batchedAcks()
                         .onStart {
-                            val storedAcks = sessionStore.getPendingAcks()
-
-                            emit(storedAcks)
+                            emitAll(sessionStore.pendingAckBatches())
                         }
                         .filter { it.isNotEmpty() }
                         .map { acksToSend ->

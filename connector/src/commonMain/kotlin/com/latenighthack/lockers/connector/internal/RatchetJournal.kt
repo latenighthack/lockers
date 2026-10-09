@@ -40,8 +40,14 @@ object RatchetJournalDefinitionV1 : StoreDefinition<PendingRatchet>(
 ) {
     val requestId = bytesIndex(IndexName("request_id"), PendingRatchet::requestId, "writeRequestId-v1").also { primaryKey(it) }
 }
-internal class RatchetJournal(database: Database) : Store<PendingRatchet>(database, RatchetJournalDefinitionV1) {
+internal class RatchetJournal(private val database: Database) : Store<PendingRatchet>(database, RatchetJournalDefinitionV1) {
     suspend fun pending(): List<PendingRatchet> { prepare(); return getAll() }
-    suspend fun put(value: PendingRatchet) { prepare(); save(value) }
+    suspend fun put(value: PendingRatchet) {
+        prepare(); database.transaction("connector-ratchet") {
+            if (get(RatchetJournalDefinitionV1.requestId.eq(value.requestId)) == null && database.count(RatchetJournalDefinitionV1.storeName, IndexedQuery(RatchetJournalDefinitionV1.requestId.key, 1)) >= 1_024)
+                throw com.latenighthack.lockers.connector.ConnectorRetentionExceededException("Pending ratchet admission limit exceeded")
+            save(value)
+        }
+    }
     suspend fun remove(request: PostLockerChangeRequest) { prepare(); delete(RatchetJournalDefinitionV1.requestId.eq(request.writeRequestId)) }
 }

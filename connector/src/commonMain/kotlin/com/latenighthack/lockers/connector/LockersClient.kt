@@ -69,6 +69,10 @@ class LockersClient private constructor(
     fun eventsAfter(cursor: Long): Flow<AcceptedSessionEvent> = stream.eventsAfter(cursor)
     val broadcasts: Flow<IncomingBroadcast> get() = lockers.broadcasts
     fun broadcastsAfter(cursor: Long): Flow<IncomingBroadcast> = lockers.broadcastsAfter(cursor)
+    /** Advance only through the minimum persisted cursor of every independent application consumer. */
+    suspend fun pruneAcceptedEventsThrough(cursor: Long) = lockers.pruneAcceptedEventsThrough(cursor)
+    /** Cutoff must precede the server's maximum event replay horizon. Legacy confirmations start a conservative age on first maintenance. */
+    suspend fun pruneConfirmedAcksBefore(cutoffMillis: Long) = stream.pruneConfirmedAcksBefore(cutoffMillis)
 
     /**
      * Registers (or rotates) this device's push credential for its backend. The
@@ -110,7 +114,10 @@ class LockersClient private constructor(
         /**
          * Builds and starts a client. The result is started but not necessarily
          * connected yet — call [awaitConnected] to wait for the first successful
-         * session open.
+         * session open. When ratchets are enabled, this database retains current authority private keys
+         * for crash recovery. Use an application-trusted encrypted/secure delegate and restrict backups
+         * and access; ordinary locker/watch/broadcast APIs never expose those keys. The latest key per
+         * scope is retained until an authoritative newer epoch proves it obsolete.
          */
         suspend fun create(
             rpcClient: RpcClient,
@@ -123,11 +130,12 @@ class LockersClient private constructor(
             telemetry: LockersTelemetry = LockersTelemetry.NONE,
             coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
             broadcastCodecs: BroadcastCodecs = BroadcastCodecs.identity(),
+            retentionPolicy: ConnectorRetentionPolicy = ConnectorRetentionPolicy(),
         ): LockersClient {
             database.open()
-            val sessionStore = SessionStoreImpl(keyValueStore, database)
+            val sessionStore = SessionStoreImpl(keyValueStore, database, retentionPolicy)
             val subscriptionStore = SubscriptionStoreImpl(database)
-            val lockerStore = LockerStoreImpl(database)
+            val lockerStore = LockerStoreImpl(database, retentionPolicy)
             val pushRegistrationStore = PushRegistrationStoreImpl(database)
 
             sessionStore.prepare()

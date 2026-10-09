@@ -72,6 +72,8 @@ private fun LockerClient.LockerUpdate.toStored() = StoredLocker {
  * wrapped in a signed envelope; return null and writes stay open. The source owns the
  * scope→key mapping (a per-locker, per-keyspace, or per-room key can back many
  * lockers) so the low-level protocol never needs to know the scope for a plain write.
+ * Enabling ratchets writes private recovery keys to the connector database. Use trusted confidential
+ * storage and controlled backups; latest-per-scope keys remain until authoritative replacement.
  */
 interface LockKeySource {
     suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId): Secp256r1KeyPair?
@@ -346,6 +348,9 @@ class LockerClient(
         return LockerUpdate(RoomId(stored.roomIdRawValue), LockerId(stored.lockerIdRawValue, LockerKeyspace(stored.lockerKeyspace)), stored.version, stored.lockerPayload, stored.deleted, stored.roomSequence)
     }
     /** Recoverable changes; persist the cursor only after processing its change. */
+    /** All change, notification, broadcast and raw-event consumers share the journal. Supply their minimum durable cursor. */
+    suspend fun pruneAcceptedEventsThrough(cursor: Long) = lockerStore.pruneEventsThrough(cursor)
+
     fun changesAfter(cursor: Long): Flow<AcceptedLockerChange> = lockerStore.changesAfter(cursor).filter { it.kind == 1 }.map { AcceptedLockerChange(it.cursor, it.toChange()) }
 
     val changes: Flow<LockerUpdate>
@@ -538,9 +543,11 @@ class LockerClient(
                     val response = sync.network { roomService.postLockerChanges(request) }
                     when (response.result) {
                         is PostLockerChangesResponse.Result.OK -> {
-                            request.changes.zip(response.changes).forEach { (change, result) ->
-                                accept(LockerUpdate(roomId, change.lockerId!!, result.version, change.locker!!.plaintextPayload()))
-                            }
+                            withAcceptance { lockerStore.acceptAtomically {
+                                request.changes.zip(response.changes).forEach { (change, result) ->
+                                    acceptCommitted(LockerUpdate(roomId, change.lockerId!!, result.version, change.locker!!.plaintextPayload()))
+                                }
+                            } }
                             if (response.agentFailed || response.agentPending) throw LockerSourceCommittedException(response.changes.maxOfOrNull { it.version } ?: 0, response.agentPending)
                         }
                         is PostLockerChangesResponse.Result.CONFLICT -> {
@@ -562,6 +569,13 @@ class LockerClient(
         }
     }
 
+    private suspend fun acceptCommitted(update: LockerUpdate) {
+        try { accept(update) }
+        catch (failure: ConnectorRetentionExceededException) {
+            throw LockerSourceCommittedException(update.version, false, "Source committed at version ${update.version}; local acceptance needs retention capacity", failure)
+        }
+    }
+
     private suspend fun accept(update: LockerUpdate): Boolean = withAcceptance { acceptLocked(update) }
 
     private suspend fun acceptLocked(update: LockerUpdate): Boolean {
@@ -577,7 +591,7 @@ class LockerClient(
     /** Complete immutable cache snapshots. Live notifications are conflated wakeups, never state. */
     internal fun watchSnapshot(roomId: RoomId, keyspace: LockerKeyspace): Flow<List<IdentifiedLocker>> = flow {
         val identity = roomId to keyspace
-        val entry = watchMutex.withLock { watched.getOrPut(identity) { SnapshotWatch() }.also { it.users++ } }
+        val entry = watchMutex.withLock { check(watched.size < 1_024 || watched.containsKey(identity)) { "Snapshot watcher admission limit exceeded" }; watched.getOrPut(identity) { SnapshotWatch() }.also { it.users++ } }
         suspend fun snapshot() = acceptance.withLock {
             lockerStore.getAllLockers(roomId, keyspace).filterNot { it.deleted }.map { it.toIdentifiedLocker() }
         }
@@ -849,7 +863,7 @@ class LockerClient(
         }
 
         deletedVersion?.let {
-            accept(LockerUpdate(roomId, lockerId, it, byteArrayOf(), deleted = true))
+            acceptCommitted(LockerUpdate(roomId, lockerId, it, byteArrayOf(), deleted = true))
         }
     }
 
@@ -976,7 +990,7 @@ class LockerClient(
             adoptCommittedRatchet(PendingRatchet(request, pendingRatchetKey.privateKey.encode()), requireNotNull(committedResponse))
         }
         val update = result.toUpdate(roomId)
-        accept(update)
+        acceptCommitted(update)
         committedAgentStatus?.let { throw LockerSourceCommittedException(it.version, it.agentPending) }
 
         return result.locker
@@ -1010,7 +1024,9 @@ class LockerClient(
 
     private suspend fun adoptCommittedRatchet(pending: PendingRatchet, response: PostLockerChangeResponse) {
         val archive = ArchivedRatchet(pending, response.lockState, response.version)
-        lockerStore.archiveRatchet(archive)
+        try { lockerStore.archiveRatchet(archive) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (failure: Exception) { throw RatchetAdoptionPendingException(archive.version, failure) }
         ratchetAdoption.withLock { adoptKey(archive, requireNotNull(pending.request.lockerId)) }
         lockerStore.clearRatchet(pending.request)
     }

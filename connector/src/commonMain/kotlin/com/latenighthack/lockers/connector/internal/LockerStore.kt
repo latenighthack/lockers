@@ -15,6 +15,7 @@ interface LockerStore {
     suspend fun archiveRatchet(value: ArchivedRatchet): Unit = throw UnsupportedOperationException("Durable ratchet archive required")
     suspend fun matchingRatchet(room: RoomId, publicKey: ByteArray): ArchivedRatchet? = null
     suspend fun forgetArchivedRatchet(value: ArchivedRatchet): Unit = throw UnsupportedOperationException("Durable ratchet archive required")
+    suspend fun pruneEventsThrough(cursor: Long): Unit = throw UnsupportedOperationException("Application cursor retention required")
     suspend fun acceptAtomically(action: suspend () -> Unit) = action()
     suspend fun forgetLocker(expected: StoredLocker) {
         deleteLocker(RoomId(expected.roomIdRawValue), LockerKeyspace(expected.lockerKeyspace), LockerId(expected.lockerIdRawValue))
@@ -40,14 +41,14 @@ interface LockerStore {
     suspend fun deleteLocker(roomId: RoomId, keyspace: LockerKeyspace, lockerId: LockerId)
 }
 
-class LockerStoreImpl(private val database: Database) : LockerStore, Store<StoredLocker>(database, LockerStoreImplDefinitionV1) {
+class LockerStoreImpl(private val database: Database, private val policy: com.latenighthack.lockers.connector.ConnectorRetentionPolicy = com.latenighthack.lockers.connector.ConnectorRetentionPolicy()) : LockerStore, Store<StoredLocker>(database, LockerStoreImplDefinitionV1) {
     private val archive = RatchetArchive(database)
     override suspend fun archivedRatchets() = archive.archives()
     override suspend fun hasArchivedRatchet(room: RoomId) = archive.hasRoom(room)
     override suspend fun archiveRatchet(value: ArchivedRatchet) = archive.put(value)
     override suspend fun matchingRatchet(room: RoomId, publicKey: ByteArray) = archive.matching(room, publicKey)
     override suspend fun forgetArchivedRatchet(value: ArchivedRatchet) = archive.remove(value)
-    private val eventJournal = ConnectorEventJournal(database)
+    private val eventJournal = ConnectorEventJournal(database, policy)
     override suspend fun acceptAtomically(action: suspend () -> Unit) { prepare(); database.transaction("connector-accept") { action() } }
     override suspend fun forgetLocker(expected: StoredLocker) {
         prepare(); database.transaction("connector-accept") {
@@ -58,10 +59,13 @@ class LockerStoreImpl(private val database: Database) : LockerStore, Store<Store
             eventJournal.append(1, expected.copy(deleted = true, lockerPayload = byteArrayOf()).toByteArray(), kotlin.random.Random.nextBytes(32))
         }
     }
+    override suspend fun pruneEventsThrough(cursor: Long) = eventJournal.pruneThrough(cursor)
     override fun changesAfter(cursor: Long) = eventJournal.after(cursor)
     override fun liveChanges() = eventJournal.live()
     override suspend fun acceptLocker(locker: StoredLocker) {
         prepare(); database.transaction("connector-accept") {
+            if (getLocker(RoomId(locker.roomIdRawValue), LockerKeyspace(locker.lockerKeyspace), LockerId(locker.lockerIdRawValue)) == null && database.count(LockerStoreImplDefinitionV1.storeName, IndexedQuery(LockerStoreImplDefinitionV1.roomIdKey.key, 1)) >= policy.maxCachedLockers)
+                throw com.latenighthack.lockers.connector.ConnectorRetentionExceededException("Locker cache admission limit exceeded")
             save(locker)
             eventJournal.append(1, locker.toByteArray(), kotlin.random.Random.nextBytes(32))
         }

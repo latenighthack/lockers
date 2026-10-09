@@ -31,10 +31,17 @@ object RatchetArchiveDefinitionV1 : StoreDefinition<ArchivedRatchet>(StoreName("
     val roomScope = compositeIndex(IndexName("room_scope"), room, scope).also { primaryKey(it) }
     val roomPublicKey = compositeIndex(IndexName("room_public_key"), room, publicKey)
 }
-internal class RatchetArchive(database: Database) : Store<ArchivedRatchet>(database, RatchetArchiveDefinitionV1) {
+internal class RatchetArchive(private val database: Database) : Store<ArchivedRatchet>(database, RatchetArchiveDefinitionV1) {
     suspend fun archives(): List<ArchivedRatchet> { prepare(); return getAll() }
     suspend fun hasRoom(room: RoomId): Boolean { prepare(); return get(RatchetArchiveDefinitionV1.room.eq(room.rawValue)) != null }
-    suspend fun put(value: ArchivedRatchet) { prepare(); save(value) }
+    suspend fun put(value: ArchivedRatchet) {
+        prepare(); database.transaction("connector-ratchet") {
+            val identity = RatchetArchiveDefinitionV1.roomScope.eq(listOf(BoundStoreKey.SerializedKey(RatchetArchiveDefinitionV1.room.name.value, value.roomKey), BoundStoreKey.SerializedKey(RatchetArchiveDefinitionV1.scope.name.value, value.scopeKey)))
+            if (get(identity) == null && database.count(RatchetArchiveDefinitionV1.storeName, IndexedQuery(RatchetArchiveDefinitionV1.room.key, 1)) >= 10_000)
+                throw com.latenighthack.lockers.connector.ConnectorRetentionExceededException("Ratchet archive admission limit exceeded")
+            save(value)
+        }
+    }
     suspend fun matching(room: RoomId, publicKey: ByteArray): ArchivedRatchet? {
         prepare(); return get(RatchetArchiveDefinitionV1.roomPublicKey.eq(listOf(
             BoundStoreKey.SerializedKey(RatchetArchiveDefinitionV1.room.name.value, room.rawValue),
