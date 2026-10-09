@@ -24,6 +24,11 @@ class SessionRevocationTest {
         core.sessionInboxStore.saveEvent(event)
         core.pushStore.savePushInfo(ServerPushInfo(requireNotNull(stored.sessionId)))
         core.pushQueueStore.savePush(ServerPush(ServerPushId(byteArrayOf(46)), requireNotNull(stored.sessionId), 1, byteArrayOf(47)))
+        val snapshots = com.latenighthack.lockers.server.services.room.v1.SnapshotStore(db, core.config.resourceLimits)
+        val snapshotRoom = RoomId(byteArrayOf(49))
+        val page = snapshots.create(1, snapshotRoom, sid, setOf(0), 1, 1, (1..2).map {
+            IdentifiedLocker(LockerId(byteArrayOf(it.toByte())), Locker { open { encodedPayload = byteArrayOf(1) } }, 1)
+        })
         val request = DestroySessionRequest(sessionId = sid)
         val now = System.currentTimeMillis(); val nonce = Random.nextBytes(32)
         val signed = request.copy(proof = SessionProof(now, nonce, Signature(signature = key.privateKey.sign(
@@ -33,6 +38,9 @@ class SessionRevocationTest {
             assertFalse(rpc.destroySession(request).result.isOk())
             assertNotNull(core.sessionStore.getSessionById(requireNotNull(stored.sessionId)))
             assertTrue(rpc.destroySession(signed).result.isOk())
+            assertFailsWith<com.latenighthack.ktbuf.net.RpcResponseException> {
+                snapshots.next(1, snapshotRoom, sid, setOf(0), 1, page.nextPageToken)
+            }
             assertNull(core.sessionStore.getSessionById(requireNotNull(stored.sessionId)))
             assertTrue(core.subscriptionStore.getAllSubscriptions(requireNotNull(stored.sessionId)).isEmpty())
             assertTrue(core.sessionInboxStore.getAllEvents(requireNotNull(stored.sessionId)).isEmpty())

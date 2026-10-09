@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.server.services.room.v1
 
+import kotlinx.coroutines.ensureActive
+
 import com.latenighthack.ktstore.*
 import com.latenighthack.ktcrypto.SHA256
 import com.latenighthack.ktcrypto.digest
@@ -107,6 +109,9 @@ class SnapshotStore(private val database: Database, private val limits: ServerRe
         responses.first()
     }
     suspend fun deleteAllForSession(session: ByteArray) = database.transaction("snapshot-admission") {
-        delete(SnapshotDefinitionV2.session.eq(session))
+        while (database.deleteBatch(SnapshotDefinitionV2.storeName,
+                SnapshotDefinitionV2.session.query(256, lower = session, upper = session)) > 0) {
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        }
     }
 }

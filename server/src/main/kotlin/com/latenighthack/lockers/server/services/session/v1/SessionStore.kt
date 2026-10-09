@@ -86,5 +86,7 @@ class SessionStoreImpl(private val database: Database) : SessionStore, Store<Ser
         inbox.deleteAllEvents(sessionId)
         pushInfo.deletePushInfo(sessionId)
         pushQueue.clearForSession(sessionId)
+        com.latenighthack.lockers.server.services.room.v1.SnapshotStore(database, ServerResourceLimits())
+            .deleteAllForSession(sessionId.rawValue)
     }
 }
