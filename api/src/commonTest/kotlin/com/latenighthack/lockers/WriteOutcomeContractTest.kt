@@ -11,5 +11,7 @@ class WriteOutcomeContractTest {
             agentState = WriteOutcome.AgentState.INDETERMINATE)
         assertEquals(outcome, WriteOutcome.fromByteArray(outcome.toByteArray()))
         assertEquals(outcome, GetWriteOutcomeResponse.fromByteArray(GetWriteOutcomeResponse(outcome = outcome).toByteArray()).outcome)
+        assertEquals(outcome.sourceVersions, PostLockerChangesResponse.fromByteArray(PostLockerChangesResponse(sourceVersions = outcome.sourceVersions).toByteArray()).sourceVersions)
+        assertEquals(outcome.sourceVersions, PostLockerChangeResponse.fromByteArray(PostLockerChangeResponse(sourceVersions = outcome.sourceVersions).toByteArray()).sourceVersions)
     }
 }

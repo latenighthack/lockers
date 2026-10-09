@@ -95,6 +95,7 @@ message PostLockerChangeResponse {
   common.v1.ShardRedirect redirect = 5;
   bytes write_request_id = 8;
   bool agent_indeterminate = 9;
+  repeated WriteSourceVersion source_versions = 10;
 }
 
 message DeleteLockerRequest {
@@ -261,6 +262,7 @@ message PostLockerChangesResponse {
   bool agent_pending = 6;
   bytes write_request_id = 7;
   bool agent_indeterminate = 8;
+  repeated WriteSourceVersion source_versions = 9;
 }
 
 // Public metadata read, following GetLocker's read contract. No payloads or request digests.
