@@ -181,9 +181,9 @@ class ClaimClusterTest {
             // shared inbox store, where the session's reconnect hydrate will find it.
             val inbox = SessionInboxStoreImpl(cluster.delegate).also { it.prepare() }
             awaitUntil { inbox.getAllEvents(ServerSessionId(ghost.rawValue)).size == 1 }
-            assertThat(
-                cluster.node1.meterRegistry.find("lockers.session.events.posted").counter()?.count()
-            ).isEqualTo(1.0)
+            awaitUntil {
+                cluster.node1.meterRegistry.find("lockers.session.events.posted").counter()?.count() == 1.0
+            }
 
             // Deletes take the same fan-out path; they must survive the offline subscriber too.
             val delete = cluster.node1.roomClient().deleteLocker(DeleteLockerRequest {

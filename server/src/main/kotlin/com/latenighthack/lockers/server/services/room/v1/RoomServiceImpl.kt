@@ -136,7 +136,7 @@ class RoomServiceImpl(
     // relays the owner's response verbatim. Forwarded calls are stamped `?fwd=1`; a node that is
     // still not the owner for a forwarded call answers NOT_OWNER as before — one hop max, no
     // ping-pong, and the redirect stays intact for smart routing clients (RoutingRpcClient).
-    private val forwardStubs = java.util.concurrent.ConcurrentHashMap<String, RoomServiceRpc>()
+    private val forwardConnections = com.latenighthack.lockers.server.cluster.PeerConnectionPool(peerToken = config.peerToken)
     private val forwardedWritesCounter = meterRegistry.counter("lockers.room.forward.writes")
     private val forwardFailureCounter = meterRegistry.counter("lockers.room.forward.failures")
 
@@ -148,28 +148,21 @@ class RoomServiceImpl(
         if (context.query.containsKey(FORWARDED_PARAM)) return null
         // Advertise addresses are schemeless host:port — exactly what JVM HttpRpcClient wants.
         val address = redirect.ownerAddress?.takeIf { it.isNotBlank() } ?: return null
-        val stub = forwardStubs.computeIfAbsent(address) {
-            val transport = com.latenighthack.ktbuf.rpc.HttpRpcClient(it)
-            val authenticated = object : com.latenighthack.ktbuf.net.RpcClient by transport {
-                override suspend fun unaryCall(method: com.latenighthack.ktbuf.net.RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray) =
-                    transport.unaryCall(method, headers + listOfNotNull(config.peerToken?.let { token -> com.latenighthack.lockers.server.PEER_TOKEN_HEADER to token }).toMap(), request)
-            }
-            RoomServiceRpc(authenticated) { _, _ -> mapOf(FORWARDED_PARAM to "1") }
-        }
         return try {
+            val stub = RoomServiceRpc(forwardConnections.clientFor(address)) { _, _ -> mapOf(FORWARDED_PARAM to "1") }
             kotlinx.coroutines.withTimeout(FORWARD_TIMEOUT_MS) { call(stub) }
                 .also { forwardedWritesCounter.increment() }
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
             forwardFailureCounter.increment()
             logger.warn("write forward to {} timed out; answering NOT_OWNER", address)
-            forwardStubs.remove(address)
+            forwardConnections.evict(address)
             null
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
             forwardFailureCounter.increment()
             logger.warn("write forward to {} failed ({}); answering NOT_OWNER", address, e.message)
-            forwardStubs.remove(address)
+            forwardConnections.evict(address)
             null
         }
     }
@@ -807,8 +800,16 @@ class RoomServiceImpl(
     suspend fun closeAndJoin() {
         ServiceLifecycle.requireExternalClose()
         lifecycleClosed.set(true)
-        deliveryWorker?.closeAndJoin()
-        dispatchers.closeAndJoin()
+        kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+            var failed: Throwable? = null
+            suspend fun cleanup(block: suspend () -> Unit) {
+                try { block() } catch (failure: Throwable) { if (failed == null) failed = failure else failed!!.addSuppressed(failure) }
+            }
+            cleanup { forwardConnections.closeAndJoin() }
+            cleanup { deliveryWorker?.closeAndJoin() }
+            cleanup { dispatchers.closeAndJoin() }
+            failed?.let { throw it }
+        }
     }
     fun close() = ServiceLifecycle.blockingClose(coroutineContext) { closeAndJoin() }
 }

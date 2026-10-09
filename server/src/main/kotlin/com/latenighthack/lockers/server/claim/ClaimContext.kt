@@ -25,7 +25,11 @@ class ClaimContext(
 ) : AutoCloseable {
     /** Releases the east-west connection pool and (when [fromConfig]-built) the JDBC pool. */
     override fun close() {
-        try { pool.close() } finally { ownedJdbcPool?.close() }
+        com.latenighthack.lockers.server.tools.ServiceLifecycle.blockingClose { closeAndJoin() }
+    }
+
+    suspend fun closeAndJoin() {
+        try { pool.closeAndJoin() } finally { ownedJdbcPool?.close() }
     }
 
     companion object {

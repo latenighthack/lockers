@@ -98,7 +98,7 @@ private class ClusterRuntime private constructor(
     /** Ordered drain: stop routing to peers (evict the pool) then cancel background pollers. */
     suspend fun closeAndJoin() {
         scope.coroutineContext[Job]!!.cancelAndJoin()
-        wiring?.pool?.close()
+        wiring?.pool?.closeAndJoin()
     }
 
     companion object {
@@ -239,7 +239,7 @@ fun main() {
         } catch (failure: Throwable) {
             withContext(NonCancellable) {
                 try { cluster.closeAndJoin() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
-                try { claim?.close() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                try { claim?.closeAndJoin() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
                 try { core.closeAndJoin() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
                 try { database.close() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
                 monitoring.close()
@@ -305,7 +305,7 @@ fun main() {
                 runBlocking {
                     component.closeAndJoin()
                     cluster.closeAndJoin()
-                    claim?.close()
+                    claim?.closeAndJoin()
                     database.close()
                     monitoring.close()
                     telemetrySdk?.close()
