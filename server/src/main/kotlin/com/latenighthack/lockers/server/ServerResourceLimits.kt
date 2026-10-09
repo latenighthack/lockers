@@ -13,6 +13,11 @@ data class ServerResourceLimits(
     val maxRoomClaims: Int = 1_000_000,
     val maxLockers: Int = 1_000_000,
     val maxLockersPerRoom: Int = 100_000,
+    val maxLocks: Int = 1_000_000,
+    val maxLocksPerRoom: Int = 10_000,
+    val maxSubscriptions: Int = 1_000_000,
+    val maxSubscriptionsPerSession: Int = 10_000,
+    val maxSubscriptionsPerRoom: Int = 1024,
     val maxSnapshotLockers: Int = 10_000,
     val maxSnapshotBytes: Int = 64 * 1024 * 1024,
     val maxSnapshotLeases: Int = 128,
@@ -32,6 +37,8 @@ data class ServerResourceLimits(
         require(maxInboxEvents > 0 && maxInboxEventsPerSession in 1..maxInboxEvents)
         require(maxInboxReceipts > 0 && maxInboxReceiptsPerSession in 1..maxInboxReceipts)
         require(maxRoomClaims > 0)
+        require(maxLocks > 0 && maxLocksPerRoom in 1..maxLocks)
+        require(maxSubscriptions > 0 && maxSubscriptionsPerSession in 1..maxSubscriptions && maxSubscriptionsPerRoom in 1..1024)
         require(maxLockers > 0 && maxLockersPerRoom in 1..maxLockers)
         require(maxSnapshotLeasesPerRoom > 0 && maxSnapshotRetainedBytes > 0)
         require(maxSnapshotLockers > 0 && maxSnapshotBytes > 0 && maxSnapshotLeases > 0)
@@ -55,6 +62,11 @@ data class ServerResourceLimits(
                 maxRoomClaims = limit("LOCKERS_MAX_ROOM_CLAIMS", 1_000_000),
                 maxLockers = limit("LOCKERS_MAX_STORED_LOCKERS", 1_000_000),
                 maxLockersPerRoom = limit("LOCKERS_MAX_ROOM_LOCKERS", 100_000),
+                maxLocks = limit("LOCKERS_MAX_LOCK_HISTORY", 1_000_000),
+                maxLocksPerRoom = limit("LOCKERS_MAX_ROOM_LOCK_HISTORY", 10_000),
+                maxSubscriptions = limit("LOCKERS_MAX_SUBSCRIPTIONS", 1_000_000),
+                maxSubscriptionsPerSession = limit("LOCKERS_MAX_SESSION_SUBSCRIPTIONS", 10_000),
+                maxSubscriptionsPerRoom = limit("LOCKERS_MAX_ROOM_SUBSCRIPTIONS", 1024),
                 maxSnapshotLockers = limit("LOCKERS_MAX_SNAPSHOT_LOCKERS", 10_000),
                 maxSnapshotBytes = limit("LOCKERS_MAX_SNAPSHOT_BYTES", 64 * 1024 * 1024),
                 maxSnapshotLeases = limit("LOCKERS_MAX_SNAPSHOT_LEASES", 128),

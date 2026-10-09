@@ -60,9 +60,9 @@ abstract class ServerCore(
 
     private val sessionStoreImpl by lazy { SessionStoreImpl(storageDelegate) }
     private val sessionInboxStoreImpl by lazy { SessionInboxStoreImpl(storageDelegate, config.resourceLimits) }
-    private val subscriptionStoreImpl by lazy { SubscriptionStoreImpl(storageDelegate) }
-    private val lockerStoreImpl by lazy { LockerStoreImpl(storageDelegate) }
-    private val lockStoreImpl by lazy { LockStoreImpl(storageDelegate) }
+    private val subscriptionStoreImpl by lazy { SubscriptionStoreImpl(storageDelegate, config.resourceLimits) }
+    private val lockerStoreImpl by lazy { LockerStoreImpl(storageDelegate, config.resourceLimits) }
+    private val lockStoreImpl by lazy { LockStoreImpl(storageDelegate, config.resourceLimits) }
     private val pushSessionStoreImpl by lazy { PushSessionStoreImpl(storageDelegate) }
     private val pushQueueStoreImpl by lazy { PushQueueStoreImpl(storageDelegate) }
     private val pushDeadLetterStoreImpl by lazy { PushDeadLetterStoreImpl(storageDelegate) }

@@ -22,7 +22,7 @@ interface LockerStore {
     suspend fun deleteLocker(roomId: ServerRoomId, keyspace: Long, lockerId: ServerLockerId)
 }
 
-class LockerStoreImpl(private val database: Database) : LockerStore, Store<ServerLocker>(database, LockerStoreDefinitionV2) {
+class LockerStoreImpl(private val database: Database, private val limits: com.latenighthack.lockers.server.ServerResourceLimits = com.latenighthack.lockers.server.ServerResourceLimits()) : LockerStore, Store<ServerLocker>(database, LockerStoreDefinitionV2) {
     private val roomIdKey = LockerStoreDefinitionV2.roomIdKey
     private val lockerIdKey = LockerStoreDefinitionV2.lockerIdKey
     private val keyspaceKey = LockerStoreDefinitionV2.keyspaceKey
@@ -67,14 +67,35 @@ class LockerStoreImpl(private val database: Database) : LockerStore, Store<Serve
         ))
     })
 
-    override suspend fun updateLocker(locker: ServerLocker) = save(locker)
-    override suspend fun updateLockers(lockers: List<ServerLocker>) = saveAll(lockers)
+    override suspend fun updateLocker(locker: ServerLocker) = updateLockers(listOf(locker))
+    override suspend fun updateLockers(lockers: List<ServerLocker>) {
+        if (lockers.isEmpty()) return
+        require(lockers.size <= 1024) { "Locker store batch exceeds bounded work" }
+        val rooms = lockers.map { requireNotNull(it.roomId) }.distinct().sortedBy { roomMutationKey(it) }
+        suspend fun owned(index: Int) {
+            if (index < rooms.size) { database.transaction(roomMutationKey(rooms[index])) { owned(index + 1) }; return }
+            database.transaction("lockers.locker-admission") {
+                val unique = lockers.distinctBy { Triple(it.roomId, it.keyspace, it.lockerId) }
+                val added = unique.filter { getLocker(requireNotNull(it.roomId), it.keyspace, requireNotNull(it.lockerId)) == null }
+                if (added.isNotEmpty()) {
+                    val total = database.count(LockerStoreDefinitionV2.storeName, roomIdKey.query(1))
+                    if (total + added.size > limits.maxLockers) namespaceExhausted("Permanent locker namespace exhausted")
+                    for ((room, rows) in added.groupBy { requireNotNull(it.roomId) }) {
+                        val count = database.count(LockerStoreDefinitionV2.storeName, roomIdKey.query(1, lower = room.toByteArray(), upper = room.toByteArray()))
+                        if (count + rows.size > limits.maxLockersPerRoom) namespaceExhausted("Room locker namespace exhausted")
+                    }
+                }
+                saveAll(lockers)
+            }
+        }
+        owned(0)
+    }
 
-    override suspend fun deleteLocker(roomId: ServerRoomId, keyspace: Long, lockerId: ServerLockerId) = delete(roomIdAndKeyspaceAndLockerIdKey.eq(
-        listOf(
-            BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.toByteArray()),
-            BoundStoreKey.SerializedKey(keyspaceKey.name.value, lockerKeyspaceKey(keyspace)),
-            BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.toByteArray())
-        )
-    ))
+    /** Retire content without freeing its permanent version/namespace reservation. */
+    override suspend fun deleteLocker(roomId: ServerRoomId, keyspace: Long, lockerId: ServerLockerId) = database.transaction(roomMutationKey(roomId)) {
+        val current = getLocker(roomId, keyspace, lockerId) ?: return@transaction
+        if (current.deleted) return@transaction
+        if (current.version == Long.MAX_VALUE) namespaceExhausted("Locker version space exhausted")
+        updateLocker(current.copy(locker = byteArrayOf(), version = current.version + 1, deleted = true))
+    }
 }
