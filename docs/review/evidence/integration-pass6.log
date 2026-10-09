@@ -1,0 +1,171 @@
+Type-safe project accessors is an incubating feature.
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:generateCodegenFixtures UP-TO-DATE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :api:jvmTestProcessResources NO-SOURCE
+> Task :api:processJvmTestResources SKIPPED
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:compileKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :observability-api:jvmMainClasses UP-TO-DATE
+> Task :observability-api:jvmJar UP-TO-DATE
+> Task :connector:compileKotlinJvm UP-TO-DATE
+> Task :connector:compileJvmMainJava NO-SOURCE
+> Task :connector:jvmProcessResources NO-SOURCE
+> Task :connector:processJvmMainResources SKIPPED
+> Task :connector:jvmMainClasses UP-TO-DATE
+> Task :connector:jvmJar UP-TO-DATE
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:compileKotlin UP-TO-DATE
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:processResources NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :sharding-core:jar UP-TO-DATE
+> Task :server:kspKotlin UP-TO-DATE
+
+> Task :api:compileTestKotlinJvm
+[KOTLIN] [IC] Incremental compilation was attempted but failed:
+    Failed to compute files to recompile: java.lang.IllegalStateException: The following FqNames can't be derived from DirtyData.dirtyLookupSymbols: com.latenighthack.lockers.common.v1.RoomId.
+DirtyData = DirtyData(dirtyLookupSymbols=[LookupSymbol(name=SIGNATURE_REQUIRED, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.common.v1.RoomId), LookupSymbol(name=Companion, scope=com.latenighthack.lockers.common.v1.RoomId), LookupSymbol(name=NOT_OWNER, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=OK, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=fromInt, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=Companion, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.common.v1.RoomId.Companion), LookupSymbol(name=UPDATE_LOCAL_VERSION, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result), LookupSymbol(name=NAME, scope=com.latenighthack.lockers.common.v1.RoomId.Companion), LookupSymbol(name=SIGNATURE_INVALID, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=Result, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse), LookupSymbol(name=UNKNOWN_ERROR, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=NOT_AUTHORIZED, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=SIGNATURE_REQUIRED, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion)], dirtyClassesFqNames=[com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion, com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result, com.latenighthack.lockers.common.v1.RoomId.Companion, com.latenighthack.lockers.common.v1.RoomId, com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.SIGNATURE_REQUIRED], dirtyClassesFqNamesForceRecompile=[])
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.toProgramSymbols(ClasspathChangesComputer.kt:364)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeFineGrainedKotlinClassChanges(ClasspathChangesComputer.kt:264)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeKotlinClassChanges(ClasspathChangesComputer.kt:164)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeClassChanges(ClasspathChangesComputer.kt:137)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeChangedAndImpactedSet(ClasspathChangesComputer.kt:87)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeClasspathChanges(ClasspathChangesComputer.kt:55)
+	at org.jetbrains.kotlin.incremental.dirtyFiles.ClasspathSnapshotBasedImpactDeterminer.determineChangedAndImpactedSymbols(ClasspathSnapshotBasedImpactDeterminer.kt:42)
+	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateSourcesToCompileImpl(JvmSourcesToCompileCalculator.kt:41)
+	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateWithClasspathSnapshot(JvmSourcesToCompileCalculator.kt:97)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.calculateSourcesToCompile(IncrementalJvmCompilerRunner.kt:60)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.calculateSourcesToCompile(IncrementalJvmCompilerRunner.kt:23)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally$lambda$0$compile(IncrementalCompilerRunner.kt:225)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally(IncrementalCompilerRunner.kt:267)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:119)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:684)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:94)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1810)
+	at jdk.internal.reflect.GeneratedMethodAccessor12.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+    Falling back to non-incremental compilation (reason = IC_FAILED_TO_COMPUTE_FILES_TO_RECOMPILE)
+    To help us fix this issue, please file a bug at https://youtrack.jetbrains.com/issues/KT with the above stack trace.
+    (Be sure to search for the above exception in existing issues first to avoid filing duplicated bugs.)             
+e: Incremental compilation failed: The following FqNames can't be derived from DirtyData.dirtyLookupSymbols: com.latenighthack.lockers.common.v1.RoomId.
+DirtyData = DirtyData(dirtyLookupSymbols=[LookupSymbol(name=SIGNATURE_REQUIRED, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.common.v1.RoomId), LookupSymbol(name=Companion, scope=com.latenighthack.lockers.common.v1.RoomId), LookupSymbol(name=NOT_OWNER, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=OK, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=fromInt, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=Companion, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.common.v1.RoomId.Companion), LookupSymbol(name=UPDATE_LOCAL_VERSION, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result), LookupSymbol(name=NAME, scope=com.latenighthack.lockers.common.v1.RoomId.Companion), LookupSymbol(name=SIGNATURE_INVALID, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=Result, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse), LookupSymbol(name=UNKNOWN_ERROR, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=NOT_AUTHORIZED, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=SIGNATURE_REQUIRED, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion)], dirtyClassesFqNames=[com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion, com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result, com.latenighthack.lockers.common.v1.RoomId.Companion, com.latenighthack.lockers.common.v1.RoomId, com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.SIGNATURE_REQUIRED], dirtyClassesFqNamesForceRecompile=[])
+java.lang.IllegalStateException: The following FqNames can't be derived from DirtyData.dirtyLookupSymbols: com.latenighthack.lockers.common.v1.RoomId.
+DirtyData = DirtyData(dirtyLookupSymbols=[LookupSymbol(name=SIGNATURE_REQUIRED, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.common.v1.RoomId), LookupSymbol(name=Companion, scope=com.latenighthack.lockers.common.v1.RoomId), LookupSymbol(name=NOT_OWNER, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=OK, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=fromInt, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=Companion, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.common.v1.RoomId.Companion), LookupSymbol(name=UPDATE_LOCAL_VERSION, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result), LookupSymbol(name=NAME, scope=com.latenighthack.lockers.common.v1.RoomId.Companion), LookupSymbol(name=SIGNATURE_INVALID, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=Result, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse), LookupSymbol(name=UNKNOWN_ERROR, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=NOT_AUTHORIZED, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=SIGNATURE_REQUIRED, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion)], dirtyClassesFqNames=[com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.Companion, com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result, com.latenighthack.lockers.common.v1.RoomId.Companion, com.latenighthack.lockers.common.v1.RoomId, com.latenighthack.lockers.room.v1.PostLockerChangeResponse.Result.SIGNATURE_REQUIRED], dirtyClassesFqNamesForceRecompile=[])
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.toProgramSymbols(ClasspathChangesComputer.kt:364)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeFineGrainedKotlinClassChanges(ClasspathChangesComputer.kt:264)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeKotlinClassChanges(ClasspathChangesComputer.kt:164)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeClassChanges(ClasspathChangesComputer.kt:137)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeChangedAndImpactedSet(ClasspathChangesComputer.kt:87)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeClasspathChanges(ClasspathChangesComputer.kt:55)
+	at org.jetbrains.kotlin.incremental.dirtyFiles.ClasspathSnapshotBasedImpactDeterminer.determineChangedAndImpactedSymbols(ClasspathSnapshotBasedImpactDeterminer.kt:42)
+	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateSourcesToCompileImpl(JvmSourcesToCompileCalculator.kt:41)
+	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateWithClasspathSnapshot(JvmSourcesToCompileCalculator.kt:97)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.calculateSourcesToCompile(IncrementalJvmCompilerRunner.kt:60)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.calculateSourcesToCompile(IncrementalJvmCompilerRunner.kt:23)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally$lambda$0$compile(IncrementalCompilerRunner.kt:225)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally(IncrementalCompilerRunner.kt:267)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:119)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:684)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:94)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1810)
+	at jdk.internal.reflect.GeneratedMethodAccessor12.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+
+
+> Task :server:compileKotlin UP-TO-DATE
+> Task :api:compileJvmTestJava NO-SOURCE
+> Task :api:jvmTestClasses
+> Task :api:jvmTest
+> Task :server:compileJava NO-SOURCE
+> Task :server:processResources NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar UP-TO-DATE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:compileKotlin UP-TO-DATE
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:processResources NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar UP-TO-DATE
+> Task :connector:compileTestKotlinJvm UP-TO-DATE
+> Task :connector:compileJvmTestJava NO-SOURCE
+> Task :connector:jvmTestProcessResources NO-SOURCE
+> Task :connector:processJvmTestResources SKIPPED
+> Task :connector:jvmTestClasses UP-TO-DATE
+> Task :connector:jvmTest
+> Task :server:kspTestKotlin SKIPPED
+> Task :server:compileTestKotlin UP-TO-DATE
+> Task :server:compileTestJava NO-SOURCE
+> Task :server:processTestResources NO-SOURCE
+> Task :server:testClasses UP-TO-DATE
+> Task :server:test
+> Task :sharding-core:compileTestKotlin UP-TO-DATE
+> Task :sharding-core:compileTestJava NO-SOURCE
+> Task :sharding-core:processTestResources NO-SOURCE
+> Task :sharding-core:testClasses UP-TO-DATE
+> Task :sharding-core:test UP-TO-DATE
+> Task :observability-server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-server:processResources NO-SOURCE
+> Task :server:run:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:verifyRuntimeSecurity
+> Task :observability-server:compileKotlin
+> Task :observability-server:compileJava NO-SOURCE
+> Task :observability-server:classes UP-TO-DATE
+> Task :observability-server:jar UP-TO-DATE
+> Task :server:run:compileKotlin
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 50s
+32 actionable tasks: 10 executed, 22 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

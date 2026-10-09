@@ -19,7 +19,7 @@
     ],
     "reproduction": "LockVerifierTest: unsigned descendants cannot replace room or keyspace authority (baseline assertion failure)",
     "regression": "LockVerifierTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F02",
@@ -46,7 +46,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F02-stored-envelope.md, docs/review/F02.md",
     "regression": "ConflictEnvelopeBoundaryTest; ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F03",
@@ -73,7 +73,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F03-connector.md, docs/review/F03.md",
     "regression": "LockVerifierTest; ReviewAuthorityV2Tests; ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F04",
@@ -100,7 +100,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F04-admin-boundary.md, docs/review/F04-public-convenience.md, docs/review/F04-runtime.md",
     "regression": "GatewayBoundaryTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F05",
@@ -121,7 +121,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F05-runtime.md",
     "regression": "WebPushEndpointTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F06",
@@ -155,7 +155,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F06-connector.md, docs/review/F06-revocation.md, docs/review/F06.md",
     "regression": "ReviewDestroyReconnectTests; ReviewSessionProofTests; SessionProofBoundaryTest; SessionRevocationTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F07",
@@ -178,7 +178,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F07.md",
     "regression": "ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F08",
@@ -203,8 +203,8 @@
       "56ba70473bfa745922f5dc55d7d6f3559b81fc0d"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F08.md",
-    "regression": "Regression and verification evidence recorded in docs/review/F08.md",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "regression": "RoomMutationFencePgTest (four actual PostgreSQL regressions); ReviewRegressionTest; RatchetAtomicityRegressionTest",
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F09",
@@ -226,7 +226,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F09-runtime.md",
     "regression": "DefaultAgentAuthorityTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F10",
@@ -255,8 +255,8 @@
       "abe4311fd6eec23e4f744016acb9c616735e1c6d"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F10-delete-receipts.md, docs/review/F10.md",
-    "regression": "ReviewDeleteReceiptTests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "regression": "RatchetAtomicityRegressionTest; ReviewDeleteReceiptTests; ReviewRatchetAdoptionTests",
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F11",
@@ -276,11 +276,12 @@
     "status": "partial",
     "commits": [
       "f41db2c4cc217fb283e4ec9688042f84955386d2",
-      "f1fe0fe1af8c0265984da6492ad3889c0e46ac85"
+      "f1fe0fe1af8c0265984da6492ad3889c0e46ac85",
+      "813720475c8bd109703436b6ba0edfc421ac25a7"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F11-connector.md",
-    "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "regression": "ReviewConnectorTests; ReviewExpiredRatchetTests (actual committed HTTP reply loss, receipt removal, later write and restarted client)",
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F12",
@@ -304,7 +305,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F12-runtime.md",
     "regression": "SessionAtomicityTest; SessionOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F13",
@@ -327,7 +328,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F13.md",
     "regression": "ReviewBatchCreationTests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F14",
@@ -357,7 +358,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F14-connector.md, docs/review/F14.md",
     "regression": "CanonicalBatchRegressionTest; ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F15",
@@ -380,7 +381,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F15.md",
     "regression": "ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F16",
@@ -404,7 +405,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F16-connector.md",
     "regression": "ReviewSnapshotRepairTests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F17",
@@ -428,7 +429,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F17-runtime.md",
     "regression": "SubscriptionFreshnessTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F18",
@@ -454,7 +455,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F18-default-construction.md, docs/review/F18-runtime.md",
     "regression": "LegacyDeliveryModeTest; LockersConfigTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F19",
@@ -478,7 +479,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F19-runtime.md",
     "regression": "PushServiceTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F20",
@@ -502,7 +503,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F20-runtime.md",
     "regression": "PushQueueClaimsTest; PushServiceTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F21",
@@ -529,7 +530,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F21-connector.md, docs/review/F21-session-admission.md",
     "regression": "ReviewPushControllerTests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F22",
@@ -557,7 +558,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F22-connector.md, docs/review/F22-public-boundary.md, docs/review/F22-runtime.md",
     "regression": "PushQueueClaimsTest; PushServiceTest; ReviewPushControllerTests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F23",
@@ -580,7 +581,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F23-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F24",
@@ -604,7 +605,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F24-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F25",
@@ -636,7 +637,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F25-advisory-cancellation.md, docs/review/F25-connector.md, docs/review/F25-coordination-sql-limits.md, docs/review/F25-runtime.md, docs/review/F25-telemetry-cancellation.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F26",
@@ -672,7 +673,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F26-connector.md, docs/review/F26-host-lifetime.md, docs/review/F26-runtime.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F27",
@@ -697,7 +698,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F27-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F28",
@@ -722,7 +723,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F28-connector.md, docs/review/F28-runtime.md",
     "regression": "ReviewConnectorTests; SessionAtomicityTest; SessionHeartbeatTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F29",
@@ -748,7 +749,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F29-runtime.md",
     "regression": "InMemorySessionGatewayStoreTest; RegistryIncarnationTest; RegistrySessionGatewayDiscoveryTest; SessionAtomicityTest; SessionAttachFailureTest; SessionHeartbeatTest; SessionOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F30",
@@ -772,7 +773,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F30-runtime.md",
     "regression": "OwnerLifecycleTest; OwnerRecoveryTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F31",
@@ -795,7 +796,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F31-runtime.md",
     "regression": "OwnerLifecycleTest; RoomOwnershipTest; ShardCountReshardTest; WholeRoomOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F32",
@@ -820,7 +821,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F32-runtime.md",
     "regression": "ClaimRenewalServiceTest; ClaimResourceDrainTest; InMemorySessionGatewayStoreTest; RegistryIncarnationTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F33",
@@ -854,7 +855,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F33-connector.md, docs/review/F33-runtime.md",
     "regression": "DeliveryFrameBoundsTest; GatewayAdmissionTest; InboxDeliveryReceiptTest; InboxReceiptPersistenceTest; PushQuotaPgTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F34",
@@ -869,16 +870,18 @@
     "problem": "Encoding supplies notification title/body to NotificationContext, but the session inbox serializes only notification.payload and the locker. Both live responses and replay reconstruct the notification without push title/body, so decoding sees null values. A consumer codec that binds its payload to those context fields cannot reliably round-trip.",
     "evidence": [
       "Confirmed by the inbox event shape and reconstruction. Existing simple codec tests do not exercise a context-dependent codec through persistence and session replay.",
-      "docs/review/F34-notification-metadata.md"
+      "docs/review/F34-notification-metadata.md",
+      "docs/review/F34-inbox-in-memory-isolation.md"
     ],
     "fix": "Persist and replay the metadata that is part of the codec contract, or explicitly narrow encode/decode context to values guaranteed on both sides. Version storage/wire changes as needed. Test context-dependent authentication and transformation through both live and offline delivery.",
     "status": "partial",
     "commits": [
-      "85533853052cd3b8af29b88780bb315afcbca52d"
+      "85533853052cd3b8af29b88780bb315afcbca52d",
+      "4b36827678e3ef542f3c9d824b6305fb074d4068"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F34-notification-metadata.md",
-    "regression": "BroadcastServiceTest; SessionAtomicityTest; SessionInboxMetadataPersistenceTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "regression": "BroadcastServiceTest; SessionAtomicityTest; SessionInboxMetadataPersistenceTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes; InboxByteAdmissionTest mutable result/lookup isolation",
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F35",
@@ -903,7 +906,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F35-connector.md",
     "regression": "BroadcastShapeTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F36",
@@ -919,17 +922,20 @@
     "evidence": [
       "Confirmed by routing code and inspection of the pinned JVM transport; server RemoteGateway.kt documents and avoids the double-prefix issue. Fake routing tests do not exercise a real HttpRpcClient destination.",
       "docs/review/F36-connector.md",
-      "docs/review/F36-server-peer-ownership.md"
+      "docs/review/F36-server-peer-ownership.md",
+      "docs/review/F36-forwarding-runtime.md"
     ],
     "fix": "Make address adaptation an explicit platform transport contract and add real transport tests for bare, HTTP, HTTPS, and redirected endpoints. Namespace room/session routing keys, including keyspace if ring mode requires it. Serialize client creation or close losing instances, and provide bounded cache/resource disposal.",
     "status": "partial",
     "commits": [
       "d771d62f3dabfc1785604651d63a8d1b74956b74",
-      "8c4b7c52feedde67150f48a50698098486641b74"
+      "8c4b7c52feedde67150f48a50698098486641b74",
+      "93804aba126762de22bdf6255c3ea5ce4c189b35",
+      "21ce1b8e1291e258c8279f3bc3e74c958a78b838"
     ],
-    "reproduction": null,
-    "regression": "PeerConnectionOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "reproduction": "ReviewRoutingOwnershipTests: real bare/full HTTP destination failed before address normalization; PublicForwardingRecoveryTest: private forward failure/NOT_OWNER poisoned public route before fix. Red/green linked in issue notes.",
+    "regression": "ReviewRoutingOwnershipTests; PeerConnectionOwnershipTest; PublicForwardingRecoveryTest (six actual HTTP tests); ReviewTerminalProtocolTests",
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F37",
@@ -957,7 +963,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F37-connector.md",
     "regression": "AgentRecoveryTest; DeliveryLatencyTest; PersistedEnvelopeValidationTest; RequestPreflightTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F38",
@@ -985,7 +991,8 @@
       "docs/review/F38-response-boundaries.md",
       "docs/review/F38-session-frame-boundaries.md",
       "docs/review/F38-snapshot-paging.md",
-      "docs/review/F38-write-preflight.md"
+      "docs/review/F38-write-preflight.md",
+      "docs/review/F38-bulk-read-memory.md"
     ],
     "fix": "Validate canonical IDs, key encodings, known scopes, supported envelopes, versions, and complete encoded sizes at the trust boundary. Reject invalid public-keyed room encodings explicitly. Bound recipients, sessions, notification bytes, and global admission/storage consumption, and paginate snapshots/inbox replay with stable cursor semantics. Return precise protocol errors rather than poisoning persisted state or throwing decoder exceptions.",
     "status": "partial",
@@ -1005,11 +1012,13 @@
       "1fc5e4a9e98bb5da7728857e59bf6d209cd23f11",
       "08c2d66579eed631f4776df5dd4a9c7129568879",
       "eb5f1c4432a1bba947b5f2c37409a01b4f70419c",
-      "5fa731a291281382c931a763c24893be3e7a1552"
+      "5fa731a291281382c931a763c24893be3e7a1552",
+      "03b11b55c48e8d97e4740665a1318351a2297793",
+      "6628762c36bcaec95e56dba84ba0cc02b7e137d9"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F38-boundaries.md, docs/review/F38-claim-capacity.md",
     "regression": "BoundaryAuthorityTest; CpuAdmissionBoundaryTest; GatewayAdmissionTest; GeneratedDecodeAllocationTest; InboxReplayPagingTest; LockVerifierTest; NamespaceAdmissionPgTest; NamespaceAdmissionTest; ResourceAdmissionTest; ResponseBoundaryTest; RoomIdentityAdmissionTest; SessionAdmissionFailureContractTest; SessionFrameBoundaryTest; SnapshotPagingTest; StorageAdoptionTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F39",
@@ -1031,7 +1040,9 @@
       "docs/review/F39-source-project-pins.md",
       "docs/review/F39-integration-fixtures.md",
       "docs/review/F39-load-validation.md",
-      "docs/review/F39-required-postgres-gate.md"
+      "docs/review/F39-required-postgres-gate.md",
+      "docs/review/F39-release-transition.md",
+      "docs/review/integration-checkpoint.md"
     ],
     "fix": "Complete the dependency publication/version transition and verify released-mode resolution before release. Preserve isolated workspace repositories while allowing toolchain distribution resolution. Pin and provision the same generator in local, CI, and container builds; include all generator/compiler inputs in caching. Move portable protocol/reducer tests to commonTest and add real platform storage/transport tests plus Fullhouse consumer checks for affected variants.",
     "status": "partial",
@@ -1041,11 +1052,13 @@
       "d6ef56d182113752b34ed144e9c4f9aab094f4ea",
       "e5664adb60dfc2d696bf6f4afb2e191ab01cba7c",
       "3b5f8cb1e417ea124590ebfa135f74e7b24a9ade",
-      "f6a533ee8261f945a3efbfacabb84209d09e9f05"
+      "f6a533ee8261f945a3efbfacabb84209d09e9f05",
+      "58d72268da3ed3d4bff7c3a472b1e04a6902a6e0",
+      "95c839d1bdb43f39de1ee7465eeff910aa3cdbda"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F39-build.md, docs/review/F39-historical-schema.md, docs/review/F39-source-project-pins.md",
     "regression": "NamespaceAdmissionPgTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F40",
@@ -1067,7 +1080,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F40-runtime.md",
     "regression": "PostgresShardMapSourceTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F41",
@@ -1091,7 +1104,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F41-build.md",
     "regression": "NetworkDependencyContractTest; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   },
   {
     "id": "F42",
@@ -1120,6 +1133,6 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F42-build.md, docs/review/F42-connector.md",
     "regression": "GeneratedEqualityContractTest; PackedEnumGeneratorContractTest; ReviewAuthorityV2Tests; actual red/green evidence in linked issue notes",
-    "verification": "Issue regressions committed; combined checkpoint passed12 API/140 connector/322 server/29 sharding tests before final byte-ledger integration. Final source, runtime, platform, consumer and independent verification remain pending."
+    "verification": "Intermediate checkpoint4b36827: API12, connector143, server333 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile and resolved runtime security passed. Final integrated dependency, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
   }
 ]

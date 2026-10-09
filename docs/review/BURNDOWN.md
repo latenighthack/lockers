@@ -14,7 +14,7 @@ Each row is complete only after its reproduction, regression, fix, commit and in
 | F08 | P1 | The default mutation path has no database version CAS or commit fence | partial | ca6e060c, 56ba7047 |
 | F09 | P1 | The default example agent can overwrite an independently locked keyspace | partial | f28f0afc |
 | F10 | P1 | A legacy ratchet can commit before its associated content write fails | partial | 984e2f03, 238cc852, 55f8733e, 50f5a42f, a6d21566, abe4311f |
-| F11 | P1 | The client can discard a successfully committed ratchet key | partial | f41db2c4, f1fe0fe1 |
+| F11 | P1 | The client can discard a successfully committed ratchet key | partial | f41db2c4, f1fe0fe1, 81372047 |
 | F12 | P2 | Session creation and challenge rotation are not atomic | partial | b7768ab3 |
 | F13 | P2 | Creating a locker does not advance its version | partial | 987e85bc, 1b749f20 |
 | F14 | P2 | Null and zero keyspace aliases bypass duplicate and serialization checks | partial | a15c0ac4, 14b4a323, c268b2a7, 3aa145b4, 1cc3f671 |
@@ -37,12 +37,12 @@ Each row is complete only after its reproduction, regression, fix, commit and in
 | F31 | P2 | Ring mode does not maintain authority for nonzero keyspaces | partial | bb99a0c3 |
 | F32 | P2 | Shutdown releases authority before requests and workers have drained | partial | 5c2755b1 |
 | F33 | P2 | Retention and queue discovery grow without a bound | partial | 0457e0d8, abc27633, 1ea959e8, d0b64125, 8b895ba0, 26434f43 |
-| F34 | P2 | Notification codec context does not survive delivery | partial | 85533853 |
+| F34 | P2 | Notification codec context does not survive delivery | partial | 85533853, 4b368276 |
 | F35 | P2 | The high-level client ACKs broadcasts without surfacing their payload | partial | 60533196, a5131b73 |
-| F36 | P2 | The documented JVM routing factory receives incompatible addresses | partial | d771d62f, 8c4b7c52 |
+| F36 | P2 | The documented JVM routing factory receives incompatible addresses | partial | d771d62f, 8c4b7c52, 93804aba, 21ce1b8e |
 | F37 | P2 | An agentPending receipt can remain pending permanently | partial | 4f437d68, 45a96a6d, 9f854ad6 |
-| F38 | P2 | Malformed identity and authority data are persisted and resource limits are incomplete | partial | 4cc7cea7, c8e89e10, cf64d932, 1510d954, 43a239b6, 2ef40806, 3b6e8db2, 6fd246a7, 1c3efeb6, f70aa723, c1bf97a4, 93acbe6e, 1fc5e4a9, 08c2d665, eb5f1c44, 5fa731a2 |
-| F39 | P2 | Build reproducibility and target tests do not cover the published contract | partial | 608fb377, 69941b4e, d6ef56d1, e5664adb, 3b5f8cb1, f6a533ee |
+| F38 | P2 | Malformed identity and authority data are persisted and resource limits are incomplete | partial | 4cc7cea7, c8e89e10, cf64d932, 1510d954, 43a239b6, 2ef40806, 3b6e8db2, 6fd246a7, 1c3efeb6, f70aa723, c1bf97a4, 93acbe6e, 1fc5e4a9, 08c2d665, eb5f1c44, 5fa731a2, 03b11b55, 6628762c |
+| F39 | P2 | Build reproducibility and target tests do not cover the published contract | partial | 608fb377, 69941b4e, d6ef56d1, e5664adb, 3b5f8cb1, f6a533ee, 58d72268, 95c839d1 |
 | F40 | P2 | A topology priming error terminates polling while readiness can later report success | partial | 1ff4c46b |
 | F41 | P2 | Resolved JDBC and network dependencies need security patching and version alignment | partial | c2236968, a9d78e30 |
 | F42 | P3 | Documentation and quality gates disagree with the implementation | partial | 008d5d30, 91e672c2, fce28011 |
