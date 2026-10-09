@@ -8,15 +8,15 @@ import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.server.storage.v1.*
 import java.sql.DriverManager
 import kotlinx.coroutines.*
-import org.junit.jupiter.api.Assumptions.assumeTrue
+import com.latenighthack.lockers.server.claim.PgTestGate
 import kotlin.test.*
 
 class NamespaceAdmissionPgTest {
     @Test fun twoPostgresHandlesShareOneGlobalReservationBudget() = runBlocking {
-        val base = System.getenv("LOCKERS_POSTGRES_TEST_URL"); assumeTrue(base != null, "Set LOCKERS_POSTGRES_TEST_URL for real PostgreSQL coverage")
+        val base = PgTestGate.urlOrSkip()
         val schema = "namespace_${System.nanoTime()}"
         DriverManager.getConnection(base).use { connection -> connection.createStatement().use { it.execute("CREATE SCHEMA $schema") } }
-        val location = base + (if (base!!.contains('?')) "&" else "?") + "currentSchema=$schema"
+        val location = base + (if (base.contains('?')) "&" else "?") + "currentSchema=$schema"
         val a = ServerStorage.postgres(location); val b = ServerStorage.postgres(location)
         val limits = ServerResourceLimits(maxLockers = 3, maxLockersPerRoom = 1, maxLocks = 3, maxLocksPerRoom = 1)
         try {
