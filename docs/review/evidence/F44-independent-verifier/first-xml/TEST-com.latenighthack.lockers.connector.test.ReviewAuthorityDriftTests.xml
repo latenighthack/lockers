@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewAuthorityDriftTests[jvm]" tests="8" skipped="0" failures="1" errors="0" timestamp="2026-10-09T05:00:28.035Z" hostname="Mikes-MacBook-Pro.local" time="6.983">
+  <properties/>
+  <testcase name="lost rejection reply never permits re-signing an ambiguous request[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.752"/>
+  <testcase name="child authority counters do not compare against the ancestor counter[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.304"/>
+  <testcase name="different authority key remains a permanent rejection[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.067"/>
+  <testcase name="authority-only drift retries have a finite independent budget[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.662"/>
+  <testcase name="new room authority re-signs a definitively rejected frozen write[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.172"/>
+  <testcase name="an unrelated reported keyspace cannot trigger authority repair[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.004"/>
+  <testcase name="unchanged authority epoch invalid signature remains permanent[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.005"/>
+  <testcase name="new keyspace authority re-signs a definitively rejected frozen write[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="5.017">
+    <failure message="kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 5000 ms" type="kotlinx.coroutines.TimeoutCancellationException">kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 5000 ms
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests$race$2$1$2.invokeSuspend(ReviewAuthorityDriftTests.kt:68)
+	at com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests$race$2$1.invokeSuspend(ReviewAuthorityDriftTests.kt:68)
+	at com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests$race$2.invokeSuspend(ReviewAuthorityDriftTests.kt:23)
+	at com.latenighthack.lockers.connector.test.OwnedTestFixtureKt$runOwnedTestWithServer$2$2.invokeSuspend(OwnedTestFixture.kt:56)
+	at com.latenighthack.lockers.connector.test.OwnedTestFixtureKt$runOwnedTestWithServer$2.invokeSuspend(OwnedTestFixture.kt:53)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:317)
+Caused by: kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 5000 ms
+	at kotlinx.coroutines.TimeoutKt.TimeoutCancellationException(Timeout.kt:189)
+	at kotlinx.coroutines.TimeoutCoroutine.run(Timeout.kt:157)
+	at kotlinx.coroutines.EventLoopImplBase$DelayedRunnableTask.run(EventLoop.common.kt:505)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+	at kotlinx.coroutines.DefaultExecutor.run(DefaultExecutor.kt:105)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

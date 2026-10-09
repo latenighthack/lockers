@@ -1,0 +1,101 @@
+I’ll verify `4a93a9e` and the isolated worktree, run the selected regressions with raw evidence saved outside source, and review the final source against `a40cc9c`. I’ll separate source blockers from the remaining consumer, platform and published-artifact gates.
+---
+
+The dispatcher fix removes the lock-order cycle while retaining operation tracking for drain. I also checked the durable startup/confirmation CAS, revision echoes, journal cancellation and legacy archive authority changes. The test build hit a Kotlin incremental-compilation error and fell back to non-incremental compilation; I’m waiting for the test result before classifying it.
+---
+
+The selected run passed: 33 tests, zero failures/errors/skips, including the signed monolith and two-handle PostgreSQL deadlock regressions. Kotlin’s fallback compilation completed successfully. I’m finishing the broader source checks for authority boundaries, durable work, peer routing and shutdown; the parent’s full-suite counts remain separate from this independent run.
+---
+
+**No new confirmed source blocker found at `4a93a9e`.** The previously reported dispatcher/database deadlock is fixed and independently passes its deterministic regressions. Source and Git status remain clean.
+
+The review against `a40cc9c`, continuing the earlier passes, covered authority/signatures, frozen storage schemas and extension boundaries, receipts/agent recovery, ratchets, subscription ordering, event/ACK/push handling, resource bounds, routing and lifecycle ownership.
+
+The latest fixes survive review:
+
+- Subscription startup and late confirmations use durable transactional checks; ordinary and snapshot-page successes require the exact revision echo. [Stream.kt:211](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:211)
+- Subscription execution avoids the per-room mutex while retaining tracked drain and storage serialization. [RoomServiceImpl.kt:698](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:698)
+- Legacy archives use effective authority without inventing exact scope history; missing predecessor-key metadata cannot replace an unrelated provider key. [LockerClient.kt:1355](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1355)
+- Journal collection now propagates cancellation explicitly.
+
+**Independent execution: 33 tests passed, zero failures/errors/skips.**
+
+| Selection | Executed |
+|---|---:|
+| Five requested server classes | 13 |
+| Six requested SDK classes | 20 |
+
+Both selected PostgreSQL cases ran in unique schemas, including the two-handle lock-order regression. No broader public-table PostgreSQL fixtures were run.
+
+```sh
+ANDROID_HOME=/Users/mikeroberts/Library/Android/sdk \
+LOCKERS_TEST_PG_REQUIRED=true \
+LOCKERS_TEST_PG_URL='jdbc:postgresql://127.0.0.1:58594/lockers_fixes?user=review' \
+./gradlew \
+-PfhWorkspace=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/dependencies-indexeddb-final.json \
+-Dmaven.repo.local=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/maven \
+--console=plain \
+:server:test \
+--tests '*SubscriptionLockOrderTest*' \
+--tests '*ShardedDispatcherTest*' \
+--tests '*SubscriptionIntentPgTest*' \
+--tests '*SubscriptionHttpOrderingTest*' \
+--tests '*SubscriptionIntentBoundaryTest*' \
+:connector:jvmTest \
+--tests '*ReviewSubscriptionConfirmationCasTests*' \
+--tests '*ReviewSubscriptionStartupCasTests*' \
+--tests '*ReviewSubscriptionEchoTests*' \
+--tests '*ReviewJournalCancellationTests*' \
+--tests '*ReviewRatchetAdoptionTests*' \
+--tests '*ReviewExpiredRatchetTests*'
+```
+
+`BUILD SUCCESSFUL in 21s`. Kotlin incremental compilation failed internally, then successfully used its non-incremental fallback. [Raw log](/tmp/independent-final-4a93a9e-gradle.log) · [XML results](/tmp/independent-final-4a93a9e-xml)
+
+**Source-level acceptance only; overallDone=false.** Final combined/static/platform/Fullhouse gates remain separate. F39’s public-artifact release gate remains open; these paired local builds do not satisfy it. No publication performed.
+[User] Continue independent read-only verification at exact integrated95ede87. User explicitly authorized available Codex after expired Claude. New concreteF44 actualFullhouse onboarding exposed epoch0 discovery followedby samekey ROOMepoch1 establishment before signed write, correctlyrejectedbyserver but terminalinSDK. Rootfix0ec6f15 permits atmost3 definitive normal V2 same-owned-key authority repairs with frozenbody/notification/parent andnewrequestID; verifiesoriginalsignature/checksum, covering normalizedscope, scope-localepochcomparisons, noambiguousattemptrepair, noratchet/keyrotationrepair, nochangedpub/wrongscope/unchangedsameepochrepair. Previousunlockedtombstoneepochmaylackpub. Runtime read-only auditsaccepted. Inspect code ratherthanacceptingreport; assess any security/correctness/cancellation/replay issue. Existing29focusedJVM+6Node+9Apple+9Chrome+9ownedAndroid tests passed; newconsumerimmutablepublicationstillpending.
+
+Execute fresh selectedSDKtests ReviewAuthorityDriftTests, ReviewConsumerSignedWritesTests, AuthorityRepairPortabilityTest, ReviewAuthorityV2Tests, ReviewRatchetAdoptionTests, ReviewExpiredRatchetTests, optionally durablewriteambiguity tests relevanttoimmutableidentity. Read actualF44consumer-red andSDKred, focusedassertions. Use wrapper explicit -PfhWorkspace=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/dependencies-indexeddb-final.json -Dmaven.repo.local=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/maven; ANDROID_HOME=/Users/mikeroberts/Library/Android/sdk. NoPGneeded forselectedSDK; parentwholeJVM includespublicPGTRUNCATEfixtures so no competingpublicPG tests. Keep command/rawlog/XML actual counts, read-onlysource, report any concrete blocker withline/interleaving andscopeofacceptance. New artifacts/versionconsumer gates remain pending, externalF39publicrelease separateunavailable. No sourceedits/originaledits/publication/permissionasks. Bounded independentreview now, report toparent.
+I’ll verify `95ede87`, inspect the authority-repair checks and immutable-request handling, then run the selected SDK tests. I’ll save the raw log and XML outside source and keep consumer publication and F39 release gates separate.
+---
+
+The repair checks match the intended boundary: only definitive `SIGNATURE_INVALID` responses qualify, and the new signature must use the same owned key for a scope covering the target. Payload, notification and parent version stay frozen; receipt-enabled repairs get a new request ID. I also verified that network ambiguity and `NOT_OWNER` disable repair, and reviewed the consumer-red XML showing the original onboarding failure.
+---
+
+The first run executed 29 tests: 28 passed, and the KEYSPACE race test timed out waiting five seconds for the write to finish after the gate was released. I’ve preserved the failure XML. I’ll repeat the same selection once to check whether it recurs; I won’t treat the first run as green.
+---
+
+The failure stack points to line 68: it timed out waiting for the initial discovery gate, before authority repair began. My previous update misstated the stage. The repeat is running; this failure alone does not establish a repair defect.
+---
+
+**No concrete F44 source blocker found at `95ede87`.** Source remains clean.
+
+The repair is limited to three definitive normal-write re-signs. It verifies the original V2 signature/checksum, checks the same owned key and a covering normalized scope, compares epochs within that scope, preserves payload/notification/parent, and gives receipt-enabled repairs a fresh ID. Ambiguous attempts and ratchets cannot enter repair. Cancellation remains propagated. See [LockerClient.kt:1174](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1174) and [repair validation:1477](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1477).
+
+I inspected the actual consumer-red and SDK-red XML. Independent execution:
+
+| Run | Executed | Passed | Failed | Errors/skips |
+|---|---:|---:|---:|---:|
+| First | 29 | 28 | 1 | 0 |
+| Exact repeat | 29 | 29 | 0 | 0 |
+
+The first failure was a five-second timeout awaiting **initial discovery**, before repair, at [ReviewAuthorityDriftTests.kt:68](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewAuthorityDriftTests.kt:68). It did not recur; its cause remains unestablished.
+
+Both runs used:
+
+```sh
+ANDROID_HOME=/Users/mikeroberts/Library/Android/sdk ./gradlew \
+-PfhWorkspace=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/dependencies-indexeddb-final.json \
+-Dmaven.repo.local=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/maven \
+--console=plain :connector:jvmTest \
+--tests '*ReviewAuthorityDriftTests*' \
+--tests '*ReviewConsumerSignedWritesTests*' \
+--tests '*AuthorityRepairPortabilityTest*' \
+--tests '*ReviewAuthorityV2Tests*' \
+--tests '*ReviewRatchetAdoptionTests*' \
+--tests '*ReviewExpiredRatchetTests*'
+```
+
+Evidence: [first log](/tmp/independent-F44-95ede87-gradle.log), [first XML](/tmp/independent-F44-95ede87-first-xml), [repeat log](/tmp/independent-F44-95ede87-repeat-gradle.log), [repeat XML](/tmp/independent-F44-95ede87-repeat-xml).
+
+**F44 source-level acceptance; overallDone=false.** New immutable artifact/consumer verification remains pending. External F39 public release remains a separate unsatisfied gate.
