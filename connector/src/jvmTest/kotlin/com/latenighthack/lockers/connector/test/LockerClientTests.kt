@@ -9,7 +9,14 @@ import com.latenighthack.ktbuf.proto.Codes
 import com.latenighthack.lockers.connector.test.runOwnedTestWithServer as runTestWithServer
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.ktstore.InMemoryKeyValueStoreDelegate
-import com.latenighthack.ktstore.*
+import com.latenighthack.ktstore.Database
+import com.latenighthack.ktstore.IndexedQuery
+import com.latenighthack.ktstore.IndexedQueryDelegate
+import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.LifecycleStoreDelegate
+import com.latenighthack.ktstore.QueryPage
+import com.latenighthack.ktstore.ScopedStoreDelegate
+import com.latenighthack.ktstore.TransactionMode
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import com.latenighthack.lockers.connector.internal.ConnectorEventJournalDefinitionV1
@@ -37,13 +44,18 @@ class LockerClientTests {
         LifecycleStoreDelegate by source, ScopedStoreDelegate, IndexedQueryDelegate {
         override val supportsTransactions get() = source.supportsTransactions
         override suspend fun <T> transaction(block: suspend () -> T) = source.transaction(block)
-        override suspend fun <T> transaction(lockKey: String, block: suspend () -> T) = source.transaction(lockKey, block)
-        override suspend fun <T> transaction(stores: Set<String>, mode: TransactionMode, block: suspend () -> T) = source.transaction(stores, mode, block)
+        override suspend fun <T> transaction(lockKey: String, block: suspend () -> T) =
+            source.transaction(lockKey, block)
+        override suspend fun <T> transaction(stores: Set<String>, mode: TransactionMode, block: suspend () -> T) =
+            source.transaction(stores, mode, block)
         override suspend fun count(tableName: String, query: IndexedQuery) = source.count(tableName, query)
-        override suspend fun deleteBatch(tableName: String, query: IndexedQuery, identity: String, version: Int) = source.deleteBatch(tableName, query, identity, version)
+        override suspend fun deleteBatch(tableName: String, query: IndexedQuery, identity: String, version: Int) =
+            source.deleteBatch(tableName, query, identity, version)
         override suspend fun query(tableName: String, query: IndexedQuery, identity: String, version: Int): QueryPage {
             val page = source.query(tableName, query, identity, version)
-            if (tableName == ConnectorEventJournalDefinitionV1.storeName.value) currentCoroutineContext()[CursorReady]?.ready?.complete(Unit)
+            if (tableName == ConnectorEventJournalDefinitionV1.storeName.value) {
+                currentCoroutineContext()[CursorReady]?.ready?.complete(Unit)
+            }
             return page
         }
     }
