@@ -1,8 +1,9 @@
-<?xml version="1.0" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <SmellBaseline>
-  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <ManuallySuppressedIssues />
   <CurrentIssues>
+    <ID>MaxLineLength:Tools.kt$private suspend</ID>
+    <ID>MaxLineLength:Tools.kt$suspend</ID>
     <ID>MaxLineLength:Tools.kt$suspend fun Application.attachFastpathTestServices()</ID>
-    <ID>MaxLineLength:Tools.kt$val core = ServerCore::class.create(LockersConfig.defaults(), com.latenighthack.lockers.server.ServerStorage.inMemory())</ID>
   </CurrentIssues>
 </SmellBaseline>

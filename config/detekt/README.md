@@ -8,8 +8,12 @@ require the corresponding type-aware task; syntax-only analysis does not prove
 cancellation safety, so runtime cancellation/lifecycle regressions remain required.
 
 The captured review baseline records existing formatting/import/complexity debt,
-plus named existing exception-handling findings addressed by the correctness
-burndown. Rule counts are in docs/review/evidence/F42/baseline-rule-counts.json.
+plus exact reviewed generic boundary catches. The integrated review, cancellation
+contracts and additions/removals are documented in
+docs/review/F42-integrated-static-audit.md and its JSON inventory. Initial rule
+counts are in docs/review/evidence/F42/baseline-rule-counts.json.
+SwallowedException and ThrowingExceptionFromFinally findings are repaired in source
+instead of baselined.
 No GlobalCoroutineUsage or SuspendFunSwallowedCancellation entry is suppressed.
 Do not regenerate a baseline merely to make a new correctness defect disappear.
 When incorporating this remediation branch's new source, review any additional

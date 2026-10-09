@@ -1,18 +1,51 @@
-<?xml version="1.0" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <SmellBaseline>
-  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <ManuallySuppressedIssues />
   <CurrentIssues>
+    <ID>LongParameterList:LockerSigning.kt$LockerSigning$(roomId: RoomId, lockerId: LockerId, parentVersion: Long, lockVersion: Long, contentHash: ByteArray, notification: Notification?)</ID>
+    <ID>LongParameterList:LockerSigning.kt$LockerSigning$(roomId: RoomId, lockerId: LockerId, parentVersion: Long, lockVersion: Long, newPublicKey: ByteArray, newSharedKeys: List&lt;SharedKey&gt;)</ID>
+    <ID>MagicNumber:InboxAdmission.kt$InboxAdmission$1024</ID>
     <ID>MagicNumber:LockerSigning.kt$LockerSigning.Writer$0xFF</ID>
     <ID>MagicNumber:LockerSigning.kt$LockerSigning.Writer$64</ID>
     <ID>MagicNumber:LockerSigning.kt$LockerSigning.Writer$7</ID>
     <ID>MagicNumber:LockerSigning.kt$LockerSigning.Writer$8</ID>
+    <ID>MagicNumber:SessionSigning.kt$SessionSigning$56</ID>
+    <ID>MagicNumber:SessionSigning.kt$SessionSigning$8</ID>
+    <ID>MaxLineLength:DeleteReceiptProtocolTest.kt$DeleteReceiptProtocolTest$assertContentEquals(id, DeleteLockerRequest.fromByteArray(DeleteLockerRequest(writeRequestId = id).toByteArray()).writeRequestId)</ID>
+    <ID>MaxLineLength:DeleteReceiptProtocolTest.kt$DeleteReceiptProtocolTest$assertTrue(CapabilitiesResponse.fromByteArray(CapabilitiesResponse(deleteReceipts = true).toByteArray()).deleteReceipts)</ID>
+    <ID>MaxLineLength:DeleteReceiptProtocolTest.kt$DeleteReceiptProtocolTest$val decoded = DeleteLockerResponse.fromByteArray(DeleteLockerResponse(result = DeleteLockerResponse.Result.REQUEST_ID_REUSED, writeRequestId = id).toByteArray())</ID>
+    <ID>MaxLineLength:PackedEnumGeneratorContractTest.kt$PackedEnumGeneratorContractTest$val expected = PackedEnumFixture(selections = listOf(PackedEnumFixture.Selection.SECOND, PackedEnumFixture.Selection.THIRD), marker = 99)</ID>
+    <ID>MaxLineLength:PushDeliveryIdentityTest.kt$PushDeliveryIdentityTest$val request = SendPushRequest(sessionId = SessionId(byteArrayOf(1)), push = Push(title = "a"), deliveryId = byteArrayOf(2))</ID>
     <ID>MaxLineLength:SigningGoldenTest.kt$SigningGoldenTest$assertEquals("00000000000000106c6f636b6572732f76312f6772616e74000000000000000101000000000000000200000000000000000000000000000000000000000000000105", hex(LockerSigning.grantContext(room, scope, byteArrayOf(5))))</ID>
     <ID>MaxLineLength:SigningGoldenTest.kt$SigningGoldenTest$assertEquals("00000000000000106c6f636b6572732f76312f77726974650000000000000001010000000000000002020300000000000000050000000000000007000000000000000104", hex(LockerSigning.writeContext(room, locker, 7, byteArrayOf(4))))</ID>
     <ID>MaxLineLength:SigningGoldenTest.kt$SigningGoldenTest$assertEquals("00000000000000116c6f636b6572732f76312f756e6c6f636b000000000000000101000000000000000200000000000000000000000000000000", hex(LockerSigning.unlockContext(room, scope)))</ID>
     <ID>MaxLineLength:SigningGoldenTest.kt$SigningGoldenTest$assertEquals("00000000000000126c6f636b6572732f76312f726174636865740000000000000001010000000000000002020300000000000000050000000000000007000000000000000105", hex(LockerSigning.ratchetContext(room, locker, 7, byteArrayOf(5))))</ID>
+    <ID>MaxLineLength:WriteOutcomeContractTest.kt$WriteOutcomeContractTest$assertEquals(outcome, GetWriteOutcomeResponse.fromByteArray(GetWriteOutcomeResponse(outcome = outcome).toByteArray()).outcome)</ID>
+    <ID>MaxLineLength:WriteOutcomeContractTest.kt$WriteOutcomeContractTest$assertEquals(outcome.sourceVersions, PostLockerChangeResponse.fromByteArray(PostLockerChangeResponse(sourceVersions = outcome.sourceVersions).toByteArray()).sourceVersions)</ID>
+    <ID>MaxLineLength:WriteOutcomeContractTest.kt$WriteOutcomeContractTest$assertEquals(outcome.sourceVersions, PostLockerChangesResponse.fromByteArray(PostLockerChangesResponse(sourceVersions = outcome.sourceVersions).toByteArray()).sourceVersions)</ID>
+    <ID>MaxLineLength:WriteOutcomeContractTest.kt$WriteOutcomeContractTest$sourceVersions = listOf(WriteSourceVersion(lockerId = LockerId(rawValue = "source".encodeToByteArray(), keyspace = LockerKeyspace(1)), version = 4))</ID>
     <ID>MayBeConst:Dummy.kt$// Placeholder so the commonMain source set exists before proto generation. internal val lockersApiModule = "lockers"</ID>
+    <ID>ReturnCount:LockerEnvelope.kt$LockerEnvelope$fun isSupported(locker: Locker): Boolean</ID>
     <ID>ReturnCount:RoomKeying.kt$RoomKeying$fun authorityKey(roomId: RoomId): ByteArray?</ID>
+    <ID>WildcardImport:DeleteReceiptProtocolTest.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:DeleteReceiptProtocolTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:GeneratedDecodeAllocationTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:GeneratedDecodeAllocationTest.kt$import com.latenighthack.lockers.review.fixture.*</ID>
+    <ID>WildcardImport:GeneratedDecodeAllocationTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:GeneratedEqualityContractTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:GeneratedEqualityContractTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:PackedEnumGeneratorContractTest.kt$import com.latenighthack.lockers.review.fixture.*</ID>
+    <ID>WildcardImport:PackedEnumGeneratorContractTest.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:ProtocolPortabilityTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:PushDeliveryIdentityTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:PushDeliveryIdentityTest.kt$import com.latenighthack.lockers.push.v1.*</ID>
+    <ID>WildcardImport:PushDeliveryIdentityTest.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:SigningGoldenTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:SnapshotPagingProtocolTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:SnapshotPagingProtocolTest.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:SnapshotPagingProtocolTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:WriteOutcomeContractTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:WriteOutcomeContractTest.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:WriteOutcomeContractTest.kt$import kotlin.test.*</ID>
   </CurrentIssues>
 </SmellBaseline>

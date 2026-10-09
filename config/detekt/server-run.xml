@@ -1,9 +1,11 @@
-<?xml version="1.0" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <SmellBaseline>
-  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <ManuallySuppressedIssues />
   <CurrentIssues>
+    <ID>CyclomaticComplexMethod:Main.kt$fun main()</ID>
     <ID>LongMethod:Main.kt$fun main()</ID>
     <ID>MagicNumber:Main.kt$512</ID>
+    <ID>MaxLineLength:Main.kt$"Multi-node ownership requires LOCKERS_PEER_TOKEN and an internal LOCKERS_ADVERTISE_ADDR on LOCKERS_ADMIN_PORT"</ID>
     <ID>MaxLineLength:Main.kt$(!System.getenv("OTEL_EXPORTER_OTLP_ENDPOINT").isNullOrBlank() || !System.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT").isNullOrBlank())</ID>
     <ID>MaxLineLength:Main.kt$(call.request.headers[key] ?: if (call.request.headers["Upgrade"].equals("websocket", true)) call.request.queryParameters[key] else null)</ID>
     <ID>MaxLineLength:Main.kt$Database(ServerStorage.configuration("lockers-local", definitions), com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(InMemoryStoreDelegate(), registry, telemetry))</ID>
@@ -11,6 +13,8 @@
     <ID>MaxLineLength:Main.kt$private</ID>
     <ID>MaxLineLength:Main.kt$val</ID>
     <ID>MaxLineLength:Main.kt$val monitoring = com.latenighthack.lockers.observability.server.LockersMonitoring.attach(core, metricsRegistry, metricsRegistry, openTelemetry)</ID>
+    <ID>TooGenericExceptionCaught:Main.kt$cleanup: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Main.kt$failure: Throwable</ID>
     <ID>UnusedPrivateProperty:Main.kt$private const val JDBC_POSTGRES_PREFIX = "jdbc:postgresql:"</ID>
     <ID>WildcardImport:Main.kt$import io.ktor.server.request.*</ID>
   </CurrentIssues>

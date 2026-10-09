@@ -1,7 +1,8 @@
-<?xml version="1.0" ?>
+<?xml version='1.0' encoding='UTF-8'?>
 <SmellBaseline>
-  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <ManuallySuppressedIssues />
   <CurrentIssues>
+    <ID>EmptyFunctionBlock:TelemetryCancellationTest.kt$TelemetryCancellationTest.&lt;no name provided&gt;.&lt;no name provided&gt;${}</ID>
     <ID>EmptyFunctionBlock:TelemetryTest.kt$TelemetryTest.&lt;no name provided&gt;.&lt;no name provided&gt;${}</ID>
     <ID>MagicNumber:Telemetry.kt$TelemetryContract$.001</ID>
     <ID>MagicNumber:Telemetry.kt$TelemetryContract$.005</ID>
@@ -36,7 +37,8 @@
     <ID>MaxLineLength:Telemetry.kt$TelemetryOperation$PUSH_REGISTER : TelemetryOperation</ID>
     <ID>MaxLineLength:Telemetry.kt$TelemetryOperation$SESSION_POST : TelemetryOperation</ID>
     <ID>MaxLineLength:Telemetry.kt$fun LockersTelemetry.safeRecord(operation: TelemetryOperation, outcome: TelemetryOutcome, elapsedNanos: Long = 0)</ID>
-    <ID>MaxLineLength:Telemetry.kt$return (if (span == null) block() else withContext(span.context + TelemetryContext(span.context.minusKey(Job), span.traceId, span.spanId)) { block() }).also { result = outcome(it) }</ID>
+    <ID>MaxLineLength:Telemetry.kt$return (if (span == null) block() else withContext(span.context.minusKey(Job) + TelemetryContext(span.context.minusKey(Job), span.traceId, span.spanId)) { block() }).also { result = outcome(it) }</ID>
+    <ID>MaxLineLength:Telemetry.kt$val span = try { startSpan(operation) } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) { null }</ID>
     <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$assertFailsWith&lt;CancellationException&gt; { telemetry.observe(TelemetryOperation.CONNECTOR_WRITE) { throw CancellationException() } }</ID>
     <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$assertFailsWith&lt;IllegalArgumentException&gt; { TelemetryContract.decode("x".repeat(TelemetryContract.MAX_BYTES + 1)) }</ID>
     <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$assertFailsWith&lt;IllegalArgumentException&gt; { TelemetryContract.decode("{\"platform\":\"IOS\",\"roomId\":\"private\"}") }</ID>
@@ -49,6 +51,8 @@
     <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$val valid = ClientTelemetryBatch(platform = ClientPlatform.IOS, measurements = listOf(ClientMeasurement(TelemetryOperation.CONNECTOR_WRITE, TelemetryOutcome.OK, 1, .01, List(15) { if(it == 2) 1 else 0 })))</ID>
     <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest.&lt;no name provided&gt;$override fun record(operation: TelemetryOperation, outcome: TelemetryOutcome, elapsedNanos: Long)</ID>
     <ID>WildcardImport:Telemetry.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:TelemetryCancellationTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:TelemetryCancellationTest.kt$import kotlinx.coroutines.*</ID>
     <ID>WildcardImport:TelemetryTest.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:TelemetryTest.kt$import kotlinx.coroutines.*</ID>
   </CurrentIssues>
