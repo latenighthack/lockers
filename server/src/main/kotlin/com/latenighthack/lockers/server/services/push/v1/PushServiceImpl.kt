@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.server.services.push.v1
 
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.GlobalOpenTelemetry
 import com.latenighthack.ktbuf.net.GrpcRequestContext
 import com.latenighthack.ktcrypto.digest
 import com.latenighthack.ktbuf.net.ServerDescriptor
@@ -87,8 +89,15 @@ class LocalPushGatewayDiscovery(private val pushGatewayServer: PushGatewayServer
  * never starves the queue. The [PushAdminServer] surface exposes queue/dead-letter
  * depths and lets an operator drain, retry or purge.
  */
+private const val LAST_BACKEND_VALUE = 3
+private const val MILLIS_PER_SECOND = 1000.0
+private const val OPERATIONS_TIMEOUT_MILLIS = 4_000L
+private const val OPERATIONS_INTERVAL_MILLIS = 5_000L
+
 @ServiceScope
 @Inject
+// Composition keeps optional instrumentation alongside existing injected dependencies.
+@Suppress("LongParameterList")
 class PushServiceImpl(
     private val pushSessionStore: PushSessionStore,
     private val pushQueueStore: PushQueueStore,
@@ -98,6 +107,7 @@ class PushServiceImpl(
     private val dispatch: PushDispatchConfig = PushDispatchConfig.DEFAULT,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
     private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
+    private val workTelemetry: OpenTelemetry = GlobalOpenTelemetry.get(),
 ) : BaseServiceImpl(), PushServer, PushGatewayServer, PushAdminServer {
     private val logger = LoggerFactory.getLogger(PushServiceImpl::class.java)
 
@@ -119,6 +129,40 @@ class PushServiceImpl(
     private val localClaims = java.util.concurrent.ConcurrentHashMap<ServerPushId, PushClaim>()
     private var processorJob: Job? = null
 
+    private val queueMetrics = QueueMetrics(meterRegistry, "provider_push")
+    private val operationSnapshots = java.util.concurrent.atomic.AtomicReference<Map<Int, QueueSnapshot>>(emptyMap())
+    init {
+        meterRegistry.safeMeters {
+            for (value in 0..LAST_BACKEND_VALUE) {
+                val backend = PushBackendKind.entries.firstOrNull { it.protoValue == value }?.tag ?: "legacy"
+                fun gauge(name: String, read: (QueueSnapshot) -> Double) {
+                    io.micrometer.core.instrument.Gauge.builder("lockers.push.queue.$name") {
+                        operationSnapshots.get()[value]?.let(read) ?: Double.NaN }
+                        .tag("backend", backend).tag("scope", "shared").register(this)
+                }
+                fun age(at: Long?) = at?.let { maxOf(0.0,
+                    (System.currentTimeMillis() - it) / MILLIS_PER_SECOND) } ?: Double.NaN
+                gauge("oldest.age.seconds") { if (it.depth == 0L) 0.0 else age(it.oldestAt) }
+                gauge("unknown.age") { it.unknownAge.toDouble() }
+                gauge("eligible.depth") { it.eligibleDepth?.toDouble() ?: Double.NaN }
+                gauge("eligible.oldest.age.seconds") { if (it.eligibleDepth == 0L) 0.0 else age(it.eligibleAt) }
+            }
+        }
+    }
+    private suspend fun collectOperations() {
+        try {
+            val snapshots = withTimeout(OPERATIONS_TIMEOUT_MILLIS) { pushQueueStore.snapshotsByBackend() } ?: return
+            operationSnapshots.set(snapshots)
+            queueMetrics.update(QueueSnapshot(snapshots.values.sumOf { it.depth }, snapshots.values.sumOf {
+                it.unknownAge },
+                snapshots.values.mapNotNull { it.oldestAt }.minOrNull(),
+                eligibleDepth = snapshots.values.sumOf { it.eligibleDepth ?: 0 }, eligibleAt =
+                    snapshots.values.mapNotNull { it.eligibleAt }.minOrNull()))
+        } catch (_: TimeoutCancellationException) { meterRegistry.safeMeters {
+            queueMetrics.collectionFailures.increment() } }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { meterRegistry.safeMeters { queueMetrics.collectionFailures.increment() } }
+    }
     private val totalQueueGauge = AtomicInteger(0)
     private val queueDepth = PushBackendKind.entries.associateWith { AtomicInteger(0) }
     private val deadLetterDepth = PushBackendKind.entries.associateWith { AtomicInteger(0) }
@@ -143,6 +187,10 @@ class PushServiceImpl(
 
     fun start() {
         synchronized(this) { check(!closed && !started) { "Push service already started or closed" }; started = true }
+        queueMetrics.enabled.set(if (dispatch.workerEnabled) 1 else 0)
+        queueMetrics.capacity.set(if (dispatch.workerEnabled) dispatch.sendConcurrencyPerBackend.coerceIn(1,
+            256) * pushProviders.filter { it.isConfigured }.map { it.backend }.distinct().size + 1 else 0)
+        processorScope.launch { while (isActive) { collectOperations(); delay(OPERATIONS_INTERVAL_MILLIS) } }
         if (!dispatch.workerEnabled) {
             // API-only replica: still report depths from the shared stores, but do
             // not drain. Enabled replicas coordinate through durable claims.
@@ -177,9 +225,13 @@ class PushServiceImpl(
                             var available = 0
                             repeat(count) { if (slots.tryAcquire()) available++ }
                             if (available == 0) { withTimeoutOrNull(250) { workAvailable.receive() }; continue }
+                            queueMetrics.heartbeat()
+                            val claiming = System.nanoTime()
                             val batch = try { pushQueueStore.claim(backend, workerId, System.currentTimeMillis(), available) }
                                 catch (cancelled: CancellationException) { repeat(available) { slots.release() }; throw cancelled }
                                 catch (error: Exception) { repeat(available) { slots.release() }; logger.warn("push claim failed; retrying durable queue", error); delay(250); continue }
+                            meterRegistry.safeMeters { queueMetrics.claim.record(System.nanoTime() - claiming,
+                                TimeUnit.NANOSECONDS) }
                             repeat(available - batch.size) { slots.release() }
                             batch.forEach { claim -> localClaims[requireNotNull(claim.push.pushId)] = claim; claimed.send(claim) }
                             if (batch.isEmpty()) withTimeoutOrNull(250) { workAvailable.receive() }
@@ -207,6 +259,7 @@ class PushServiceImpl(
         closing.withLock {
             if (closed) return
             closed = true
+            queueMetrics.enabled.set(0)
             withContext(NonCancellable) {
                 processorScope.coroutineContext[Job]!!.cancelAndJoin()
                 var failed: Throwable? = null
@@ -225,6 +278,14 @@ class PushServiceImpl(
     private suspend fun processPush(claim: PushClaim) {
         val push = claim.push
         val pushId = push.pushId ?: return
+        val started = System.nanoTime()
+        queueMetrics.active.incrementAndGet()
+        meterRegistry.safeMeters {
+            if (claim.work.enqueuedAt > 0) {
+                val waited = (System.currentTimeMillis() - claim.work.enqueuedAt).coerceAtLeast(0)
+                queueMetrics.wait.record(waited, TimeUnit.MILLISECONDS)
+            }
+        }
         val processing = currentCoroutineContext()[Job]!!
         val heartbeat = CoroutineScope(currentCoroutineContext()).launch {
             while (isActive) {
@@ -233,9 +294,12 @@ class PushServiceImpl(
             }
         }
         try {
-            processClaimedPush(claim)
+            traceWork("push.provider", listOf(claim.work.traceparent), workTelemetry) { processClaimedPush(claim) }
         } finally {
             withContext(NonCancellable) {
+                queueMetrics.active.decrementAndGet()
+                meterRegistry.safeMeters { queueMetrics.processing.record(System.nanoTime() - started,
+                    TimeUnit.NANOSECONDS) }
                 heartbeat.cancelAndJoin()
                 pushQueueStore.release(claim, System.currentTimeMillis() + 250)
                 localClaims.remove(pushId, claim)
@@ -304,12 +368,16 @@ class PushServiceImpl(
                     // Persist the attempt so the budget survives a restart.
                     val shift = push.attempt.coerceIn(0, MAX_BACKOFF_SHIFT)
                     val backoff = minOf(dispatch.retryPolicy.baseDelay * (1 shl shift), dispatch.retryPolicy.maxDelay)
-                    pushQueueStore.retry(claim, nextAttempt, System.currentTimeMillis() + backoff.inWholeMilliseconds)
+                    retryPush(claim, nextAttempt, System.currentTimeMillis() + backoff.inWholeMilliseconds)
                 } else {
                     deadLetter(claim.copy(push = push.copy(attempt = nextAttempt)), backend, result.reason)
                 }
             }
         }
+    }
+
+    private suspend fun retryPush(claim: PushClaim, attempt: Int, after: Long) {
+        if (pushQueueStore.retry(claim, attempt, after)) queueMetrics.event("retry")
     }
 
     private fun recordSendDuration(backend: PushBackendKind, result: PushResult, durationNanos: Long) {
@@ -324,6 +392,7 @@ class PushServiceImpl(
 
     private suspend fun dequeue(claim: PushClaim): Boolean {
         val finished = pushQueueStore.finish(claim)
+        if (finished) { queueMetrics.event("completion"); queueMetrics.progress() }
         return finished
     }
 

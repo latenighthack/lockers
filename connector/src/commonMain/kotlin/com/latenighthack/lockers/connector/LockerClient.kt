@@ -128,6 +128,8 @@ class TypedLockerClient<ValueType>(
         return fetched?.locker?.let { reader(it.plaintextPayload()) }
     }
 
+    fun watchAllVersioned(roomId: RoomId): Flow<List<IdentifiedLocker>> = lockerClient.watchSnapshot(roomId, keyspace)
+
     suspend fun getAllLockers(roomId: RoomId, revalidate: Boolean = true): Map<LockerId, ValueType> =
         lockerClient.getAllLockers(roomId, keyspace, revalidate)
             .associate { it.lockerId!! to reader(it.locker?.plaintextPayload() ?: byteArrayOf()) }
@@ -341,6 +343,8 @@ class RatchetRecoveryFailure internal constructor(roomId: RoomId, lockerId: Lock
     val writeRequestId: ByteArray get() = requestBytes.copyOf()
 }
 
+// Optional observation complements the existing client configuration.
+@Suppress("LongParameterList")
 class LockerClient(
     rpcClient: RpcClient,
     private val stream: Stream,
@@ -351,12 +355,13 @@ class LockerClient(
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
     coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default,
     private val broadcastCodecs: BroadcastCodecs = BroadcastCodecs.identity(),
+    private val observer: SyncObserver = SyncObserver.NONE,
 ) {
     private val codecs = codecs.withTelemetry(telemetry)
     private val processingJob = SupervisorJob(coroutineContext[Job])
     private val processingScope = CoroutineScope(coroutineContext + processingJob)
     private val started = MutableStateFlow(false)
-    private val sync = LockerSyncCoordinator(processingScope, telemetry)
+    private val sync = LockerSyncCoordinator(processingScope, telemetry, observer)
     private val ratchetAdoption = Mutex()
     private val recoveryFailures = MutableStateFlow<List<RatchetRecoveryFailure>>(emptyList())
     val ratchetRecoveryFailures: StateFlow<List<RatchetRecoveryFailure>> = recoveryFailures.asStateFlow()
@@ -503,7 +508,8 @@ class LockerClient(
         stream.acceptanceBoundary = { action -> withAcceptance { action() } }
 
         stream.subscriptionRevisionSupport = { capabilities().subscriptionRevisions }
-        stream.hydrateSubscription = { room, session, revision -> hydrateRoom(room, session, revision) }
+        stream.hydrateSubscription = { room, session, revision -> observer.measure("hydrate") {
+            hydrateRoom(room, session, revision) } }
         processingScope.launch {
             repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
                 val failures = mutableListOf<RatchetRecoveryFailure>()
@@ -738,7 +744,8 @@ class LockerClient(
         }
     }
 
-    private suspend fun accept(update: LockerUpdate): Boolean = withAcceptance { acceptLocked(update) }
+    private suspend fun accept(update: LockerUpdate): Boolean = observer.measure("persist") { withAcceptance {
+        acceptLocked(update) } }
 
     private suspend fun acceptLocked(update: LockerUpdate): Boolean {
         val stored = lockerStore.getLocker(update.roomId, update.lockerId.keyspaceOrDefault(), update.lockerId)
@@ -1160,6 +1167,7 @@ class LockerClient(
                     is PostLockerChangeResponse.Result.NOT_OWNER -> {
                         // This node doesn't own the room's shard; cache the redirect and retry so
                         // the routing client re-targets the owner on the next attempt.
+                        observer.record("rebase")
                         recordRoomRedirect(roomId, result.redirect)
                         ambiguousAttempt = true // The owner may have committed before forwarding failed.
                         retry()

@@ -1,5 +1,8 @@
 package com.latenighthack.lockers.server.services.room.v1
 
+import com.latenighthack.lockers.server.tools.QueueMetrics
+import com.latenighthack.lockers.server.tools.QueueSnapshot
+import com.latenighthack.lockers.server.tools.producerTraceparent
 import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.room.v1.fromByteArray
@@ -11,19 +14,22 @@ import kotlinx.coroutines.sync.withLock
 /** Source writes, sequences, and indexed durable delivery commit on the same storage connection. */
 class DeliveryOutboxStore(private val delegate: Database, private val prefix: String = "delivery",
     private val policy: OutboxPolicy = OutboxPolicy(), private val clock: () -> Long = System::currentTimeMillis,
+    val metrics: QueueMetrics? = null,
 ) : Store<ServerDeliveryIntent>(delegate, DeliveryOutboxStoreDefinitionV1(prefix)) {
     private val available = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
     suspend fun awaitWork() { kotlinx.coroutines.withTimeoutOrNull(250) { available.receive() } }
     private val definition = DeliveryOutboxStoreDefinitionV1(prefix)
     private val id = definition.id
-    private val entriesDefinition = OutboxEntriesDefinitionV2(prefix)
-    private val headsDefinition = OutboxHeadsDefinitionV2(prefix)
-    private class Entries(db: Database, val definition: OutboxEntriesDefinitionV2) : Store<ServerOutboxEntry>(db, definition) {
+    private val entriesDefinition = OutboxEntriesDefinitionV3(prefix)
+    private val headsDefinition = OutboxHeadsDefinitionV3(prefix)
+    private class Entries(db: Database,
+        val definition: OutboxEntriesDefinitionV3) : Store<ServerOutboxEntry>(db, definition) {
         suspend fun find(id: ByteArray) = get(definition.id.eq(id))
         suspend fun put(row: ServerOutboxEntry) = save(row)
         suspend fun remove(id: ByteArray) = delete(definition.id.eq(id))
     }
-    private class Heads(db: Database, val definition: OutboxHeadsDefinitionV2) : Store<ServerOutboxHead>(db, definition) {
+    private class Heads(db: Database, val definition: OutboxHeadsDefinitionV3) : Store<ServerOutboxHead>(db,
+        definition) {
         suspend fun put(row: ServerOutboxHead) = save(row)
         suspend fun remove(room: ByteArray) = delete(definition.room.eq(room))
     }
@@ -70,11 +76,13 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
     private fun decodeIntent(raw: Any) = if (raw is ServerDeliveryIntent) raw else ServerDeliveryIntent.fromByteArray(raw as ByteArray)
     private fun roomQuery(index: TypedIndex<ServerOutboxEntry, ByteArray>, room: ByteArray, limit: Int) = index.query(limit,
         lower = outboxRoomPrefix(room), upper = outboxRoomPrefix(room) + ByteArray(8) { -1 })
-    private fun metadata(intent: ServerDeliveryIntent): ServerOutboxEntry {
+    private fun metadata(intent: ServerDeliveryIntent, new: Boolean = false): ServerOutboxEntry {
         val created = clock().coerceAtLeast(1)
         check(created <= Long.MAX_VALUE - policy.retryWindowMs) { "Outbox deadline exhausted" }
         return ServerOutboxEntry(eventId = requireNotNull(intent.eventId).rawValue, roomId = requireNotNull(intent.roomId).rawValue,
-            sequence = intent.roomSequence, createdAt = created, deadline = created + policy.retryWindowMs)
+            sequence = intent.roomSequence, createdAt = created, deadline = created + policy.retryWindowMs,
+            enqueuedAt = if (new) created else 0, traceparent = if (new) producerTraceparent() else "",
+                recipients = intent.pendingSessions.size)
     }
     private suspend fun active(room: ByteArray, limit: Int): List<ServerOutboxEntry> =
         delegate.query(entriesDefinition.storeName, roomQuery(entriesDefinition.active, room, limit)).records.map(::decodeEntry)
@@ -102,7 +110,11 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
                     for (snapshot in rows) {
                         val event = requireNotNull(snapshot.eventId)
                         val current = get(id.eq(event.toByteArray())) ?: continue
-                        if (entries.find(event.rawValue) == null) entries.put(metadata(current))
+                        val prior = entries.find(event.rawValue)
+                        if (prior == null) entries.put(metadata(current))
+                        else if (prior.recipients != current.pendingSessions.size) {
+                            entries.put(prior.copy(recipients = current.pendingSessions.size))
+                        }
                     }
                     refreshHead(room.rawValue)
                 }
@@ -137,7 +149,7 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
             }
             sequences.set(serverRoom, sequence)
             saveAll(intents)
-            intents.forEach { entries.put(metadata(it)) }
+            intents.forEach { entries.put(metadata(it, new = true)) }
             refreshHead(roomId.rawValue)
             result
         }
@@ -188,7 +200,14 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
         if (pending.isEmpty()) {
             delete(id.eq(requireNotNull(current.eventId).toByteArray()))
             entries.remove(requireNotNull(current.eventId).rawValue)
-        } else save(current.copy(pendingSessions = pending))
+            metrics?.event("completion")
+            metrics?.progress()
+        } else {
+            save(current.copy(pendingSessions = pending))
+            entries.find(requireNotNull(current.eventId).rawValue)?.let { entries.put(it.copy(recipients =
+                pending.size)) }
+        }
+        metrics?.event("accepted_recipient", (current.pendingSessions.size - pending.size).toDouble())
         refreshHead(requireNotNull(current.roomId).rawValue)
     }
 
@@ -210,6 +229,7 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
         check(now >= 0 && now <= Long.MAX_VALUE - delay)
         save(current.copy(leaseOwner = "", leaseUntil = 0, retryAfter = now + delay))
         refreshHead(requireNotNull(current.roomId).rawValue)
+        metrics?.event("retry")
         true
     }
 
@@ -235,6 +255,38 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
                 upper = OrderedKeyEncoding.long(now - policy.completedRetentionMs)))
         }
     }
+    private suspend fun TransactionScope.recipientCount(): Long {
+        var after: LocalContinuation? = null
+        var result = 0L
+        do {
+            val page = query(entriesDefinition.storeName, entriesDefinition.age.query(256, after = after))
+            result += page.records.sumOf { decodeEntry(it).recipients.toLong() }
+            after = page.continuation
+        } while (after != null)
+        return result
+    }
+    internal suspend fun workMetadata(intents: List<ServerDeliveryIntent>): List<ServerOutboxEntry> =
+        intents.mapNotNull { entries.find(requireNotNull(it.eventId).rawValue) }
+    suspend fun snapshot(): QueueSnapshot {
+        initialize()
+        return delegate.transaction(setOf(entriesDefinition.storeName, headsDefinition.storeName),
+            TransactionMode.READ_ONLY) {
+            val oldest = query(entriesDefinition.storeName, entriesDefinition.age.query(1, lower =
+                OrderedKeyEncoding.long(1))).records.firstOrNull()?.let(::decodeEntry)
+            val ready = headsDefinition.due.query(1, upper = OrderedKeyEncoding.long(clock()))
+            val first = query(headsDefinition.storeName, ready).records.firstOrNull()?.let {
+                if (it is ServerOutboxHead) it else ServerOutboxHead.fromByteArray(it as ByteArray) }
+            QueueSnapshot(count(entriesDefinition.storeName, entriesDefinition.age.query(1)),
+                count(entriesDefinition.storeName, entriesDefinition.age.query(1, lower =
+                    OrderedKeyEncoding.long(0), upper = OrderedKeyEncoding.long(0))), oldest?.enqueuedAt,
+                recipientCount(),
+                count(headsDefinition.storeName, ready), first?.let { head ->
+                    val raw = get(entriesDefinition.storeName, entriesDefinition.id.eq(head.eventId))
+                    raw?.let(::decodeEntry)?.enqueuedAt?.takeIf { it > 0 }?.let { maxOf(it, head.dueAt) }
+                })
+        }
+    }
+    suspend fun pendingReceipts() = agentWork.snapshot()
     suspend fun pendingCountLong(): Long = delegate.count(definition.storeName, id.query(1))
     suspend fun pendingCount(): Int = pendingCountLong().coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
 

@@ -1,5 +1,8 @@
 package com.latenighthack.lockers.server
 
+import com.latenighthack.lockers.server.tools.QueueMetrics
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.GlobalOpenTelemetry
 import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.observability.LockersTelemetry
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
@@ -53,11 +56,17 @@ abstract class ServerCore(
     @get:Provides val coroutineContext: kotlin.coroutines.CoroutineContext get() = contextHolder.value
     suspend fun closeAndJoin() { coroutineContext[kotlinx.coroutines.Job]?.let { it.cancel(); it.join() } }
 
+    @get:Provides var workTelemetry: OpenTelemetry = GlobalOpenTelemetry.get()
+
     @get:Provides val cpuAdmission by lazy { CpuAdmission(config.resourceLimits) }
 
-    private val pushDeliveryImpl by lazy { com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore(storageDelegate) }
+    private val pushDeliveryImpl by lazy {
+        com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore(storageDelegate,
+            QueueMetrics(meterRegistry, "push_delivery")) }
     @get:Provides val pushDelivery: com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore? get() = pushDeliveryImpl
-    private val deliveryOutboxImpl by lazy { com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStore(storageDelegate) }
+    private val deliveryOutboxImpl by lazy {
+        com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStore(storageDelegate, metrics =
+            QueueMetrics(meterRegistry, "room_delivery")) }
     @get:Provides val deliveryOutbox: com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStore? get() = deliveryOutboxImpl
 
     private val sessionStoreImpl by lazy { SessionStoreImpl(storageDelegate) }

@@ -1,5 +1,8 @@
 package com.latenighthack.lockers.server.services.room.v1
 
+import com.latenighthack.lockers.server.tools.traceWork
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.GlobalOpenTelemetry
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.lockers.common.LockerEnvelope
 import com.latenighthack.lockers.server.LockerWireValidation
@@ -56,6 +59,8 @@ abstract class RoomServiceModule(
 
 @ServiceScope
 @Inject
+// Composition keeps optional instrumentation alongside existing injected dependencies.
+@Suppress("LongParameterList")
 class RoomServiceImpl(
     private val subscriptionStore: SubscriptionStore,
     private val lockerStore: LockerStore,
@@ -72,6 +77,7 @@ class RoomServiceImpl(
     private val agentMaxAttempts: Int = 8,
     private val cpuAdmission: CpuAdmission = CpuAdmission(config.resourceLimits),
 
+    private val workTelemetry: OpenTelemetry = GlobalOpenTelemetry.get(),
 ) : BaseServiceImpl(), RoomServer {
     init { require(agentTimeoutMs in 1..300_000 && agentMaxAttempts in 1..32) }
     private class AgentOutputRejected(message: String) : IllegalArgumentException(message)
@@ -107,13 +113,14 @@ class RoomServiceImpl(
     }
 
     private val deliveryWorker = if (config.deliveryWorkerEnabled)
-        DeliveryWorker(requireNotNull(this.deliveryOutbox), sessionGatewayDiscovery, meterRegistry, telemetry, coroutineContext = coroutineContext) else null
+        DeliveryWorker(requireNotNull(this.deliveryOutbox), sessionGatewayDiscovery, meterRegistry, telemetry,
+            coroutineContext = coroutineContext, workTelemetry = workTelemetry) else null
     private val agentVersion = (agentRegistry as? IdempotentLockerAgentRegistry)?.agentVersion.orEmpty().also {
         require(agentRegistry !is IdempotentLockerAgentRegistry || (it.isNotBlank() && it.encodeToByteArray().size <= 128)) { "Durable agent version must be nonempty and bounded" }
     }
     private val agentWorkflow = AgentWorkflow(requireNotNull(this.deliveryOutbox), roomOwnership, agentVersion, ::executeAgentWork, coroutineContext)
     private val lockVerifier = LockVerifier(lockStore)
-    private val dispatchers = ShardedDispatcher<RoomId>(config.shardCount, "room-shard") {
+    private val dispatchers = ShardedDispatcher<RoomId>(config.shardCount, "room-shard", meterRegistry) {
         it.rawValue.contentHashCode()
     }
     private val snapshots by lazy { lockerStore.snapshotStore(config.resourceLimits) }
@@ -563,7 +570,8 @@ class RoomServiceImpl(
         }
     }
 
-    private suspend fun executeAgentWork(claim: ServerAgentWork, fence: RoomMutationFence) = coroutineScope {
+    private suspend fun executeAgentWork(claim: ServerAgentWork, fence: RoomMutationFence) =
+        traceWork("agent.execute", listOf(claim.traceparent), workTelemetry) { coroutineScope {
         val outbox = requireNotNull(deliveryOutbox)
         val processing = currentCoroutineContext()[Job]!!
         val heartbeat = launch {
@@ -617,6 +625,8 @@ class RoomServiceImpl(
                 outbox.saveReceipt(receipt.copy(encodedOutcome = response.toByteArray()))
             }
         } finally { withContext(NonCancellable) { heartbeat.cancelAndJoin() } }
+    }
+
     }
 
     private suspend fun applyAgentResult(ready: ServerAgentWork, fence: RoomMutationFence) {

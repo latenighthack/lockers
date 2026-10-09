@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.server.services.session.v1
 
+import com.latenighthack.lockers.server.tools.QueueSnapshot
+import com.latenighthack.lockers.server.tools.producerTraceparent
 import com.latenighthack.ktstore.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -24,6 +26,7 @@ internal fun ServerSessionEvent.legacyClientEvent() = Event {
 }
 
 interface SessionInboxStore {
+    suspend fun snapshot(): QueueSnapshot? = null
     suspend fun initializeAdmission() = Unit
     /** Finite replay, bounded by both record count and encoded envelope size. */
     fun clientEventPages(sessionId: ServerSessionId, pageSize: Int = 64): Flow<List<Event>> =
@@ -53,10 +56,11 @@ interface SessionInboxStore {
 }
 
 class SessionInboxStoreImpl(private val database: Database, private val limits: ServerResourceLimits = ServerResourceLimits(),
-    private val clock: () -> Long = System::currentTimeMillis): SessionInboxStore, Store<ServerSessionEvent>(database, SessionInboxStoreDefinitionV2) {
-    private val sessionIdKey = SessionInboxStoreDefinitionV2.sessionIdKey
-    private val eventIdKey = SessionInboxStoreDefinitionV2.eventIdKey
-    private val sessionIdEventIdKey = SessionInboxStoreDefinitionV2.sessionIdEventIdKey
+    private val clock: () -> Long = System::currentTimeMillis): SessionInboxStore,
+        Store<ServerSessionEvent>(database, SessionInboxStoreDefinitionV3) {
+    private val sessionIdKey = SessionInboxStoreDefinitionV3.sessionIdKey
+    private val eventIdKey = SessionInboxStoreDefinitionV3.eventIdKey
+    private val sessionIdEventIdKey = SessionInboxStoreDefinitionV3.sessionIdEventIdKey
 
     private class MetadataStore(database: Database) : Store<ServerSessionEvent>(database, SessionInboxMetadataDefinitionV2) {
         suspend fun saveRows(rows: List<ServerSessionEvent>) = saveAll(rows)
@@ -99,7 +103,8 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
     private val globalLedger = byteArrayOf(0)
     private fun sessionLedger(sid: ByteArray) = byteArrayOf(1) + sid
     private fun decodeInbox(value: Any) = when (value) {
-        is ServerSessionEvent -> value; is ByteArray -> SessionInboxStoreDefinitionV2.decode(value); else -> error("Invalid inbox row")
+        is ServerSessionEvent -> value; is ByteArray -> SessionInboxStoreDefinitionV3.decode(value);
+            else -> error("Invalid inbox row")
     }
     private fun compareBytes(a: ByteArray, b: ByteArray): Int {
         for (i in 0 until minOf(a.size, b.size)) {
@@ -117,7 +122,7 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
     internal suspend fun backfillByteLedger(): Boolean = database.transaction("inbox-metadata") {
         val current = ledger.find(globalLedger) ?: InboxByteLedger(globalLedger, 0)
         if (current.complete) return@transaction true
-        val definition = SessionInboxStoreDefinitionV2
+        val definition = SessionInboxStoreDefinitionV3
         val page = database.query(definition.storeName, definition.replay.query(4,
             lower = current.cursor.takeIf { it.isNotEmpty() }, lowerInclusive = false))
         var total = current.bytes; var cursor = current.cursor
@@ -169,6 +174,8 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
         val cache = IdentityHashMap<Event, FrozenEvent>()
         val byFrozen = IdentityHashMap<Event, FrozenEvent>()
         var expansion = 0L
+        val enqueued = clock().coerceAtLeast(1)
+        val traceparent = producerTraceparent()
         val frozen = events.map { (row, offered) ->
             val info = cache[offered] ?: run {
                 val bytes = offered.toByteArray()
@@ -187,7 +194,8 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
                 roomId = row.roomId?.let { ServerRoomId.fromByteArray(it.toByteArray()) },
                 eventId = row.eventId?.let { ServerEventId.fromByteArray(it.toByteArray()) },
                 encodedPayload = event.notification?.payload?.rawValue ?: byteArrayOf(),
-                encodedLocker = info.locker, unknownFields = row.unknownFields?.copyOf()) to event
+                encodedLocker = info.locker, enqueuedAt = enqueued, traceparent = traceparent, unknownFields =
+                    row.unknownFields?.copyOf()) to event
         }
         initializeAdmission()
         return database.transaction("inbox-metadata") {
@@ -248,6 +256,15 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
                 (returnedEvents[event] ?: Event.fromByteArray(requireNotNull(byFrozen[event]).bytes).also { returnedEvents[event] = it }) }
         }
     }
+    override suspend fun snapshot(): QueueSnapshot {
+        val schema = SessionInboxStoreDefinitionV3
+        return database.transaction(setOf(schema.storeName), TransactionMode.READ_ONLY) {
+            val first = query(schema.storeName, schema.enqueued.query(1, lower =
+                1)).records.firstOrNull()?.let(::decodeInbox)
+            QueueSnapshot(count(schema.storeName, schema.enqueued.query(1)),
+                count(schema.storeName, schema.enqueued.query(1, lower = 0, upper = 0)), first?.enqueuedAt)
+        }
+    }
     override suspend fun isPending(eventId: ServerEventId, sessionId: ServerSessionId) = get(rowRelation(eventId, sessionId)) != null
     override suspend fun clientEvent(row: ServerSessionEvent): Event =
         metadata.find(metadataRelation(requireNotNull(row.eventId), requireNotNull(row.sessionId)))
@@ -257,17 +274,17 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
         val additions = events.distinctBy { requireNotNull(it.sessionId) to requireNotNull(it.eventId) }
             .filter { get(rowRelation(requireNotNull(it.eventId), requireNotNull(it.sessionId))) == null }
         if (additions.isEmpty()) return
-        val total = database.count(SessionInboxStoreDefinitionV2.storeName, sessionIdKey.query(1))
+        val total = database.count(SessionInboxStoreDefinitionV3.storeName, sessionIdKey.query(1))
         if (total + additions.size > limits.maxInboxEvents) throw ResourceLimitException("Global inbox capacity exhausted")
         for ((session, rows) in additions.groupBy { requireNotNull(it.sessionId) }) {
-            val count = database.count(SessionInboxStoreDefinitionV2.storeName, sessionIdKey.query(1,
+            val count = database.count(SessionInboxStoreDefinitionV3.storeName, sessionIdKey.query(1,
                 lower = session.toByteArray(), upper = session.toByteArray()))
             if (count + rows.size > limits.maxInboxEventsPerSession) throw ResourceLimitException("Session inbox capacity exhausted")
         }
     }
     override fun clientEventPages(sessionId: ServerSessionId, pageSize: Int): Flow<List<Event>> = flow {
         require(pageSize in 1..64)
-        val definition = SessionInboxStoreDefinitionV2
+        val definition = SessionInboxStoreDefinitionV3
         val prefix = inboxSessionPrefix(sessionId.rawValue)
         // Lexicographic successor excludes every other session even for all-FF IDs.
         val exclusive = prefix.copyOf().let { bytes ->
@@ -314,7 +331,7 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
         metadata.removeMany(eventIds.map { metadataRelation(it, sessionId) })
     }
     override suspend fun deleteAllEvents(sessionId: ServerSessionId) = database.transaction("inbox-metadata") {
-        val definition = SessionInboxStoreDefinitionV2
+        val definition = SessionInboxStoreDefinitionV3
         do {
             val page = database.query(definition.storeName, sessionIdKey.query(4, lower = sessionId.toByteArray(), upper = sessionId.toByteArray()))
             val rows = page.records.map(::decodeInbox)

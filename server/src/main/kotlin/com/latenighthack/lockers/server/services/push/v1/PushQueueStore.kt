@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.server.services.push.v1
 
+import com.latenighthack.lockers.server.tools.QueueSnapshot
+import com.latenighthack.lockers.server.tools.producerTraceparent
 import com.latenighthack.ktstore.*
 import com.latenighthack.ktcrypto.SHA256
 import com.latenighthack.ktcrypto.digest
@@ -10,6 +12,7 @@ import com.latenighthack.lockers.server.storage.v2.*
 data class PushClaim(val push: ServerPush, val work: ServerPushWork)
 
 interface PushQueueStore {
+    suspend fun snapshotsByBackend(): Map<Int, QueueSnapshot>? = null
     val supportsClaims: Boolean get() = false
     suspend fun <T> adminTransaction(block: suspend () -> T): T = throw UnsupportedOperationException("Atomic push administration required")
     suspend fun resolveParked(pushId: ServerPushId): Boolean = throw UnsupportedOperationException("Durable parked resolution required")
@@ -37,7 +40,7 @@ interface PushQueueStore {
 class PushQueueStoreImpl(private val database: Database, private val policy: PushRetentionPolicy = PushRetentionPolicy(), private val clock: () -> Long = System::currentTimeMillis): PushQueueStore, Store<ServerPush>(database, PushQueueStoreImplDefinitionV1) {
     override val supportsClaims = true
     private val pushIdKey = PushQueueStoreImplDefinitionV1.pushIdKey
-    private class WorkStore(database: Database) : Store<ServerPushWork>(database, PushWorkDefinitionV2) {
+    private class WorkStore(database: Database) : Store<ServerPushWork>(database, PushWorkDefinitionV3) {
         suspend fun find(query: StoreRelation) = get(query)
         private class Retention(db: Database): Store<ServerPushWork>(db, PushRetentionDefinitionV3) {
             suspend fun put(row: ServerPushWork) = save(row)
@@ -57,16 +60,18 @@ class PushQueueStoreImpl(private val database: Database, private val policy: Pus
     private suspend fun metadata(push: ServerPush, stable: Boolean = false): ServerPushWork = ServerPushWork(
         pushId = requireNotNull(push.pushId).rawValue, sessionId = requireNotNull(push.sessionId).rawValue,
         backend = push.backend, payloadDigest = SHA256.digest(push.encodedPush), attempt = push.attempt,
-        createdAt = clock().coerceAtLeast(1), deduplicated = stable,
+        createdAt = clock().coerceAtLeast(1), deduplicated = stable, enqueuedAt = clock().coerceAtLeast(1),
+        traceparent = producerTraceparent(),
     )
-    private suspend fun find(id: ByteArray) = work.find(PushWorkDefinitionV2.id.eq(id))
+    private suspend fun find(id: ByteArray) = work.find(PushWorkDefinitionV3.id.eq(id))
     private fun active(current: ServerPushWork?, claim: PushClaim) = current != null && current.leaseOwner == claim.work.leaseOwner
 
     /** Admin retry explicitly resets a parked generation; ordinary gateway replay cannot do so. */
     override suspend fun savePush(push: ServerPush) = database.transaction(lock) {
         val old = find(requireNotNull(push.pushId).rawValue)
         check(old == null || clock() - old.createdAt < policy.retryWindowMs) { "Expired push requires a new delivery identity" }
-        if (old == null) check(database.count(PushWorkDefinitionV2.storeName, PushWorkDefinitionV2.id.query(1)) < policy.retainedGlobal) { "Push retained capacity exceeded" }
+        if (old == null) check(database.count(PushWorkDefinitionV3.storeName,
+            PushWorkDefinitionV3.id.query(1)) < policy.retainedGlobal) { "Push retained capacity exceeded" }
         save(push)
         work.put(metadata(push, old?.deduplicated == true).copy(createdAt = old?.createdAt ?: clock().coerceAtLeast(1)))
     }
@@ -82,10 +87,11 @@ class PushQueueStoreImpl(private val database: Database, private val policy: Pus
             return@transaction false
         }
         pruneCompleted(clock())
-        check(database.count(PushWorkDefinitionV2.storeName, PushWorkDefinitionV2.id.query(1)) < policy.retainedGlobal) { "Push retained capacity exceeded" }
+        check(database.count(PushWorkDefinitionV3.storeName,
+            PushWorkDefinitionV3.id.query(1)) < policy.retainedGlobal) { "Push retained capacity exceeded" }
         val prefix = pushSessionPrefix(next.sessionId)
-        val count = database.count(PushWorkDefinitionV2.storeName,
-            PushWorkDefinitionV2.pendingSession.query(1, lower = prefix, upper = prefix + ByteArray(128) { -1 }))
+        val count = database.count(PushWorkDefinitionV3.storeName,
+            PushWorkDefinitionV3.pendingSession.query(1, lower = prefix, upper = prefix + ByteArray(128) { -1 }))
         check(count < maxPendingPerSession) { "Push queue session capacity exceeded" }
         save(push)
         work.put(next)
@@ -96,7 +102,7 @@ class PushQueueStoreImpl(private val database: Database, private val policy: Pus
     override suspend fun getPendingPushes(): List<ServerPush> = getAll()
     override suspend fun clearPush(pushId: ServerPushId) = database.transaction(lock) {
         delete(pushIdKey.eq(pushId.toByteArray()))
-        work.remove(PushWorkDefinitionV2.id.eq(pushId.rawValue))
+        work.remove(PushWorkDefinitionV3.id.eq(pushId.rawValue))
     }
 
     /** Backfill one bounded historical page. New enqueues always install their index atomically. */
@@ -106,7 +112,8 @@ class PushQueueStoreImpl(private val database: Database, private val policy: Pus
         for (raw in page.records) {
             val push = if (raw is ServerPush) raw else ServerPush.fromByteArray(raw as ByteArray)
             val id = push.pushId ?: continue
-            if (find(id.rawValue) == null && push.sessionId != null) work.put(metadata(push))
+            if (find(id.rawValue) == null && push.sessionId != null) work.put(metadata(push).copy(enqueuedAt =
+                0, traceparent = ""))
         }
         migrationAfter = page.continuation
         migrationDone = migrationAfter == null
@@ -115,13 +122,13 @@ class PushQueueStoreImpl(private val database: Database, private val policy: Pus
     override suspend fun claim(backend: Int, owner: String, now: Long, limit: Int, leaseMs: Long): List<PushClaim> = database.transaction(lock) {
         require(limit in 1..256 && leaseMs > 0)
         migratePage()
-        val page = database.query(PushWorkDefinitionV2.storeName, PushWorkDefinitionV2.due.query(limit,
+        val page = database.query(PushWorkDefinitionV3.storeName, PushWorkDefinitionV3.due.query(limit,
             lower = pushBackendTime(backend, 0), upper = pushBackendTime(backend, now)))
         val claimed = mutableListOf<PushClaim>()
         for (raw in page.records) {
             val row = if (raw is ServerPushWork) raw else ServerPushWork.fromByteArray(raw as ByteArray)
             val push = get(pushIdKey.eq(ServerPushId(row.pushId).toByteArray()))
-            if (push == null) { work.remove(PushWorkDefinitionV2.id.eq(row.pushId)); continue }
+            if (push == null) { work.remove(PushWorkDefinitionV3.id.eq(row.pushId)); continue }
             if (now - row.createdAt >= policy.retryWindowMs) { parkExpired(row, push, now); continue }
             val leased = row.copy(leaseOwner = "$owner:${java.util.UUID.randomUUID()}", leaseUntil = now + leaseMs)
             work.put(leased)
@@ -141,7 +148,7 @@ class PushQueueStoreImpl(private val database: Database, private val policy: Pus
         delete(pushIdKey.eq(ServerPushId(claim.work.pushId).toByteArray()))
         if (parkedReason != null) work.put(current!!.copy(leaseOwner = "", leaseUntil = 0, parkedReason = parkedReason, attempt = claim.push.attempt))
         else if (current!!.deduplicated) work.put(current.copy(leaseOwner = "", leaseUntil = 0, completedAt = clock().coerceAtLeast(1)))
-        else work.remove(PushWorkDefinitionV2.id.eq(current.pushId))
+        else work.remove(PushWorkDefinitionV3.id.eq(current.pushId))
         true
     }
     override suspend fun retry(claim: PushClaim, nextAttempt: Int, retryAfter: Long): Boolean = database.transaction(lock) {
@@ -159,7 +166,8 @@ class PushQueueStoreImpl(private val database: Database, private val policy: Pus
         while (!migrationDone) database.transaction(lock) { migratePage() }
         while (!retentionReady) database.transaction(lock) {
             if (retentionReady) return@transaction
-            val page = database.query(PushWorkDefinitionV2.storeName, PushWorkDefinitionV2.id.query(128, after = retentionAfter))
+            val page = database.query(PushWorkDefinitionV3.storeName, PushWorkDefinitionV3.id.query(128,
+                after = retentionAfter))
             page.records.forEach { raw ->
                 val row = if (raw is ServerPushWork) raw else ServerPushWork.fromByteArray(raw as ByteArray)
                 find(row.pushId)?.let { work.put(it) }
@@ -174,17 +182,45 @@ class PushQueueStoreImpl(private val database: Database, private val policy: Pus
         work.put(row.copy(parkedReason = "", completedAt = clock().coerceAtLeast(1), leaseOwner = "", leaseUntil = 0))
         true
     }
+    override suspend fun snapshotsByBackend(): Map<Int, QueueSnapshot> {
+        initialize()
+        val schema = PushWorkDefinitionV3
+        return database.transaction(setOf(schema.storeName), TransactionMode.READ_ONLY) {
+            (0..3).associateWith { backend ->
+                val lower = pushBackendTime(backend, 0)
+                val upper = pushBackendTime(backend, Long.MAX_VALUE)
+                val age = schema.backendAge.query(1, lower = lower, upper = upper)
+                val oldest = query(schema.storeName, schema.backendAge.query(1, lower = pushBackendTime(backend,
+                    1), upper = upper)).records.firstOrNull()
+                    ?.let { if (it is ServerPushWork) it else ServerPushWork.fromByteArray(it as ByteArray) }
+                val ready = schema.ready.query(1, lower = lower, upper = pushBackendTime(backend, clock()))
+                val firstReady = query(schema.storeName, ready).records.firstOrNull()
+                    ?.let { if (it is ServerPushWork) it else ServerPushWork.fromByteArray(it as ByteArray) }
+                QueueSnapshot(count(schema.storeName, age),
+                    count(schema.storeName, schema.backendAge.query(1, lower = lower, upper = lower)),
+                        oldest?.enqueuedAt,
+                    eligibleDepth = count(schema.storeName, ready),
+                    eligibleAt = firstReady?.let { maxOf(it.enqueuedAt, it.retryAfter, it.leaseUntil).takeIf {
+                        at -> at > 0 } })
+            }
+        }
+    }
     override suspend fun pendingCounts(): Map<Int, Long> {
         initialize()
-        return database.transaction(lock) { (0..3).associateWith { backend -> database.count(PushWorkDefinitionV2.storeName,
-            PushWorkDefinitionV2.due.query(1, lower = pushBackendTime(backend, 0), upper = pushBackendTime(backend, Long.MAX_VALUE - 1))) } }
+        return database.transaction(lock) { (0..3).associateWith {
+            backend -> database.count(PushWorkDefinitionV3.storeName,
+            PushWorkDefinitionV3.due.query(1, lower = pushBackendTime(backend, 0), upper =
+                pushBackendTime(backend, Long.MAX_VALUE - 1))) } }
     }
     private suspend fun pruneCompleted(now: Long) {
-        val rows = database.query(PushWorkDefinitionV2.storeName, PushWorkDefinitionV2.completed.query(128,
+        val rows = database.query(PushWorkDefinitionV3.storeName, PushWorkDefinitionV3.completed.query(128,
             upper = OrderedKeyEncoding.long(now - policy.completedRetentionMs)))
         rows.records.forEach { raw ->
             val row = if (raw is ServerPushWork) raw else ServerPushWork.fromByteArray(raw as ByteArray)
-            if (row.completedAt > 0 && now - row.completedAt >= policy.completedRetentionMs) work.remove(PushWorkDefinitionV2.id.eq(row.pushId))
+            if (row.completedAt > 0 &&
+                now - row.completedAt >= policy.completedRetentionMs) {
+                work.remove(PushWorkDefinitionV3.id.eq(row.pushId))
+            }
         }
     }
     private suspend fun parkExpired(row: ServerPushWork, push: ServerPush, now: Long) {
@@ -214,12 +250,12 @@ class PushQueueStoreImpl(private val database: Database, private val policy: Pus
         val prefix = pushSessionPrefix(sessionId.rawValue)
         while (true) {
             val deleted = database.transaction(lock) {
-                val page = database.query(PushWorkDefinitionV2.storeName, PushWorkDefinitionV2.session.query(128,
+                val page = database.query(PushWorkDefinitionV3.storeName, PushWorkDefinitionV3.session.query(128,
                     lower = prefix, upper = prefix + ByteArray(128) { -1 }))
                 for (raw in page.records) {
                     val row = if (raw is ServerPushWork) raw else ServerPushWork.fromByteArray(raw as ByteArray)
                     delete(pushIdKey.eq(ServerPushId(row.pushId).toByteArray()))
-                    work.remove(PushWorkDefinitionV2.id.eq(row.pushId))
+                    work.remove(PushWorkDefinitionV3.id.eq(row.pushId))
                 }
                 page.records.size
             }

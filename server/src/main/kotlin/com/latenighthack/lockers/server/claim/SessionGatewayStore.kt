@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.server.claim
 
+import com.latenighthack.lockers.server.tools.QueueSnapshot
+
 import com.latenighthack.lockers.common.v1.SessionId
 
 /** The `session_gateway` row for a live session: which node holds its WebSocket, and where. */
@@ -12,6 +14,9 @@ data class SessionGatewayRow(val nodeId: String, val nodeAddr: String, val attac
  * missing or expired row means "offline"; delivery falls back to the push-queue path.
  */
 interface SessionGatewayStore {
+    val supportsInboxPresence: Boolean get() = false
+    /** Optional database-wide view. Offline accumulation is expected, not stalled live work. */
+    suspend fun inboxPresenceSnapshot(): Map<String, QueueSnapshot>? = null
     suspend fun prepare()
 
     /** Registers/moves the session to [nodeId] unconditionally and (re)starts its TTL. */
@@ -42,7 +47,69 @@ interface SessionGatewayStore {
 }
 
 /** Production [SessionGatewayStore] over the shared Postgres, plain JDBC on a [ClaimJdbcPool]. */
-class JdbcSessionGatewayStore(private val pool: ClaimJdbcPool) : SessionGatewayStore {
+private const val PRESENCE_TIMEOUT_MILLIS = 4_000L
+private const val ORDERED_LONG_BYTES = 8
+private const val BITS_PER_BYTE = 8
+private const val UNSIGNED_BYTE_MASK = 255L
+
+    private fun decodeEnqueued(encoded: ByteArray): Long {
+        require(encoded.size == ORDERED_LONG_BYTES)
+        return encoded.fold(0L) { value, byte ->
+            (value shl BITS_PER_BYTE) or (byte.toLong() and UNSIGNED_BYTE_MASK)
+        } xor Long.MIN_VALUE
+    }
+
+class JdbcSessionGatewayStore(private val pool: ClaimJdbcPool, private val inboxPool: ClaimJdbcPool? =
+    null) : SessionGatewayStore {
+    override val supportsInboxPresence: Boolean get() = inboxPool != null
+    // Restore connection transaction state and propagate cancellation and database failures.
+    @Suppress("TooGenericExceptionCaught")
+    override suspend fun inboxPresenceSnapshot(): Map<String, QueueSnapshot>? {
+        val operations = inboxPool ?: return null
+        return kotlinx.coroutines.withTimeout(PRESENCE_TIMEOUT_MILLIS) { operations.withConnection { conn ->
+            val autoCommit = conn.autoCommit
+            val isolation = conn.transactionIsolation
+            val readOnly = conn.isReadOnly
+            conn.transactionIsolation = java.sql.Connection.TRANSACTION_REPEATABLE_READ
+            conn.isReadOnly = true
+            conn.autoCommit = false
+            try {
+                val zero = com.latenighthack.lockers.server.tools.EpochMillisCodec.encode(0)
+                val counts = mutableMapOf<String, Pair<Long, Long>>()
+                conn.prepareStatement(INBOX_COUNTS_SQL).use { stmt ->
+                    stmt.queryTimeout = 1
+                    stmt.setBytes(1, zero)
+                    stmt.executeQuery().use { rows ->
+                        while (rows.next()) counts[rows.getString("presence")] =
+                            rows.getLong("depth") to rows.getLong("unknown_age")
+                    }
+                }
+                val snapshot = listOf("online", "offline").associateWith { presence ->
+                    val (depth, unknown) = counts[presence] ?: (0L to 0L)
+                    val oldest = if (depth == unknown) null else {
+                        val sql = if (presence == "online") INBOX_OLDEST_ONLINE_SQL else INBOX_OLDEST_OFFLINE_SQL
+                        conn.prepareStatement(sql).use { stmt ->
+                            stmt.queryTimeout = 1
+                            stmt.setBytes(1, zero)
+                            stmt.executeQuery().use { rows ->
+                                if (!rows.next()) null else decodeEnqueued(rows.getBytes(1))
+                            }
+                        }
+                    }
+                    QueueSnapshot(depth, unknown, oldest)
+                }
+                conn.commit()
+                snapshot
+            } catch (error: Throwable) {
+                runCatching { conn.rollback() }
+                throw error
+            } finally {
+                conn.autoCommit = autoCommit
+                conn.isReadOnly = readOnly
+                conn.transactionIsolation = isolation
+            }
+        } }
+    }
     override suspend fun prepare() {
         pool.withConnection { conn ->
             conn.createStatement().use { st ->
@@ -140,6 +207,28 @@ class JdbcSessionGatewayStore(private val pool: ClaimJdbcPool) : SessionGatewayS
     }
 
     companion object {
+        // These indexed columns are owned by SessionInboxStoreDefinitionV3. The
+        // aggregate never selects or deserializes event bodies, and each statement
+        // has a one-second database deadline. Repeatable read keeps the split and
+        // ages consistent while gateways move, expire or ACKs delete inbox rows.
+        private const val INBOX_COUNTS_SQL = """
+            SELECT CASE WHEN g.session_id IS NULL THEN 'offline' ELSE 'online' END AS presence,
+                   count(*) AS depth, count(*) FILTER (WHERE i.enqueued = ?) AS unknown_age
+              FROM inbox i LEFT JOIN session_gateway g
+                ON i.sessionRaw = g.session_id AND g.expires_at >= now()
+             GROUP BY CASE WHEN g.session_id IS NULL THEN 'offline' ELSE 'online' END
+        """
+        private const val INBOX_OLDEST_ONLINE_SQL = """
+            SELECT i.enqueued FROM inbox i WHERE i.enqueued > ?
+               AND EXISTS (SELECT 1 FROM session_gateway g WHERE g.session_id = i.sessionRaw AND g.expires_at >= now())
+             ORDER BY i.enqueued LIMIT 1
+        """
+        private const val INBOX_OLDEST_OFFLINE_SQL = """
+            SELECT i.enqueued FROM inbox i WHERE i.enqueued > ?
+               AND NOT EXISTS (SELECT 1 FROM session_gateway g WHERE g.session_id =
+                   i.sessionRaw AND g.expires_at >= now())
+             ORDER BY i.enqueued LIMIT 1
+        """
         const val TABLE_DDL = """
             CREATE TABLE IF NOT EXISTS session_gateway (
                 session_id  BYTEA PRIMARY KEY,

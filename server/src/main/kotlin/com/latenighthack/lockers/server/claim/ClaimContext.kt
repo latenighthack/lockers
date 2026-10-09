@@ -10,6 +10,8 @@ import io.micrometer.core.instrument.MeterRegistry
  * claim/registry stores, this node's identity, and the east-west connection pool. Constructed via
  * [fromConfig] (production, JDBC stores) or directly by the test harness (in-memory stores).
  */
+// Composition keeps optional instrumentation alongside existing injected dependencies.
+@Suppress("LongParameterList")
 class ClaimContext(
     /** Unique process incarnation; direct embedders must never share this value across live processes. */
     val nodeId: String,
@@ -22,6 +24,7 @@ class ClaimContext(
     val meters: ClaimMetrics,
     /** Set by [fromConfig] so [close] can release the coordination pool it created. */
     private val ownedJdbcPool: ClaimJdbcPool? = null,
+    private val ownedOperationsPool: ClaimJdbcPool? = null,
 ) : AutoCloseable {
     /** Releases the east-west connection pool and (when [fromConfig]-built) the JDBC pool. */
     override fun close() {
@@ -29,7 +32,7 @@ class ClaimContext(
     }
 
     suspend fun closeAndJoin() {
-        try { pool.closeAndJoin() } finally { ownedJdbcPool?.close() }
+        try { pool.closeAndJoin() } finally { try { ownedJdbcPool?.close() } finally { ownedOperationsPool?.close() } }
     }
 
     companion object {
@@ -65,19 +68,25 @@ class ClaimContext(
                 "LOCKERS_CLAIM_RENEW_MS (${config.claimRenewMs}) must be > 0 and < half of " +
                     "LOCKERS_CLAIM_TTL_MS (${config.claimTtlMs})."
             }
-            val jdbcPool = ClaimJdbcPool(jdbcUrl)
+            val jdbcPool = ClaimJdbcPool(jdbcUrl, registry = meterRegistry)
+            val operationsPool = ClaimJdbcPool(jdbcUrl, size = 1, limits =
+                com.latenighthack.ktstore.PostgresJdbcLimits(connectTimeoutSeconds = 5, socketTimeoutSeconds =
+                    3, statementTimeoutMillis = 1_000, lockTimeoutMillis = 500), registry = meterRegistry,
+                        purpose = ClaimJdbcPool.Purpose.OPERATIONS)
             try { return ClaimContext(
                 nodeId = nodeId,
                 advertiseAddr = advertiseAddr,
                 roomClaims = JdbcRoomClaimStore(jdbcPool, maxRoomClaims = config.resourceLimits.maxRoomClaims.toLong()).also { it.prepare() },
-                sessionGateways = JdbcSessionGatewayStore(jdbcPool).also { it.prepare() },
+                sessionGateways = JdbcSessionGatewayStore(jdbcPool, operationsPool).also { it.prepare() },
                 pool = PeerConnectionPool(peerToken = config.peerToken),
                 ttlMs = config.claimTtlMs,
                 renewMs = config.claimRenewMs,
                 meters = ClaimMetrics(meterRegistry),
                 ownedJdbcPool = jdbcPool,
+                ownedOperationsPool = operationsPool,
             ) } catch (failure: Throwable) {
-                try { jdbcPool.close() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                try { jdbcPool.close(); operationsPool.close() } catch (cleanup: Throwable) {
+                    failure.addSuppressed(cleanup) }
                 throw failure
             }
         }

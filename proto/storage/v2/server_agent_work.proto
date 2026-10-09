@@ -20,6 +20,7 @@ message ServerAgentWork {
   repeated ServerAgentDerivedWrite writes = 14;
   int32 attempts = 15;
   string failure = 16;
+  string traceparent = 17;
 }
 message ServerAgentDerivedWrite {
   bytes locker_id = 1;

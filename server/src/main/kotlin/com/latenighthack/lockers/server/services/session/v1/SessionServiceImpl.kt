@@ -1,5 +1,7 @@
 package com.latenighthack.lockers.server.services.session.v1
 
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.GlobalOpenTelemetry
 import com.latenighthack.ktbuf.net.GrpcRequestContext
 import com.latenighthack.ktbuf.net.ServerDescriptor
 import com.latenighthack.ktbuf.net.StreamControlEvent
@@ -91,6 +93,8 @@ private const val BROADCAST_EVENT_ID_BYTES = 16
 
 @ServiceScope
 @Inject
+// Composition keeps optional instrumentation alongside existing injected dependencies.
+@Suppress("LongParameterList")
 class SessionServiceImpl(
     private val sessionStore: SessionStore,
     private val sessionInboxStore: SessionInboxStore,
@@ -104,6 +108,7 @@ class SessionServiceImpl(
     private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
     private val cpuAdmission: CpuAdmission = CpuAdmission(config.resourceLimits),
 
+    private val workTelemetry: OpenTelemetry = GlobalOpenTelemetry.get(),
 ) : BaseServiceImpl(), SessionServer, SessionGatewayServer, BroadcastAdminServer {
     private val lifecycleStarted = java.util.concurrent.atomic.AtomicBoolean(false)
     private val lifecycleClosed = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -120,9 +125,9 @@ class SessionServiceImpl(
                 }
                 override suspend fun postEvents(request: PostEventsRequest) = PostEventsResponse(request.groups.map { postEvent(it) })
             }
-        }, meterRegistry, telemetry, "push_delivery", coroutineContext)
+        }, meterRegistry, telemetry, "push_delivery", coroutineContext, workTelemetry)
     }
-    private val dispatchers = ShardedDispatcher<SessionId>(config.shardCount, "session-shard") {
+    private val dispatchers = ShardedDispatcher<SessionId>(config.shardCount, "session-shard", meterRegistry) {
         it.rawValue.contentHashCode()
     }
     private val openStreamCancellationChannels = ConcurrentHashMap<ServerSessionId, Channel<Unit>>()

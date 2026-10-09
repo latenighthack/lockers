@@ -24,15 +24,21 @@ object InboxByteLedgerDefinitionV2 : StoreDefinition<InboxByteLedger>(StoreName(
     val scope = bytesIndex(IndexName("scope"), InboxByteLedger::scope, "global-or-raw-session-v2").also { primaryKey(it) }
 }
 
+private fun wireVarint(value: Long): Int { var v = value; var bytes = 1; while (v ushr 7 != 0L) { bytes++; v =
+    v ushr 7 }; return bytes }
+private fun wireField(size: Int): Long = 1L + wireVarint(size.toLong()) + size
+private fun wireScalar(value: Long): Long = if (value == 0L) 0 else 1L + wireVarint(value)
+
 /** Exact wire byte length without re-encoding a potentially large payload for every recipient. */
 internal fun inboxRowBytes(row: com.latenighthack.lockers.server.storage.v1.ServerSessionEvent,
     payloadBytes: Int = row.encodedPayload.size, lockerBytes: Int = row.encodedLocker.size): Long {
-    fun varint(value: Long): Int { var v = value; var bytes = 1; while (v ushr 7 != 0L) { bytes++; v = v ushr 7 }; return bytes }
-    fun field(size: Int): Long = 1L + varint(size.toLong()) + size
     return (row.unknownFields?.size ?: 0).toLong() +
-        (row.sessionId?.let { field(it.toByteArray().size) } ?: 0) +
-        (row.roomId?.let { field(it.toByteArray().size) } ?: 0) +
-        (row.eventId?.let { field(it.toByteArray().size) } ?: 0) +
-        (if (payloadBytes == 0) 0 else field(payloadBytes)) + (if (lockerBytes == 0) 0 else field(lockerBytes)) +
-        (if (row.roomSequence == 0L) 0 else 1 + varint(row.roomSequence))
+        (row.sessionId?.let { wireField(it.toByteArray().size) } ?: 0) +
+        (row.roomId?.let { wireField(it.toByteArray().size) } ?: 0) +
+        (row.eventId?.let { wireField(it.toByteArray().size) } ?: 0) +
+        (if (payloadBytes == 0) 0 else wireField(payloadBytes)) +
+            (if (lockerBytes == 0) 0 else wireField(lockerBytes)) +
+        wireScalar(row.roomSequence) +
+        wireScalar(row.enqueuedAt) +
+        (if (row.traceparent.isEmpty()) 0 else wireField(row.traceparent.encodeToByteArray().size))
 }

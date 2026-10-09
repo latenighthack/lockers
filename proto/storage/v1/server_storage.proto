@@ -38,6 +38,8 @@ message ServerSessionEvent {
     bytes encoded_payload = 4;
     bytes encoded_locker = 5;
     int64 room_sequence = 6;
+    int64 enqueued_at = 7;
+    string traceparent = 8;
 }
 
 message ServerLocker {

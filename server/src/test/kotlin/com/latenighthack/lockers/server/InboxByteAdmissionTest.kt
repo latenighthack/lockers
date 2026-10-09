@@ -17,9 +17,12 @@ class InboxByteAdmissionTest {
         return ServerSessionEvent(ServerSessionId(byteArrayOf(session.toByte())), ServerRoomId(byteArrayOf(9)),
             ServerEventId(byteArrayOf(id.toByte())), event.notification!!.payload!!.rawValue, roomSequence = id.toLong()) to event
     }
-    private fun bytes(pair: Pair<ServerSessionEvent, Event>): Long = pair.first.toByteArray().size.toLong() +
-        pair.first.copy(encodedPayload = pair.second.toByteArray(), encodedLocker = byteArrayOf()).toByteArray().size
-    private class RawInbox(db: Database) : Store<ServerSessionEvent>(db, SessionInboxStoreDefinitionV2) {
+    private fun bytes(pair: Pair<ServerSessionEvent, Event>): Long {
+        val row = pair.first.copy(enqueuedAt = 100)
+        return row.toByteArray().size.toLong() + row.copy(encodedPayload = pair.second.toByteArray(),
+            encodedLocker = byteArrayOf()).toByteArray().size
+    }
+    private class RawInbox(db: Database) : Store<ServerSessionEvent>(db, SessionInboxStoreDefinitionV3) {
         suspend fun insert(rows: List<ServerSessionEvent>) = saveAll(rows)
     }
     @Test fun exactRowAccountingIncludesUnknownBytesAndNegativeSequences() {
@@ -51,12 +54,13 @@ class InboxByteAdmissionTest {
         val cost = bytes(pair(1)); val limits = ServerResourceLimits(maxInboxBytes = cost * 2, maxInboxBytesPerSession = cost)
         var db = createDatabase(configuration, file.absolutePath); db.open()
         try {
-            var inbox = SessionInboxStoreImpl(db, limits)
+            var inbox = SessionInboxStoreImpl(db, limits, clock = { 100 })
             inbox.acceptClientEvents(listOf(pair(1)))
             assertFailsWith<ResourceLimitException> { inbox.acceptClientEvents(listOf(pair(2))) }
             inbox.acceptClientEvents(listOf(pair(2, 2)))
             assertFailsWith<ResourceLimitException> { inbox.acceptClientEvents(listOf(pair(3, 3))) }
-            db.close(); db = createDatabase(configuration, file.absolutePath); db.open(); inbox = SessionInboxStoreImpl(db, limits)
+            db.close(); db = createDatabase(configuration, file.absolutePath); db.open(); inbox =
+                SessionInboxStoreImpl(db, limits, clock = { 100 })
             assertFailsWith<ResourceLimitException> { inbox.acceptClientEvents(listOf(pair(3, 3))) }
             inbox.deleteEvent(ServerEventId(byteArrayOf(1)), ServerSessionId(byteArrayOf(1)))
             inbox.acceptClientEvents(listOf(pair(3, 3)))
@@ -73,11 +77,12 @@ class InboxByteAdmissionTest {
         val cost = bytes(pair(1)); val limits = ServerResourceLimits(maxInboxBytes = cost * 3, maxInboxBytesPerSession = cost * 3)
         try {
             RawInbox(db).insert((1..9).map { pair(it).first })
-            var inbox = SessionInboxStoreImpl(db, limits)
+            var inbox = SessionInboxStoreImpl(db, limits, clock = { 100 })
             assertFalse(inbox.backfillByteLedger()) // exactly four rows
             inbox.deleteEvent(ServerEventId(byteArrayOf(1)), ServerSessionId(byteArrayOf(1))) // charged
             inbox.deleteEvent(ServerEventId(byteArrayOf(9)), ServerSessionId(byteArrayOf(1))) // not charged yet
-            db.close(); db = createDatabase(configuration, file.absolutePath); db.open(); inbox = SessionInboxStoreImpl(db, limits)
+            db.close(); db = createDatabase(configuration, file.absolutePath); db.open(); inbox =
+                SessionInboxStoreImpl(db, limits, clock = { 100 })
             inbox.initializeAdmission()
             assertFailsWith<ResourceLimitException> { inbox.acceptClientEvents(listOf(pair(10))) }
             inbox.deleteAllEvents(ServerSessionId(byteArrayOf(1)))
@@ -93,7 +98,8 @@ class InboxByteAdmissionTest {
         val a = ServerStorage.postgres(location); val b = ServerStorage.postgres(location)
         val cost = bytes(pair(1)); val limits = ServerResourceLimits(maxInboxBytes = cost * 3, maxInboxBytesPerSession = cost)
         try {
-            a.open(); b.open(); val stores = listOf(SessionInboxStoreImpl(a, limits), SessionInboxStoreImpl(b, limits))
+            a.open(); b.open(); val stores = listOf(SessionInboxStoreImpl(a, limits, clock = { 100 }),
+                SessionInboxStoreImpl(b, limits, clock = { 100 }))
             val results = coroutineScope { (1..12).map { n -> async(Dispatchers.Default) {
                 try { stores[n % 2].acceptClientEvents(listOf(pair(n, n))); true }
                 catch (_: ResourceLimitException) { false }

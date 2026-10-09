@@ -79,7 +79,7 @@ SQL delegate.
 Independent Grafana packs, optional Prometheus/OTel adapters and connector telemetry are documented in [monitoring/README.md](monitoring/README.md). Dashboards select existing data sources and need no recording rules.
 
 - **Metrics**: Prometheus exposition at `GET /metrics` (Micrometer). All metrics are
-  namespaced `lockers.*`.
+  namespaced `lockers.*`, with additional operations series under `fullhouse.*`.
 - **Health**: `GET /healthz` (liveness) and `GET /readyz` (readiness).
 - **Logs**: structured JSON to stdout (logback + logstash encoder), directly
   ingestible by Loki/Promtail, ELK, or Datadog.

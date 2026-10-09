@@ -1,5 +1,6 @@
 package com.latenighthack.lockers.server
 
+import com.latenighthack.lockers.server.tools.measured
 import com.latenighthack.ktbuf.server.serveAll
 import com.latenighthack.ktbuf.server.serveUnary
 import io.ktor.server.routing.Routing
@@ -15,7 +16,7 @@ fun Routing.monolith(component: MonolithComponent) = monolithClient(component)
 
 /** Mounts public client services plus extension HTTP routes. */
 fun Routing.monolithClient(component: MonolithComponent) {
-    serveServices(component.clientServices)
+    serveServices(component.clientServices, component.meterRegistry)
     for (extension in component.extensions) {
         extension.install(this)
     }
@@ -25,11 +26,12 @@ fun Routing.monolithClient(component: MonolithComponent) {
 fun Routing.monolithAdmin(component: MonolithComponent) {
     val token = component.adminToken?.takeIf { it.isNotBlank() } ?: return
     for (service in component.adminServices) {
-        for (method in service.descriptor.methods) {
+        val descriptor = service.descriptor.measured(component.meterRegistry)
+        for (method in descriptor.methods) {
             require(!method.streamingIn && !method.streamingOut) { "Management methods must be unary" }
             @Suppress("UNCHECKED_CAST")
             val unary = method as com.latenighthack.ktbuf.net.ServerMethodDescriptor<Any, Any, Any>
-            serveUnary(service.server as Any, service.descriptor, unary) { context ->
+            serveUnary(service.server as Any, descriptor, unary) { context ->
                 val presented = context.headers.entries.firstOrNull { it.key.equals("x-admin-token", true) }?.value.orEmpty()
                 if (!validPeerToken(token, presented)) throw com.latenighthack.ktbuf.net.RpcResponseException(
                     context.originalUrl, "POST", com.latenighthack.ktbuf.proto.Codes.UNAUTHENTICATED, "Invalid administrator credential")
@@ -43,12 +45,13 @@ fun Routing.monolithAdmin(component: MonolithComponent) {
 fun Routing.monolithPeer(component: MonolithComponent, token: String) {
     require(token.isNotBlank()) { "Internal peer routes require LOCKERS_PEER_TOKEN" }
     for (service in component.peerServices) {
-        for (method in service.descriptor.methods) {
+        val descriptor = service.descriptor.measured(component.meterRegistry)
+        for (method in descriptor.methods) {
             require(!method.streamingIn && !method.streamingOut) { "Peer methods must be unary" }
             @Suppress("UNCHECKED_CAST")
             val unary = method as com.latenighthack.ktbuf.net.ServerMethodDescriptor<Any, Any, Any>
             // ktbuf 1.1.10 serveAll discards the unary context processor; bind it explicitly.
-            serveUnary(service.server as Any, service.descriptor, unary) { context ->
+            serveUnary(service.server as Any, descriptor, unary) { context ->
             val presented = context.headers.entries.firstOrNull { it.key.equals(PEER_TOKEN_HEADER, true) }?.value.orEmpty()
             if (!validPeerToken(token, presented)) throw com.latenighthack.ktbuf.net.RpcResponseException(
                 context.originalUrl, "POST", com.latenighthack.ktbuf.proto.Codes.UNAUTHENTICATED, "Invalid peer credential")
@@ -66,9 +69,10 @@ const val PEER_TOKEN_HEADER = "x-lockers-peer-token"
  * Hands each service's impl + descriptor to ktbuf's [serveAll], which registers
  * the gRPC routes (unary over HTTP, streaming over WebSockets).
  */
-private fun Routing.serveServices(services: List<com.latenighthack.lockers.server.tools.GrpcRouteProvider<*>>) {
+private fun Routing.serveServices(services: List<com.latenighthack.lockers.server.tools.GrpcRouteProvider<*>>,
+    registry: io.micrometer.core.instrument.MeterRegistry) {
     for (service in services) {
-        serveAll(service.server as Any, service.descriptor)
+        serveAll(service.server as Any, service.descriptor.measured(registry))
     }
 }
 

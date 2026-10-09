@@ -90,6 +90,7 @@ class LockersMonitoring private constructor(
             }
             for (backend in listOf("apns", "fcm", "web_push")) meterRegistry.counter("lockers.push.sent", "backend", backend)
             meterRegistry.counter("lockers.room.agent.failures")
+            core.workTelemetry = openTelemetry
             core.overrideMeterRegistry = meterRegistry
             core.overrideTelemetry = diagnostics(openTelemetry)
             val ingester = ClientTelemetryIngester(prometheusRegistry, options.serviceName, options.environment, spanExporter)

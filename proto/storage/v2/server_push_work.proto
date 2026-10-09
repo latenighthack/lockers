@@ -16,4 +16,6 @@ message ServerPushWork {
   int64 completed_at = 10;
   string parked_reason = 11;
   bool deduplicated = 12;
+  int64 enqueued_at = 13;
+  string traceparent = 14;
 }

@@ -606,6 +606,8 @@ private class FatalStreamException(val error: StreamFatalError) : CancellationEx
 
 private class RetryableStreamException(message: String) : Exception(message)
 
+// Optional observation complements the existing client configuration.
+@Suppress("LongParameterList")
 class Stream(
     private val rpcClient: RpcClient,
     private val keySource: AuthenticationKeySource,
@@ -616,6 +618,7 @@ class Stream(
     coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default,
     private val heartbeatIntervalMillis: Long = PING_TIMEOUT,
     private val heartbeatTimeoutMillis: Long = 2 * PING_TIMEOUT,
+    private val observer: SyncObserver = SyncObserver.NONE,
 ) {
     init { require(heartbeatIntervalMillis > 0 && heartbeatTimeoutMillis > heartbeatIntervalMillis) }
     private val log: KmLog = logging()
@@ -883,7 +886,7 @@ class Stream(
                                 currentCoroutineContext().ensureActive()
                                 transition(StreamConnectionState.Connected(currentSessionId, ++connectionEpoch))
 
-                                processIncomingEvents(open.queuedEvents)
+                                observer.measure("replay") { processIncomingEvents(open.queuedEvents) }
                             }
                             is WatchSessionResponse.Open.Result.INVALID_SEQUENCE -> {
                                 // Sequence desync (e.g. killed between the server's key rotation and
@@ -975,11 +978,16 @@ class Stream(
 
     private suspend fun processIncomingEvents(queuedEvents: List<Event>) {
         queuedEvents.forEach { event ->
-            val accept: suspend () -> Unit = { sessionStore.receive(event) { acceptEvent?.invoke(event) != false } }
+            var accepted = false
+            val accept: suspend () -> Unit = { observer.measure("persist") {
+                sessionStore.receive(event) { accepted = true; observer.measure("accepted") {
+                    acceptEvent?.invoke(event) != false } }
+            } }
             acceptanceBoundary?.invoke(accept) ?: accept()
+            if (!accepted) observer.record("duplicate")
         }
         val acks = queuedEvents.map { event -> StoredAck(requireNotNull(event.roomId).rawValue, requireNotNull(event.eventId).rawValue) }
-        outgoingAcks.emit(acks)
+        observer.measure("ack") { outgoingAcks.emit(acks) }
     }
 
     suspend fun subscribe(roomId: RoomId, waitForSubscription: Boolean = false) {

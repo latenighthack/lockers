@@ -1,5 +1,8 @@
 package com.latenighthack.lockers.server
 
+import com.latenighthack.lockers.server.tools.QueueMetrics
+import com.latenighthack.lockers.server.tools.InboxPresenceMetrics
+import com.latenighthack.lockers.server.tools.QueueSnapshot
 import com.latenighthack.lockers.server.claim.ClaimContext
 import com.latenighthack.lockers.server.claim.ClaimRenewalService
 import com.latenighthack.lockers.server.claim.ClaimRoomOwnership
@@ -16,6 +19,7 @@ import com.latenighthack.lockers.server.cluster.RingSessionOwnership
 import com.latenighthack.lockers.server.services.push.v1.*
 import com.latenighthack.lockers.server.services.room.v1.*
 import com.latenighthack.lockers.server.services.session.v1.*
+import com.latenighthack.lockers.server.tools.safeMeters
 import com.latenighthack.lockers.server.tools.GrpcRouteProvider
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -37,12 +41,16 @@ import kotlinx.coroutines.runBlocking
  * Optional [extensions] (discovered from the classpath — see [ServerExtension])
  * contribute their own gRPC services and HTTP routes on top of the built-ins.
  */
+private const val OPERATIONS_TIMEOUT_MILLIS = 4_000L
+private const val OPERATIONS_INTERVAL_MILLIS = 5_000L
+
 class MonolithComponent(
     private val serverCore: ServerCore,
     val extensions: List<ServerExtension> = emptyList(),
     private val cluster: ClusterContext? = null,
     private val claim: ClaimContext? = null,
 ) {
+    val meterRegistry get() = serverCore.meterRegistry
     internal val adminToken: String? get() = serverCore.config.adminToken
     init {
         require(cluster == null || claim == null) { "ring and claim ownership are mutually exclusive" }
@@ -58,6 +66,8 @@ class MonolithComponent(
      */
     private val telemetry = serverCore.telemetry
     private val clusterScope = CoroutineScope(serverCore.coroutineContext + SupervisorJob(serverCore.coroutineContext[Job]) + Dispatchers.IO)
+    private val operationsScope = CoroutineScope(serverCore.coroutineContext +
+        SupervisorJob(serverCore.coroutineContext[Job]) + Dispatchers.IO)
     private val extensionScope = CoroutineScope(serverCore.coroutineContext + SupervisorJob(serverCore.coroutineContext[Job]) + Dispatchers.IO + ServiceLifecycle.context)
     private val closing = Mutex()
     private var started = false
@@ -186,6 +196,7 @@ class MonolithComponent(
             roomServiceModule.serverImpl.start()
             sessionServiceModule.serverImpl.start()
             pushServiceModule.start()
+            startOperationsReporting()
             ownerLifecycle?.let { lifecycle ->
                 cluster?.router?.let { router ->
                     lifecycle.reconcile(router.roomMap())
@@ -199,6 +210,37 @@ class MonolithComponent(
                 try { closeAndJoin() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
             }
             throw failure
+        }
+    }
+
+    private fun startOperationsReporting() {
+        val inbox = QueueMetrics(meterRegistry, "session_inbox")
+        val receipts = QueueMetrics(meterRegistry, "agent_receipts")
+        val presence = InboxPresenceMetrics(meterRegistry, claim?.sessionGateways?.supportsInboxPresence == true)
+        operationsScope.launch {
+            suspend fun collect(metrics: QueueMetrics, snapshot: suspend () -> QueueSnapshot?) {
+                try { withTimeout(OPERATIONS_TIMEOUT_MILLIS) { snapshot()?.let(metrics::update) } }
+                catch (_: TimeoutCancellationException) { meterRegistry.safeMeters {
+                    metrics.collectionFailures.increment() } }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { meterRegistry.safeMeters { metrics.collectionFailures.increment() } }
+            }
+            while (isActive) {
+                for (store in listOfNotNull(serverCore.deliveryOutbox, serverCore.pushDelivery?.outbox)) {
+                    store.metrics?.let { metrics -> collect(metrics) { store.snapshot() } }
+                }
+                collect(inbox) { serverCore.sessionInboxStore.snapshot() }
+                collect(receipts) { serverCore.deliveryOutbox?.pendingReceipts() }
+                if (claim?.sessionGateways?.supportsInboxPresence == true) {
+                    try { withTimeout(OPERATIONS_TIMEOUT_MILLIS) {
+                        claim.sessionGateways.inboxPresenceSnapshot()?.let(presence::update) } }
+                    catch (_: TimeoutCancellationException) { meterRegistry.safeMeters {
+                        presence.failures.increment() } }
+                    catch (cancelled: CancellationException) { throw cancelled }
+                    catch (_: Exception) { meterRegistry.safeMeters { presence.failures.increment() } }
+                }
+                delay(OPERATIONS_INTERVAL_MILLIS)
+            }
         }
     }
 
@@ -216,6 +258,7 @@ class MonolithComponent(
                 }
             }
             withContext(NonCancellable) {
+                cleanup { operationsScope.coroutineContext[Job]!!.cancelAndJoin() }
                 cleanup { extensionScope.coroutineContext[Job]!!.cancelAndJoin() }
                 extensions.asReversed().forEach { cleanup { it.closeAndJoin() } }
                 cleanup { roomServiceModule.serverImpl.closeAndJoin() }

@@ -64,7 +64,8 @@ class SubscriptionIntentStoreTest {
     @Test fun `V4 SQLite subscriptions migrate without losing rows and intent revisions survive reopen`() = runBlocking {
         val file = File.createTempFile("subscription-intent", ".db")
         val modern = ServerStorage.configuration("subscription-${file.name}")
-        val old = modern.copy(version = 4, stores = ServerStorage.definitionsV4.map { it.declaration }, migrations = modern.migrations.dropLast(1))
+        val old = modern.copy(version = 4, stores = ServerStorage.definitionsV4.map { it.declaration },
+            migrations = modern.migrations.filter { it.toVersion <= 4 })
         var db = createDatabase(old, file.absolutePath); db.open()
         val sid = ServerSessionId(byteArrayOf(1)); val room = ServerRoomId(byteArrayOf(2))
         try {

@@ -42,11 +42,13 @@ class ClaimRenewalService(
 ) {
     private val logger = LoggerFactory.getLogger(ClaimRenewalService::class.java)
     private var job: Job? = null
+    @Volatile private var lastSuccess = 0L
+    val healthy: Boolean get() = job?.isActive == true && clock() - lastSuccess <= ttlMs
 
     fun start(scope: CoroutineScope) {
         check(job == null) { "ClaimRenewalService already started" }
         job = scope.launch {
-            var lastSuccess = clock()
+            lastSuccess = clock()
             var demotedForStreak = false
             while (isActive) {
                 delay(renewIntervalMs)

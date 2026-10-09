@@ -139,6 +139,8 @@ class LockersClient private constructor(
          * and access; ordinary locker/watch/broadcast APIs never expose those keys. The latest key per
          * scope is retained until an authoritative newer epoch proves it obsolete.
          */
+        // Optional observation complements the existing client configuration.
+        @Suppress("LongParameterList")
         suspend fun create(
             rpcClient: RpcClient,
             database: Database,
@@ -151,6 +153,7 @@ class LockersClient private constructor(
             coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
             broadcastCodecs: BroadcastCodecs = BroadcastCodecs.identity(),
             retentionPolicy: ConnectorRetentionPolicy = ConnectorRetentionPolicy(),
+            observer: SyncObserver = SyncObserver.NONE,
         ): LockersClient {
             database.open()
             val sessionStore = SessionStoreImpl(keyValueStore, database, retentionPolicy)
@@ -166,8 +169,10 @@ class LockersClient private constructor(
             val parentContext = currentCoroutineContext() + coroutineContext
             val clientJob = SupervisorJob(parentContext[Job])
             val ownedContext = parentContext + clientJob
-            val stream = Stream(rpcClient, keySource, sessionStore, subscriptionStore, appVersion, telemetry, ownedContext)
-            val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs, telemetry = telemetry, coroutineContext = ownedContext, broadcastCodecs = broadcastCodecs)
+            val stream = Stream(rpcClient, keySource, sessionStore, subscriptionStore, appVersion, telemetry,
+                ownedContext, observer = observer)
+            val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs, telemetry =
+                telemetry, coroutineContext = ownedContext, broadcastCodecs = broadcastCodecs, observer = observer)
             val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId, telemetry, ownedContext, stream.connection, stream::signSessionRequest)
             try {
                 lockerClient.start()

@@ -39,6 +39,8 @@ dependencies {
     implementation(libs.ktcrypto.library)
     implementation(libs.kotlinx.datetime)
     implementation(libs.micrometer.core)
+    api("io.opentelemetry:opentelemetry-api:1.45.0")
+    implementation("io.opentelemetry:opentelemetry-extension-kotlin:1.45.0")
     implementation(libs.cache4k)
     // Publish the aligned Netty platform to consumers; Pushy/Firebase use Netty clients.
     implementation(platform(libs.netty.bom))
@@ -53,6 +55,7 @@ dependencies {
     ksp(libs.kotlin.inject.ksp)
 
     testImplementation(kotlin("test"))
+    testImplementation("io.opentelemetry:opentelemetry-sdk-testing:1.45.0")
     testImplementation(projects.server.test)
     testImplementation(projects.connector)
     testImplementation(libs.coroutines.test)

@@ -11,6 +11,9 @@ message ServerOutboxEntry {
   string parked_reason = 6;
   bytes parked_intent = 7;
   int64 resolved_at = 8;
+  int64 enqueued_at = 9;
+  string traceparent = 10;
+  int32 recipients = 11;
 }
 message ServerOutboxHead {
   bytes room_id = 1;
