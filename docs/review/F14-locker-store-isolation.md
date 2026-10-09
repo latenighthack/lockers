@@ -1,0 +1,7 @@
+# F14 — locker store byte ownership
+
+Two portable regressions fail against82a262a with persisted room bytes changed from1 to99: in-memory save/accept retained the caller's mutable protobuf arrays, and every public single/list read returned the backing row. Mutation could change data and index identity without an authorized store operation. The raw original failures are `evidence/lockers-store-alias-red.log` and `evidence/lockers-store-alias-red.xml`.
+
+LockerStoreImpl freezes save, accept and compare/delete inputs before suspension, and detaches all public row reads through the unchanged protobuf codec. Query identity bytes are copied before entering the store. This preserves unknown fields and frozen index/codec declarations. A returned row or subsequently mutated input can no longer change persisted state. Atomic acceptance and durable event journaling retain the same transaction.
+
+Verification: nine JVM tests pass (two isolation tests, two portable contracts, one actual HTTP fast-path and four snapshot repair cases), zero skips/failures. Node four and Apple simulator five tests pass, including both portable isolation tests; Android release compilation passes. Exact commands use the frozen Fullhouse status dependency manifest and isolated Maven repository. Logs: `evidence/lockers-store-alias-green.log` and `evidence/lockers-store-alias-platforms-green.log`. Final integrated platform/storage/consumer checks remain separate gates.

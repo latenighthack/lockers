@@ -54,23 +54,25 @@ class LockerStoreImpl(private val database: Database, private val policy: com.la
     private val eventJournal = ConnectorEventJournal(database, policy)
     override suspend fun acceptAtomically(action: suspend () -> Unit) { prepare(); database.transaction("connector-accept") { action() } }
     override suspend fun forgetLocker(expected: StoredLocker) {
+        val snapshot = expected.detached()
         prepare(); database.transaction("connector-accept") {
-            val room = RoomId(expected.roomIdRawValue); val id = LockerId(expected.lockerIdRawValue, LockerKeyspace(expected.lockerKeyspace))
+            val room = RoomId(snapshot.roomIdRawValue); val id = LockerId(snapshot.lockerIdRawValue, LockerKeyspace(snapshot.lockerKeyspace))
             val current = getLocker(room, id.keyspace!!, id)
-            if (current != expected) return@transaction
+            if (current != snapshot) return@transaction
             deleteLocker(room, id.keyspace!!, id)
-            eventJournal.append(1, expected.copy(deleted = true, lockerPayload = byteArrayOf()).toByteArray(), kotlin.random.Random.nextBytes(32))
+            eventJournal.append(1, snapshot.copy(deleted = true, lockerPayload = byteArrayOf()).toByteArray(), kotlin.random.Random.nextBytes(32))
         }
     }
     override suspend fun pruneEventsThrough(cursor: Long) = eventJournal.pruneThrough(cursor)
     override fun changesAfter(cursor: Long) = eventJournal.after(cursor)
     override fun liveChanges() = eventJournal.live()
     override suspend fun acceptLocker(locker: StoredLocker) {
+        val snapshot = locker.detached()
         prepare(); database.transaction("connector-accept") {
-            if (getLocker(RoomId(locker.roomIdRawValue), LockerKeyspace(locker.lockerKeyspace), LockerId(locker.lockerIdRawValue)) == null && database.count(LockerStoreImplDefinitionV1.storeName, IndexedQuery(LockerStoreImplDefinitionV1.roomIdKey.key, 1)) >= policy.maxCachedLockers)
+            if (getLocker(RoomId(snapshot.roomIdRawValue), LockerKeyspace(snapshot.lockerKeyspace), LockerId(snapshot.lockerIdRawValue)) == null && database.count(LockerStoreImplDefinitionV1.storeName, IndexedQuery(LockerStoreImplDefinitionV1.roomIdKey.key, 1)) >= policy.maxCachedLockers)
                 throw com.latenighthack.lockers.connector.ConnectorRetentionExceededException("Locker cache admission limit exceeded")
-            save(locker)
-            eventJournal.append(1, locker.toByteArray(), kotlin.random.Random.nextBytes(32))
+            save(snapshot)
+            eventJournal.append(1, snapshot.toByteArray(), kotlin.random.Random.nextBytes(32))
         }
     }
     private val ratchetJournal = RatchetJournal(database)
@@ -86,26 +88,28 @@ class LockerStoreImpl(private val database: Database, private val policy: com.la
     private val roomIdLockerKeyspaceKey = LockerStoreImplDefinitionV1.roomIdLockerKeyspaceKey
     private val roomIdLockerIdLockerKeyspaceKey = LockerStoreImplDefinitionV1.roomIdLockerIdLockerKeyspaceKey
 
-    override suspend fun saveLocker(locker: StoredLocker) = save(locker)
+    override suspend fun saveLocker(locker: StoredLocker) = save(locker.detached())
 
-    override suspend fun getAllLockers() = getAll()
+    override suspend fun getAllLockers() = getAll().map { it.detached() }
 
     override suspend fun getAllLockers(roomId: RoomId, keyspace: LockerKeyspace) = getAll(roomIdLockerKeyspaceKey.eq(listOf(
-        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue),
+        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue.copyOf()),
         BoundStoreKey.LongKey(lockerKeyspaceKey.name.value, keyspace.value)
-    )))
+    ))).map { it.detached() }
 
-    override suspend fun getAllLockers(roomId: RoomId) = getAll(roomIdKey.eq(roomId.rawValue))
+    override suspend fun getAllLockers(roomId: RoomId) = getAll(roomIdKey.eq(roomId.rawValue.copyOf())).map { it.detached() }
 
     override suspend fun getLocker(roomId: RoomId, keyspace: LockerKeyspace, lockerId: LockerId) = get(roomIdLockerIdLockerKeyspaceKey.eq(listOf(
-        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue),
-        BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.rawValue),
+        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue.copyOf()),
+        BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.rawValue.copyOf()),
         BoundStoreKey.LongKey(lockerKeyspaceKey.name.value, keyspace.value)
-    )))
+    )))?.detached()
 
     override suspend fun deleteLocker(roomId: RoomId, keyspace: LockerKeyspace, lockerId: LockerId) = delete(roomIdLockerIdLockerKeyspaceKey.eq(listOf(
-        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue),
-        BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.rawValue),
+        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue.copyOf()),
+        BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.rawValue.copyOf()),
         BoundStoreKey.LongKey(lockerKeyspaceKey.name.value, keyspace.value)
     )))
 }
+
+private fun StoredLocker.detached() = StoredLocker.fromByteArray(toByteArray())
