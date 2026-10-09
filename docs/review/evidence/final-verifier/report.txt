@@ -1,0 +1,48 @@
+---
+
+**No new confirmed source blocker found at `4a93a9e`.** The previously reported dispatcher/database deadlock is fixed and independently passes its deterministic regressions. Source and Git status remain clean.
+
+The review against `a40cc9c`, continuing the earlier passes, covered authority/signatures, frozen storage schemas and extension boundaries, receipts/agent recovery, ratchets, subscription ordering, event/ACK/push handling, resource bounds, routing and lifecycle ownership.
+
+The latest fixes survive review:
+
+- Subscription startup and late confirmations use durable transactional checks; ordinary and snapshot-page successes require the exact revision echo. [Stream.kt:211](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:211)
+- Subscription execution avoids the per-room mutex while retaining tracked drain and storage serialization. [RoomServiceImpl.kt:698](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:698)
+- Legacy archives use effective authority without inventing exact scope history; missing predecessor-key metadata cannot replace an unrelated provider key. [LockerClient.kt:1355](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1355)
+- Journal collection now propagates cancellation explicitly.
+
+**Independent execution: 33 tests passed, zero failures/errors/skips.**
+
+| Selection | Executed |
+|---|---:|
+| Five requested server classes | 13 |
+| Six requested SDK classes | 20 |
+
+Both selected PostgreSQL cases ran in unique schemas, including the two-handle lock-order regression. No broader public-table PostgreSQL fixtures were run.
+
+```sh
+ANDROID_HOME=/Users/mikeroberts/Library/Android/sdk \
+LOCKERS_TEST_PG_REQUIRED=true \
+LOCKERS_TEST_PG_URL='jdbc:postgresql://127.0.0.1:58594/lockers_fixes?user=review' \
+./gradlew \
+-PfhWorkspace=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/dependencies-indexeddb-final.json \
+-Dmaven.repo.local=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/maven \
+--console=plain \
+:server:test \
+--tests '*SubscriptionLockOrderTest*' \
+--tests '*ShardedDispatcherTest*' \
+--tests '*SubscriptionIntentPgTest*' \
+--tests '*SubscriptionHttpOrderingTest*' \
+--tests '*SubscriptionIntentBoundaryTest*' \
+:connector:jvmTest \
+--tests '*ReviewSubscriptionConfirmationCasTests*' \
+--tests '*ReviewSubscriptionStartupCasTests*' \
+--tests '*ReviewSubscriptionEchoTests*' \
+--tests '*ReviewJournalCancellationTests*' \
+--tests '*ReviewRatchetAdoptionTests*' \
+--tests '*ReviewExpiredRatchetTests*'
+```
+
+`BUILD SUCCESSFUL in 21s`. Kotlin incremental compilation failed internally, then successfully used its non-incremental fallback. [Raw log](/tmp/independent-final-4a93a9e-gradle.log) · [XML results](/tmp/independent-final-4a93a9e-xml)
+
+**Source-level acceptance only; overallDone=false.** Final combined/static/platform/Fullhouse gates remain separate. F39’s public-artifact release gate remains open; these paired local builds do not satisfy it. No publication performed.

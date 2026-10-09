@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="NotificationCodecTests[jvm]" tests="4" skipped="0" failures="1" errors="0" timestamp="2026-10-09T04:12:34.556Z" hostname="Mikes-MacBook-Pro.local" time="15.18">
+  <properties/>
+  <testcase name="symmetric codec round-trips encode then decode[jvm]" classname="com.latenighthack.lockers.connector.test.NotificationCodecTests" time="0.052"/>
+  <testcase name="a codec returning null drops the notification[jvm]" classname="com.latenighthack.lockers.connector.test.NotificationCodecTests" time="0.071"/>
+  <testcase name="codecs compose and decode reverses their order[jvm]" classname="com.latenighthack.lockers.connector.test.NotificationCodecTests" time="0.045"/>
+  <testcase name="a per-keyspace codec applies only to its keyspace[jvm]" classname="com.latenighthack.lockers.connector.test.NotificationCodecTests" time="15.012">
+    <failure message="org.junit.runners.model.TestTimedOutException: test timed out after 15000 milliseconds" type="org.junit.runners.model.TestTimedOutException">org.junit.runners.model.TestTimedOutException: test timed out after 15000 milliseconds
+	at java.base@17.0.17/jdk.internal.misc.Unsafe.park(Native Method)
+	at java.base@17.0.17/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)
+	at app//kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:98)
+	at app//kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at app//kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at app//kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+	at app//kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at app//kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+	at app//kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:309)
+	at app//kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+	at app//kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:167)
+	at app//kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+	at app//kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0$default(TestBuilders.kt:159)
+	at app//kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0$default(Unknown Source)
+	at app//com.latenighthack.lockers.connector.test.OwnedTestFixtureKt.runOwnedTestWithServer(OwnedTestFixture.kt:45)
+	at app//com.latenighthack.lockers.connector.test.NotificationCodecTests.a per-keyspace codec applies only to its keyspace(NotificationCodecTests.kt:139)
+	at java.base@17.0.17/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base@17.0.17/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base@17.0.17/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base@17.0.17/java.lang.reflect.Method.invoke(Method.java:569)
+	at app//org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at app//org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at app//org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at app//org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at app//org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:299)
+	at app//org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:293)
+	at java.base@17.0.17/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base@17.0.17/java.lang.Thread.run(Thread.java:840)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
