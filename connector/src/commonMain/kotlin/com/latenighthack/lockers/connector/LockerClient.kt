@@ -997,7 +997,7 @@ class LockerClient(
         ratchet: Boolean = false,
         transform: suspend (ByteArray) -> ByteArray,
     ): Locker? {
-        lockerStore.pendingRatchets().filter { it.request.roomId == roomId && it.request.lockerId?.canonical() == lockerId.canonical() }.forEach { recoverRatchet(it, serialized = true) }
+        lockerStore.pendingRatchets().filter { it.request.roomId?.canonical() == roomId.canonical() && it.request.lockerId?.canonical() == lockerId.canonical() }.forEach { recoverRatchet(it, serialized = true) }
         val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
         var currentPlaintext = cached?.toIdentifiedLocker()?.locker?.plaintextPayload() ?: byteArrayOf()
         var parentVersion = cached?.version ?: 0L
@@ -1112,8 +1112,8 @@ class LockerClient(
 
     private suspend fun recoverRatchet(pending: PendingRatchet, serialized: Boolean = false) {
         val request = pending.request
-        val room = requireNotNull(request.roomId)
-        val id = requireNotNull(request.lockerId)
+        val room = requireNotNull(request.roomId).canonical()
+        val id = requireNotNull(request.lockerId).canonical()
         suspend fun resolve() {
             if (lockerStore.pendingRatchets().none { it.request.writeRequestId.contentEquals(request.writeRequestId) }) return
             val response = sync.network { roomService.postLockerChange(request) }
@@ -1151,17 +1151,18 @@ class LockerClient(
     }
 
     private suspend fun adoptKey(archive: ArchivedRatchet, target: LockerId) {
+        val room = archive.room.canonical(); val target = target.canonical()
         val source = lockKeySource ?: throw adoptionPending(archive, target)
         val newKey = requireNotNull(Secp256r1KeyPair.fromPrivateKey(archive.pending.privateKey)) { "Invalid archived ratchet key" }
-        val current = source.writeKeyFor(archive.room, target)?.publicKey?.encode()
+        val current = source.writeKeyFor(room, target)?.publicKey?.encode()
         if (current?.contentEquals(archive.publicKey) == true) return
         val old = archive.pending.request.writeSignature?.publicKey?.rawValue
         // Never replace a provider's unrelated/newer key with an old completed transition.
         if (current != null && old != null && !current.contentEquals(old)) throw adoptionPending(archive, target)
-        try { source.onRatcheted(archive.room, target, newKey) }
+        try { source.onRatcheted(room, target, newKey) }
         catch (cancelled: CancellationException) { throw cancelled }
         catch (failure: Exception) { throw adoptionPending(archive, requireNotNull(archive.pending.request.lockerId), failure) }
-        val resolved = source.writeKeyFor(archive.room, target)?.publicKey?.encode()
+        val resolved = source.writeKeyFor(room, target)?.publicKey?.encode()
         if (resolved?.contentEquals(archive.publicKey) != true) throw adoptionPending(archive, target)
     }
 
