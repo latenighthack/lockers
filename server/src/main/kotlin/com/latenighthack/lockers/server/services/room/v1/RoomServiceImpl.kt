@@ -246,7 +246,7 @@ class RoomServiceImpl(
             else -> WriteOutcome.AgentState.APPLIED
         }
         return GetWriteOutcomeResponse(outcome = WriteOutcome(roomId = room, writeRequestId = request.writeRequestId,
-            sourceVersions = response.changes.map { WriteSourceVersion(version = it.version) }, agentState = state))
+            sourceVersions = response.sourceVersions.ifEmpty { response.changes.map { WriteSourceVersion(version = it.version) } }, agentState = state))
     }
 
     override suspend fun capabilities(context: GrpcRequestContext, request: CapabilitiesRequest) = meterRegistry.trackRpc(TelemetryOperation.ROOM_CAPABILITIES, telemetry) { CapabilitiesResponse(
@@ -642,86 +642,75 @@ class RoomServiceImpl(
         context: GrpcRequestContext,
         request: DeleteLockerRequest
     ) = meterRegistry.trackResponse("lockers.room.locker.deletelocker", DeleteLockerResponse::result, telemetry) {
-        val requestRoomId = request.roomId ?: return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
-        val requestEventId = EventId(Random.nextBytes(32))
-        val requestLockerId = request.lockerId ?: return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
-        val requestVersion = request.parentVersion
-
-        redirectIfNotOwner(requestLockerId.keyspace?.value ?: 0L, requestRoomId)?.let { redirect ->
-            forwardToOwnerOrNull(context, redirect) { it.deleteLocker(request) }?.let {
-                return@trackResponse it
-            }
-            return@trackResponse DeleteLockerResponse {
-                result = DeleteLockerResponse.Result.NOT_OWNER
-                this.redirect = redirect
-            }
+        val room = request.roomId
+        val id = request.lockerId
+        if (room == null || !ProtocolValidation.room(room) || !ProtocolValidation.locker(id) ||
+            request.parentVersion < 0 || !ProtocolValidation.notification(request.notification) ||
+            (request.writeRequestId.isNotEmpty() && request.writeRequestId.size !in 16..64))
+            return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
+        val lockerId = requireNotNull(id)
+        redirectIfNotOwner(lockerId.keyspace?.value ?: 0L, room)?.let { redirect ->
+            forwardToOwnerOrNull(context, redirect) { it.deleteLocker(request) }?.let { return@trackResponse it }
+            return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.NOT_OWNER, redirect = redirect)
         }
-
-        if (!rateLimiter.tryAcquire(requestRoomId)) {
+        if (!rateLimiter.tryAcquire(room)) {
             rateLimitedCounter.increment()
-            logger.warn("rate limit exceeded for room; rejecting locker delete")
             return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
         }
-
-        val startTime = System.nanoTime()
-        return@trackResponse runRoomMutation(requestRoomId, onLost = { DeleteLockerResponse(result = DeleteLockerResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, requestRoomId)) }) { lockStore.atomic(ServerRoomId(requestRoomId.rawValue)) {
-            dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
-
-            val storedLocker = lockerStore.getLocker(
-                ServerRoomId(requestRoomId.rawValue),
-                (requestLockerId.keyspace?.value ?: 0L),
-                ServerLockerId(requestLockerId.rawValue)
-            )
-
-            val effectiveLock = effectiveLockOrNull(requestRoomId, requestLockerId)
-            val effectiveState = effectiveLock?.let { lockVerifier.stateOf(it) }
-
-            val updatedLockerVersion = if (storedLocker == null && requestVersion == 0L) {
-                1L
-            } else if (storedLocker != null && storedLocker.version == requestVersion && requestVersion in 0 until Long.MAX_VALUE) {
-                requestVersion + 1
-            } else {
-                reshardCasConflictsCounter.increment()
-                return@atomic DeleteLockerResponse {
-                    result = DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION
-                    version = storedLocker?.version ?: 0L
-                    existingLocker = storedLocker?.takeUnless { it.deleted }?.let { Locker.fromByteArray(it.locker) }
-                    lockState = effectiveState
-                }
-            }
-
-            // Locked lockers: deletes must be signed by the effective lock key over the
-            // write context with an empty content hash.
-            if (effectiveLock != null) {
-                when (lockVerifier.verifyWrite(effectiveLock, requestRoomId, requestLockerId, requestVersion, ByteArray(0), request.writeSignature, request.notification)) {
-                    LockVerifier.WriteVerdict.REQUIRED -> return@atomic DeleteLockerResponse {
-                        result = DeleteLockerResponse.Result.SIGNATURE_REQUIRED
-                        lockState = effectiveState
-                    }
-                    LockVerifier.WriteVerdict.INVALID -> return@atomic DeleteLockerResponse {
-                        result = DeleteLockerResponse.Result.SIGNATURE_INVALID
-                        lockState = effectiveState
-                    }
-                    LockVerifier.WriteVerdict.OK -> {}
-                }
-            }
-
-            val tombstone = ServerLocker(ServerRoomId(requestRoomId.rawValue), requestLockerId.keyspace?.value ?: 0L,
-                ServerLockerId(requestLockerId.rawValue), byteArrayOf(), updatedLockerVersion, deleted = true)
-            val event = Event(roomId = requestRoomId, eventId = requestEventId,
-                locker = IdentifiedLocker(requestLockerId, version = updatedLockerVersion, lockState = effectiveState), notification = request.notification)
+        val outbox = requireNotNull(deliveryOutbox)
+        val digest = com.latenighthack.ktcrypto.SHA256.digest("delete:v1".encodeToByteArray() + request.toByteArray())
+        return@trackResponse runRoomMutation(room, onLost = {
+            DeleteLockerResponse(result = DeleteLockerResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, room))
+        }) {
+            val events = mutableListOf<Event>()
             val recipients = mutableListOf<SessionId>()
-            requireNotNull(deliveryOutbox).commit(requestRoomId, recipients, listOf(event)) {
-                recipients.addAll(subscriptionStore.getAllSessions(ServerRoomId(requestRoomId.rawValue)).map { SessionId(it.rawValue) })
-                lockerStore.updateLocker(tombstone)
+            outbox.commit(room, recipients, events) {
+                if (request.writeRequestId.isNotEmpty()) {
+                    outbox.receipt(room, request.writeRequestId)?.let { old ->
+                        if (!old.requestDigest.contentEquals(digest))
+                            return@commit DeleteLockerResponse(result = DeleteLockerResponse.Result.REQUEST_ID_REUSED, writeRequestId = request.writeRequestId)
+                        val saved = PostLockerChangesResponse.fromByteArray(old.encodedOutcome).changes.single()
+                        return@commit DeleteLockerResponse(result = DeleteLockerResponse.Result.OK, version = saved.version,
+                            lockState = saved.lockState, writeRequestId = request.writeRequestId)
+                    }
+                }
+                val stored = lockerStore.getLocker(ServerRoomId(room.rawValue), lockerId.keyspace?.value ?: 0L, ServerLockerId(lockerId.rawValue))
+                val effective = effectiveLockOrNull(room, lockerId)
+                val state = effective?.let { lockVerifier.stateOf(it) }
+                if (effective != null) {
+                    when (lockVerifier.verifyWrite(effective, room, lockerId, request.parentVersion, ByteArray(0), request.writeSignature, request.notification)) {
+                        LockVerifier.WriteVerdict.REQUIRED -> return@commit DeleteLockerResponse(result = DeleteLockerResponse.Result.SIGNATURE_REQUIRED, lockState = state)
+                        LockVerifier.WriteVerdict.INVALID -> return@commit DeleteLockerResponse(result = DeleteLockerResponse.Result.SIGNATURE_INVALID, lockState = state)
+                        LockVerifier.WriteVerdict.OK -> {}
+                    }
+                }
+                val alreadyDeleted = stored?.deleted == true && stored.version == request.parentVersion
+                val version = when {
+                    alreadyDeleted -> requireNotNull(stored).version
+                    stored == null && request.parentVersion == 0L -> 1L
+                    stored != null && stored.version == request.parentVersion && request.parentVersion < Long.MAX_VALUE -> request.parentVersion + 1
+                    else -> {
+                        reshardCasConflictsCounter.increment()
+                        return@commit DeleteLockerResponse(result = DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION, version = stored?.version ?: 0L,
+                            existingLocker = stored?.takeUnless { it.deleted }?.let { Locker.fromByteArray(it.locker) }, lockState = state)
+                    }
+                }
+                if (!alreadyDeleted) {
+                    recipients.addAll(subscriptionStore.getAllSessions(ServerRoomId(room.rawValue)).map { SessionId(it.rawValue) })
+                    lockerStore.updateLocker(ServerLocker(ServerRoomId(room.rawValue), lockerId.keyspace?.value ?: 0L,
+                        ServerLockerId(lockerId.rawValue), byteArrayOf(), version, deleted = true))
+                    events.add(Event(roomId = room, eventId = EventId(Random.nextBytes(32)),
+                        locker = IdentifiedLocker(lockerId, version = version, lockState = state), notification = request.notification))
+                }
+                if (request.writeRequestId.isNotEmpty()) {
+                    val saved = PostLockerChangesResponse(changes = listOf(PostLockerChangeResponse(version = version, lockState = state)),
+                        sourceVersions = listOf(WriteSourceVersion(lockerId = lockerId, version = version)))
+                    outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
+                        request.writeRequestId, ServerRoomId(room.rawValue), digest, saved.toByteArray()))
+                }
+                DeleteLockerResponse(result = DeleteLockerResponse.Result.OK, version = version, lockState = state, writeRequestId = request.writeRequestId)
             }
-
-            DeleteLockerResponse {
-                result = DeleteLockerResponse.Result.OK
-                version = updatedLockerVersion
-                lockState = effectiveState
-            }
-        } }
+        }
     }
 
     override suspend fun lockLocker(
