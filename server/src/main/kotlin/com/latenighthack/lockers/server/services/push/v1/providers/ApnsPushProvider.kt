@@ -100,7 +100,7 @@ class ApnsPushProvider(private val config: ApnsConfig) : PushProvider {
         var failed: Throwable? = null
         for (holder in listOf(productionClientHolder, developmentClientHolder)) if (holder.isInitialized()) {
             try { holder.value?.close()?.await() }
-            catch (failure: Throwable) { if (failed == null) failed = failure else failed!!.addSuppressed(failure) }
+            catch (failure: Throwable) { if (failed == null) failed = failure else failed.addSuppressed(failure) }
         }
         failed?.let { throw it }
     }

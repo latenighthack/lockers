@@ -146,7 +146,11 @@ class PeerConnectionPool(
         closing.withLock { withContext(NonCancellable) {
             val resources = synchronized(monitor) { (clients.values + retiring).distinct().also { clients.clear(); retiring.addAll(it) } }
             var failed: Throwable? = null
-            resources.forEach { try { dispose(it) } catch (failure: Throwable) { if (failed == null) failed = failure else failed!!.addSuppressed(failure) } }
+            resources.forEach {
+                try { dispose(it) } catch (failure: Throwable) {
+                    if (failed == null) failed = failure else failed.addSuppressed(failure)
+                }
+            }
             failed?.let { throw it }
         } }
     }

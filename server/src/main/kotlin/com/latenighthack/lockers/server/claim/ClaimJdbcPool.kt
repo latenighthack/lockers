@@ -40,11 +40,11 @@ class ClaimJdbcPool @JvmOverloads constructor(
         try {
             val result = withContext(Dispatchers.IO) {
                 check(!closed.get()) { "ClaimJdbcPool is closed" }
-                if (conn == null || !isUsable(conn!!)) {
+                if (conn == null || !isUsable(conn)) {
                     runCatching { conn?.close() }
                     conn = com.latenighthack.lockers.server.tools.openPostgresConnection(jdbcUrl, limits)
                 }
-                block(conn!!)
+                block(conn)
             }
             // A slot send only fails after close(); don't leak the borrowed connection then.
             if (closed.get() || slots.trySend(conn).isFailure) runCatching { conn?.close() }

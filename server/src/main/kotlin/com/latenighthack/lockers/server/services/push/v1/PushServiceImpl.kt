@@ -210,7 +210,7 @@ class PushServiceImpl(
             withContext(NonCancellable) {
                 processorScope.coroutineContext[Job]!!.cancelAndJoin()
                 var failed: Throwable? = null
-                fun record(failure: Throwable) { if (failed == null) failed = failure else failed!!.addSuppressed(failure) }
+                fun record(failure: Throwable) { if (failed == null) failed = failure else failed.addSuppressed(failure) }
                 for (claim in localClaims.values) {
                     try { pushQueueStore.release(claim, System.currentTimeMillis()) } catch (failure: Throwable) { record(failure) }
                 }

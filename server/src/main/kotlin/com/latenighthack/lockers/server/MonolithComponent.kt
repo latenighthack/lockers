@@ -212,7 +212,7 @@ class MonolithComponent(
             var failed: Throwable? = null
             suspend fun cleanup(block: suspend () -> Unit) {
                 try { block() } catch (failure: Throwable) {
-                    if (failed == null) failed = failure else failed!!.addSuppressed(failure)
+                    if (failed == null) failed = failure else failed.addSuppressed(failure)
                 }
             }
             withContext(NonCancellable) {

@@ -64,7 +64,9 @@ class MeasuredStoreDelegate(private val inner: LifecycleStoreDelegate, private v
                 else if (trace == null) action() else trace.phase(name, action)).also { outcome = "ok" }
         } catch (cancelled: kotlinx.coroutines.CancellationException) { outcome = "cancelled"; throw cancelled }
         finally { if (registry != null && known) {
-            val tags = arrayOf("store", table!!, "operation", if (name == "db_read") "read" else "write", "outcome", outcome)
+            val tags = arrayOf(
+                "store", table, "operation", if (name == "db_read") "read" else "write", "outcome", outcome,
+            )
             registry.safeMeters {
                 counter("lockers.storage.operations", *tags).increment()
                 timer("lockers.storage.duration", *tags).record(System.nanoTime() - start, TimeUnit.NANOSECONDS)

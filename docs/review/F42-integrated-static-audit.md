@@ -96,3 +96,13 @@ as ordinary cancellation would leave waiters without the modeled terminal result
 No swallowing, finally-throwing or coroutine-correctness rule was baselined. Stale
 IDs were removed rather than kept as blanket future exclusions. Final integrated
 source and runtime tests remain required after subsequent actor corrections.
+
+
+The independent JVM compiler audit found seven redundant non-null assertions in
+server cleanup, JDBC and metric-tag paths. They were removed using the compiler's
+existing non-null proof, preserving suppressed cleanup failures and metric values;
+two resulting long lines were wrapped. The server recompilation has zero Kotlin
+warnings, and the aggregate ten-module detekt gate passes. The three remaining
+LockerClient redundancies belong to its active source owner; four generated
+protobuf-descriptor conversion warnings are visible and were not edited in generated
+bindings. Raw audit and follow-up logs are retained alongside the ID inventory.
