@@ -282,25 +282,25 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
             }
         } ?: return@flow
         var after: LocalContinuation? = null
+        var chunk = mutableListOf<Event>(); var bytes = 1024
         do {
             val (page, events) = database.transaction("inbox-metadata") {
-                val page = database.query(definition.storeName, definition.replay.query(pageSize,
+                val page = database.query(definition.storeName, definition.replay.query(minOf(pageSize, 4),
                     lower = prefix, upper = maximum, after = after))
                 page to page.records.map { clientEvent(when (it) { is ServerSessionEvent -> it; is ByteArray -> definition.decode(it); else -> error("Invalid inbox row") }) }
             }
             // Release the database owner before suspending on the downstream socket.
-            var chunk = mutableListOf<Event>(); var bytes = 1024
             for (event in events) {
                 val size = event.toByteArray().size + 16
-                if (size + 1024 > ProtocolValidation.MAX_ENVELOPE_BYTES) throw ResourceLimitException("Inbox event exceeds envelope capacity")
-                if (bytes + size > ProtocolValidation.MAX_ENVELOPE_BYTES && chunk.isNotEmpty()) {
+                if (size + 1024 > ProtocolValidation.MAX_ENVELOPE_BYTES) throw RpcResponseException("", "RPC", Codes.OUT_OF_RANGE, "Inbox event exceeds envelope capacity")
+                if ((chunk.size == pageSize || bytes + size > ProtocolValidation.MAX_ENVELOPE_BYTES) && chunk.isNotEmpty()) {
                     emit(chunk.toList()); chunk = mutableListOf(); bytes = 1024
                 }
                 chunk.add(event); bytes += size
             }
-            if (chunk.isNotEmpty()) emit(chunk.toList())
             after = page.continuation
         } while (after != null)
+        if (chunk.isNotEmpty()) emit(chunk.toList())
     }
     override suspend fun getAllClientEvents(sessionId: ServerSessionId): List<Event> = database.transaction("inbox-metadata") {
         getAllEvents(sessionId).sortedBy { it.roomSequence }.map { clientEvent(it) }

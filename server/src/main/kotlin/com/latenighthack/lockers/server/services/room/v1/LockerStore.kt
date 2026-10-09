@@ -34,7 +34,7 @@ class LockerStoreImpl(private val database: Database, private val limits: com.la
     override fun lockerPages(roomId: ServerRoomId): Flow<List<ServerLocker>> = flow {
         var after: LocalContinuation? = null
         do {
-            val page = database.query(LockerStoreDefinitionV2.storeName, roomIdKey.query(64,
+            val page = database.query(LockerStoreDefinitionV2.storeName, roomIdKey.query(4,
                 lower = roomId.toByteArray(), upper = roomId.toByteArray(), after = after))
             if (page.records.isNotEmpty()) emit(page.records.map { when (it) {
                 is ServerLocker -> it; is ByteArray -> LockerStoreDefinitionV2.decode(it); else -> error("Invalid locker row")
