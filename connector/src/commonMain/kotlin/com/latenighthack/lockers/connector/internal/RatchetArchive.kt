@@ -18,7 +18,7 @@ private val ArchivedRatchet.roomKey: ByteArray get() = room.rawValue
 private val ArchivedRatchet.scopeKey: ByteArray get() = when (scope.kind) {
     LockScopeKind.LOCK_SCOPE_ROOM -> LockScope(kind = scope.kind)
     LockScopeKind.LOCK_SCOPE_KEYSPACE -> LockScope(kind = scope.kind, keyspace = scope.keyspace ?: LockerKeyspace(0))
-    else -> LockScope(scope.kind, LockerKeyspace(scope.keyspace?.value ?: 0), scope.lockerRawValue.copyOf())
+    else -> scope.copy(keyspace = scope.keyspace ?: LockerKeyspace(0))
 }.toByteArray()
 private fun encodeArchive(value: ArchivedRatchet) = encodeFrames(value.pending.request.toByteArray(), value.pending.privateKey, value.state?.toByteArray() ?: byteArrayOf(), longBytes(value.version))
 private fun decodeArchive(bytes: ByteArray): ArchivedRatchet {
