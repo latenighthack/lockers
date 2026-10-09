@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="iosSimulatorArm64Test.com.latenighthack.lockers.connector.AppleStorageContractTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:52:27.092Z" hostname="Mikes-MacBook-Pro.local" time="1.788">
+  <properties/>
+  <testcase name="sqliteConnectorStoreSurvivesCloseAndReopen[iosSimulatorArm64]" classname="iosSimulatorArm64Test.com.latenighthack.lockers.connector.AppleStorageContractTest" time="0.222"/>
+  <testcase name="historicalSqliteSchemasPreservePrivateBytesAndNormalizeAliases[iosSimulatorArm64]" classname="iosSimulatorArm64Test.com.latenighthack.lockers.connector.AppleStorageContractTest" time="1.338"/>
+  <testcase name="sdkMutationsCommitRollbackAndReopenSqlite[iosSimulatorArm64]" classname="iosSimulatorArm64Test.com.latenighthack.lockers.connector.AppleStorageContractTest" time="0.228"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -266,6 +266,7 @@ class IncomingNotification(
 }
 
 private const val WRITE_RETRY_LIMIT = 8
+private const val AUTHORITY_REPAIR_LIMIT = 3
 
 /**
  * A [LockerWriteException] is terminal (a bad/absent signing key, or an unauthorized
@@ -1053,7 +1054,10 @@ class LockerClient(
      * the [LockKeySource]) the result is wrapped in a signed envelope and the write is
      * signed. The signature binds the parent version, so a version conflict re-runs
      * [transform] and re-signs against the fresh version — preserving the fair-read
-     * retry. Set [ratchet] to rotate the signing key atomically with this write. A rejected
+     * retry. A definitive authority-only conflict with the same owned key permits at most
+     * three re-signs of the frozen body/notification, without repeating caller transforms or
+     * codecs. An ambiguous attempt retains its immutable request. Set [ratchet] to rotate
+     * the signing key atomically with this write. A rejected
      * ratchet after an ambiguous attempt is resolved against current authority rather
      * than rebased: its retained confidential intent may represent a committed write
      * whose receipt expired.
@@ -1099,12 +1103,15 @@ class LockerClient(
         if (pendingRatchetKey != null && !supportsReceipts) throw LockerWriteException("Ratchets require durable server write receipts")
         var submitted: PostLockerChangeRequest? = null
         var ambiguousAttempt = false
+        var submittedAuthority: LockState? = null
+        var authorityRepairs = 0
         var committedAgentStatus: PostLockerChangeResponse? = null
         var committedResponse: PostLockerChangeResponse? = null
         val updatedLocker = try {
             repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
                 val request = submitted ?: run {
                     val authorityState = if (signingKey != null && caps.authorityV2) currentAuthorityState(roomId, lockerId) else null
+                    submittedAuthority = authorityState?.let { LockState.fromByteArray(it.toByteArray()) }
                     val authority = authorityState?.lockVersion ?: 0L
                     val newPlaintext = transform(currentPlaintext.copyOf())
                     // The builder sees a provisional payload envelope; the final V2 signature binds its encoded notification.
@@ -1165,6 +1172,18 @@ class LockerClient(
                         throw LockerWriteException("locker is locked; a signing key is required ($writeContext)")
                     }
                     is PostLockerChangeResponse.Result.SIGNATURE_INVALID -> {
+                        // A concurrent grant can change effective authority after discovery.
+                        // Only a definitive rejection permits changing the frozen signed request.
+                        if (!ambiguousAttempt && pendingRatchetKey == null && authorityRepairs < AUTHORITY_REPAIR_LIMIT) {
+                            currentCoroutineContext().ensureActive()
+                            repairAuthorityWrite(request, signingKey, submittedAuthority, result.lockState)?.let { repair ->
+                                submitted = repair.request
+                                submittedAuthority = repair.authority
+                                authorityRepairs++
+                                telemetry.safeRecord(TelemetryOperation.CONNECTOR_CONFLICT, TelemetryOutcome.CONFLICT)
+                                retry()
+                            }
+                        }
                         if (pendingRatchetKey != null) {
                             if (ambiguousAttempt) resolveRejectedRatchet(request, pendingRatchetKey)
                             lockerStore.clearRatchet(request)
@@ -1451,6 +1470,61 @@ class LockerClient(
     }
 
     private class WriteBody(val locker: Locker, val signature: Signature?)
+
+    private class AuthorityWriteRepair(val request: PostLockerChangeRequest, val authority: LockState)
+
+    /** Re-sign an already valid frozen body; caller transforms and codecs are not repeated. */
+    private suspend fun repairAuthorityWrite(
+        request: PostLockerChangeRequest, key: Secp256r1KeyPair?,
+        observed: LockState?, reported: LockState?,
+    ): AuthorityWriteRepair? {
+        val key = key ?: return null
+        val current = reported?.let { LockState.fromByteArray(it.toByteArray()) } ?: return null
+        if (!current.locked) return null
+        val id = requireNotNull(request.lockerId)
+        val scope = authorityScopeFor(current, id) ?: return null
+        val previousEpoch = observed?.lockVersion ?: 0L
+        val previousScope = observed?.let { authorityScopeFor(it, id) }
+        val original = request.writeSignature ?: return null
+        if (request.ratchet != null || original.signingVersion != 2 || previousEpoch < 0 ||
+            (previousEpoch > 0 && previousScope == null) ||
+            (scope == previousScope && current.lockVersion <= previousEpoch)) return null
+        val ownedPublicKey = key.publicKey.encode()
+        if (current.publicKey?.rawValue?.contentEquals(ownedPublicKey) != true ||
+            original.publicKey?.rawValue?.contentEquals(ownedPublicKey) != true ||
+            (observed?.locked == true && observed.publicKey?.rawValue?.contentEquals(ownedPublicKey) != true)) return null
+        val locker = request.locker ?: return null
+        val sealed = locker.sealed ?: return null
+        val payload = sealed.payload ?: return null
+        val enclosure = payload.enclosure ?: return null
+        val hash = SHA256.digest(enclosure.innerPayload)
+        val room = requireNotNull(request.roomId)
+        if (!payload.checksum.contentEquals(hash) || !key.publicKey.verify(
+                LockerSigning.writeContextV2(room, id, request.parentVersion, previousEpoch, hash, request.notification),
+                original.signature,
+            )) return null
+        val signature = signWrite(key, room, id, request.parentVersion, hash, current.lockVersion, request.notification, true)
+        val body = locker.copy(sealed = sealed.copy(payload = payload.copy(enclosure = enclosure.copy(signature = signature))))
+        val repaired = request.copy(locker = body, writeSignature = signature,
+            writeRequestId = if (request.writeRequestId.isEmpty()) byteArrayOf() else kotlin.random.Random.nextBytes(32))
+        return AuthorityWriteRepair(PostLockerChangeRequest.fromByteArray(repaired.toByteArray()), current)
+    }
+
+    /** Scope counters are local to each scope; compare normalized identities before their epochs. */
+    private fun authorityScopeFor(state: LockState, id: LockerId): LockScope? {
+        if (state.lockVersion <= 0) return null
+        val scope = state.scope ?: return null
+        val space = scope.keyspace?.value ?: 0L
+        return when (scope.kind) {
+            LockScopeKind.LOCK_SCOPE_ROOM -> if (scope.lockerRawValue.isEmpty() && space == 0L)
+                LockScope(kind = scope.kind) else null
+            LockScopeKind.LOCK_SCOPE_KEYSPACE -> if (scope.lockerRawValue.isEmpty() && space == (id.keyspace?.value ?: 0L))
+                LockScope(kind = scope.kind, keyspace = LockerKeyspace(space)) else null
+            LockScopeKind.LOCK_SCOPE_LOCKER -> if (scope.lockerRawValue.contentEquals(id.rawValue) && space == (id.keyspace?.value ?: 0L))
+                LockScope(kind = scope.kind, keyspace = LockerKeyspace(space), lockerRawValue = scope.lockerRawValue.copyOf()) else null
+            else -> null
+        }
+    }
 
     private suspend fun buildWriteBody(
         signingKey: Secp256r1KeyPair?,

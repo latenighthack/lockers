@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="jsBrowserTest.com.latenighthack.lockers.connector.AuthorityRepairPortabilityTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:57:50.901Z" hostname="Mikes-MacBook-Pro.local" time="0.001">
+  <properties/>
+  <testcase name="authorityOnlyConflictPreservesFrozenContentOnEveryTarget[js, browser, ChromeHeadless155.0.0.0, MacOS10.15.7]" classname="jsBrowserTest.com.latenighthack.lockers.connector.AuthorityRepairPortabilityTest" time="0.0"/>
+  <testcase name="unlockedAuthorityHistoryCanBeRelockedWithTheOwnedKey[js, browser, ChromeHeadless155.0.0.0, MacOS10.15.7]" classname="jsBrowserTest.com.latenighthack.lockers.connector.AuthorityRepairPortabilityTest" time="0.0"/>
+  <system-out><![CDATA[10/9 00:57:50.693 D:', 'updated locker=l+Ag/ks3 result=SIGNATURE_INVALID version=010/9 00:57:50.697 D:', 'updated locker=l+Ag/ks3 result=OK version=110/9 00:57:50.706 D:', 'updated locker=l+Ag/ks3 result=SIGNATURE_INVALID version=010/9 00:57:50.707 D:', 'updated locker=l+Ag/ks3 result=OK version=1]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

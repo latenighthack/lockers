@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="jsNodeTest.com.latenighthack.lockers.connector.AuthorityRepairPortabilityTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:52:16.154Z" hostname="Mikes-MacBook-Pro.local" time="0.051">
+  <properties/>
+  <testcase name="authorityOnlyConflictPreservesFrozenContentOnEveryTarget[js, node]" classname="jsNodeTest.com.latenighthack.lockers.connector.AuthorityRepairPortabilityTest" time="0.042"/>
+  <testcase name="unlockedAuthorityHistoryCanBeRelockedWithTheOwnedKey[js, node]" classname="jsNodeTest.com.latenighthack.lockers.connector.AuthorityRepairPortabilityTest" time="0.008"/>
+  <system-out><![CDATA[10/9 00:52:16.186 D: updated locker=l+Ag/ks3 result=SIGNATURE_INVALID version=0
+10/9 00:52:16.192 D: updated locker=l+Ag/ks3 result=OK version=1
+10/9 00:52:16.202 D: updated locker=l+Ag/ks3 result=SIGNATURE_INVALID version=0
+10/9 00:52:16.204 D: updated locker=l+Ag/ks3 result=OK version=1
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
