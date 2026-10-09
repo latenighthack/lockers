@@ -3,6 +3,7 @@ package com.latenighthack.lockers.server
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.latenighthack.lockers.server.tools.ShardedDispatcher
+import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -10,6 +11,23 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 
 class ShardedDispatcherTest {
+    @Test fun transactionSerializedEffectsBypassKeyMutexButRemainOwnedUntilCompletion() = runBlocking {
+        val dispatcher = ShardedDispatcher<String>(1, "transaction-test") { 0 }
+        val keyEntered = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val keyRelease = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val effectEntered = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val effectRelease = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val first = launch { dispatcher.runOnDispatcher("one") { keyEntered.complete(Unit); keyRelease.await() } }
+        keyEntered.await()
+        val effect = launch { dispatcher.runWithoutKeyLock("one") { effectEntered.complete(Unit); effectRelease.await() } }
+        kotlinx.coroutines.withTimeout(1_000) { effectEntered.await() }
+        val close = async(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) { dispatcher.closeAndJoin() }
+        keyRelease.complete(Unit); first.join()
+        kotlin.test.assertFalse(close.isCompleted, "dispatcher close must also drain transaction-serialized effects")
+        kotlin.test.assertFailsWith<IllegalStateException> { dispatcher.runWithoutKeyLock("two") { Unit } }
+        effectRelease.complete(Unit); effect.join(); close.await()
+    }
+
     @Test fun holdsSameRoomAcrossSuspensionButAllowsOtherRooms() = runBlocking {
         val dispatcher = ShardedDispatcher<String>(1, "suspension-test") { 0 }
         val entered = kotlinx.coroutines.CompletableDeferred<Unit>()

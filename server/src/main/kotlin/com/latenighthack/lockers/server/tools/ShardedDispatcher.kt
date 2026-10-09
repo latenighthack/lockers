@@ -28,16 +28,23 @@ class ShardedDispatcher<T>(
     private val closing = Mutex()
     private var closed = false
 
-    suspend fun <U> runOnDispatcher(id: T, block: suspend () -> U): U {
+    suspend fun <U> runOnDispatcher(id: T, block: suspend () -> U): U = execute(id, true, block)
+
+    /** For effects already serialized by a storage transaction: never wait on a key mutex while owning that transaction. */
+    internal suspend fun <U> runWithoutKeyLock(id: T, block: suspend () -> U): U = execute(id, false, block)
+
+    private suspend fun <U> execute(id: T, serialize: Boolean, block: suspend () -> U): U {
         val shardIndex = Math.floorMod(idHashCode(id), shardCount)
         val dispatcher = shardDispatchers[shardIndex]
         val ticket = CompletableDeferred<Unit>()
         synchronized(gate) { check(!closed) { "Sharded dispatcher is closed" }; operations.add(ticket) }
         var entry: Entry? = null
         try {
-            entry = locks.compute(id) { _, existing -> (existing ?: Entry()).also { it.users++ } }!!
+            entry = if (serialize) locks.compute(id) { _, existing -> (existing ?: Entry()).also { it.users++ } }!! else null
             val current = entry
-            return withContext(dispatcher + ServiceLifecycle.context) { current.mutex.withLock { block() } }
+            return withContext(dispatcher + ServiceLifecycle.context) {
+                if (current == null) block() else current.mutex.withLock { block() }
+            }
         } finally {
             if (entry != null) locks.computeIfPresent(id) { _, current -> if (--current.users == 0) null else current }
             synchronized(gate) { operations.remove(ticket); ticket.complete(Unit) }

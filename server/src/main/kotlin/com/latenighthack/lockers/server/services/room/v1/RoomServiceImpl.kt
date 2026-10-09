@@ -692,10 +692,12 @@ class RoomServiceImpl(
                 return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)
             }
         }
-        val changed = subscriptionStore.withIntent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue), request.intentRevision, subscribed) {
-            val startTime = System.nanoTime()
-            dispatchers.runOnDispatcher(roomId) {
-                dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
+        val startTime = System.nanoTime()
+        // Public proof verification already owns a DB transaction. The intent transaction
+        // serializes membership with writes; a dispatcher mutex here would reverse write lock order.
+        val changed = dispatchers.runWithoutKeyLock(roomId) {
+            dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
+            subscriptionStore.withIntent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue), request.intentRevision, subscribed) {
                 val cachedSet = lookupSessions(roomId)
                 val updatedSet = if (subscribed) {
                     subscriptionStore.addSubscription(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue)); cachedSet + sessionId
