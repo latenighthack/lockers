@@ -283,18 +283,17 @@ fun main() {
 
         Runtime.getRuntime().addShutdownHook(
             Thread {
+                // Stop admission and await/cancel existing transport handlers before releasing
+                // service dispatchers, ownership, providers, or database coordination resources.
+                adminServer.stop(gracePeriodMillis = 1_000, timeoutMillis = 5_000)
+                server.stop(gracePeriodMillis = 1_000, timeoutMillis = 5_000)
                 runBlocking {
-                    // Ordered drain: leave the ring first (peers stop routing to us), then stop
-                    // services (claim mode's stop releases its rows), then the coordination pool
-                    // and the listeners.
-                    cluster.close()
                     component.stop()
+                    cluster.close()
                     claim?.close()
                     monitoring.close()
                     telemetrySdk?.close()
                 }
-                adminServer.stop(gracePeriodMillis = 1_000, timeoutMillis = 5_000)
-                server.stop(gracePeriodMillis = 1_000, timeoutMillis = 5_000)
             }
         )
 

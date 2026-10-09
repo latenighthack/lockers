@@ -6,6 +6,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
 
 /**
@@ -101,11 +103,15 @@ class ClaimRenewalService(
 
     /** Graceful drain: stop renewing, delete this node's rows so successors claim with no TTL wait. */
     suspend fun stopAndRelease() {
-        stop()
+        val renewing = job
+        job = null
+        renewing?.cancelAndJoin()
         ownership.demoteAll()
-        runCatching { roomClaims.releaseAll(nodeId) }
-            .onFailure { logger.warn("claim releaseAll failed on drain node={}", nodeId, it) }
-        runCatching { sessionReleaseAll() }
-            .onFailure { logger.warn("session registry release failed on drain node={}", nodeId, it) }
+        try { roomClaims.releaseAll(nodeId) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (failure: Exception) { logger.warn("claim releaseAll failed on drain node={}", nodeId, failure) }
+        try { sessionReleaseAll() }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (failure: Exception) { logger.warn("session registry release failed on drain node={}", nodeId, failure) }
     }
 }

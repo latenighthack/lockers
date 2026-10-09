@@ -26,15 +26,18 @@ class ClaimJdbcPool(
 ) : AutoCloseable {
     // Each slot holds a connection or null (not yet created / discarded after a failure).
     private val slots = Channel<Connection?>(size)
+    private val closed = java.util.concurrent.atomic.AtomicBoolean(false)
 
     init {
         repeat(size) { check(slots.trySend(null).isSuccess) }
     }
 
     suspend fun <T> withConnection(block: (Connection) -> T): T {
+        check(!closed.get()) { "ClaimJdbcPool is closed" }
         var conn = slots.receive()
         try {
             val result = withContext(Dispatchers.IO) {
+                check(!closed.get()) { "ClaimJdbcPool is closed" }
                 if (conn == null || !isUsable(conn!!)) {
                     runCatching { conn?.close() }
                     conn = DriverManager.getConnection(jdbcUrl)
@@ -42,7 +45,7 @@ class ClaimJdbcPool(
                 block(conn!!)
             }
             // A slot send only fails after close(); don't leak the borrowed connection then.
-            if (slots.trySend(conn).isFailure) runCatching { conn?.close() }
+            if (closed.get() || slots.trySend(conn).isFailure) runCatching { conn?.close() }
             return result
         } catch (t: Throwable) {
             runCatching { withContext(kotlinx.coroutines.NonCancellable) { conn?.close() } }
@@ -55,10 +58,12 @@ class ClaimJdbcPool(
         runCatching { !conn.isClosed && conn.isValid(1) }.getOrDefault(false)
 
     override fun close() {
-        while (true) {
-            val slot = slots.tryReceive().getOrNull() ?: break
-            runCatching { slot?.close() }
-        }
+        if (!closed.compareAndSet(false, true)) return
         slots.close()
+        while (true) {
+            val received = slots.tryReceive()
+            if (received.isFailure) break
+            runCatching { received.getOrNull()?.close() }
+        }
     }
 }
