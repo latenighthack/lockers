@@ -277,7 +277,7 @@ private val WRITE_EXCEPTION_HANDLER: (Throwable) -> Boolean = { e ->
     when (e) {
         is LockerWriteException -> false
         is RpcResponseException -> e.retriable()
-        else -> true
+        else -> isRetryableProtocolFailure(e)
     }
 }
 

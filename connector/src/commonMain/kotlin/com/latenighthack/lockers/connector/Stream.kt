@@ -364,6 +364,7 @@ sealed class StreamFatalError(val reason: String) {
     object InvalidSessionId : StreamFatalError("session id was rejected by the server")
     object UpgradeRequired : StreamFatalError("client version is no longer supported; upgrade required")
     object TransportExhausted : StreamFatalError("transport retries exhausted")
+    class ProtocolRejected(val cause: Throwable) : StreamFatalError("session protocol was rejected: ${cause.message}")
 }
 
 private class FatalStreamException(val error: StreamFatalError) : CancellationException(error.reason)
@@ -495,7 +496,7 @@ class Stream(
         // repeatWithBackoff with a fresh budget, so TransportExhausted still fires on
         // *consecutive* transport failures.
         while (true) {
-            repeatWithBackoff(exceptionHandler = { if (it is CancellationException) throw it; true }) {
+            repeatWithBackoff(exceptionHandler = ::isRetryableProtocolFailure) {
                 transition(StreamConnectionState.Connecting)
                 try { telemetry.observe(TelemetryOperation.CONNECTOR_RECONNECT) { connectInternal() } }
                 catch (failure: Throwable) {
@@ -542,7 +543,7 @@ class Stream(
                 throw e
             } catch (e: Exception) {
                 telemetry.safeEvent(TelemetryEvent(TelemetryOperation.CONNECTOR_TERMINAL, TelemetryOutcome.ERROR))
-                transition(StreamConnectionState.Failed(StreamFatalError.TransportExhausted))
+                transition(StreamConnectionState.Failed(if (isRetryableProtocolFailure(e)) StreamFatalError.TransportExhausted else StreamFatalError.ProtocolRejected(e)))
             }
         }
     }
