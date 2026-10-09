@@ -3,6 +3,7 @@ package com.latenighthack.lockers.server
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.room.v1.*
 import com.latenighthack.ktcrypto.Secp256r1KeyPair
+import com.latenighthack.ktcrypto.generate
 import kotlinx.coroutines.runBlocking
 import kotlin.test.*
 
