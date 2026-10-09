@@ -14,7 +14,7 @@ jobs:
       # product; H2/SQLite substitutes are not acceptable there). LOCKERS_TEST_PG_REQUIRED makes
       # an unset URL a hard failure in CI so these suites can never silently skip.
       postgres:
-        image: postgres:16
+        image: mirror.gcr.io/library/postgres:16
         env:
           POSTGRES_USER: lockers
           POSTGRES_PASSWORD: lockers
@@ -63,8 +63,21 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check portable dashboard artifacts
         run: python3 monitoring/tools/generate.py --check
+      # Google's public Docker Hub cache avoids shared-runner pull limits.
+      # Keep the pinned Compose images and fall back to Hub on a cache miss.
+      - name: Pull pinned monitoring images
+        run: |
+          docker compose -f monitoring/smoke/compose.yml config --images | while read -r image; do
+            cached="$image"
+            if [[ "$cached" != */* ]]; then cached="library/$cached"; fi
+            if docker pull "mirror.gcr.io/$cached"; then
+              docker tag "mirror.gcr.io/$cached" "$image"
+            else
+              docker pull "$image"
+            fi
+          done
       - name: Start pinned monitoring smoke stack
-        run: docker compose -f monitoring/smoke/compose.yml up -d
+        run: docker compose -f monitoring/smoke/compose.yml up -d --pull never
       - name: Validate import, queries, alerts and correlation
         run: python3 monitoring/smoke/verify.py
       - name: Clean up smoke stack
