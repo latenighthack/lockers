@@ -358,6 +358,7 @@ class SubscriptionController(
  * can react (e.g. regenerate keys or prompt for an upgrade).
  */
 sealed class StreamFatalError(val reason: String) {
+    object NamespaceExhausted : StreamFatalError("session identity history is exhausted; trusted namespace maintenance is required")
     object InvalidRequest : StreamFatalError("session open request was rejected by the server")
     object InvalidPublicKey : StreamFatalError("session public key was rejected by the server")
     object InvalidSessionId : StreamFatalError("session id was rejected by the server")
@@ -659,6 +660,7 @@ class Stream(
                                 sessionStore.updateNextSequenceBytes(null)
                                 throw RetryableStreamException("unknown session; re-creating")
                             }
+                            is WatchSessionResponse.Open.Result.NAMESPACE_EXHAUSTED -> failFatally(StreamFatalError.NamespaceExhausted)
                             is WatchSessionResponse.Open.Result.INVALID_REQUEST -> failFatally(StreamFatalError.InvalidRequest)
                             is WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED -> throw RetryableStreamException("session capacity exhausted")
                             is WatchSessionResponse.Open.Result.SERVICE_UNAVAILABLE ->

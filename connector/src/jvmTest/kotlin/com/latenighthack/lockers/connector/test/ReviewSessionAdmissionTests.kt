@@ -13,7 +13,7 @@ import kotlin.test.*
 
 class ReviewSessionAdmissionTests {
     @Test fun `malformed session open is terminal and temporary capacity rejection reconnects`(): Unit = runBlocking {
-        for (first in listOf(WatchSessionResponse.Open.Result.INVALID_REQUEST, WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED)) {
+        for (first in listOf(WatchSessionResponse.Open.Result.INVALID_REQUEST, WatchSessionResponse.Open.Result.NAMESPACE_EXHAUSTED, WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED)) {
             val opens = AtomicInteger()
             val rpc = object : RpcClient {
                 override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray) = RpcResponse(CapabilitiesResponse().toByteArray(), emptyMap())
@@ -40,9 +40,9 @@ class ReviewSessionAdmissionTests {
                 override suspend fun revokeKeys() {}
             }, Version(), coroutineContext = Dispatchers.Default + currentCoroutineContext()[Job]!!)
             try {
-                if (first == WatchSessionResponse.Open.Result.INVALID_REQUEST) {
+                if (first != WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED) {
                     val failure = assertFailsWith<StreamFailedException> { withTimeout(5_000) { client.awaitConnected() } }
-                    assertSame(StreamFatalError.InvalidRequest, failure.error); assertEquals(1, opens.get())
+                    assertSame(if (first == WatchSessionResponse.Open.Result.NAMESPACE_EXHAUSTED) StreamFatalError.NamespaceExhausted else StreamFatalError.InvalidRequest, failure.error); assertEquals(1, opens.get())
                 } else { withTimeout(5_000) { client.awaitConnected() }; assertEquals(2, opens.get()) }
             } finally { client.closeAndJoin(); db.close() }
         }
