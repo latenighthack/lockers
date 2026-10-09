@@ -273,18 +273,22 @@
     ],
     "problem": "A new ratchet private key lives only in a local variable until onRatcheted runs. The client throws on agentFailed or agentPending before adopting that key or accepting the committed source. The server may already have committed both source and ratchet. A response lost across process death has the same problem: a write receipt preserves the server outcome, but it cannot reconstruct the client's discarded private key. Subsequent writes may be permanently locked out.",
     "evidence": [
-      "docs/review/F11-connector.md"
+      "docs/review/F11-connector.md",
+      "docs/review/evidence/connector-ratchet-adversarial-isolation-red.log",
+      "docs/review/evidence/lockers-integration-ratchet-archive-green.log"
     ],
     "fix": "Persist a pending ratchet key and immutable request identity before submission. Resolve a committed outcome and adopt that key even when derived agent work is pending or failed. Return a typed outcome separating source commit from agent completion; reserve an ordinary write-failed exception for a source mutation that did not commit. Recover pending key transitions on startup.",
     "status": "partial",
     "commits": [
       "f41db2c4cc217fb283e4ec9688042f84955386d2",
       "f1fe0fe1af8c0265984da6492ad3889c0e46ac85",
-      "813720475c8bd109703436b6ba0edfc421ac25a7"
+      "813720475c8bd109703436b6ba0edfc421ac25a7",
+      "076f5a14473594103fbc79894a0e65ac9a86f5fe",
+      "d0a45c1503693f5f575d6169376f5be44cb69206"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F11-connector.md",
-    "regression": "ReviewConnectorTests; ReviewExpiredRatchetTests (actual committed HTTP reply loss, receipt removal, later write and restarted client)",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "regression": "ReviewConnectorTests; ReviewExpiredRatchetTests; ReviewRatchetArchiveOrderingTests; exact receipt/key adoption, source uncertainty, isolated recovery and epoch ordering regressions",
+    "verification": "Integrated d0a45c1: eight actual HTTP/private-archive regressions executed with zero skips/failures. Worker whole connector JVM156 and Android/Node/Apple gates passed before archive follow-up. Strong exact successor, retired effects, retry exhaustion and final full gates remain open."
   },
   {
     "id": "F12",
@@ -529,7 +533,8 @@
     "commits": [
       "7dc75fbcd35b18c14d0f2856440d4f618b750fc6",
       "7c880d082e61db567929d7805efc165e72fa4107",
-      "47ef085203c70c8692b286234d76002c9872d182"
+      "47ef085203c70c8692b286234d76002c9872d182",
+      "7f7bfff6cd99840f842aefc12648f1219a9d3acd"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F21-connector.md, docs/review/F21-session-admission.md",
     "regression": "ReviewPushControllerTests; actual red/green evidence in linked issue notes",
@@ -673,7 +678,9 @@
       "5cb73ce349c5a5e51a61376546c874854d8f5dfb",
       "c6cca713f78a2e9649056b09c9de558db0c2395c",
       "eb14e47bfd2e6f68ee9a95e30f3621cf6fa6d058",
-      "40b705ddf6556af90d8ec0df0b4b03b92e7d0256"
+      "40b705ddf6556af90d8ec0df0b4b03b92e7d0256",
+      "7f7bfff6cd99840f842aefc12648f1219a9d3acd",
+      "467755990837fecdfeb79e49219ac5b5286881d4"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F26-connector.md, docs/review/F26-host-lifetime.md, docs/review/F26-runtime.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
@@ -698,7 +705,8 @@
     "fix": "Publish one StateFlow describing Connecting, Connected(session, connectionEpoch), Retrying, Failed, and Closed. Derive compatibility properties from it. Transition in connection-level try/finally and make await APIs complete with a typed terminal outcome. Use its connection epoch for registration/subscription reconciliation.",
     "status": "partial",
     "commits": [
-      "0750a2961893538593474d9aadad4d992cb7bc68"
+      "0750a2961893538593474d9aadad4d992cb7bc68",
+      "7f7bfff6cd99840f842aefc12648f1219a9d3acd"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F27-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
@@ -1023,7 +1031,8 @@
       "5fa731a291281382c931a763c24893be3e7a1552",
       "03b11b55c48e8d97e4740665a1318351a2297793",
       "6628762c36bcaec95e56dba84ba0cc02b7e137d9",
-      "b37de9364fe59edd64f31e5d11246c6c50e8bb1b"
+      "b37de9364fe59edd64f31e5d11246c6c50e8bb1b",
+      "7f7bfff6cd99840f842aefc12648f1219a9d3acd"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F38-boundaries.md, docs/review/F38-claim-capacity.md",
     "regression": "BoundaryAuthorityTest; CpuAdmissionBoundaryTest; GatewayAdmissionTest; GeneratedDecodeAllocationTest; InboxReplayPagingTest; LockVerifierTest; NamespaceAdmissionPgTest; NamespaceAdmissionTest; ResourceAdmissionTest; ResponseBoundaryTest; RoomIdentityAdmissionTest; SessionAdmissionFailureContractTest; SessionFrameBoundaryTest; SnapshotPagingTest; StorageAdoptionTest; actual red/green evidence in linked issue notes; StorageFetchBudgetTest",
@@ -1141,7 +1150,10 @@
       "008d5d309ff2b151e87edd1ac8095b6669985800",
       "91e672c27fca3b01c63fc34e9a834472d8990a80",
       "fce2801154ede39a28feff9973f3f2e406947898",
-      "7a370dd18415cd14abdf17d89e36f416ff78ccdf"
+      "7a370dd18415cd14abdf17d89e36f416ff78ccdf",
+      "467755990837fecdfeb79e49219ac5b5286881d4",
+      "2765fbded599cd8f0f2fe9d788dc8d6f7daf39c4",
+      "3c7de14940fc36ae33e7dda98d408a7d294df1c5"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F42-build.md, docs/review/F42-connector.md",
     "regression": "GeneratedEqualityContractTest; PackedEnumGeneratorContractTest; ReviewAuthorityV2Tests; actual red/green evidence in linked issue notes",
