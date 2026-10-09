@@ -270,7 +270,7 @@ class RoomServiceImpl(
             LockerId(requireNotNull(it.lockerId).rawValue, LockerKeyspace(it.keyspace))
         }
         return GetLockersResponse(request.lockerIds.map { id ->
-            all[id.copy(keyspace = id.keyspace ?: LockerKeyspace(0))]?.let { stored ->
+            all[canonicalLockerId(id)]?.let { stored ->
                 val read = storedRead(room, stored)
                 GetLockerResponse(result = if (read.valid) GetLockerResponse.Result.OK else GetLockerResponse.Result.INVALID_DATA,
                     locker = read.value)
@@ -306,6 +306,8 @@ class RoomServiceImpl(
         }
     }
 
+    private fun canonicalLockerId(id: LockerId) = LockerId(id.rawValue, LockerKeyspace(id.keyspace?.value ?: 0L))
+
     private class BatchRejected(val response: PostLockerChangesResponse) : RuntimeException()
 
     override suspend fun postLockerChanges(context: GrpcRequestContext, request: PostLockerChangesRequest): PostLockerChangesResponse = meterRegistry.trackRpc(TelemetryOperation.ROOM_BATCH_WRITE, telemetry, { rpcOutcome(it.result.toString()) }) { observedPostLockerChanges(context, request) }
@@ -321,7 +323,7 @@ class RoomServiceImpl(
         val changes = request.changes
         if (changes.isEmpty() || changes.size > 64 ||
             request.writeRequestId.size !in 16..64 || changes.any { it.lockerId == null || it.locker == null || (it.roomId != null && it.roomId != room) } ||
-            changes.map { it.lockerId?.let { id -> id.copy(keyspace = id.keyspace ?: LockerKeyspace(0)) } }.distinct().size != changes.size ||
+            changes.map { it.lockerId?.let { id -> canonicalLockerId(id) } }.distinct().size != changes.size ||
             request.toByteArray().size > minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)) {
             return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.INVALID)
         }
@@ -369,7 +371,7 @@ class RoomServiceImpl(
                             lock.scopeKind == LockVerifier.SCOPE_ROOM ||
                                 (lock.keyspace == (id.keyspace?.value ?: 0L) && (lock.scopeKind == LockVerifier.SCOPE_KEYSPACE || lock.lockerId?.rawValue.contentEquals(id.rawValue)))
                         }.minByOrNull { it.scopeKind }
-                        performLockerChange(change, events, sourceWrites, existing[id.copy(keyspace = id.keyspace ?: LockerKeyspace(0))], effective,
+                        performLockerChange(change, events, sourceWrites, existing[canonicalLockerId(id)], effective,
                             prefetchLocks = normalized.none { it.ratchet != null })
                     }
                     if (results.any { !it.result.isOk() }) throw BatchRejected(PostLockerChangesResponse(
