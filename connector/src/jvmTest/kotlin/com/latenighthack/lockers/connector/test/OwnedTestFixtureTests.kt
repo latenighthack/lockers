@@ -1,0 +1,53 @@
+package com.latenighthack.lockers.connector.test
+
+import com.latenighthack.ktstore.*
+import com.latenighthack.ktcrypto.*
+import com.latenighthack.ktbuf.net.*
+import com.latenighthack.lockers.common.v1.*
+import com.latenighthack.lockers.connector.*
+import com.latenighthack.lockers.server.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
+import kotlin.test.*
+
+class OwnedTestFixtureTests {
+    private class ExpectedFailure : Exception()
+    @Test(timeout = 10_000) fun `fixture failure drains forgotten SDK clients and HTTP transports`() {
+        var captured: LockersClient? = null; var transport: RpcClient? = null
+        assertFailsWith<ExpectedFailure> {
+            runOwnedTestWithServer({ attachTestServices() }) { server, _ ->
+                val key = Secp256r1KeyPair.generate()
+                val rpc = server.ownedRpcClient.also { transport = it }
+                val client = createOwnedTestClient(rpc, ConnectorStorage.inMemory(), KeyValueStore(InMemoryKeyValueStoreDelegate()),
+                    object : AuthenticationKeySource {
+                        override suspend fun getSessionKeyPair() = key
+                        override suspend fun hasSessionKeyPair() = true
+                        override suspend fun generateSessionKeyPair() {}
+                        override suspend fun revokeKeys() {}
+                    }, Version()).also { captured = it }
+                client.awaitConnected()
+                throw ExpectedFailure()
+            }
+        }
+        assertTrue(captured!!.connection.value is StreamConnectionState.Closed)
+        runBlocking { assertFailsWith<IllegalStateException> { transport!!.unaryCall(RpcMethodSpecifier("test", "Test", "Call"), emptyMap(), byteArrayOf()) } }
+    }
+    @Test(timeout = 10_000) fun `normal fixture return drains forgotten SDK clients`() {
+        var captured: LockersClient? = null; var collectorJoined = false
+        runOwnedTestWithServer({ attachTestServices() }) { server, _ ->
+            val key = Secp256r1KeyPair.generate()
+            captured = createOwnedTestClient(server.ownedRpcClient, ConnectorStorage.inMemory(), KeyValueStore(InMemoryKeyValueStoreDelegate()),
+                object : AuthenticationKeySource {
+                    override suspend fun getSessionKeyPair() = key
+                    override suspend fun hasSessionKeyPair() = true
+                    override suspend fun generateSessionKeyPair() {}
+                    override suspend fun revokeKeys() {}
+                }, Version()).also { it.awaitConnected() }
+            launch(start = CoroutineStart.UNDISPATCHED) {
+                try { captured!!.lockers.notifications.first() } finally { collectorJoined = true }
+            }
+        }
+        assertTrue(collectorJoined)
+        assertTrue(captured!!.connection.value is StreamConnectionState.Closed)
+    }
+}

@@ -1,7 +1,7 @@
 package com.latenighthack.lockers.connector.test
 
 import com.latenighthack.ktbuf.net.RpcClient
-import com.latenighthack.ktbuf.test.server.runTestWithServer
+import com.latenighthack.lockers.connector.test.runOwnedTestWithServer as runTestWithServer
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.ktstore.InMemoryKeyValueStoreDelegate
 import com.latenighthack.ktstore.Database
@@ -13,6 +13,7 @@ import com.latenighthack.lockers.common.v1.Version
 import com.latenighthack.lockers.connector.*
 import com.latenighthack.lockers.example.v1.*
 import com.latenighthack.lockers.server.*
+import com.latenighthack.lockers.connector.test.ownedRpcClient as rpcClient
 import com.latenighthack.lockers.server.services.push.v1.providers.PushBackendKind
 import kotlin.random.Random
 import kotlin.test.Test
@@ -33,7 +34,7 @@ class PushRegistrationTests {
             override suspend fun generateSessionKeyPair() {}
             override suspend fun revokeKeys() {}
         }
-        return LockersClient.create(
+        return createOwnedTestClient(
             rpcClient = rpcClient,
             database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory(),
             keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate()),

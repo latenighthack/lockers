@@ -1,20 +1,17 @@
 package com.latenighthack.lockers.connector.test
 
 import com.latenighthack.ktbuf.net.*
-import com.latenighthack.ktbuf.test.server.runTestWithServer
 import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.*
 import com.latenighthack.lockers.room.v1.*
-import com.latenighthack.lockers.server.*
-import io.ktor.server.application.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.test.*
 
 class SubscriptionRecoveryTests {
-    private class GatedClient(private val delegate: RpcClient) : RpcClient {
+    private class GatedClient : RpcClient {
         data class Call(val request: SubscriptionRequest, val release: CompletableDeferred<Unit>)
         val calls = Channel<Call>(Channel.UNLIMITED)
         override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray): RpcResponse {
@@ -23,22 +20,22 @@ class SubscriptionRecoveryTests {
                 calls.send(Call(SubscriptionRequest.fromByteArray(request), release))
                 release.await()
             }
-            return delegate.unaryCall(method, headers, request)
+            return RpcResponse(SubscriptionResponse().toByteArray(), emptyMap())
         }
         override suspend fun serverStreamingCall(method: RpcMethodSpecifier, block: suspend RpcServerStream.() -> Unit, readyCallback: () -> Unit) =
-            delegate.serverStreamingCall(method, block, readyCallback)
+            error("not used by subscription actor fixture")
     }
 
     @Test(timeout = 15_000)
     fun `session replacement requires a new acknowledgment and restores every room`() =
-        runTestWithServer(Application::attachTestServices) { server, _ -> withContext(Dispatchers.Default) {
+        runBlocking { withContext(Dispatchers.Default) {
             val store = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
             val sessions = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), store)
             val subscriptions = SubscriptionStoreImpl(store)
             sessions.prepare(); subscriptions.prepare(); store.open()
             val source = MutableStateFlow<SessionId?>(SessionId(byteArrayOf(1)))
-            val rpc = GatedClient(server.rpcClient)
-            val controller = SubscriptionController(rpc, subscriptions, sessions, source)
+            val rpc = GatedClient()
+            val controller = SubscriptionController(rpc, subscriptions, sessions, source, coroutineContext = currentCoroutineContext())
             val room = RoomId(byteArrayOf(2))
             controller.startWatchingSubscriptions()
             try {
@@ -56,19 +53,19 @@ class SubscriptionRecoveryTests {
                 next.release.complete(Unit)
                 withTimeout(2000) { waiting.await() }
                 assertTrue(rpc.calls.tryReceive().isFailure)
-            } finally { controller.stop() }
+            } finally { controller.closeAndJoin(); store.close() }
         } }
 
     @Test(timeout = 15_000)
     fun `unsubscribe supersedes a pending subscribe and survives session replacement`() =
-        runTestWithServer(Application::attachTestServices) { server, _ -> withContext(Dispatchers.Default) {
+        runBlocking { withContext(Dispatchers.Default) {
             val store = com.latenighthack.lockers.connector.ConnectorStorage.inMemory()
             val sessions = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), store)
             val subscriptions = SubscriptionStoreImpl(store)
             sessions.prepare(); subscriptions.prepare(); store.open()
             val source = MutableStateFlow<SessionId?>(SessionId(byteArrayOf(4)))
-            val rpc = GatedClient(server.rpcClient)
-            val controller = SubscriptionController(rpc, subscriptions, sessions, source)
+            val rpc = GatedClient()
+            val controller = SubscriptionController(rpc, subscriptions, sessions, source, coroutineContext = currentCoroutineContext())
             val room = RoomId(byteArrayOf(5))
             controller.startWatchingSubscriptions()
             try {
@@ -86,6 +83,6 @@ class SubscriptionRecoveryTests {
                     while (subscriptions.getSubscription(room) != null) delay(10)
                 }
                 assertNull(withTimeoutOrNull(100) { controller.awaitSubscription(room) })
-            } finally { controller.stop() }
+            } finally { controller.closeAndJoin(); store.close() }
         } }
 }

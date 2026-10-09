@@ -6,7 +6,7 @@ import com.latenighthack.ktbuf.net.RpcResponse
 import com.latenighthack.ktbuf.net.RpcResponseException
 import com.latenighthack.ktbuf.net.RpcServerStream
 import com.latenighthack.ktbuf.proto.Codes
-import com.latenighthack.ktbuf.test.server.runTestWithServer
+import com.latenighthack.lockers.connector.test.runOwnedTestWithServer as runTestWithServer
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.ktstore.InMemoryKeyValueStoreDelegate
 import com.latenighthack.ktstore.Database
@@ -17,6 +17,7 @@ import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.*
 import com.latenighthack.lockers.room.v1.*
 import com.latenighthack.lockers.server.*
+import com.latenighthack.lockers.connector.test.ownedRpcClient as rpcClient
 import io.ktor.server.application.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -60,7 +61,7 @@ class LockerClientTests {
             override suspend fun revokeKeys() {}
         }
 
-        val lockers = LockersClient.create(
+        val lockers = createOwnedTestClient(
             rpcClient = rpcClient,
             database = database,
             keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate()),
