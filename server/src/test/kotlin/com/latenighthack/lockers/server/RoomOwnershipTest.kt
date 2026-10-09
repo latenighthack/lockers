@@ -40,16 +40,24 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlin.test.AfterTest
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RoomOwnershipTest {
+    private val services = mutableListOf<RoomServiceImpl>()
+    private val databases = mutableListOf<Database>()
+    @AfterTest fun closeFixtures() = runBlocking {
+        try { for (service in services) service.closeAndJoin() }
+        finally { databases.forEach { it.close() } }
+    }
+
 
     private val noSessionGateway = object : SessionGatewayDiscovery {
         override suspend fun findServer(sessionId: SessionId): SessionGatewayService? = null
     }
 
     private suspend fun roomServiceWith(ownership: RoomOwnership): LocalRoomServiceRpc {
-        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
+        val delegate = ServerStorage.inMemory().also { databases.add(it) }
         val subs = SubscriptionStoreImpl(delegate).also { it.prepare() }
         val lockers = LockerStoreImpl(delegate).also { it.prepare() }
         val locks = LockStoreImpl(delegate).also { it.prepare() }
@@ -58,6 +66,7 @@ class RoomOwnershipTest {
             subs, lockers, locks, noSessionGateway, ownership,
             ExampleLockerAgent(), SimpleMeterRegistry(), LockersConfig.defaults(),
         )
+        services.add(impl)
         return LocalRoomServiceRpc(impl)
     }
 
@@ -67,7 +76,7 @@ class RoomOwnershipTest {
             rawValue = byteArrayOf(9)
             keyspace = LockerKeyspace { value = 1 }
         }
-        locker = Locker { }
+        locker = Locker { open { encodedPayload = byteArrayOf(1) } }
     }
 
     @Test

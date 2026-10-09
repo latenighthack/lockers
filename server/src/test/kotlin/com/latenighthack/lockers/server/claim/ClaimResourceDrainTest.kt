@@ -12,33 +12,15 @@ import kotlin.test.*
 
 class ClaimResourceDrainTest {
     @Test fun `pool closes connections after an unallocated null slot`(): Unit = runBlocking {
-        val closed = AtomicBoolean(false)
-        val url = "jdbc:lockers-pool-test:${java.util.UUID.randomUUID()}"
-        val connection = Proxy.newProxyInstance(Connection::class.java.classLoader, arrayOf(Connection::class.java)) { _, method, _ ->
-            when (method.name) {
-                "close" -> { closed.set(true); null }
-                "isClosed" -> closed.get()
-                "isValid" -> !closed.get()
-                else -> throw UnsupportedOperationException(method.name)
-            }
-        } as Connection
-        val driver = object : Driver {
-            override fun acceptsURL(value: String?) = value == url
-            override fun connect(value: String?, info: Properties?): Connection? = if (acceptsURL(value)) connection else null
-            override fun getPropertyInfo(value: String?, info: Properties?) = emptyArray<DriverPropertyInfo>()
-            override fun getMajorVersion() = 1
-            override fun getMinorVersion() = 0
-            override fun jdbcCompliant() = false
-            override fun getParentLogger(): Logger = Logger.getGlobal()
-        }
-        DriverManager.registerDriver(driver)
+        val url = PgTestGate.urlOrSkip()
+        var connection: Connection? = null
         val pool = ClaimJdbcPool(url, 2)
         try {
-            pool.withConnection { assertSame(connection, it) }
+            pool.withConnection { connection = it }
             pool.close()
-            assertTrue(closed.get(), "null slot must not terminate the close scan")
+            assertTrue(connection!!.isClosed, "null slot must not terminate the close scan")
             assertFails { pool.withConnection {} }
-        } finally { pool.close(); DriverManager.deregisterDriver(driver) }
+        } finally { pool.close() }
     }
 
     @Test fun `graceful claim drain joins the renewing coroutine before releasing rows`(): Unit = runBlocking {

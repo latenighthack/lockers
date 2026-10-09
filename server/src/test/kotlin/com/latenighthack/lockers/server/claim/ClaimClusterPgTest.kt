@@ -27,23 +27,31 @@ import kotlin.test.Test
  */
 class ClaimClusterPgTest {
     private lateinit var pool: ClaimJdbcPool
+    private lateinit var baseUrl: String
+    private lateinit var databaseUrl: String
+    private lateinit var schema: String
+    private val databases = mutableListOf<Database>()
 
     @BeforeTest
     fun setUp() {
-        val url = PgTestGate.urlOrSkip()
+        baseUrl = PgTestGate.urlOrSkip()
+        schema = "claim_cluster_${System.nanoTime()}"
+        java.sql.DriverManager.getConnection(baseUrl).use { it.createStatement().use { sql -> sql.execute("CREATE SCHEMA $schema") } }
+        databaseUrl = baseUrl + (if ('?' in baseUrl) "&" else "?") + "currentSchema=$schema"
         runBlocking {
-            pool = ClaimJdbcPool(url)
+            pool = ClaimJdbcPool(databaseUrl)
             JdbcRoomClaimStore(pool).prepare()
             JdbcSessionGatewayStore(pool).prepare()
-            pool.withConnection { conn ->
-                conn.createStatement().use { it.execute("TRUNCATE room_claim, session_gateway") }
-            }
         }
     }
 
     @AfterTest
-    fun tearDown() {
+    fun tearDown(): Unit = runBlocking {
+        databases.forEach { it.close() }
         if (::pool.isInitialized) pool.close()
+        if (::schema.isInitialized) java.sql.DriverManager.getConnection(baseUrl).use {
+            it.createStatement().use { sql -> sql.execute("DROP SCHEMA $schema CASCADE") }
+        }
     }
 
     private fun room(name: String) = RoomId(name.encodeToByteArray())
@@ -58,11 +66,12 @@ class ClaimClusterPgTest {
     }
 
     private suspend fun twoPgNodes(ttlMs: Long = 500, renewMs: Long = 100): Pair<ClaimNode, ClaimNode> {
-        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
+        val delegate = com.latenighthack.lockers.server.ServerStorage.postgres(databaseUrl.removePrefix("jdbc:postgresql:")).also { databases.add(it) }
+        val secondDelegate = com.latenighthack.lockers.server.ServerStorage.postgres(databaseUrl.removePrefix("jdbc:postgresql:")).also { databases.add(it) }
         val roomClaims = JdbcRoomClaimStore(pool)
         val sessionGateways = JdbcSessionGatewayStore(pool)
         val node1 = startClaimNode("node1", delegate, roomClaims, sessionGateways, ttlMs, renewMs)
-        val node2 = startClaimNode("node2", delegate, roomClaims, sessionGateways, ttlMs, renewMs)
+        val node2 = startClaimNode("node2", secondDelegate, roomClaims, sessionGateways, ttlMs, renewMs)
         return node1 to node2
     }
 

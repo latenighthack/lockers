@@ -27,6 +27,7 @@ import com.latenighthack.lockers.session.v1.SessionGatewayService
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
+import kotlin.test.AfterTest
 
 /**
  * An agent runs AFTER the client's write is persisted and fanned out; if it
@@ -35,6 +36,13 @@ import kotlin.test.Test
  * no frames).
  */
 class AgentFailureTest {
+    private val services = mutableListOf<RoomServiceImpl>()
+    private val databases = mutableListOf<Database>()
+    @AfterTest fun closeFixtures() = runBlocking {
+        try { for (service in services) service.closeAndJoin() }
+        finally { databases.forEach { it.close() } }
+    }
+
 
     private val noSessionGateway = object : SessionGatewayDiscovery {
         override suspend fun findServer(sessionId: SessionId): SessionGatewayService? = null
@@ -54,7 +62,7 @@ class AgentFailureTest {
 
     @Test
     fun `agent exception does not fail the already-persisted write`() = runBlocking {
-        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
+        val delegate = ServerStorage.inMemory().also { databases.add(it) }
         val subs = SubscriptionStoreImpl(delegate).also { it.prepare() }
         val lockers = LockerStoreImpl(delegate).also { it.prepare() }
         val locks = LockStoreImpl(delegate).also { it.prepare() }
@@ -64,7 +72,7 @@ class AgentFailureTest {
             RoomServiceImpl(
                 subs, lockers, locks, noSessionGateway, localOwnership,
                 throwingAgent, registry, LockersConfig.defaults(),
-            )
+            ).also { services.add(it) }
         )
 
         val response = client.postLockerChange(PostLockerChangeRequest {
@@ -73,7 +81,7 @@ class AgentFailureTest {
                 rawValue = byteArrayOf(9)
                 keyspace = LockerKeyspace { value = 31 }
             }
-            locker = Locker { }
+            locker = Locker { open { encodedPayload = byteArrayOf(1) } }
         })
 
         assertThat(response.result is PostLockerChangeResponse.Result.OK).isTrue()

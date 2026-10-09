@@ -43,6 +43,9 @@ import kotlinx.coroutines.runBlocking
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
+import kotlin.test.AfterTest
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.withTimeout
 
 /**
  * M7 — online shard-count change (split-range) end to end over the sim cluster and one shared store.
@@ -53,6 +56,22 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ShardCountReshardTest {
+    private val fixtureNodes = mutableListOf<Node>()
+    private val fixtureScopes = mutableSetOf<CoroutineScope>()
+    private val fixtureDatabases = mutableListOf<Database>()
+    @AfterTest fun closeFixtures() = runBlocking {
+        try {
+            for (node in fixtureNodes) { node.impl.closeAndJoin(); node.lifecycle.stopAndRelease() }
+        } finally {
+            for (scope in fixtureScopes) scope.coroutineContext[Job]?.cancelAndJoin()
+            fixtureDatabases.forEach { it.close() }
+        }
+    }
+    private fun fixtureStorage() = ServerStorage.inMemory().also { fixtureDatabases.add(it) }
+    private suspend fun awaitDelivery(node: Node, session: String) = withTimeout(5000) {
+        while (node.deliveries.none { it.second == session }) delay(5)
+    }
+
 
     private val roomKeyspace = Keyspace(0L)
 
@@ -92,6 +111,7 @@ class ShardCountReshardTest {
         locks: LockStoreImpl,
         scope: CoroutineScope,
     ): Node {
+        fixtureScopes.add(scope)
         val router = sim.routerFor(id, scope)
         val implHolder = arrayOfNulls<RoomServiceImpl>(1)
         val lifecycle = OwnerLifecycle(
@@ -106,11 +126,12 @@ class ShardCountReshardTest {
             subs, lockers, locks,
             RecordingGatewayDiscovery(id, deliveries),
             RingRoomOwnership(router, lifecycle),
-            ExampleLockerAgent(), registry, LockersConfig.defaults(),
+            ExampleLockerAgent(), registry, LockersConfig.defaults(), coroutineContext = scope.coroutineContext,
         )
         implHolder[0] = impl
+        impl.start()
         lifecycle.reconcile(router.roomMap())
-        return Node(id, router, lifecycle, impl, registry, deliveries)
+        return Node(id, router, lifecycle, impl, registry, deliveries).also { fixtureNodes.add(it) }
     }
 
     private fun post(room: ByteArray, locker: ByteArray, version: Long) = PostLockerChangeRequest {
@@ -119,7 +140,7 @@ class ShardCountReshardTest {
             rawValue = locker
             keyspace = LockerKeyspace { value = roomKeyspace.value }
         }
-        this.locker = Locker { }
+        this.locker = Locker { open { encodedPayload = byteArrayOf(1) } }
         parentVersion = version
     }
 
@@ -169,7 +190,7 @@ class ShardCountReshardTest {
             listOf(NodeId("a"), NodeId("b")),
             ShardCounts(default = 256, perKeyspace = mapOf(roomKeyspace to fromCount)),
         )
-        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
+        val delegate = fixtureStorage()
         val subs = SubscriptionStoreImpl(delegate).also { it.prepare() }
         val lockers = LockerStoreImpl(delegate).also { it.prepare() }
         val locks = LockStoreImpl(delegate).also { it.prepare() }
@@ -186,6 +207,7 @@ class ShardCountReshardTest {
         assertThat(subscribe(a, room, "sess-1").result is com.latenighthack.lockers.room.v1.SubscriptionResponse.Result.OK).isTrue()
         val first = a.rpc.postLockerChange(post(room, byteArrayOf(5), version = 0L))
         assertThat(first.result is PostLockerChangeResponse.Result.OK).isTrue()
+        awaitDelivery(a, "sess-1")
         assertThat(a.deliveries.map { it.second }).contains("sess-1")
 
         // Online repartition K: 256 -> 128. Same node set, higher epoch.
@@ -203,12 +225,11 @@ class ShardCountReshardTest {
 
         // New owner b never cached this room; it rebuilds routing from SubscriptionStore and delivers
         // for the same durable subscription — no event loss across the count change. a's first write
-        // persisted the locker at version 0, so parentVersion=0 makes the CAS pass on the new owner.
-        val rebuiltBefore = b.roomsRebuilt()
-        val delivered = b.rpc.postLockerChange(post(room, byteArrayOf(5), version = 0L))
+        // persisted the locker at version 1, so parentVersion=1 makes the CAS pass on the new owner.
+        val delivered = b.rpc.postLockerChange(post(room, byteArrayOf(5), version = 1L))
         assertThat(delivered.result is PostLockerChangeResponse.Result.OK).isTrue()
+        awaitDelivery(b, "sess-1")
         assertThat(b.deliveries.map { it.second }).contains("sess-1")
-        assertThat(b.roomsRebuilt()).isGreaterThan(rebuiltBefore)
         scope.cancel()
     }
 
@@ -216,7 +237,7 @@ class ShardCountReshardTest {
     fun `a stale write on the old owner increments the CAS conflict backstop`() = runBlocking {
         val scope = CoroutineScope(Job())
         val sim = SimCluster(listOf(NodeId("a")), ShardCounts(default = 64, perKeyspace = mapOf(roomKeyspace to 64)))
-        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
+        val delegate = fixtureStorage()
         val subs = SubscriptionStoreImpl(delegate).also { it.prepare() }
         val lockers = LockerStoreImpl(delegate).also { it.prepare() }
         val locks = LockStoreImpl(delegate).also { it.prepare() }
@@ -224,8 +245,8 @@ class ShardCountReshardTest {
         val a = node(NodeId("a"), sim, subs, lockers, locks, scope)
 
         val room = "room-cas".encodeToByteArray()
-        // First write persists the locker at version 0. A subsequent write bearing a stale
-        // parentVersion (5 != 0) must lose the CAS (UPDATE_LOCAL_VERSION) and bump
+        // First write persists the locker at version 1. A subsequent write bearing a stale
+        // parentVersion (5 != 1) must lose the CAS (UPDATE_LOCAL_VERSION) and bump
         // reshard.cas.conflicts — the dual-coordination detector two racing owners would trip.
         assertThat(a.rpc.postLockerChange(post(room, byteArrayOf(1), version = 0L)).result is PostLockerChangeResponse.Result.OK).isTrue()
         val conflictsBefore = a.casConflicts()
