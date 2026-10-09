@@ -8,6 +8,9 @@ import com.latenighthack.ktbuf.net.ServerDescriptor
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.room.v1.*
 import com.latenighthack.lockers.server.LockersConfig
+import com.latenighthack.lockers.server.ProtocolValidation
+import com.latenighthack.lockers.server.ReadAdmission
+import com.latenighthack.lockers.server.invalidArgument
 import com.latenighthack.lockers.server.ServerCore
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
 import com.latenighthack.lockers.server.services.session.v1.SessionGatewayDiscovery
@@ -86,6 +89,8 @@ class RoomServiceImpl(
     private val dispatchers = ShardedDispatcher<RoomId>(config.shardCount, "room-shard") {
         it.rawValue.contentHashCode()
     }
+    private val readAdmission = ReadAdmission(config.resourceLimits)
+    private suspend fun validateRead(room: RoomId) = readAdmission.require(room)
     private val rateLimiter = RoomRateLimiter(config.roomWritesPerSecond, config.roomWriteBurst)
 
     // Authority is always read from storage; a negative replica cache is not a fence.
@@ -253,14 +258,18 @@ class RoomServiceImpl(
     override suspend fun getLockScope(context: GrpcRequestContext, request: GetLockScopeRequest): GetLockScopeResponse {
         val room = request.roomId ?: return GetLockScopeResponse(GetLockScopeResponse.Result.INVALID)
         val scope = request.scope ?: return GetLockScopeResponse(GetLockScopeResponse.Result.INVALID)
+        if (!ProtocolValidation.scope(scope)) return GetLockScopeResponse(GetLockScopeResponse.Result.INVALID)
+        validateRead(room)
         return GetLockScopeResponse(scopeState = lockVerifier.scopeState(room, scope), parentState = lockVerifier.parentState(room, scope))
     }
 
     override suspend fun getLockers(context: GrpcRequestContext, request: GetLockersRequest): GetLockersResponse = meterRegistry.trackRpc(TelemetryOperation.ROOM_GET_MANY, telemetry) { observedGetLockers(context, request) }
 
     private suspend fun observedGetLockers(context: GrpcRequestContext, request: GetLockersRequest): GetLockersResponse {
-        require(request.lockerIds.size <= 64 && request.toByteArray().size <= 8 * 1024 * 1024)
-        val room = requireNotNull(request.roomId)
+        if (request.lockerIds.size > 64 || request.toByteArray().size > ProtocolValidation.MAX_ENVELOPE_BYTES ||
+            request.lockerIds.any { !ProtocolValidation.locker(it) }) invalidArgument("Invalid locker lookup")
+        val room = request.roomId ?: invalidArgument("Missing room identity")
+        validateRead(room)
         val all = lockerStore.getLockers(ServerRoomId(room.rawValue), request.lockerIds.map { (it.keyspace?.value ?: 0L) to ServerLockerId(it.rawValue) }).associateBy {
             LockerId(requireNotNull(it.lockerId).rawValue, LockerKeyspace(it.keyspace))
         }
@@ -277,9 +286,11 @@ class RoomServiceImpl(
     override suspend fun subscribeAndSnapshot(context: GrpcRequestContext, request: SubscribeAndSnapshotRequest): SubscribeAndSnapshotResponse = meterRegistry.trackRpc(TelemetryOperation.ROOM_SNAPSHOT, telemetry, { rpcOutcome(it.result.toString()) }) { observedSubscribeAndSnapshot(context, request) }
 
     private suspend fun observedSubscribeAndSnapshot(context: GrpcRequestContext, request: SubscribeAndSnapshotRequest): SubscribeAndSnapshotResponse {
-        require(request.keyspaces.size <= 64)
-        val room = requireNotNull(request.roomId)
+        if (request.keyspaces.size > 64 || request.toByteArray().size > ProtocolValidation.MAX_ENVELOPE_BYTES ||
+            !ProtocolValidation.identity(request.sessionId?.rawValue)) invalidArgument("Invalid snapshot request")
+        val room = request.roomId ?: invalidArgument("Missing room identity")
         val session = requireNotNull(request.sessionId)
+        validateRead(room)
         check(config.deliveryOutboxEnabled)
         return requireNotNull(deliveryOutbox).atomic(room) {
             val spaces = request.keyspaces.map { it.value }.toSet()
@@ -461,6 +472,8 @@ class RoomServiceImpl(
             return@trackResponse GetLockerResponse(result = GetLockerResponse.Result.UNKNOWN_ERROR)
         }
 
+        if (!ProtocolValidation.locker(lockerId)) invalidArgument("Invalid locker identity")
+        validateRead(roomId)
         val storedLocker = lockerStore.getLocker(ServerRoomId(roomId.rawValue), lockerId.keyspace?.value ?: 0L, ServerLockerId(lockerId.rawValue))
         
         if (storedLocker == null) {
@@ -482,6 +495,7 @@ class RoomServiceImpl(
         val roomId = request.roomId
             ?: return@trackResponse GetAllLockersResponse(result = GetAllLockersResponse.Result.UNKNOWN_ERROR)
 
+        validateRead(roomId)
         val keyspace = request.keyspace
 
         val storedLockers = if (keyspace == null) {
