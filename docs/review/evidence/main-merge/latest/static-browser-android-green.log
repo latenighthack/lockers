@@ -1,0 +1,269 @@
+Starting a Gradle Daemon, 1 busy and 1 incompatible and 2 stopped Daemons could not be reused, use --status for details
+Type-safe project accessors is an incubating feature.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://github.com/yarnpkg/yarn/releases/download' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:compileKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :observability-api:jvmMainClasses UP-TO-DATE
+> Task :observability-api:jvmJar UP-TO-DATE
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:compileKotlin UP-TO-DATE
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:processResources NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :sharding-core:jar UP-TO-DATE
+> Task :server:kspKotlin UP-TO-DATE
+> Task :server:compileKotlin UP-TO-DATE
+> Task :server:compileJava NO-SOURCE
+> Task :server:processResources NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar UP-TO-DATE
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :connector:compileKotlinJvm UP-TO-DATE
+> Task :connector:compileJvmMainJava NO-SOURCE
+> Task :connector:jvmProcessResources NO-SOURCE
+> Task :connector:processJvmMainResources SKIPPED
+> Task :connector:jvmMainClasses UP-TO-DATE
+> Task :connector:jvmJar UP-TO-DATE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:compileKotlin UP-TO-DATE
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:processResources NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar UP-TO-DATE
+> Task :server:kspTestKotlin SKIPPED
+> Task :server:processTestResources NO-SOURCE
+> Task :api:detekt UP-TO-DATE
+> Task :connector:detekt UP-TO-DATE
+> Task :server:compileTestKotlin
+> Task :server:detekt
+> Task :server:compileTestJava NO-SOURCE
+> Task :server:testClasses UP-TO-DATE
+> Task :server:test
+> Task :server:test:detekt UP-TO-DATE
+> Task :server:run:detekt UP-TO-DATE
+> Task :sharding-core:detekt UP-TO-DATE
+> Task :keymaster:detekt UP-TO-DATE
+> Task :observability-api:detekt UP-TO-DATE
+> Task :observability-connector:detekt UP-TO-DATE
+> Task :observability-server:detekt UP-TO-DATE
+> Task :kotlinKotlinNpmCachesSetup
+> Task :kotlinNodeJsSetup UP-TO-DATE
+> Task :kotlinRestoreYarnLock UP-TO-DATE
+> Task :kotlinYarnSetup UP-TO-DATE
+> Task :api:jsPackageJson UP-TO-DATE
+> Task :api:jsTestPackageJson UP-TO-DATE
+> Task :observability-api:jsPackageJson UP-TO-DATE
+> Task :connector:jsPackageJson UP-TO-DATE
+> Task :connector:jsTestPackageJson UP-TO-DATE
+> Task :observability-api:jsTestPackageJson UP-TO-DATE
+> Task :observability-connector:jsPackageJson UP-TO-DATE
+> Task :observability-connector:jsTestPackageJson UP-TO-DATE
+> Task :api:jsPublicPackageJson UP-TO-DATE
+> Task :api:jsTestPublicPackageJson
+> Task :connector:jsPublicPackageJson UP-TO-DATE
+> Task :connector:jsTestPublicPackageJson
+> Task :observability-api:jsPublicPackageJson UP-TO-DATE
+> Task :observability-api:jsTestPublicPackageJson UP-TO-DATE
+> Task :observability-connector:jsPublicPackageJson UP-TO-DATE
+> Task :observability-connector:jsTestPublicPackageJson UP-TO-DATE
+> Task :kotlinPackageJsonUmbrella
+> Task :rootPackageJson UP-TO-DATE
+> Task :kotlinNpmInstall UP-TO-DATE
+> Task :kotlinStoreYarnLock UP-TO-DATE
+> Task :api:compileKotlinJs UP-TO-DATE
+> Task :observability-api:compileKotlinJs UP-TO-DATE
+> Task :connector:compileKotlinJs UP-TO-DATE
+> Task :connector:jsProcessResources NO-SOURCE
+> Task :connector:jsMainClasses UP-TO-DATE
+> Task :connector:compileTestKotlinJs UP-TO-DATE
+> Task :connector:jsTestProcessResources NO-SOURCE
+> Task :connector:jsTestClasses UP-TO-DATE
+> Task :connector:compileTestDevelopmentExecutableKotlinJs UP-TO-DATE
+> Task :connector:jsTestTestDevelopmentExecutableCompileSync UP-TO-DATE
+> Task :connector:kotlinNodeJsSetup UP-TO-DATE
+
+> Task :connector:jsBrowserTest
+> Task :api:preBuild UP-TO-DATE
+> Task :api:preDebugBuild UP-TO-DATE
+> Task :api:generateDebugResValues UP-TO-DATE
+> Task :api:generateDebugResources UP-TO-DATE
+> Task :api:packageDebugResources UP-TO-DATE
+> Task :api:processDebugNavigationResources UP-TO-DATE
+> Task :api:parseDebugLocalResources UP-TO-DATE
+> Task :api:generateDebugRFile UP-TO-DATE
+> Task :api:compileDebugKotlinAndroid UP-TO-DATE
+> Task :api:javaPreCompileDebug UP-TO-DATE
+> Task :api:compileDebugJavaWithJavac NO-SOURCE
+> Task :connector:preBuild UP-TO-DATE
+> Task :connector:preDebugBuild UP-TO-DATE
+> Task :connector:generateDebugResValues UP-TO-DATE
+> Task :connector:generateDebugResources UP-TO-DATE
+> Task :connector:packageDebugResources UP-TO-DATE
+> Task :connector:processDebugNavigationResources UP-TO-DATE
+> Task :connector:parseDebugLocalResources UP-TO-DATE
+> Task :connector:generateDebugRFile UP-TO-DATE
+> Task :observability-api:preBuild UP-TO-DATE
+> Task :observability-api:preDebugBuild UP-TO-DATE
+> Task :observability-api:generateDebugResValues UP-TO-DATE
+> Task :observability-api:generateDebugResources UP-TO-DATE
+> Task :observability-api:packageDebugResources UP-TO-DATE
+> Task :observability-api:processDebugNavigationResources UP-TO-DATE
+> Task :observability-api:parseDebugLocalResources UP-TO-DATE
+> Task :observability-api:generateDebugRFile UP-TO-DATE
+> Task :observability-api:compileDebugKotlinAndroid UP-TO-DATE
+> Task :observability-api:javaPreCompileDebug UP-TO-DATE
+> Task :observability-api:compileDebugJavaWithJavac NO-SOURCE
+> Task :observability-api:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :connector:javaPreCompileDebug UP-TO-DATE
+> Task :api:compileDebugLibraryResources UP-TO-DATE
+> Task :api:writeDebugAarMetadata UP-TO-DATE
+> Task :connector:preDebugAndroidTestBuild UP-TO-DATE
+> Task :connector:writeDebugAarMetadata UP-TO-DATE
+> Task :observability-api:writeDebugAarMetadata UP-TO-DATE
+> Task :connector:checkDebugAndroidTestAarMetadata UP-TO-DATE
+> Task :connector:processDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :connector:compileDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :connector:compileDebugLibraryResources UP-TO-DATE
+> Task :connector:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :connector:mapDebugAndroidTestSourceSetPaths UP-TO-DATE
+> Task :connector:generateDebugAndroidTestResources UP-TO-DATE
+> Task :connector:mergeDebugAndroidTestResources UP-TO-DATE
+> Task :api:extractDeepLinksDebug UP-TO-DATE
+> Task :api:processDebugManifest UP-TO-DATE
+> Task :connector:extractDeepLinksDebug UP-TO-DATE
+> Task :connector:processDebugManifest UP-TO-DATE
+> Task :observability-api:extractDeepLinksDebug UP-TO-DATE
+> Task :observability-api:processDebugManifest UP-TO-DATE
+> Task :connector:processDebugAndroidTestManifest UP-TO-DATE
+> Task :observability-api:compileDebugLibraryResources UP-TO-DATE
+> Task :connector:processDebugAndroidTestResources UP-TO-DATE
+> Task :connector:javaPreCompileDebugAndroidTest UP-TO-DATE
+> Task :api:mergeDebugShaders UP-TO-DATE
+> Task :api:compileDebugShaders NO-SOURCE
+> Task :api:debugAssetsCopyForAGP NO-SOURCE
+> Task :api:generateDebugAssets UP-TO-DATE
+> Task :api:mergeDebugAssets UP-TO-DATE
+> Task :connector:mergeDebugAndroidTestShaders UP-TO-DATE
+> Task :connector:compileDebugAndroidTestShaders NO-SOURCE
+> Task :connector:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :connector:mergeDebugShaders UP-TO-DATE
+> Task :connector:compileDebugShaders NO-SOURCE
+> Task :connector:debugAssetsCopyForAGP NO-SOURCE
+> Task :connector:generateDebugAssets UP-TO-DATE
+> Task :connector:mergeDebugAssets UP-TO-DATE
+> Task :observability-api:mergeDebugShaders UP-TO-DATE
+> Task :observability-api:compileDebugShaders NO-SOURCE
+> Task :observability-api:debugAssetsCopyForAGP NO-SOURCE
+> Task :observability-api:generateDebugAssets UP-TO-DATE
+> Task :observability-api:mergeDebugAssets UP-TO-DATE
+> Task :connector:mergeDebugAndroidTestAssets UP-TO-DATE
+> Task :connector:compressDebugAndroidTestAssets UP-TO-DATE
+> Task :observability-api:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :connector:desugarDebugAndroidTestFileDependencies UP-TO-DATE
+> Task :api:processDebugJavaRes
+> Task :observability-api:processDebugJavaRes UP-TO-DATE
+> Task :connector:checkDebugAndroidTestDuplicateClasses UP-TO-DATE
+> Task :api:bundleLibCompileToJarDebug
+> Task :connector:mergeExtDexDebugAndroidTest UP-TO-DATE
+> Task :api:bundleLibRuntimeToJarDebug
+> Task :observability-api:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :connector:compileDebugKotlinAndroid
+> Task :connector:compileDebugJavaWithJavac NO-SOURCE
+> Task :connector:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :connector:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :connector:processDebugJavaRes UP-TO-DATE
+> Task :connector:compileDebugAndroidTestKotlinAndroid
+> Task :connector:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :connector:compileDebugAndroidTestJavaWithJavac NO-SOURCE
+> Task :connector:dexBuilderDebugAndroidTest UP-TO-DATE
+> Task :connector:processDebugAndroidTestJavaRes UP-TO-DATE
+> Task :connector:mergeProjectDexDebugAndroidTest UP-TO-DATE
+> Task :api:mergeDebugJniLibFolders UP-TO-DATE
+> Task :api:mergeDebugNativeLibs NO-SOURCE
+> Task :api:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :connector:mergeDebugJniLibFolders UP-TO-DATE
+> Task :connector:mergeDebugNativeLibs NO-SOURCE
+> Task :connector:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :connector:mergeDebugAndroidTestJniLibFolders UP-TO-DATE
+> Task :observability-api:mergeDebugJniLibFolders UP-TO-DATE
+> Task :observability-api:mergeDebugNativeLibs NO-SOURCE
+> Task :observability-api:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :connector:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :connector:stripDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :connector:validateSigningDebugAndroidTest UP-TO-DATE
+> Task :connector:writeDebugAndroidTestSigningConfigVersions UP-TO-DATE
+> Task :connector:mergeDebugAndroidTestJavaResource
+> Task :api:bundleLibRuntimeToDirDebug
+> Task :connector:mergeDebugAndroidTestGlobalSynthetics UP-TO-DATE
+> Task :connector:mergeLibDexDebugAndroidTest
+> Task :connector:packageDebugAndroidTest
+> Task :connector:createDebugAndroidTestApkListingFileRedirect UP-TO-DATE
+
+> Task :connector:connectedDebugAndroidTest
+Starting 9 tests on LockersMainReview(AVD) - 14
+
+Finished 9 tests on LockersMainReview(AVD) - 14
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/kitkit/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 36s
+151 actionable tasks: 20 executed, 131 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

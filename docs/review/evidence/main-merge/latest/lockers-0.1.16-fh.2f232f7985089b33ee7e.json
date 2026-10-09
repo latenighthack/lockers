@@ -1,0 +1,715 @@
+{
+  "schema": 1,
+  "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-main-qualification-publish",
+  "revision": "a858c8622769d52b5da1eca7045c1198152a604d",
+  "sourceHash": "5e38aa20467d6568242fb2323e6f25844f3a00faea0f375e8d4ea4be329ba427",
+  "inputsHash": "2f232f7985089b33ee7e51d1b36dc6d3766f12113a1ec48ba8be535187c806f9",
+  "version": "0.1.16-fh.2f232f7985089b33ee7e",
+  "group": "com.latenighthack.lockers",
+  "artifacts": [
+    {
+      "path": "com/latenighthack/lockers/lockers-api/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-0.1.16-fh.2f232f7985089b33ee7e-kotlin-tooling-metadata.json",
+      "hash": "efe0535bc7cdd87e3800a3f4d1cb596bde21e703de6111cd586be319a01912b1"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "7f84e977665bde64e8aedf719ee0b79efa2d3be619eb0956a791b8c384f995b0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-0.1.16-fh.2f232f7985089b33ee7e.jar",
+      "hash": "56236f794bd26aa10bfa23b7764ea253f262211114297b56d8c2de88ce01bf83"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "f95c51c109cca6aef32fec1e7fbead58d6e718a3271de2af66ca0213d9097a12"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "db1e0a6a5a2b02a581fc96903470b6484c52eb6a217bece6c23224ddfc205720"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-android-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-android-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "7f84e977665bde64e8aedf719ee0b79efa2d3be619eb0956a791b8c384f995b0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-android-0.1.16-fh.2f232f7985089b33ee7e.aar",
+      "hash": "7e184b332a7737d086e767d70a194f64e568c0e437d5c7cdf1e7cc28aabf1b50"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-android-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "1d08764136fd172b6413701382137fdbe11920b992d16525971a361b22fb1268"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-android-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "ed0edd4cf1fee430a136ff96535e8caceb816e5400b289bf4240d97a626c9da6"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iosarm64-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iosarm64-0.1.16-fh.2f232f7985089b33ee7e-metadata.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iosarm64-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "7f84e977665bde64e8aedf719ee0b79efa2d3be619eb0956a791b8c384f995b0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iosarm64-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "6db756ec1d29686a3da02bdce56359386ba91e2033ab863de7ebcb17f0870560"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iosarm64-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "58f7f652f835d389c368dded8d62a09088d31aefb8413801e2fa494478f7e553"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iosarm64-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "089c5339c681846e10b135a7296ba8f39f6d94e61e81bd651a3439b935f905d7"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e-metadata.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "7f84e977665bde64e8aedf719ee0b79efa2d3be619eb0956a791b8c384f995b0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "fd3dfc1540d4a1781d43d0cab84419ba315f8bbeef8916f11d5a9a989925686a"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "1fd3962ac867288e229c5bfb647141dd9fbac5bb8f1275e545d120f053ca5c43"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "a048dc571c1f3f25ae13bf03d384ea98c409a0577a8b461e2f5d480acdf2e000"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iosx64-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iosx64-0.1.16-fh.2f232f7985089b33ee7e-metadata.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iosx64-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "7f84e977665bde64e8aedf719ee0b79efa2d3be619eb0956a791b8c384f995b0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iosx64-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "8025bcb713ea2b6139a3a92cac0a6319bd07273433c5a8c1cba0193151689663"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iosx64-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "e6f1ca58e78f22e691f80aa9a233ddf84df5c2c06985e260dab73d6d60b71f2a"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-iosx64-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "9c37051b757900deb57aa97909583d750108908d0d997be1d345bcac97d3b6cf"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-js-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-js-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "7f84e977665bde64e8aedf719ee0b79efa2d3be619eb0956a791b8c384f995b0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-js-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "29250730020c5cd751deb68a3204862d96ef9b9925cc4374dc1c1e7f08c839a0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-js-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "1f91efcba5357a02b77fe9f845a60355fbac6f48bdb34d56a072554775f3d791"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-js-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "14ac76cf4ee2ba729d7360727c480f139043131a10c4d00968467fa53f2c08bd"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-jvm-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-jvm-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "7f84e977665bde64e8aedf719ee0b79efa2d3be619eb0956a791b8c384f995b0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-jvm-0.1.16-fh.2f232f7985089b33ee7e.jar",
+      "hash": "a04aea3dd0ce3eb5b9caecd3b047543504cb86f111e2612e65cd1b5333331af2"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-jvm-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "4e9c012c04affa9fa95e11206859fcf579232ec52af903ad929c9e66c078c2f9"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-api-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-api-jvm-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "9b393aa0eeee0f7fd9d8ba76201cb543c2e8e6d7e4cc72555bfe86680bf03de3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-0.1.16-fh.2f232f7985089b33ee7e-kotlin-tooling-metadata.json",
+      "hash": "efe0535bc7cdd87e3800a3f4d1cb596bde21e703de6111cd586be319a01912b1"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "61624a442c5e25a9bfd5392e3978c7e65d98ee2f26ead1dd82a9177a2f08b5f3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-0.1.16-fh.2f232f7985089b33ee7e.jar",
+      "hash": "c113a8315016a0544fc488ba6e2d8c9ff6fb9317b3bb8ebbdb5dd732c2e43d13"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "72eeaad8e7606ea49ac63996f779dc8dabdc732d2831b281e2e63c9bfc0128ef"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "0e1abb2e30ed5580b318f0dcae4926003fbf9fe8a8406b918597d41fe7898c36"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-android-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-android-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "61624a442c5e25a9bfd5392e3978c7e65d98ee2f26ead1dd82a9177a2f08b5f3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-android-0.1.16-fh.2f232f7985089b33ee7e.aar",
+      "hash": "e381231c441f5266183e164e69696734cb2b4d64cd2c49f1ac2eca29cd650274"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-android-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "b70cc151aa2a1f16c926f0468a01c80e0134c25bca3355cc765ebdf284b8456b"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-android-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "a7d2842838ae3b4f7056268eb8d895b9952d433f926ba562ec8156d50d6f0176"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iosarm64-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iosarm64-0.1.16-fh.2f232f7985089b33ee7e-metadata.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iosarm64-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "61624a442c5e25a9bfd5392e3978c7e65d98ee2f26ead1dd82a9177a2f08b5f3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iosarm64-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "7536577d22a894bdca530fb7fc573bc84516fa3ebef245bd261aff0f06ed660a"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iosarm64-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "4d4b8580249f19fdbd16b238cd590c63c06525f1487e16fb851209e00ba8c722"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iosarm64-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "98a0ddc68912fedb366f92584a100c11261b25cd070ac3963e709791897cacda"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e-metadata.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "61624a442c5e25a9bfd5392e3978c7e65d98ee2f26ead1dd82a9177a2f08b5f3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "c4e93a4b6a74369ddd8edacb30ed56cdfe52398daf5e294b3a7a0897e22d062e"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "0ba6f330caaaae1b4e3eb105ee7431dfea70c81ddbf19440b9c99e77f2ef0b2b"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "dbd71656641a73ba1cc4789ec78bff84d945177ebf2e881b22f0f8fd841b87ea"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iosx64-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iosx64-0.1.16-fh.2f232f7985089b33ee7e-metadata.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iosx64-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "61624a442c5e25a9bfd5392e3978c7e65d98ee2f26ead1dd82a9177a2f08b5f3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iosx64-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "90931ad83ea9e3e7a056d63ee025180a80ad85692a83848bf620af6f025fad3c"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iosx64-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "599829e5adea3cf799f894faa73357862a6f575a719a5912d0a34f9907e9d86c"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-iosx64-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "39535407979b87c90a0d0eff5e67e29ba50135a184f3d16ecab7dd80f08aebd6"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-js-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-js-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "61624a442c5e25a9bfd5392e3978c7e65d98ee2f26ead1dd82a9177a2f08b5f3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-js-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "159a0ab2ceb75a5d1919453d3954fe8e6cc3ba5f29da526909c43f432adee031"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-js-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "1d92fbd080d0de70ac6a36198adde24a39a09cd44bc4768a7ad5aecaff9a99dd"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-js-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "ada23ee8db1faaea63b6671b05c3d61d983e7ee72f929fc7d06c348e2c3a6682"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-jvm-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-jvm-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "61624a442c5e25a9bfd5392e3978c7e65d98ee2f26ead1dd82a9177a2f08b5f3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-jvm-0.1.16-fh.2f232f7985089b33ee7e.jar",
+      "hash": "a707867d07e4ef7c90815f3594a9b98ea8e2befcf0e7228dac8f47805f80b382"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-jvm-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "ce1c34d77d8e20e9296dfe3d57b2e61eb30aa14bd4f86968ec779b3274876b31"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-connector-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-connector-jvm-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "9974f3fe30109ada15dec5222082500a68ac5d860b907b5b1c63c754083c0af0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-0.1.16-fh.2f232f7985089b33ee7e-kotlin-tooling-metadata.json",
+      "hash": "efe0535bc7cdd87e3800a3f4d1cb596bde21e703de6111cd586be319a01912b1"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "a03b25d3535528c09edbbf048691c1a4afccd993d25f0990d02ec3cae9e7dd32"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-0.1.16-fh.2f232f7985089b33ee7e.jar",
+      "hash": "d027557dbe8a22a123c970ff4a5034ecd7170e11b87bf9a0904121077d2dc7d0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "27a5927f58b38eeda0b20b636672053e77960541908bd0e03d3168798f54ace9"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "d3d5c2e192e7046c65ad608ea849ae5f94dfb2860741f84ee3b7bf3d5a7c7e45"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-android-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-android-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "a03b25d3535528c09edbbf048691c1a4afccd993d25f0990d02ec3cae9e7dd32"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-android-0.1.16-fh.2f232f7985089b33ee7e.aar",
+      "hash": "88834e0305c0a396cb51b4e083bcf06f246d0ac30c77f84ffa01b1ca85c5bfab"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-android-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "2297fbf2e90285d11ac27d2108907df265d154a6f9fd31d5d8b0cbee3dbb0af0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-android-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "643754231152cc5e318d1092170ead0029e9a06a3db582397bec3c204038b2d8"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iosarm64-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iosarm64-0.1.16-fh.2f232f7985089b33ee7e-metadata.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iosarm64-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "a03b25d3535528c09edbbf048691c1a4afccd993d25f0990d02ec3cae9e7dd32"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iosarm64-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "5ecf19edf855d989d8f4c86b92ba1a47a9ebd899445f27d4031abbd3c0513796"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iosarm64-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "f67863c2749bc69bd1ce4e9d58eaaa899a2ba2bc6f92f7a8a051f0823e34dc87"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iosarm64-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "3aec03aa15f434dba0a4ddc0954c3d9ff5344f6250e1b0fe589ce08f790ec737"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e-metadata.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "a03b25d3535528c09edbbf048691c1a4afccd993d25f0990d02ec3cae9e7dd32"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "de10f06fb750cb572cbb777f48604afbbde6d33740cb80cae6761acb20c5be60"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "fbe19f311420306af8fdde43eb989124f2d92066a77895cb38a6a5b43846aa33"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "a6600a85abb6396eccf7373aa0fe2e6d88a463662b8e9671910f090e98c24f3a"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iosx64-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iosx64-0.1.16-fh.2f232f7985089b33ee7e-metadata.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iosx64-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "a03b25d3535528c09edbbf048691c1a4afccd993d25f0990d02ec3cae9e7dd32"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iosx64-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "51fdec878b0fafc1ed2e0b60a0c7ff7b0ab2cf37c40a4b27ec43c9015c019d0b"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iosx64-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "50c7b28aceab62b9426de9f610e78509577a2fecf2fc34c93f1aa4948458149e"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-iosx64-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "0287769f3df32e91a97f954362a605e3e346fdbd631b81fa9d9556882a407736"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-js-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-js-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "a03b25d3535528c09edbbf048691c1a4afccd993d25f0990d02ec3cae9e7dd32"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-js-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "c32eb30530b924d345a155d8b9cd505c7f6d4c6cebec92a493d42d5ae93dd1d9"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-js-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "55fcd86b32849db5e4dd48f20b90500233b56744bccf4dbb9f6be8cb31ffe359"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-js-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "0a48b8306ec107777d704d011f5316a16de7aa24b8d0090926ae7009fb9488b6"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-jvm-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-jvm-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "a03b25d3535528c09edbbf048691c1a4afccd993d25f0990d02ec3cae9e7dd32"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-jvm-0.1.16-fh.2f232f7985089b33ee7e.jar",
+      "hash": "2970491d56154d8f034525dd5ddb61a51a1d3e1458104ff3ab4e3a4ce84b3446"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-jvm-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "1482f8549bb1c1826fa1d238fc5aacafba7f0e609c1b4a9db5a48e7d99998213"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-api-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-api-jvm-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "a63ec36e931e21586d8d8daaf642084b836a8f64734501cc105a42a2a206a485"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-0.1.16-fh.2f232f7985089b33ee7e-kotlin-tooling-metadata.json",
+      "hash": "efe0535bc7cdd87e3800a3f4d1cb596bde21e703de6111cd586be319a01912b1"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "1b73750857e7f5a69eaea24a80f2ff872deb7cfe7204569f0993103674bd60a6"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-0.1.16-fh.2f232f7985089b33ee7e.jar",
+      "hash": "4b1bba8fb412c22fff33fd5a41dcca032def7355094d187e389f34321adf2bfb"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "1ccc7fb56ca98287bb2fb33e21cf929737244eea129a5d4c2ea9803f9339326a"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "f02069a9fa6aa65baf1b4fc4c0d43dd83004918a88cffd9f6203a6a75516e64b"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-android-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-android-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "aa191d581f0d52e3882891f1708fefe5b5c767bafc35be3fb9d91a04cb281da0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-android-0.1.16-fh.2f232f7985089b33ee7e.aar",
+      "hash": "6ac0f336cc6a504923a4c16964bc30aba1acf27ca69cf4cf601c1d94074bf14a"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-android-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "7d0d9ea3843dd50eb9ab2168ecc8cf9420f9537595a2d92e42291575647b3109"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-android/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-android-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "11724575273c0b5f5fb7ce6a8f7db580bd75737490510b0e24ef528cd3e39c9d"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iosarm64-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iosarm64-0.1.16-fh.2f232f7985089b33ee7e-metadata.jar",
+      "hash": "58eed2a5589d665fd24c31528dafeb68c7febf6c828d20d2a27f030b0858a709"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iosarm64-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "be2a5af5b6ba0bced56a49ce3b11acca7959edc3cd518e7234c7674baf0c1f26"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iosarm64-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "b6521ed3b78cddd80230315f30f7eb9b16ea6e62bca238cb6640d85fb5dd6fdb"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iosarm64-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "1e7f8525b742c3569936fca9cb1ada0c7e5773307818c0f736a5c56d000afb26"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iosarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iosarm64-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "b67aebeec953f6e52446dcb45f439ed392fa8399013402f1380ce14f855951fd"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e-metadata.jar",
+      "hash": "58eed2a5589d665fd24c31528dafeb68c7febf6c828d20d2a27f030b0858a709"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "be2a5af5b6ba0bced56a49ce3b11acca7959edc3cd518e7234c7674baf0c1f26"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "16834f6667a4752d3d84fe947f1332403e879c6fd8f53e2aec19b6421d64bfa2"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "a7d8aeed10a19d6d71dde155407df9876dfcdfc217187bd1ef1ce1853d29dd66"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iossimulatorarm64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iossimulatorarm64-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "6afcd91e908239f57493517e8a2f69e27e7830126bab05c14fd69c20ccf2294b"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iosx64-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iosx64-0.1.16-fh.2f232f7985089b33ee7e-metadata.jar",
+      "hash": "58eed2a5589d665fd24c31528dafeb68c7febf6c828d20d2a27f030b0858a709"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iosx64-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "be2a5af5b6ba0bced56a49ce3b11acca7959edc3cd518e7234c7674baf0c1f26"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iosx64-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "951e4f9e05b1498d5681b76772d962dee0a51562db050fdd5d3bbfbbdda5c4e4"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iosx64-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "d113a08e257e26c5e6f32ec5419cb390bddb27d7996a888e35a04103a8afa398"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-iosx64/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-iosx64-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "e8e6d469f8883ce2ab45cfe0fd704ecf0609c9deb98ee901410e0837685bb1ae"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-js-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-js-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "1d412e2c8d3d67591d0998cf40e699dd5fb519d3378f042fe30bceadce7a2835"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-js-0.1.16-fh.2f232f7985089b33ee7e.klib",
+      "hash": "11d7233211bf779a0540b24573926181dec5c0455ce3fbf513969458adce3e5c"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-js-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "5269fc22bd5a753cba5063b80f1eb2cd8cc82b428389b8efb544f31cae6089f2"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-js/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-js-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "7c8678d6a3e1f078b1cc1f74d048f301ceccaff6c6c0ee0c13562dd9c1ea2566"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-jvm-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-jvm-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "b8e36843a3540ed921fb16a5dd9038c0cc50584d016d61f997d6a17bb7f7d0d0"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-jvm-0.1.16-fh.2f232f7985089b33ee7e.jar",
+      "hash": "eaaa0d1e1b9f9fb395a78fda05b5da03ed4954b7ee4ba9eb6c0bb8e44a396ef5"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-jvm-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "c52047226d77939fb75c5ded7d4717abc45374407aa5d9401029d7e1d4ab57c9"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-connector-jvm/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-connector-jvm-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "d00823fe36b5a73db75decb9e74e93784c00179ec0d14aa6b82b09e8347757a9"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-server/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-server-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-server/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-server-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "0f442cd48c6922285ef39b79e8b63b60429a7cd2093480b383dd3508d4470221"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-server/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-server-0.1.16-fh.2f232f7985089b33ee7e.jar",
+      "hash": "8a0b54ec8fdfbee94791805e3ab7fe30d5a08e847111eeff7ed09dd2357e072d"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-server/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-server-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "791f2c8cec27450b2402e03ceec9adde83a63578533bf0459b9f09aa38e39dd1"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-observability-server/0.1.16-fh.2f232f7985089b33ee7e/lockers-observability-server-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "8a906c62602db5fbf2b4625c11178f9818369d5647a4263613eb12bb1d33266b"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-server/0.1.16-fh.2f232f7985089b33ee7e/lockers-server-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-server/0.1.16-fh.2f232f7985089b33ee7e/lockers-server-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "165d4eb64ea619576af69ee576eee59d5c5209ae605604b64133c8dde412ab8a"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-server/0.1.16-fh.2f232f7985089b33ee7e/lockers-server-0.1.16-fh.2f232f7985089b33ee7e.jar",
+      "hash": "7cbe101e360b23c0927f569bdf92ede4a66c27fc877ebc4dc2e7fdb11f85071e"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-server/0.1.16-fh.2f232f7985089b33ee7e/lockers-server-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "4a3abaf6bfe2553e0fd55b0d0ac5f5bcd65c2e6c35a398085a854244f0b8241e"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-server/0.1.16-fh.2f232f7985089b33ee7e/lockers-server-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "51558104410e56ee3bf366e150eaef0b4e35f35ce8e92d2b74283dec417c8eb4"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-server-test/0.1.16-fh.2f232f7985089b33ee7e/lockers-server-test-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-server-test/0.1.16-fh.2f232f7985089b33ee7e/lockers-server-test-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "e0d371718d76e787221a241caf9b382f2af780634063b96a5415f66cf628733a"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-server-test/0.1.16-fh.2f232f7985089b33ee7e/lockers-server-test-0.1.16-fh.2f232f7985089b33ee7e.jar",
+      "hash": "a6333233ec767fe4c9886601bd526de110df3bbcae5009bb838119f7875f22a4"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-server-test/0.1.16-fh.2f232f7985089b33ee7e/lockers-server-test-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "ac57f40c46e962cbe4c2f791815d7be934bc689a5739545fd3683a74bbec4e8c"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-server-test/0.1.16-fh.2f232f7985089b33ee7e/lockers-server-test-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "fe085da4f53c1bbc0d47a66db8b62ebc502f612a78b3cacc9541efcaa256dd80"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-sharding-core/0.1.16-fh.2f232f7985089b33ee7e/lockers-sharding-core-0.1.16-fh.2f232f7985089b33ee7e-javadoc.jar",
+      "hash": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-sharding-core/0.1.16-fh.2f232f7985089b33ee7e/lockers-sharding-core-0.1.16-fh.2f232f7985089b33ee7e-sources.jar",
+      "hash": "a8567aba8e3762f688d882c789f24d3759c6b492693261a86acc18726d783422"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-sharding-core/0.1.16-fh.2f232f7985089b33ee7e/lockers-sharding-core-0.1.16-fh.2f232f7985089b33ee7e.jar",
+      "hash": "28aaa1fdae08445bb31bf77fd2e34c23cb93eac1fff49586558a847bee6c88e5"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-sharding-core/0.1.16-fh.2f232f7985089b33ee7e/lockers-sharding-core-0.1.16-fh.2f232f7985089b33ee7e.module",
+      "hash": "dfb28d03248c0caa2826d0114f5e5240ee71d325a553b9aceef46a9a51635b28"
+    },
+    {
+      "path": "com/latenighthack/lockers/lockers-sharding-core/0.1.16-fh.2f232f7985089b33ee7e/lockers-sharding-core-0.1.16-fh.2f232f7985089b33ee7e.pom",
+      "hash": "a9771d0016c5b5743f98f5e78fa57d1db0ce7cd01385ce446242e30ede76d2e3"
+    }
+  ]
+}

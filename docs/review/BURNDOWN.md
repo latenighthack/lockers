@@ -6,7 +6,7 @@ Each row is complete only after its reproduction, regression, fix, commit and in
 
 F39's default released-mode connector/server build still cannot resolve public ktstore-library0.2.1 on merged main. Local publication does not satisfy that release prerequisite. Separately, actual consumer verification reproduced Social profile-key exposure through anonymous reads; [application confidentiality debt](F39-final-consumer.md) remains outside the library's documented open-read contract. No application security qualification or external release is claimed.
 
-The full review history is now on main atdb6df6b; [fresh main validation](main-merge-validation.md) records627 JVM/73 platform executions plus consumer and monitoring checks.
+The full review history is now on main atdb6df6b; [fresh main validation](main-merge-validation.md) records628 current JVM/73 platform executions plus consumer and monitoring checks.
 
 | Finding | Priority | Issue | Status | Commits |
 |---|---|---|---|---|

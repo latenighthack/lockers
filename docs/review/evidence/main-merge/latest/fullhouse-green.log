@@ -1,0 +1,382 @@
+Type-safe project accessors is an incubating feature.
+
+> Configure project :android
+w: ⚠️ Usage of Internal Kotlin Gradle Plugin Properties Detected
+ATTENTION! This build uses the following Kotlin Gradle Plugin properties:
+
+kotlin.internal.suppressGradlePluginErrors
+
+Internal properties are not recommended for production use.
+Stability and future compatibility of the build is not guaranteed.
+Solution: Please consider using the public API instead of internal properties.
+
+
+> Configure project :server
+w: ⚠️ Unsupported API dependency types in test source sets
+API dependency types are used in test source sets
+Dependencies:
+    - fullhouse:api:unspecified (source sets: jvmTest)
+
+Adding API dependency types to test source sets is not supported and will removed in a future version of Kotlin.
+
+API dependencies are transitively exposed to consumers, but test source sets should not be consumable.
+Solutions:
+ • Replace API dependency types in test source sets with implementation dependencies.
+ • For Kotlin/JVM projects, consider using Test Fixtures https://docs.gradle.org/current/userguide/java_testing.html#sec:java_test_fixtures
+ • For Test Fixtures support in non-Kotlin/JVM projects, please add your use-case to https://youtrack.jetbrains.com/issue/KT-63142
+
+
+> Configure project :core:test
+w: ⚠️ Unsupported API dependency types in test source sets
+API dependency types are used in test source sets
+Dependencies:
+    - fullhouse.server:test:unspecified (source sets: jvmTest)
+    - fullhouse:server:unspecified (source sets: jvmTest)
+
+Adding API dependency types to test source sets is not supported and will removed in a future version of Kotlin.
+
+API dependencies are transitively exposed to consumers, but test source sets should not be consumable.
+Solutions:
+ • Replace API dependency types in test source sets with implementation dependencies.
+ • For Kotlin/JVM projects, consider using Test Fixtures https://docs.gradle.org/current/userguide/java_testing.html#sec:java_test_fixtures
+ • For Test Fixtures support in non-Kotlin/JVM projects, please add your use-case to https://youtrack.jetbrains.com/issue/KT-63142
+
+Configuration 'jvmMainAnnotationProcessor' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jvmMainCompileClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kotlinCompilerPluginClasspathJvmMain' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kotlinCompilerClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jvmCompileClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'debugProtobuf' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'debugCompileClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'debugRuntimeClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'protobuf' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kspCommonMainKotlinMetadataProcessorClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'commonMainResolvableDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'allSourceSetsCompileDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'iosX64CompilationDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'iosSimulatorArm64CompilationDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'iosArm64CompilationDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kspKotlinJvmProcessorClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kotlinCompilerPluginClasspathAndroidDebug' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'androidApis' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kspDebugKotlinAndroidProcessorClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsRuntimeClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kotlinCompilerPluginClasspathJsMain' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsCompileClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kspKotlinJsProcessorClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'skieRuntimeForIosSimulatorArm64CompileKlibraries' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'iosSimulatorArm64CompileKlibraries' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'iosSimulatorArm64DebugFrameworkExport' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'skieCompilerPlugin' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'skieSubPlugin' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kotlinCompilerPluginClasspathIosSimulatorArm64Main' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kspKotlinIosSimulatorArm64ProcessorClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:extractIncludeProto UP-TO-DATE
+> Task :api:extractProto UP-TO-DATE
+
+> Task :api:generateProto
+protoc plugin 'kt' not defined. Trying to use 'protoc-gen-kt' from system path
+
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:extractJvmMainProto UP-TO-DATE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :server:kmpPartiallyResolvedDependenciesChecker
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:extractIncludeProto UP-TO-DATE
+> Task :server:extractProto UP-TO-DATE
+
+> Task :server:generateProto
+protoc plugin 'kt' not defined. Trying to use 'protoc-gen-kt' from system path
+
+> Task :server:extractJvmMainProto UP-TO-DATE
+> Task :server:extractJvmTestProto UP-TO-DATE
+> Task :core:kmpPartiallyResolvedDependenciesChecker
+> Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:extractDebugProto UP-TO-DATE
+> Task :core:extractIncludeDebugProto
+> Task :core:extractProto UP-TO-DATE
+
+> Task :core:generateDebugProto
+protoc plugin 'kt' not defined. Trying to use 'protoc-gen-kt' from system path
+
+> Task :core:transformCommonMainDependenciesMetadata
+> Task :core:test:kmpPartiallyResolvedDependenciesChecker
+> Task :core:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:processResources NO-SOURCE
+> Task :server:run:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:preBuild UP-TO-DATE
+> Task :core:preDebugBuild UP-TO-DATE
+> Task :core:generateDebugResValues UP-TO-DATE
+> Task :core:generateDebugResources UP-TO-DATE
+> Task :core:packageDebugResources UP-TO-DATE
+> Task :core:processDebugNavigationResources UP-TO-DATE
+> Task :core:parseDebugLocalResources UP-TO-DATE
+> Task :core:generateDebugRFile UP-TO-DATE
+> Task :core:jsProcessResources NO-SOURCE
+> Task :kotlinKotlinNpmCachesSetup
+> Task :core:jsPackageJson
+> Task :core:jsPublicPackageJson UP-TO-DATE
+> Task :core:downloadKotlinNativeDistribution UP-TO-DATE
+> Task :core:skieProcessSwiftSourcesIosSimulatorArm64 UP-TO-DATE
+> Task :core:skieCreateSkieDirectoriesDebugFrameworkIosSimulatorArm64 UP-TO-DATE
+> Task :core:skieCreateConfigurationDebugFrameworkIosSimulatorArm64
+> Task :core:kspCommonMainKotlinMetadata
+> Task :server:kspKotlinJvm
+> Task :server:jvmProcessResources NO-SOURCE
+> Task :server:processJvmMainResources SKIPPED
+> Task :core:kspKotlinJvm
+> Task :core:jvmProcessResources NO-SOURCE
+> Task :core:processJvmMainResources SKIPPED
+> Task :server:compileKotlinJvm
+> Task :server:compileJvmMainJava NO-SOURCE
+> Task :server:jvmMainClasses
+> Task :server:jvmJar UP-TO-DATE
+> Task :server:kspTestKotlinJvm SKIPPED
+> Task :server:jvmTestProcessResources NO-SOURCE
+> Task :server:processJvmTestResources SKIPPED
+> Task :server:run:kspKotlin SKIPPED
+> Task :server:compileTestKotlinJvm
+> Task :server:test:compileKotlin
+> Task :server:compileJvmTestJava NO-SOURCE
+> Task :server:jvmTestClasses
+> Task :server:run:compileKotlin
+> Task :core:kspDebugKotlinAndroid
+> Task :core:kspKotlinJs
+> Task :core:kspKotlinIosSimulatorArm64
+
+> Task :core:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/build/generated/source/proto/debug/kotlin/gg/roll/core/storage/v1/stored_property.data.kt:299:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/build/generated/source/proto/debug/kotlin/gg/roll/core/storage/v1/stored_property.data.kt:301:75 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IContactsViewModel.kt:166:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/ILibraryViewModel.kt:85:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:379:73 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:385:92 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:405:57 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256R1Key.PublicKey'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:446:14 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:639:28 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/ISelectFriendsViewModel.kt:211:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ChatRepository.kt:146:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ChatRepository.kt:203:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ProfileRepository.kt:133:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/usecases/WatchRecentMessagesUseCase.kt:29:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/tools/GlobalDispatcher.kt:5:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/jvmMain/kotlin/gg/roll/viewmodel/tools/GlobalDispatcher.kt:6:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+
+> Task :server:jvmTest
+> Task :core:compileJvmMainJava NO-SOURCE
+> Task :core:jvmMainClasses
+> Task :core:jvmJar UP-TO-DATE
+> Task :core:test:kspKotlinJvm SKIPPED
+> Task :core:test:compileKotlinJvm NO-SOURCE
+> Task :core:test:compileJvmMainJava NO-SOURCE
+> Task :core:test:jvmProcessResources NO-SOURCE
+> Task :core:test:processJvmMainResources SKIPPED
+> Task :core:test:jvmMainClasses UP-TO-DATE
+> Task :core:test:jvmJar UP-TO-DATE
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar UP-TO-DATE
+> Task :core:test:kspTestKotlinJvm SKIPPED
+> Task :core:test:jvmTestProcessResources NO-SOURCE
+> Task :core:test:processJvmTestResources SKIPPED
+> Task :core:test:compileTestKotlinJvm
+> Task :core:test:compileJvmTestJava NO-SOURCE
+> Task :core:test:jvmTestClasses
+
+> Task :core:compileDebugKotlinAndroid
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/build/generated/source/proto/debug/kotlin/gg/roll/core/storage/v1/stored_property.data.kt:299:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/build/generated/source/proto/debug/kotlin/gg/roll/core/storage/v1/stored_property.data.kt:301:75 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/androidMain/kotlin/gg/roll/viewmodel/tools/GlobalDispatcher.kt:6:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IContactsViewModel.kt:166:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/ILibraryViewModel.kt:85:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:379:73 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:385:92 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:405:57 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256R1Key.PublicKey'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:446:14 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:639:28 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/ISelectFriendsViewModel.kt:211:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ChatRepository.kt:146:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ChatRepository.kt:203:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ProfileRepository.kt:133:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/usecases/WatchRecentMessagesUseCase.kt:29:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/tools/GlobalDispatcher.kt:5:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+
+> Task :core:test:jvmTest
+
+> Task :core:compileKotlinJs
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/build/generated/source/proto/debug/kotlin/gg/roll/core/storage/v1/stored_property.data.kt:299:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/build/generated/source/proto/debug/kotlin/gg/roll/core/storage/v1/stored_property.data.kt:301:75 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IContactsViewModel.kt:166:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/ILibraryViewModel.kt:85:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:379:73 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:385:92 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:405:57 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256R1Key.PublicKey'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:446:14 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:639:28 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/ISelectFriendsViewModel.kt:211:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ChatRepository.kt:146:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ChatRepository.kt:203:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ProfileRepository.kt:133:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/usecases/WatchRecentMessagesUseCase.kt:29:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/tools/GlobalDispatcher.kt:5:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/jsMain/kotlin/gg/roll/viewmodel/tools/GlobalDispatcher.kt:6:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+
+> Task :core:compileKotlinIosSimulatorArm64
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/build/generated/source/proto/debug/kotlin/gg/roll/core/storage/v1/stored_property.data.kt:299:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/build/generated/source/proto/debug/kotlin/gg/roll/core/storage/v1/stored_property.data.kt:301:75 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IContactsViewModel.kt:166:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/ILibraryViewModel.kt:85:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:379:73 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:385:92 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:405:57 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256R1Key.PublicKey'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:446:14 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:639:28 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/ISelectFriendsViewModel.kt:211:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ChatRepository.kt:146:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ChatRepository.kt:203:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ProfileRepository.kt:133:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/usecases/WatchRecentMessagesUseCase.kt:29:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/tools/GlobalDispatcher.kt:5:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/iosMain/kotlin/gg/roll/viewmodel/tools/GlobalDispatcher.kt:5:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+
+> Task :core:jsMainClasses
+> Task :core:skieUnpackSwiftSourcesDebugFrameworkIosSimulatorArm64
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+> Task :core:compileProductionLibraryKotlinJs
+> Task :core:linkDebugFrameworkIosSimulatorArm64
+warning: /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/Foundation-26APARFLUI2TQ.pcm: No such file or directory
+note: while processing /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/Foundation-26APARFLUI2TQ.pcm
+note: Linking a static library that was built with -gmodules, but the module cache was not found.  Redistributable static libraries should never be built with module debugging enabled.  The debug experience will be degraded due to incomplete debug information.
+warning: /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/_SwiftConcurrencyShims-1O6J4FRGOX9K.pcm: No such file or directory
+note: while processing /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/_SwiftConcurrencyShims-1O6J4FRGOX9K.pcm
+w: Cannot infer a bundle ID from packages of source files and exported dependencies, use the bundle name instead: Core. Please specify the bundle ID explicitly using the -Xbinary=bundleId=<id> compiler flag.
+w: 'protocol Core.Core' was renamed to 'protocol Core.Core_' because of a name collision with the framework name 'Core'. Consider resolving the conflict either by changing the name in Kotlin, or via the @ObjCName annotation. You can also suppress this warning using the 'SuppressSkieWarning.NameCollision' configuration. However using renamed declarations from Swift is not recommended because their name will change if the conflict is resolved.
+    (at public interface Core defined in gg.roll.viewmodel.core from module <fullhouse:core>)
+w: 'var Core.ITitleViewModelState.description' was renamed to 'var Core.ITitleViewModelState.description_' because of a name collision with an another declaration 'func Core.KotlinBase.description() -> Swift.String'. Consider resolving the conflict either by changing the name in Kotlin, or via the @ObjCName annotation. You can also suppress this warning using the 'SuppressSkieWarning.NameCollision' configuration. However using renamed declarations from Swift is not recommended because their name will change if the conflict is resolved.
+    (at public final val description: kotlin.String defined in gg.roll.viewmodel.ITitleViewModel.State from module <fullhouse:core>)
+w: 'var Core.Ktor_httpHttpStatusCode.description' was renamed to 'var Core.Ktor_httpHttpStatusCode.description_' because of a name collision with an another declaration 'func Core.KotlinBase.description() -> Swift.String'. Consider resolving the conflict either by changing the name in Kotlin, or via the @ObjCName annotation. You can also suppress this warning using the 'SuppressSkieWarning.NameCollision' configuration. However using renamed declarations from Swift is not recommended because their name will change if the conflict is resolved.
+    (at public final val description: kotlin.String defined in io.ktor.http.HttpStatusCode from module <io.ktor:ktor-http>)
+w: 'var Core.TitleDescription.description' was renamed to 'var Core.TitleDescription.description_' because of a name collision with an another declaration 'func Core.KotlinBase.description() -> Swift.String'. Consider resolving the conflict either by changing the name in Kotlin, or via the @ObjCName annotation. You can also suppress this warning using the 'SuppressSkieWarning.NameCollision' configuration. However using renamed declarations from Swift is not recommended because their name will change if the conflict is resolved.
+    (at public final val description: kotlin.String defined in gg.roll.fullhouse.library.v1.TitleDescription from module <fullhouse:core>)
+w: 'var Core.TitleDescriptionBuilder.description' was renamed to 'var Core.TitleDescriptionBuilder.description_' because of a name collision with an another declaration 'func Core.KotlinBase.description() -> Swift.String'. Consider resolving the conflict either by changing the name in Kotlin, or via the @ObjCName annotation. You can also suppress this warning using the 'SuppressSkieWarning.NameCollision' configuration. However using renamed declarations from Swift is not recommended because their name will change if the conflict is resolved.
+    (at public final var description: kotlin.String defined in gg.roll.fullhouse.library.v1.TitleDescriptionBuilder from module <fullhouse:core>)
+
+> Task :core:jsProductionLibraryCompileSync
+> Task :core:jsBrowserProductionLibraryDistribution
+> Task :core:skieUploadAnalyticsDebugFrameworkIosSimulatorArm64
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 2m 34s
+60 actionable tasks: 35 executed, 25 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html
