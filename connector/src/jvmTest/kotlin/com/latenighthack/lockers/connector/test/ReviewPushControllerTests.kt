@@ -1,6 +1,7 @@
 package com.latenighthack.lockers.connector.test
 
 import com.latenighthack.ktbuf.proto.Codes
+import com.latenighthack.ktbuf.*
 import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.*
@@ -99,6 +100,28 @@ class ReviewPushControllerTests {
             assertContentEquals(PushRegistrations.fcm("new").toByteArray(), store.getRegistration(2)!!.encodedRegistration)
             assertEquals(2, controller.registrations.value[PushBackendType.FCM]!!.revision)
         } finally { release.complete(Unit); controller.closeAndJoin() }
+    }
+
+    @Test fun `local push packet limit is observable once and preserves durable intent`() = runBlocking {
+        val db = ConnectorStorage.inMemory(); db.open()
+        val store = PushRegistrationStoreImpl(db); store.prepare()
+        var calls = 0; var reject = true
+        val controller = PushRegistrationController(ReviewRpc { _, bytes ->
+            calls++
+            if (reject) ProtobufOutputStream.encode(ProtobufOutputLimits(maxMessageBytes = 8)) { encode(bytes, 1) }
+            RegisterSessionResponse().toByteArray()
+        }, store, MutableStateFlow(SessionId(byteArrayOf(1))))
+        try {
+            controller.register(PushRegistrations.fcm("token"))
+            assertFailsWith<ProtobufOutputLimitException> { withTimeout(1_500) { controller.awaitRegistered(PushBackendType.FCM) } }
+            assertEquals(1, calls)
+            assertIs<ProtobufOutputLimitException>(controller.registrations.value[PushBackendType.FCM]!!.failure)
+            assertTrue(store.getAllIntents().single().pending)
+            reject = false; controller.register(PushRegistrations.fcm("token"))
+            withTimeout(1_500) { controller.awaitRegistered(PushBackendType.FCM) }
+            assertEquals(2, calls); assertEquals(2, store.getAllIntents().single().revision)
+            assertFalse(store.getAllIntents().single().pending)
+        } finally { controller.closeAndJoin(); db.close() }
     }
 
 }

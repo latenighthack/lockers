@@ -196,7 +196,7 @@ class PushRegistrationController(
                 val intent = state.value.desired[backend.protoValue]?.takeIf { it.revision == target.revision } ?: return@collectLatest
                 val failure = try { reconcile(session, intent); null }
                 catch (cancelled: CancellationException) { throw cancelled }
-                catch (error: Exception) { error }
+                catch (error: Exception) { retainedProtocolFailure(error) }
                 commands.send(Command.Completed(backend.protoValue, target, intent, failure))
             }
         } }
@@ -208,7 +208,7 @@ class PushRegistrationController(
     private suspend fun reconcile(session: SessionId, intent: PushRegistrationIntent) {
         repeatWithBackoff(exceptionHandler = { failure ->
             if (failure is CancellationException) throw failure
-            when (failure) { is PushRegistrationException -> false; is RpcResponseException -> failure.retriable(); else -> true }
+            when (failure) { is PushRegistrationException -> false; is RpcResponseException -> failure.retriable(); else -> isRetryableProtocolFailure(failure) }
         }) {
             if (intent.encodedRegistration.isEmpty()) {
                 val unsigned = UnregisterSessionRequest(sessionId = session, backend = PushBackend.fromInt(intent.backend), credentialRevision = intent.revision)

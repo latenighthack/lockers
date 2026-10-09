@@ -22,3 +22,38 @@ so `launch` collectors escaped the runner Job inspected by cleanup. The fixture
 now passes `CoroutineScope(currentCoroutineContext())` explicitly. The normal
 return regression and complete 153-test JVM suite pass in 18 seconds
 (`/tmp/connector-controller-final-suite.log`), with no relaxed deadlines.
+
+## Observable subscription worker and storage failures
+
+Baseline tests reproduced permanent room RPC retries, a startup read leaving
+`started=true` without workers, and confirmation/removal storage exceptions
+escaping a supervised child while subscription waiters hung
+(`/tmp/connector-controller-failures-red.log`,
+`/tmp/connector-subscription-storage-red.log`). The serialized reducer now owns
+per-room failure state and startup/controller failure state, exposed through
+`subscriptionFailures` and `subscriptionFailure` StateFlows. Waiters throw the
+recorded failure promptly. Epoch/generation guards discard stale failures,
+healthy rooms continue, temporary quotas retry, and explicit repeated subscribe
+requests retry a failed intent while healthy/in-flight duplicates deduplicate.
+An applied-intent acknowledgment prevents the retry waiter from seeing an old
+failure before the new decision is reduced.
+
+Confirmation/removal storage failures retain durable pending intent for an
+explicit retry or replacement controller; no child failure is unhandled. Failed
+new-room persistence fails its caller without retaining a ghost error key.
+Startup storage failure is terminal and observable, and cancels the controller.
+Successful unsubscribe removes generation and error metadata. Room identities
+retain the existing 1..128-byte protocol bound. `maxSubscriptions` is configurable
+in `ConnectorRetentionPolicy` (default 1024, finite maximum 100000); indexed
+startup reads and atomic durable admission bound desired/failure maps. Remote
+RPC text retained in status maps is capped at 2048 characters with exact status
+codes preserved. Invalid stored snapshot data and malformed paging contracts
+are permanent failures; the snapshot rollback regression still verifies no
+partial cache publication.
+
+Verification: full 153-test JVM suite passes in 18 seconds
+(`/tmp/connector-controller-final-suite.log`), followed by Android compilation,
+Node tests, and Apple simulator tests
+(`/tmp/connector-controller-final-platforms.log`). Regressions include per-room
+isolation, explicit retry, stale-session failure, startup/save/delete failures,
+replacement recovery, finite room churn, quota admission and retained metadata.

@@ -175,23 +175,40 @@ interface AuthenticationKeySource {
     suspend fun revokeKeys()
 }
 
+class SubscriptionCapacityException : IllegalStateException("Subscription intent capacity exceeded; remove an intent or increase the finite configured limit")
+
 interface SubscriptionStore {
+    val maxSubscriptions: Int get() = 1_024
     suspend fun getAllSubscriptions(): List<StoredSubscription>
     suspend fun updateSubscription(subscription: StoredSubscription)
     suspend fun getSubscription(roomId: RoomId): StoredSubscription?
     suspend fun deleteSubscription(roomId: RoomId)
 }
 
-class SubscriptionStoreImpl(delegate: Database) : SubscriptionStore, Store<StoredSubscription>(delegate, SubscriptionStoreImplDefinitionV1) {
+class SubscriptionStoreImpl(private val database: Database, private val retentionPolicy: ConnectorRetentionPolicy = ConnectorRetentionPolicy()) : SubscriptionStore, Store<StoredSubscription>(database, SubscriptionStoreImplDefinitionV1) {
+    override val maxSubscriptions: Int get() = retentionPolicy.maxSubscriptions
     private val roomIdKey = SubscriptionStoreImplDefinitionV1.roomIdKey
 
-    override suspend fun getAllSubscriptions() = getAll()
+    override suspend fun getAllSubscriptions(): List<StoredSubscription> {
+        prepare()
+        val rows = database.query(SubscriptionStoreImplDefinitionV1.storeName, roomIdKey.query(maxSubscriptions + 1)).records
+        if (rows.size > maxSubscriptions) throw SubscriptionCapacityException()
+        return rows.map { if (it is StoredSubscription) it else StoredSubscription.fromByteArray(it as ByteArray) }
+    }
 
-    override suspend fun updateSubscription(subscription: StoredSubscription) = save(subscription)
+    override suspend fun updateSubscription(subscription: StoredSubscription) {
+        prepare()
+        require(subscription.roomIdRawValue.size in 1..128) { "Room identity must contain 1..128 bytes" }
+        database.transaction("connector-subscriptions") {
+            if (getSubscription(RoomId(subscription.roomIdRawValue)) == null &&
+                database.count(SubscriptionStoreImplDefinitionV1.storeName, roomIdKey.query(1)) >= maxSubscriptions) throw SubscriptionCapacityException()
+            save(subscription.copy(roomIdRawValue = subscription.roomIdRawValue.copyOf()))
+        }
+    }
 
     override suspend fun getSubscription(roomId: RoomId): StoredSubscription? = get(roomIdKey.eq(roomId.rawValue))
 
-    override suspend fun deleteSubscription(roomId: RoomId) = delete(roomIdKey.eq(roomId.rawValue))
+    override suspend fun deleteSubscription(roomId: RoomId) = database.transaction("connector-subscriptions") { delete(roomIdKey.eq(roomId.rawValue)) }
 }
 
 class SubscriptionController(
@@ -217,30 +234,40 @@ class SubscriptionController(
     // Serialize intent, session changes and acknowledgments so a late RPC cannot confirm
     // an obsolete session or overwrite a newer unsubscribe. RPCs still run per room.
     private sealed interface Change {
-        data class Desired(val roomId: RoomId, val subscribed: Boolean) : Change
+        data class Desired(val roomId: RoomId, val subscribed: Boolean, val applied: CompletableDeferred<Unit>) : Change
         data class Session(val sessionId: SessionId?) : Change
         data object Refresh : Change
         data class Confirmed(val roomId: RoomId, val sessionId: SessionId,
                              val generation: Long, val subscribed: Boolean) : Change
+        data class Failed(val roomId: RoomId, val sessionId: SessionId, val generation: Long, val cause: Throwable) : Change
     }
 
-    private data class Confirmations(val sessionId: SessionId? = null, val rooms: Set<RoomId> = emptySet())
+    private data class Confirmations(val sessionId: SessionId? = null, val rooms: Set<RoomId> = emptySet(), val failures: Map<RoomId, Throwable> = emptyMap())
     private val changes = kotlinx.coroutines.channels.Channel<Change>(64)
     private val confirmations = MutableStateFlow(Confirmations())
     private val closed = MutableStateFlow(false)
+    private val controllerFailure = MutableStateFlow<Throwable?>(null)
+    /** Permanent room failures retain persisted intent until an explicit retry or new session. */
+    val failures: StateFlow<Map<RoomId, Throwable>> = MappedStateFlow(confirmations) { state ->
+        state.failures.mapKeys { (room, _) -> room.canonical() }
+    }
+    /** Storage/startup failures that prevent the reducer from running. */
+    val failure: StateFlow<Throwable?> = controllerFailure.asStateFlow()
     init { controllerJob.invokeOnCompletion { closed.value = true; changes.close(StreamClosedException()) } }
     private val newSubscriptions = MutableSharedFlow<RoomId>(extraBufferCapacity = 64, onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST)
 
-    suspend fun resendSubscriptions() {
-        changes.send(Change.Refresh)
-    }
+    suspend fun resendSubscriptions() { changes.send(Change.Refresh) }
 
     suspend fun startWatchingSubscriptions() {
+        controllerFailure.value?.let { throw it }
         check(controllerJob.isActive) { "SubscriptionController is closed" }
         if (!started.compareAndSet(false, true)) return
-        val desired = subscriptionStore.getAllSubscriptions().associate {
-            RoomId(it.roomIdRawValue) to !it.isPendingRemove
-        }.toMutableMap()
+        val desired = try {
+            val rows = subscriptionStore.getAllSubscriptions()
+            if (rows.size > subscriptionStore.maxSubscriptions) throw SubscriptionCapacityException()
+            rows.associate { RoomId(it.roomIdRawValue).canonical() to !it.isPendingRemove }.toMutableMap()
+        } catch (cancelled: CancellationException) { stop(); throw cancelled }
+        catch (failure: Exception) { controllerFailure.value = retainedProtocolFailure(failure); stop(); throw failure }
 
         controllerScope.launch {
             var sessionId: SessionId? = null
@@ -250,106 +277,141 @@ class SubscriptionController(
 
             fun reconcile(roomId: RoomId, subscribed: Boolean) {
                 jobs.remove(roomId)?.cancel()
+                check(nextGeneration < Long.MAX_VALUE) { "Subscription generation exhausted" }
                 val generation = ++nextGeneration
                 generations[roomId] = generation
                 val targetSession = sessionId ?: return
                 jobs[roomId] = controllerScope.launch {
-                    repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
-                        telemetry.observe(TelemetryOperation.CONNECTOR_SUBSCRIBE) {
-                        val hydrate = hydrateSubscription
-                        if (subscribed && hydrate != null) {
-                            hydrate(roomId, targetSession)
-                        } else {
-                            val unsigned = SubscriptionRequest {
-                                this.sessionId = targetSession
-                                this.roomId = roomId
-                                if (subscribed) kind.subscribe { } else kind.unsubscribe { }
+                    try {
+                        repeatWithBackoff(exceptionHandler = ::isRetryableProtocolFailure) {
+                            telemetry.observe(TelemetryOperation.CONNECTOR_SUBSCRIBE) {
+                                val hydrate = hydrateSubscription
+                                if (subscribed && hydrate != null) hydrate(roomId, targetSession)
+                                else {
+                                    val unsigned = SubscriptionRequest {
+                                        this.sessionId = targetSession; this.roomId = roomId
+                                        if (subscribed) kind.subscribe { } else kind.unsubscribe { }
+                                    }
+                                    val signed = unsigned.copy(proof = signRequest?.invoke(SessionSigning.SUBSCRIPTION, targetSession, unsigned.toByteArray()))
+                                    val response = roomService.subscription(signed)
+                                    require(response.result !is SubscriptionResponse.Result.INVALID_DATA) { "Subscription has invalid stored data; owner repair required" }
+                                    check(response.result.isOk()) { "subscription rejected: ${response.result}" }
+                                }
                             }
-                            val signed = unsigned.copy(proof = signRequest?.invoke(SessionSigning.SUBSCRIPTION, targetSession, unsigned.toByteArray()))
-                            val response = roomService.subscription(signed)
-                            check(response.result.isOk()) { "subscription rejected: ${response.result}" }
                         }
-                        }
+                        currentCoroutineContext().ensureActive()
+                        changes.send(Change.Confirmed(roomId, targetSession, generation, subscribed))
+                    } catch (cancelled: CancellationException) { throw cancelled }
+                    catch (failure: Exception) {
+                        currentCoroutineContext().ensureActive()
+                        changes.send(Change.Failed(roomId, targetSession, generation, retainedProtocolFailure(failure)))
                     }
-                    changes.send(Change.Confirmed(roomId, targetSession, generation, subscribed))
                 }
             }
 
-            for (change in changes) {
-                when (change) {
-                    is Change.Desired -> {
-                        if (desired[change.roomId] == change.subscribed) continue
-                        desired[change.roomId] = change.subscribed
-                        confirmations.update { it.copy(rooms = it.rooms - change.roomId) }
-                        subscriptionStore.updateSubscription(StoredSubscription {
-                            roomIdRawValue = change.roomId.rawValue
-                            isPendingAdd = change.subscribed
-                            isPendingRemove = !change.subscribed
-                        })
-                        reconcile(change.roomId, change.subscribed)
-                    }
-                    is Change.Session, Change.Refresh -> {
-                        if (change is Change.Session) {
-                            if (sessionId == change.sessionId) continue
-                            sessionId = change.sessionId
+            try {
+                for (change in changes) {
+                    try {
+                        when (change) {
+                            is Change.Desired -> {
+                                if (desired[change.roomId] == change.subscribed && change.roomId !in confirmations.value.failures) {
+                                    change.applied.complete(Unit); continue
+                                }
+                                // Durable intent precedes reducer changes; a storage rejection cannot erase the previous intent.
+                                if (change.roomId !in desired && desired.size >= subscriptionStore.maxSubscriptions) throw SubscriptionCapacityException()
+                                subscriptionStore.updateSubscription(StoredSubscription {
+                                    roomIdRawValue = change.roomId.rawValue
+                                    isPendingAdd = change.subscribed; isPendingRemove = !change.subscribed
+                                })
+                                desired[change.roomId] = change.subscribed
+                                confirmations.update { it.copy(rooms = it.rooms - change.roomId, failures = it.failures - change.roomId) }
+                                reconcile(change.roomId, change.subscribed)
+                                change.applied.complete(Unit)
+                            }
+                            is Change.Session, Change.Refresh -> {
+                                if (change is Change.Session) {
+                                    if (sessionId == change.sessionId) continue
+                                    sessionId = change.sessionId
+                                }
+                                confirmations.value = Confirmations(sessionId)
+                                jobs.values.forEach { it.cancel() }; jobs.clear()
+                                desired.forEach { (room, subscribed) -> reconcile(room, subscribed) }
+                            }
+                            is Change.Confirmed -> {
+                                if (change.sessionId != sessionId || generations[change.roomId] != change.generation) continue
+                                jobs.remove(change.roomId)
+                                if (change.subscribed) {
+                                    subscriptionStore.updateSubscription(StoredSubscription { roomIdRawValue = change.roomId.rawValue })
+                                    confirmations.update { it.copy(rooms = it.rooms + change.roomId, failures = it.failures - change.roomId) }
+                                    newSubscriptions.tryEmit(change.roomId)
+                                } else {
+                                    subscriptionStore.deleteSubscription(change.roomId)
+                                    desired.remove(change.roomId); generations.remove(change.roomId)
+                                    confirmations.update { it.copy(failures = it.failures - change.roomId) }
+                                }
+                            }
+                            is Change.Failed -> {
+                                if (change.sessionId != sessionId || generations[change.roomId] != change.generation) continue
+                                jobs.remove(change.roomId)
+                                confirmations.update { it.copy(failures = it.failures + (change.roomId to change.cause)) }
+                            }
                         }
-                        confirmations.value = Confirmations(sessionId)
-                        jobs.values.forEach { it.cancel() }
-                        jobs.clear()
-                        // Reconcile every persisted intent for the new session, including rooms
-                        // previously confirmed on an old one. Never deduplicate this as a user ask.
-                        desired.forEach { (room, subscribed) -> reconcile(room, subscribed) }
-                    }
-                    is Change.Confirmed -> {
-                        if (change.sessionId != sessionId || generations[change.roomId] != change.generation) continue
-                        jobs.remove(change.roomId)
-                        if (change.subscribed) {
-                            subscriptionStore.updateSubscription(StoredSubscription {
-                                roomIdRawValue = change.roomId.rawValue
-                            })
-                            confirmations.update { it.copy(rooms = it.rooms + change.roomId) }
-                            newSubscriptions.tryEmit(change.roomId)
-                        } else {
-                            subscriptionStore.deleteSubscription(change.roomId)
-                            desired.remove(change.roomId)
+                    } catch (cancelled: CancellationException) {
+                        (change as? Change.Desired)?.applied?.completeExceptionally(cancelled)
+                        throw cancelled
+                    } catch (failure: Exception) {
+                        val room = when (change) {
+                            is Change.Desired -> change.roomId.also { change.applied.completeExceptionally(failure) }
+                            is Change.Confirmed -> change.roomId
+                            is Change.Failed -> change.roomId
+                            else -> null
                         }
+                        if (room != null) {
+                            jobs.remove(room)?.cancel()
+                            // Do not retain failed new-room requests outside the bounded persisted intent set.
+                            if (room in desired) confirmations.update { it.copy(failures = it.failures + (room to retainedProtocolFailure(failure))) }
+                        } else { controllerFailure.value = retainedProtocolFailure(failure); stop(); return@launch }
                     }
                 }
-            }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) { controllerFailure.value = retainedProtocolFailure(failure); stop() }
+            finally { jobs.values.forEach { it.cancel() } }
         }
         controllerScope.launch {
-            sessionIdSource.distinctUntilChanged().collect { changes.send(Change.Session(it)) }
+            try { sessionIdSource.distinctUntilChanged().collect { changes.send(Change.Session(it)) } }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) { controllerFailure.value = retainedProtocolFailure(failure); stop() }
         }
     }
 
     suspend fun awaitSubscription(roomId: RoomId) {
         val roomId = roomId.canonical()
-        combine(sessionIdSource, confirmations, closed, connectionSource ?: MutableStateFlow<StreamConnectionState>(StreamConnectionState.Connecting)) { session, confirmed, isClosed, state ->
+        combine(sessionIdSource, confirmations, closed, connectionSource ?: MutableStateFlow<StreamConnectionState>(StreamConnectionState.Connecting), controllerFailure) { session, confirmed, isClosed, state, failure ->
+            failure?.let { throw it }
             when (state) {
                 is StreamConnectionState.Failed -> throw StreamFailedException(state.error)
                 is StreamConnectionState.Closed -> throw StreamClosedException()
                 else -> if (isClosed) throw StreamClosedException()
             }
+            if (session == confirmed.sessionId) confirmed.failures[roomId]?.let { throw it }
             session != null && session == confirmed.sessionId && roomId in confirmed.rooms
         }.first { it }
     }
 
     fun watchNewSubscriptions(): Flow<RoomId> = newSubscriptions
-
-    suspend fun subscribe(roomId: RoomId) {
-        changes.send(Change.Desired(roomId.canonical(), true))
+    private suspend fun desired(room: RoomId, subscribed: Boolean) {
+        require(room.rawValue.size in 1..128) { "Room identity must contain 1..128 bytes" }
+        startWatchingSubscriptions()
+        val applied = CompletableDeferred<Unit>()
+        val completion = controllerJob.invokeOnCompletion { applied.completeExceptionally(controllerFailure.value ?: StreamClosedException()) }
+        try { changes.send(Change.Desired(room.canonical(), subscribed, applied)); applied.await() }
+        finally { completion.dispose() }
     }
-
-    suspend fun unsubscribe(roomId: RoomId) {
-        changes.send(Change.Desired(roomId.canonical(), false))
-    }
-
+    suspend fun subscribe(roomId: RoomId) = desired(roomId, true)
+    suspend fun unsubscribe(roomId: RoomId) = desired(roomId, false)
     suspend fun closeAndJoin() { stop(); controllerJob.join() }
+    fun stop() { controllerJob.cancel(); changes.close() }
 
-    fun stop() {
-        controllerJob.cancel()
-        changes.close()
-    }
 }
 
 /**
@@ -500,7 +562,7 @@ class Stream(
                 transition(StreamConnectionState.Connecting)
                 try { telemetry.observe(TelemetryOperation.CONNECTOR_RECONNECT) { connectInternal() } }
                 catch (failure: Throwable) {
-                    transition(StreamConnectionState.Retrying(failure.message))
+                    transition(StreamConnectionState.Retrying(failure.message?.take(2_048)))
                     throw failure
                 }
                 finally {
@@ -523,6 +585,9 @@ class Stream(
     fun watchNewSubscriptions(): Flow<RoomId> {
         return subscriptionController.watchNewSubscriptions()
     }
+
+    val subscriptionFailures: StateFlow<Map<RoomId, Throwable>> get() = subscriptionController.failures
+    val subscriptionFailure: StateFlow<Throwable?> get() = subscriptionController.failure
 
     suspend fun start() {
         check(streamJob.isActive) { "Stream is closed" }

@@ -74,7 +74,7 @@ class ReviewSnapshotRepairTests {
             else -> error(method.methodName)
         } }, db = db)
         try {
-            assertFailsWith<IllegalStateException> { client.getAllLockers(RoomId(byteArrayOf(1)), LockerKeyspace(0)) }
+            assertFailsWith<IllegalArgumentException> { client.getAllLockers(RoomId(byteArrayOf(1)), LockerKeyspace(0)) }
             assertTrue(LockerStoreImpl(db).getAllLockers().isEmpty())
         } finally { client.closeAndJoin() }
     }

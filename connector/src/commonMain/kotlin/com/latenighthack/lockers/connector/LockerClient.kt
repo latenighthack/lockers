@@ -511,6 +511,7 @@ class LockerClient(
         if (!capabilities.subscribeAndSnapshot && session != null) {
             val unsigned = SubscriptionRequest(roomId = room, sessionId = session, kind = SubscriptionRequest.OneOfKind.subscribe(SubscriptionRequest.Subscribe()))
             val response = roomService.subscription(unsigned.copy(proof = stream.signSessionRequest(SessionSigning.SUBSCRIPTION, session, unsigned.toByteArray())))
+            require(response.result !is SubscriptionResponse.Result.INVALID_DATA) { "Subscription has invalid stored data; owner repair required" }
             check(response.result.isOk()) { "Subscription rejected" }
         }
         do {
@@ -521,18 +522,20 @@ class LockerClient(
                 val unsigned = SubscribeAndSnapshotRequest(roomId = room, sessionId = session,
                     pageSize = if (capabilities.snapshotPaging) 64 else 0, pageToken = token)
                 val response = roomService.subscribeAndSnapshot(unsigned.copy(proof = stream.signSessionRequest(SessionSigning.SNAPSHOT, session, unsigned.toByteArray())))
+                require(response.result !is SubscriptionResponse.Result.INVALID_DATA) { "Snapshot has invalid stored data; owner repair required" }
                 check(response.result.isOk()) { "Subscribe and snapshot rejected" }
                 page = response.lockers; sequence = response.roomSequence; next = response.nextPageToken
             } else {
                 val response = roomService.getAllLockers(GetAllLockersRequest(roomId = room,
                     pageSize = if (capabilities.snapshotPaging) 64 else 0, pageToken = token))
+                require(response.result !is GetAllLockersResponse.Result.INVALID_DATA) { "Snapshot has invalid stored data; owner repair required" }
                 check(response.result.isOk()) { "Snapshot rejected" }
                 page = response.lockers; sequence = response.roomSequence; next = response.nextPageToken
             }
-            if (watermark == null) watermark = sequence else check(watermark == sequence) { "Snapshot watermark changed between pages" }
+            if (watermark == null) watermark = sequence else require(watermark == sequence) { "Snapshot watermark changed between pages" }
             lockers += page
-            check(capabilities.snapshotPaging || next.isEmpty()) { "Unexpected unnegotiated snapshot page" }
-            check(next.isEmpty() || seenTokens.add(next.toBase64String())) { "Snapshot page token repeated" }
+            require(capabilities.snapshotPaging || next.isEmpty()) { "Unexpected unnegotiated snapshot page" }
+            require(next.isEmpty() || seenTokens.add(next.toBase64String())) { "Snapshot page token repeated" }
             token = next
         } while (token.isNotEmpty())
         val present = lockers.mapNotNull { it.lockerId?.canonical() }.toSet()
@@ -541,6 +544,7 @@ class LockerClient(
         val repairs = missing.map { stored ->
             val id = LockerId(stored.lockerIdRawValue, LockerKeyspace(stored.lockerKeyspace))
             val response = roomService.getLocker(GetLockerRequest(room, id))
+            require(response.result !is GetLockerResponse.Result.INVALID_DATA) { "Missing snapshot record has invalid stored data; owner repair required" }
             check(response.result.isOk()) { "Missing snapshot record confirmation rejected" }
             stored to response.locker
         }
@@ -800,6 +804,9 @@ class LockerClient(
     }
 
     suspend fun closeAndJoin() { stop(); processingJob.join() }
+
+    val subscriptionFailures: StateFlow<Map<RoomId, Throwable>> get() = stream.subscriptionFailures
+    val subscriptionFailure: StateFlow<Throwable?> get() = stream.subscriptionFailure
 
     suspend fun subscribeToRoom(roomId: RoomId, waitForSubscription: Boolean = true) {
         stream.subscribe(roomId.canonical(), waitForSubscription)

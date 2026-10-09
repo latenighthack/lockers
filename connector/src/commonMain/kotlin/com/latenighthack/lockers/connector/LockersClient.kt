@@ -45,6 +45,9 @@ class LockersClient private constructor(
     /** The current session id once the session has opened, else null. */
     val sessionId: StateFlow<SessionId?> get() = stream.sessionId
 
+    val subscriptionFailures: StateFlow<Map<com.latenighthack.lockers.common.v1.RoomId, Throwable>> get() = stream.subscriptionFailures
+    val subscriptionFailure: StateFlow<Throwable?> get() = stream.subscriptionFailure
+
     /** Suspends until the stream connects at least once. */
     suspend fun awaitConnected() {
         stream.awaitConnected()
@@ -145,7 +148,7 @@ class LockersClient private constructor(
         ): LockersClient {
             database.open()
             val sessionStore = SessionStoreImpl(keyValueStore, database, retentionPolicy)
-            val subscriptionStore = SubscriptionStoreImpl(database)
+            val subscriptionStore = SubscriptionStoreImpl(database, retentionPolicy)
             val lockerStore = LockerStoreImpl(database, retentionPolicy)
             val pushRegistrationStore = PushRegistrationStoreImpl(database)
 
