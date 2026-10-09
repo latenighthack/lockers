@@ -172,6 +172,13 @@ class SessionStoreImpl(private val keyValueStore: KeyValueStore, private val dat
 
 }
 
+/** Optional identity lifecycle signal; existing authentication key sources retain their ABI. */
+interface AuthenticationSessionGeneration {
+    /** Advances when the authentication identity is revoked. The stream cancels the old
+     * connection and discards its persisted session before waiting for the replacement key. */
+    val sessionGeneration: Flow<Long>
+}
+
 interface AuthenticationKeySource {
     suspend fun getSessionKeyPair(): Secp256r1KeyPair
     suspend fun hasSessionKeyPair(): Boolean
@@ -783,7 +790,17 @@ class Stream(
             // connect() throws on fatal errors and on retry exhaustion; either way the
             // outcome belongs in fatalError, not an uncaught scope crash
             try {
-                connect()
+                var previousGeneration: Long? = null
+                val generations = (keySource as? AuthenticationSessionGeneration)?.sessionGeneration ?: flowOf(0L)
+                generations.distinctUntilChanged().collectLatest { generation ->
+                    if (previousGeneration != null) {
+                        transition(StreamConnectionState.Connecting)
+                        sessionStore.updateNextSequenceBytes(null)
+                        sessionStore.updateSessionId(null)
+                    }
+                    previousGeneration = generation
+                    connect()
+                }
             } catch (ignoredRecordedFatal: FatalStreamException) {
                 // fatalErrorState already set by failFatally
             } catch (e: RetryLimitExceeded) {

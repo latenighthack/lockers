@@ -55,4 +55,30 @@ class OwnedTestFixtureTests {
         assertTrue(collectorJoined)
         assertTrue(captured!!.connection.value is StreamConnectionState.Closed)
     }
+    @Test(timeout = 15_000) fun `authentication generation replaces the live session and its persisted proof`() {
+        runOwnedTestWithServer({ attachTestServices() }) { server, _ ->
+            var key = Secp256r1KeyPair.generate()
+            val generation = kotlinx.coroutines.flow.MutableStateFlow(0L)
+            val client = createOwnedTestClient(server.ownedRpcClient, ConnectorStorage.inMemory(),
+                KeyValueStore(InMemoryKeyValueStoreDelegate()),
+                object : AuthenticationKeySource, AuthenticationSessionGeneration {
+                    override val sessionGeneration = generation
+                    override suspend fun getSessionKeyPair() = key
+                    override suspend fun hasSessionKeyPair() = true
+                    override suspend fun generateSessionKeyPair() {}
+                    override suspend fun revokeKeys() {}
+                }, Version())
+            withContext(Dispatchers.Default) { withTimeout(5_000) {
+                client.awaitConnected()
+                val oldSession = client.sessionId.value
+                key = Secp256r1KeyPair.generate()
+                generation.value += 1
+                val newSession = client.sessionId.first { it != null && it != oldSession }
+                assertNotEquals(oldSession, newSession)
+                // This unary proof must authenticate against the replacement key, not the old session.
+                client.lockers.subscribeToRoom(RoomId(byteArrayOf(8, 7, 6)))
+            } }
+        }
+    }
+
 }
