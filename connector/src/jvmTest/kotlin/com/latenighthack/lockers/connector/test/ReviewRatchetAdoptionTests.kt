@@ -9,6 +9,46 @@ import kotlinx.coroutines.*
 import kotlin.test.*
 
 class ReviewRatchetAdoptionTests {
+    @Test fun `shared scope adoption failure identifies the original committed source`() = runBlocking {
+        val db = ConnectorStorage.inMemory()
+        db.open()
+        val old = Secp256r1KeyPair.generate()
+        val rotated = Secp256r1KeyPair.generate()
+        val room = RoomId(byteArrayOf(1))
+        val original = LockerId(byteArrayOf(2), LockerKeyspace(0))
+        val target = LockerId(byteArrayOf(3), LockerKeyspace(0))
+        val scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM)
+        val state = LockState(locked = true, scope = scope, lockVersion = 2,
+            publicKey = Secp256R1Key.PublicKey(rotated.publicKey.encode()))
+        val request = PostLockerChangeRequest(roomId = room, lockerId = original,
+            parentVersion = 4, writeRequestId = ByteArray(32) { 7 },
+            writeSignature = Signature(publicKey = Secp256R1Key.PublicKey(old.publicKey.encode())),
+            ratchet = PostLockerChangeRequest.Ratchet(newPublicKey = state.publicKey))
+        LockerStoreImpl(db).archiveRatchet(ArchivedRatchet(PendingRatchet(request, rotated.privateKey.encode()), state, 5))
+        var posts = 0
+        val rpc = ReviewRpc { method, _ -> when (method.methodName) {
+            "Capabilities" -> CapabilitiesResponse(authorityV2 = true, writeReceipts = true).toByteArray()
+            "GetLocker" -> GetLockerResponse(locker = IdentifiedLocker(target, version = 17, lockState = state)).toByteArray()
+            "GetLockScope" -> GetLockScopeResponse(scopeState = state).toByteArray()
+            "PostLockerChange" -> { posts++; error("No new source should commit before key adoption") }
+            else -> error(method.methodName)
+        } }
+        val client = reviewClient(rpc, object : LockKeySource {
+            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = old
+        }, db)
+        var transforms = 0
+        try {
+            val failure = assertFailsWith<RatchetAdoptionPendingException> {
+                client.updateLocker(room, target) { transforms++; byteArrayOf(9) }
+            }
+            assertContentEquals(request.writeRequestId, failure.writeRequestId)
+            assertEquals(original, failure.sourceVersions.single().lockerId)
+            assertEquals(5, failure.sourceVersions.single().version)
+            assertEquals(0, transforms)
+            assertEquals(0, posts)
+        } finally { client.closeAndJoin(); db.close() }
+    }
+
     @Test fun `default no-op adoption retains the committed private key for a replacement source`() = runBlocking {
         val db = ConnectorStorage.inMemory()
         val old = Secp256r1KeyPair.generate()
