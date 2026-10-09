@@ -61,8 +61,9 @@ PostgreSQL gate passed in the integrated root run. Raw logs:
 `/tmp/lockers-static-final-verified.log`,
 `/tmp/lockers-static-final-detekt-confirm.log`.
 
-The compiler's remaining nullability and unstable StateFlow implementation warnings
-are visible for the owning connector/server follow-ups; this change does not add
-warning suppressions. The previous commonMain naming and GlobalScope probes remain
+The compiler-proven redundant nullability operators in RoomServiceImpl were removed
+and its compile/detekt checks pass without server warnings. Connector nullability and
+unstable StateFlow implementation warnings remain visible for the owning follow-up;
+this change does not add warning suppressions. The previous commonMain naming and GlobalScope probes remain
 valid gate evidence in F42. Runtime cancellation tests supplement syntax analysis;
 a clean detekt report alone does not prove coroutine correctness.

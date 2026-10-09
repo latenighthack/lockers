@@ -204,7 +204,7 @@ class RoomServiceImpl(
     ): R? {
         if (context.query.containsKey(FORWARDED_PARAM) && (config.peerToken == null || trustedPeer(context))) return null
         // Advertise addresses are schemeless host:port — exactly what JVM HttpRpcClient wants.
-        val address = redirect.ownerAddress?.takeIf { it.isNotBlank() } ?: run {
+        val address = redirect.ownerAddress.takeIf { it.isNotBlank() } ?: run {
             roomOwnership.invalidate(room)
             requireRedirectAccess(context)
             return null
@@ -498,10 +498,11 @@ class RoomServiceImpl(
                         sourceVersions = normalized.zip(results) { change, result -> WriteSourceVersion(change.lockerId, result.version) }), PostLockerChangesResponse::writeTo)
                     val order = outbox.watermark(room)
                     check(order < Long.MAX_VALUE) { "Agent source order exhausted" }
-                    outbox.agentWork.create(room, request.copy(changes = normalized), pending!!, agentVersion, order + 1, applied = agentRegistry === LockerAgentRegistry.None)
+                    outbox.agentWork.create(room, request.copy(changes = normalized), pending, agentVersion, order + 1,
+                        applied = agentRegistry === LockerAgentRegistry.None)
 
                     outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
-                        request.writeRequestId, ServerRoomId(room.rawValue), digest, pending!!.toByteArray()))
+                        request.writeRequestId, ServerRoomId(room.rawValue), digest, pending.toByteArray()))
                 }
                 }
                 trace.recipients = recipients.size
@@ -1057,7 +1058,9 @@ class RoomServiceImpl(
         kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
             var failed: Throwable? = null
             suspend fun cleanup(block: suspend () -> Unit) {
-                try { block() } catch (failure: Throwable) { if (failed == null) failed = failure else failed!!.addSuppressed(failure) }
+                try { block() } catch (failure: Throwable) {
+                    if (failed == null) failed = failure else failed.addSuppressed(failure)
+                }
             }
             cleanup { agentWorkflow.closeAndJoin() }
             cleanup { forwardConnections.closeAndJoin() }
