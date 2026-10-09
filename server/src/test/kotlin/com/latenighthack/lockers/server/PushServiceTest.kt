@@ -97,6 +97,38 @@ class PushServiceTest {
             this.registration = registration
         })
 
+    @Test fun `provider timeout advances durable retry budget and parks without losing work`(): Unit = runBlocking {
+        val provider = RecordingPushProvider(PushBackendKind.APNS).apply { gate = CompletableDeferred() }
+        val h = harness(listOf(provider), PushDispatchConfig(retryPolicy = fastRetries, sendTimeoutMs = 20))
+        val sid = sessionId(98)
+        h.client.register(sid, apns("token"))
+        h.impl.start()
+        try {
+            h.gateway.sendPush(SendPushRequest(sessionId = sid, push = Push(), deliveryId = ByteArray(32) { 8 }))
+            awaitDeadLetters(h, 1)
+            assertThat(h.deadLetterStore.getAllDeadLetters().single().attempts).isEqualTo(3)
+            assertThat(provider.sends.size).isEqualTo(3)
+        } finally { h.impl.stopAndJoin() }
+    }
+
+    @Test fun `replica without a backend cannot consume another replicas durable work`(): Unit = runBlocking {
+        val db = ServerStorage.inMemory()
+        val first = harness(listOf(RecordingPushProvider(PushBackendKind.APNS)), delegate = db)
+        val fcm = RecordingPushProvider(PushBackendKind.FCM)
+        val second = harness(listOf(fcm), delegate = db)
+        val sid = sessionId(99)
+        first.client.register(sid, fcm("fcm-token"))
+        first.impl.start()
+        try {
+            first.gateway.sendPush(SendPushRequest(sessionId = sid, push = Push(), deliveryId = ByteArray(32) { 9 }))
+            delay(500)
+            assertThat(first.admin.getQueueStats(GetQueueStatsRequest()).queued).isEqualTo(1L)
+            second.impl.start()
+            withTimeout(5_000) { while (fcm.sends.isEmpty()) delay(10) }
+            assertThat(fcm.sends.size).isEqualTo(1)
+        } finally { first.impl.stopAndJoin(); second.impl.stopAndJoin(); db.close() }
+    }
+
     @Test fun `late credential revisions cannot overwrite or unregister newer registration`(): Unit = runBlocking {
         val h = harness(emptyList())
         val sid = sessionId(70)

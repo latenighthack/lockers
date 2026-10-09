@@ -42,6 +42,9 @@ class FcmPushProvider(private val config: FcmConfig) : PushProvider {
             val app = FileInputStream(config.credentialsPath!!).use { stream ->
                 val options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(stream))
+                    .setConnectTimeout(10_000)
+                    .setReadTimeout(30_000)
+                    .setWriteTimeout(30_000)
                     .build()
                 FirebaseApp.initializeApp(options, appName)
             }

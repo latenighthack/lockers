@@ -141,16 +141,6 @@ class PushServiceImpl(
     private fun counter(name: String, backend: PushBackendKind) =
         meterRegistry.counter(name, "backend", backend.tag)
 
-    private fun incQueue(backend: PushBackendKind?) {
-        totalQueueGauge.incrementAndGet()
-        backend?.let { queueDepth[it]?.incrementAndGet() }
-    }
-
-    private fun decQueue(backend: PushBackendKind?) {
-        totalQueueGauge.decrementAndGet()
-        backend?.let { queueDepth[it]?.decrementAndGet() }
-    }
-
     fun start() {
         synchronized(this) { check(!closed && !started) { "Push service already started or closed" }; started = true }
         if (!dispatch.workerEnabled) {
@@ -165,7 +155,8 @@ class PushServiceImpl(
         check(processorJob == null) { "Push processor already started" }
         processorJob = processorScope.launch {
             coroutineScope {
-                for (backend in listOf(0) + PushBackendKind.entries.map { it.protoValue }) {
+                launch { while (isActive) { try { pushQueueStore.maintain(); seedGauges() } catch (cancelled: CancellationException) { throw cancelled } catch (error: Exception) { logger.warn("push maintenance failed", error) }; delay(1_000) } }
+                for (backend in listOf(0) + pushProviders.filter { it.isConfigured }.map { it.backend.protoValue }.distinct()) {
                     val count = if (backend == 0) 1 else dispatch.sendConcurrencyPerBackend.coerceIn(1, 256)
                     val slots = Semaphore(count)
                     val claimed = Channel<PushClaim>(count)
@@ -199,14 +190,13 @@ class PushServiceImpl(
         }
     }
 
-    private suspend fun seedGauges() =
-        seedGaugesFrom(pushQueueStore.getPendingPushes(), pushDeadLetterStore.getAllDeadLetters())
-
-    private fun seedGaugesFrom(pending: List<ServerPush>, dead: List<ServerDeadLetter>) {
-        totalQueueGauge.set(pending.size)
+    private suspend fun seedGauges() {
+        val pending = pushQueueStore.pendingCounts()
+        val dead = pushDeadLetterStore.counts()
+        totalQueueGauge.set(pending.values.sum().coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
         for (backend in PushBackendKind.entries) {
-            queueDepth[backend]?.set(pending.count { it.backend == backend.protoValue })
-            deadLetterDepth[backend]?.set(dead.count { it.backend == backend.protoValue })
+            queueDepth[backend]?.set((pending[backend.protoValue] ?: 0).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+            deadLetterDepth[backend]?.set((dead[backend.protoValue] ?: 0).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
         }
     }
 
@@ -258,14 +248,14 @@ class PushServiceImpl(
         val pushId = push.pushId ?: return
         val backend = PushBackendKind.fromProtoValue(push.backend)
         if (backend == null) {
-            dequeue(claim, null)
+            parkUnknownBackend(claim)
             return
         }
 
         val provider = providersByBackend[backend]
         if (provider == null || !provider.isConfigured) {
-            // Unconfigured backend: drop rather than spin the queue.
-            dequeue(claim, backend)
+            // Capable replicas own this lane. Configuration changes cannot discard durable work.
+            pushQueueStore.release(claim, System.currentTimeMillis() + 1_000)
             return
         }
 
@@ -281,7 +271,7 @@ class PushServiceImpl(
         val result = sendSemaphores.getValue(backend).withPermit {
             val startNanos = System.nanoTime()
             val sendResult = try {
-                telemetry.observe(TelemetryOperation.PUSH_SEND, { when (it) { is PushResult.Accepted -> TelemetryOutcome.OK; is PushResult.Rejected -> TelemetryOutcome.REJECTED; is PushResult.Retryable -> TelemetryOutcome.ERROR } }) { provider.send(registration, Push.fromByteArray(push.encodedPush)) }
+                telemetry.observe(TelemetryOperation.PUSH_SEND, { when (it) { is PushResult.Accepted -> TelemetryOutcome.OK; is PushResult.Rejected -> TelemetryOutcome.REJECTED; is PushResult.Retryable -> TelemetryOutcome.ERROR } }) { withTimeoutOrNull(dispatch.sendTimeoutMs) { provider.send(registration, Push.fromByteArray(push.encodedPush)) } ?: PushResult.Retryable("Provider send deadline exceeded") }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
                 PushResult.Retryable(e.message ?: "send threw")
@@ -308,7 +298,7 @@ class PushServiceImpl(
 
             is PushResult.Retryable -> {
                 counter("lockers.push.failed", backend).increment()
-                val nextAttempt = push.attempt + 1
+                val nextAttempt = if (push.attempt == Int.MAX_VALUE) Int.MAX_VALUE else push.attempt + 1
                 if (nextAttempt < dispatch.retryPolicy.maxAttempts) {
                     counter("lockers.push.retried", backend).increment()
                     // Persist the attempt so the budget survives a restart.
@@ -334,8 +324,16 @@ class PushServiceImpl(
 
     private suspend fun dequeue(claim: PushClaim, backend: PushBackendKind?): Boolean {
         val finished = pushQueueStore.finish(claim)
-        if (finished) decQueue(backend)
         return finished
+    }
+
+    private suspend fun parkUnknownBackend(claim: PushClaim) {
+        val push = claim.push
+        pushQueueStore.finish(claim, "Unknown push backend") {
+            pushDeadLetterStore.saveDeadLetter(ServerDeadLetter(pushId = push.pushId, sessionId = push.sessionId,
+                backend = push.backend, encodedPush = push.encodedPush, attempts = push.attempt,
+                reason = "Unknown push backend", deadLetteredAt = System.currentTimeMillis()))
+        }
     }
 
     private suspend fun deadLetter(claim: PushClaim, backend: PushBackendKind, reason: String) {
@@ -353,8 +351,7 @@ class PushServiceImpl(
             })
         }
         if (finished) {
-            decQueue(backend)
-            deadLetterDepth[backend]?.incrementAndGet()
+
             counter("lockers.push.deadlettered", backend).increment()
             logger.warn("Dead-lettered {} push after {} attempts", backend.name, push.attempt)
         }
@@ -462,7 +459,6 @@ class PushServiceImpl(
                     this.encodedPush = encodedPush
                 }
                 if (!pushQueueStore.enqueue(serverPush, stableIdentity = request.deliveryId.isNotEmpty())) continue
-                incQueue(backend)
                 backend?.let { counter("lockers.push.enqueued", it).increment() }
                 workAvailable.trySend(Unit)
             }
@@ -497,13 +493,13 @@ class PushServiceImpl(
         request: GetQueueStatsRequest,
     ): GetQueueStatsResponse {
         authorizeAdmin(context)
-        val queued = pushQueueStore.getPendingPushes()
-        val dead = pushDeadLetterStore.getAllDeadLetters()
+        val queued = pushQueueStore.pendingCounts()
+        val dead = pushDeadLetterStore.counts()
         return GetQueueStatsResponse {
-            this.queued = queued.size.toLong()
-            this.deadLettered = dead.size.toLong()
-            this.queuedByBackend = backendCounts(queued.groupingBy { it.backend }.eachCount())
-            this.deadLetteredByBackend = backendCounts(dead.groupingBy { it.backend }.eachCount())
+            this.queued = queued.values.sum()
+            this.deadLettered = dead.values.sum()
+            this.queuedByBackend = backendCounts(queued)
+            this.deadLetteredByBackend = backendCounts(dead)
         }
     }
 
@@ -512,10 +508,10 @@ class PushServiceImpl(
         request: DrainQueueRequest,
     ): DrainQueueResponse {
         authorizeAdmin(context)
-        val pending = pushQueueStore.getPendingPushes()
+        val pending = pushQueueStore.pendingCounts().values.sum()
         workAvailable.trySend(Unit)
-        logger.info("Drain re-fed ${pending.size} queued pushes to the processor")
-        return DrainQueueResponse { drained = pending.size.toLong() }
+        logger.info("Drain re-fed $pending queued pushes to the processor")
+        return DrainQueueResponse { drained = pending }
     }
 
     override suspend fun listDeadLetters(
@@ -523,8 +519,8 @@ class PushServiceImpl(
         request: ListDeadLettersRequest,
     ): ListDeadLettersResponse {
         authorizeAdmin(context)
-        val limit = if (request.limit <= 0) DEFAULT_DEAD_LETTER_LIMIT else request.limit
-        val items = pushDeadLetterStore.getAllDeadLetters().take(limit).map { it.toProto() }
+        val limit = if (request.limit <= 0) DEFAULT_DEAD_LETTER_LIMIT else request.limit.coerceAtMost(256)
+        val items = pushDeadLetterStore.page(limit).first.map { it.toProto() }
         return ListDeadLettersResponse { deadLetters = items }
     }
 
@@ -533,25 +529,24 @@ class PushServiceImpl(
         request: RetryDeadLettersRequest,
     ): RetryDeadLettersResponse {
         authorizeAdmin(context)
-        val targets = selectDeadLetters(request.pushIds)
+        val targets = selectedDeadLetters(request.pushIds)
         var retried = 0L
-        for (dead in targets) {
-            val pushId = dead.pushId ?: continue
-            val backend = PushBackendKind.fromProtoValue(dead.backend)
-            val requeued = ServerPush {
-                this.pushId = pushId
-                dead.sessionId?.let { this.sessionId = it }
-                this.backend = dead.backend
-                this.encodedPush = dead.encodedPush
-                this.attempt = 0
+        targets.collect { snapshot ->
+            val pushId = snapshot.pushId ?: return@collect
+            pushQueueStore.adminTransaction {
+                val dead = pushDeadLetterStore.getDeadLetter(pushId) ?: return@adminTransaction
+                val requeued = ServerPush(pushId = pushId, sessionId = dead.sessionId, backend = dead.backend,
+                    encodedPush = dead.encodedPush, attempt = 0)
+                try { pushQueueStore.savePush(requeued) }
+                catch (expired: IllegalStateException) {
+                    if (expired.message == "Expired push requires a new delivery identity") return@adminTransaction
+                    throw expired
+                }
+                pushDeadLetterStore.deleteDeadLetter(pushId)
+                PushBackendKind.fromProtoValue(dead.backend)?.let { counter("lockers.push.enqueued", it).increment() }
+                retried++
             }
-            pushQueueStore.savePush(requeued)
-            incQueue(backend)
-            backend?.let { counter("lockers.push.enqueued", it).increment() }
-            pushDeadLetterStore.deleteDeadLetter(pushId)
-            backend?.let { deadLetterDepth[it]?.decrementAndGet() }
             workAvailable.trySend(Unit)
-            retried++
         }
         logger.info("Retried $retried dead letters")
         return RetryDeadLettersResponse { this.retried = retried }
@@ -562,32 +557,38 @@ class PushServiceImpl(
         request: PurgeDeadLettersRequest,
     ): PurgeDeadLettersResponse {
         authorizeAdmin(context)
-        val targets = selectDeadLetters(request.pushIds)
+        val targets = selectedDeadLetters(request.pushIds)
         var purged = 0L
-        for (dead in targets) {
-            val pushId = dead.pushId ?: continue
-            pushDeadLetterStore.deleteDeadLetter(pushId)
-            PushBackendKind.fromProtoValue(dead.backend)?.let { deadLetterDepth[it]?.decrementAndGet() }
-            purged++
+        targets.collect { dead ->
+            val pushId = dead.pushId ?: return@collect
+            pushQueueStore.adminTransaction {
+                if (pushDeadLetterStore.getDeadLetter(pushId) == null) return@adminTransaction
+                pushQueueStore.resolveParked(pushId)
+                pushDeadLetterStore.deleteDeadLetter(pushId)
+                purged++
+            }
         }
         logger.info("Purged $purged dead letters")
         return PurgeDeadLettersResponse { this.purged = purged }
     }
 
-    private suspend fun selectDeadLetters(pushIds: List<ByteArray>): List<ServerDeadLetter> =
-        if (pushIds.isEmpty()) {
-            pushDeadLetterStore.getAllDeadLetters()
-        } else {
-            pushIds.mapNotNull { pushDeadLetterStore.getDeadLetter(ServerPushId(it)) }
+    private fun selectedDeadLetters(pushIds: List<ByteArray>): Flow<ServerDeadLetter> = flow {
+        require(pushIds.size <= 256) { "At most 256 dead-letter identities per request" }
+        require(pushIds.all { it.size in 1..64 }) { "Invalid dead-letter identity" }
+        if (pushIds.isNotEmpty()) pushIds.forEach { id -> pushDeadLetterStore.getDeadLetter(ServerPushId(id))?.let { emit(it) } }
+        else {
+            var after: com.latenighthack.ktstore.LocalContinuation? = null
+            do {
+                val page = pushDeadLetterStore.page(128, after)
+                page.first.forEach { emit(it) }
+                after = page.second
+            } while (after != null)
         }
+    }
 
-    private fun backendCounts(counts: Map<Int, Int>): List<BackendCount> =
-        counts.map { (backend, count) ->
-            BackendCount {
-                this.backend = PushBackend.fromInt(backend)
-                this.count = count.toLong()
-            }
-        }
+    private fun backendCounts(counts: Map<Int, Long>): List<BackendCount> = counts.filterValues { it > 0 }.map { (backend, count) ->
+        BackendCount(backend = PushBackend.fromInt(backend), count = count)
+    }
 
     private fun ServerDeadLetter.toProto(): DeadLetter = DeadLetter {
         this.pushId = this@toProto.pushId?.rawValue ?: ByteArray(0)

@@ -29,6 +29,8 @@ object ServerStorage {
         com.latenighthack.lockers.server.services.room.v1.OutboxEntriesDefinitionV2("push_delivery"),
         com.latenighthack.lockers.server.services.room.v1.OutboxHeadsDefinitionV2("push_delivery"),
         com.latenighthack.lockers.server.services.push.v1.PushWorkDefinitionV2,
+        com.latenighthack.lockers.server.services.push.v1.PushRetentionDefinitionV3,
+        com.latenighthack.lockers.server.services.push.v1.PushDeadLetterIndexDefinitionV2,
         com.latenighthack.lockers.server.services.push.v1.PushCredentialDefinitionV2,
         com.latenighthack.lockers.server.services.session.v1.SessionInboxMetadataDefinitionV2,
         com.latenighthack.lockers.server.services.session.v1.InboxDeliveryReceiptDefinitionV2,
