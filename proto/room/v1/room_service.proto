@@ -106,6 +106,8 @@ message DeleteLockerRequest {
   // Required when the effective scope is locked: signs
   // writeContext(room_id, locker_id, new_version, empty-hash).
   common.v1.Signature write_signature = 5;
+  // Immutable retry identity; empty only for legacy callers.
+  bytes write_request_id = 6;
 
   common.v1.Notification notification = 10;
 }
@@ -120,12 +122,14 @@ message DeleteLockerResponse {
     NOT_AUTHORIZED = 4;
     // This node does not own the room's shard; retry against `redirect.owner_address`.
     NOT_OWNER = 5;
+    REQUEST_ID_REUSED = 6;
     UNKNOWN_ERROR = 10;
   }
   common.v1.Locker existing_locker = 2;
   int64 version = 3;
   common.v1.LockState lock_state = 4;
   common.v1.ShardRedirect redirect = 5;
+  bytes write_request_id = 6;
 }
 
 message LockLockerRequest {
