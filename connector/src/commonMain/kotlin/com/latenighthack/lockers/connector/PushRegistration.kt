@@ -180,14 +180,14 @@ class PushRegistrationController(
         scope.launch {
             if (connectionSource != null) connectionSource.collect { connection ->
                 when (connection) {
-                    is StreamConnectionState.Connected -> commands.send(Command.Session(connection.sessionId, connection.epoch))
+                    is StreamConnectionState.Connected -> commands.send(Command.Session(connection.sessionId.canonical(), connection.epoch))
                     is StreamConnectionState.Failed -> commands.send(Command.Session(null, 0, StreamFailedException(connection.error)))
                     is StreamConnectionState.Closed -> commands.send(Command.Session(null, 0, StreamClosedException()))
                     else -> commands.send(Command.Session(null, 0))
                 }
             } else {
                 var epoch = 0L
-                sessionIdSource.collect { session -> commands.send(Command.Session(session, if (session == null) epoch else ++epoch)) }
+                sessionIdSource.collect { session -> commands.send(Command.Session(session?.canonical(), if (session == null) epoch else ++epoch)) }
             }
         }
         PushBackendType.entries.forEach { backend -> scope.launch {

@@ -1,6 +1,7 @@
 package com.latenighthack.lockers.connector
 
 import com.latenighthack.lockers.observability.*
+import com.latenighthack.lockers.common.v1.*
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -17,6 +18,7 @@ internal class LockerSyncCoordinator(private val scope: CoroutineScope, private 
 
     @Suppress("UNCHECKED_CAST")
     suspend fun <T> read(key: Any, operation: suspend () -> T): T {
+        val key = requireNotNull(canonicalKey(key))
         val tracing = currentCoroutineContext()[TelemetryContext]?.tracing ?: kotlin.coroutines.EmptyCoroutineContext
         val work = mutex.withLock {
             reads[key] ?: run { check(reads.size < 1_024) { "Read admission limit exceeded" }; scope.async(tracing, start = CoroutineStart.LAZY) {
@@ -27,6 +29,7 @@ internal class LockerSyncCoordinator(private val scope: CoroutineScope, private 
         return work.await() as T
     }
     suspend fun <T> mutate(key: Any, operation: suspend () -> T): T {
+        val key = requireNotNull(canonicalKey(key))
         val entry = mutex.withLock {
             check(mutationUsers < 1_024) { "Mutation admission limit exceeded" }
             mutations.getOrPut(key) { Mutation() }.also { it.users++; mutationUsers++ }
@@ -65,4 +68,15 @@ private class PriorityNetworkGate(private val limit: Int, private val telemetry:
         val next = if (writes.isNotEmpty()) writes.removeFirst() else if (reads.isNotEmpty()) reads.removeFirst() else null
         if (next == null) active-- else next.complete(Unit)
     }
+}
+
+private fun canonicalKey(key: Any?): Any? = when (key) {
+    is RoomId -> key.canonical()
+    is LockerId -> key.canonical()
+    is LockerKeyspace -> key.canonical()
+    is SessionId -> key.canonical()
+    is Pair<*, *> -> canonicalKey(key.first) to canonicalKey(key.second)
+    is Triple<*, *, *> -> Triple(canonicalKey(key.first), canonicalKey(key.second), canonicalKey(key.third))
+    is List<*> -> key.map(::canonicalKey)
+    else -> key
 }

@@ -38,7 +38,7 @@ internal fun Locker.plaintextPayload(): ByteArray =
     LockerEnvelope.payload(this)
 
 private fun IdentifiedLocker.toUpdate(roomId: RoomId, roomSequence: Long = 0L) =
-    LockerClient.LockerUpdate(roomId, lockerId!!, version, locker?.plaintextPayload() ?: byteArrayOf(), deleted = locker == null, roomSequence = roomSequence)
+    LockerClient.LockerUpdate(roomId.canonical(), lockerId!!.canonical(), version, locker?.plaintextPayload() ?: byteArrayOf(), deleted = locker == null, roomSequence = roomSequence)
 
 private fun StoredLocker.toIdentifiedLocker(): IdentifiedLocker {
     val storedVersion = version
@@ -52,9 +52,14 @@ private fun StoredLocker.toIdentifiedLocker(): IdentifiedLocker {
     }
 }
 
-internal fun LockerId.canonical() = copy(keyspace = keyspace ?: LockerKeyspace(0))
+/** Identity is raw bytes plus numeric keyspace; unknown wrapper fields are not authority. */
+internal fun RoomId.canonical() = RoomId(rawValue.copyOf())
+internal fun SessionId.canonical() = SessionId(rawValue.copyOf())
+internal fun LockerKeyspace.canonical() = LockerKeyspace(value)
+internal fun LockerId.canonical() = LockerId(rawValue.copyOf(), LockerKeyspace(keyspace?.value ?: 0L))
+internal fun LockScope.canonical() = LockScope(kind, keyspace?.canonical(), lockerRawValue.copyOf())
 
-private fun LockerId.keyspaceOrDefault() = keyspace ?: LockerKeyspace { value = 0L }
+private fun LockerId.keyspaceOrDefault() = LockerKeyspace(keyspace?.value ?: 0L)
 
 private fun LockerClient.LockerUpdate.toStored() = StoredLocker {
     roomIdRawValue = roomId.rawValue.copyOf()
@@ -104,16 +109,17 @@ sealed interface TypedLockerUpdate<out V> {
 
 class TypedLockerClient<ValueType>(
     private val lockerClient: LockerClient,
-    private val keyspace: LockerKeyspace,
+    keyspace: LockerKeyspace,
     private val writer: KFunction1<ValueType, ByteArray>,
     private val reader: KFunction1<ByteArray, ValueType>
 ) {
+    private val keyspace = keyspace.canonical()
     private fun LockerId.scoped(): LockerId {
         val existing = keyspace
-        require(existing == null || existing == this@TypedLockerClient.keyspace) {
+        require(existing == null || existing.value == this@TypedLockerClient.keyspace.value) {
             "LockerId keyspace ${existing?.value} does not match this client's keyspace ${this@TypedLockerClient.keyspace.value}"
         }
-        return copy(keyspace = this@TypedLockerClient.keyspace)
+        return LockerId(rawValue.copyOf(), this@TypedLockerClient.keyspace.canonical())
     }
 
     suspend fun getLocker(roomId: RoomId, lockerId: LockerId, revalidate: Boolean = true): ValueType? {
@@ -175,14 +181,18 @@ class TypedLockerClient<ValueType>(
     // A failed subscribe/hydrate must not tear down the watcher; live updates still flow.
     // No ACK wait: offline, cached lockers must still hydrate (reconnect reconciles the sub).
     // The shared coordinator installs live collection before hydration and merges versions.
-    private fun watchAllIn(roomId: RoomId, keyspace: LockerKeyspace, includeHistory: Boolean): Flow<Map<LockerId, ValueType>> =
-        if (includeHistory) lockerClient.watchSnapshot(roomId, keyspace).map { items ->
+    private fun watchAllIn(roomId: RoomId, keyspace: LockerKeyspace, includeHistory: Boolean): Flow<Map<LockerId, ValueType>> {
+        val roomId = roomId.canonical(); val keyspace = keyspace.canonical()
+        return if (includeHistory) lockerClient.watchSnapshot(roomId, keyspace).map { items ->
             items.associate { it.lockerId!! to reader(it.locker!!.plaintextPayload()) }
         } else allUpdates.filter { it.lockerId.keyspace == keyspace && it.roomId == roomId }
             .onStart { lockerClient.subscribeToRoom(roomId, false) }
             .runningFold(emptyMap()) { acc, value -> acc.applyUpdate(value) }
 
+    }
+
     fun watch(roomId: RoomId, lockerId: LockerId, includeHistory: Boolean = true): Flow<TypedLockerUpdate<ValueType>> {
+        val roomId = roomId.canonical()
         val scopedId = lockerId.scoped()
         if (!includeHistory) return allUpdates.filter { it.roomId == roomId && it.lockerId == scopedId }
             .onStart { lockerClient.subscribeToRoom(roomId, false) }
@@ -374,7 +384,7 @@ class LockerClient(
      */
     fun writeOutcomes(roomId: RoomId, writeRequestId: ByteArray, pollIntervalMillis: Long = 1_000, timeoutMillis: Long = 300_000): Flow<WriteOutcomeObservation> {
         require(writeRequestId.size in 16..64 && pollIntervalMillis > 0 && timeoutMillis > 0)
-        val room = roomId.copy(rawValue = roomId.rawValue.copyOf()); val requestId = writeRequestId.copyOf()
+        val room = roomId.canonical(); val requestId = writeRequestId.copyOf()
         return flow {
             val deadline = kotlin.time.TimeSource.Monotonic.markNow()
             val caps = withTimeoutOrNull(timeoutMillis) {
@@ -432,7 +442,7 @@ class LockerClient(
     fun broadcastsAfter(cursor: Long): Flow<IncomingBroadcast> = stream.eventsAfter(cursor).mapNotNull { accepted ->
         val event = accepted.event
         if (event.locker?.lockerId != null) return@mapNotNull null
-        val room = event.roomId ?: return@mapNotNull null
+        val room = event.roomId?.canonical() ?: return@mapNotNull null
         val id = event.eventId ?: return@mapNotNull null
         val payload = event.notification?.payload?.rawValue ?: return@mapNotNull null
         val context = BroadcastContext(room, id, event.notification?.push?.title, event.notification?.push?.body)
@@ -474,6 +484,7 @@ class LockerClient(
     }
 
     private suspend fun hydrateRoom(room: RoomId, session: SessionId? = stream.sessionId.value): List<IdentifiedLocker> {
+        val room = room.canonical(); val session = session?.canonical()
         val capabilities = capabilities()
         // A replacement session must register itself even while an older hydration is in flight.
         return sync.read(room to session) {
@@ -546,7 +557,7 @@ class LockerClient(
     class Change(val lockerId: LockerId, val transform: suspend (ByteArray) -> ByteArray)
 
     /** Atomic on capable servers. Legacy fallback is selected before submitting any write. */
-    suspend fun updateLockers(roomId: RoomId, changes: List<Change>, initialKey: Secp256r1KeyPair? = null) = telemetry.observe(TelemetryOperation.CONNECTOR_BATCH_WRITE) { updateLockersObserved(roomId, changes.map { Change(it.lockerId.canonical(), it.transform) }, initialKey) }
+    suspend fun updateLockers(roomId: RoomId, changes: List<Change>, initialKey: Secp256r1KeyPair? = null) = telemetry.observe(TelemetryOperation.CONNECTOR_BATCH_WRITE) { updateLockersObserved(roomId.canonical(), changes.map { Change(it.lockerId.canonical(), it.transform) }, initialKey) }
 
     private suspend fun updateLockersObserved(roomId: RoomId, changes: List<Change>, initialKey: Secp256r1KeyPair?) {
         require(changes.isNotEmpty() && changes.size <= 64 && changes.map { it.lockerId }.distinct().size == changes.size)
@@ -669,36 +680,39 @@ class LockerClient(
     }
 
     /** Complete immutable cache snapshots. Live notifications are conflated wakeups, never state. */
-    internal fun watchSnapshot(roomId: RoomId, keyspace: LockerKeyspace): Flow<List<IdentifiedLocker>> = flow {
-        val identity = roomId to keyspace
-        val entry = watchMutex.withLock { check(watched.size < 1_024 || watched.containsKey(identity)) { "Snapshot watcher admission limit exceeded" }; watched.getOrPut(identity) { SnapshotWatch() }.also { it.users++ } }
-        suspend fun snapshot() = acceptance.withLock {
-            lockerStore.getAllLockers(roomId, keyspace).filterNot { it.deleted }.map { it.toIdentifiedLocker() }
-        }
-        try {
-            coroutineScope {
-                val hydration = launch {
-                    try { subscribeToRoom(roomId, false); fetchAllLockers(roomId, keyspace) }
-                    catch (e: CancellationException) { throw e }
-                    catch (e: Exception) { log.error { "watch hydration failed: $e" } }
-                }
-                try {
-                    // Cached history is emitted as a whole. If empty, finish initial hydration first.
-                    if (snapshot().isEmpty()) hydration.join()
-                    emitAll(entry.revision.map { snapshot() }.distinctUntilChanged())
-                } finally { hydration.cancel() }
+    internal fun watchSnapshot(roomId: RoomId, keyspace: LockerKeyspace): Flow<List<IdentifiedLocker>> {
+        val roomId = roomId.canonical(); val keyspace = keyspace.canonical()
+        return flow {
+            val identity = roomId to keyspace
+            val entry = watchMutex.withLock { check(watched.size < 1_024 || watched.containsKey(identity)) { "Snapshot watcher admission limit exceeded" }; watched.getOrPut(identity) { SnapshotWatch() }.also { it.users++ } }
+            suspend fun snapshot() = acceptance.withLock {
+                lockerStore.getAllLockers(roomId, keyspace).filterNot { it.deleted }.map { it.toIdentifiedLocker() }
             }
-        } finally {
-            withContext(NonCancellable) { watchMutex.withLock {
-                if (--entry.users == 0 && watched[identity] === entry) watched.remove(identity)
-            } }
+            try {
+                coroutineScope {
+                    val hydration = launch {
+                        try { subscribeToRoom(roomId, false); fetchAllLockers(roomId, keyspace) }
+                        catch (e: CancellationException) { throw e }
+                        catch (e: Exception) { log.error { "watch hydration failed: $e" } }
+                    }
+                    try {
+                        // Cached history is emitted as a whole. If empty, finish initial hydration first.
+                        if (snapshot().isEmpty()) hydration.join()
+                        emitAll(entry.revision.map { snapshot() }.distinctUntilChanged())
+                    } finally { hydration.cancel() }
+                }
+            } finally {
+                withContext(NonCancellable) { watchMutex.withLock {
+                    if (--entry.users == 0 && watched[identity] === entry) watched.remove(identity)
+                } }
+            }
         }
     }
 
     private suspend fun processEvent(event: Event): Boolean {
-        val roomId = event.roomId ?: return true
+        val roomId = event.roomId?.canonical() ?: return true
         val identified = event.locker
-        val lockerId = identified?.lockerId
+        val lockerId = identified?.lockerId?.canonical()
         val version = identified?.version ?: 0L
         val body = identified?.locker
         val hasBody = body != null
@@ -719,8 +733,8 @@ class LockerClient(
     }
 
     private suspend fun decodeNotification(event: Event): IncomingNotification? {
-        val roomId = event.roomId ?: return null
-        val lockerId = event.locker?.lockerId
+        val roomId = event.roomId?.canonical() ?: return null
+        val lockerId = event.locker?.lockerId?.canonical()
         val notificationPayload = event.notification?.payload?.rawValue
         if (lockerId != null && notificationPayload != null) {
             val keyspace = lockerId.keyspaceOrDefault()
@@ -773,14 +787,15 @@ class LockerClient(
     suspend fun closeAndJoin() { stop(); processingJob.join() }
 
     suspend fun subscribeToRoom(roomId: RoomId, waitForSubscription: Boolean = true) {
-        stream.subscribe(roomId, waitForSubscription)
+        stream.subscribe(roomId.canonical(), waitForSubscription)
     }
 
     suspend fun unsubscribeFromRoom(roomId: RoomId) {
-        stream.unsubscribe(roomId)
+        stream.unsubscribe(roomId.canonical())
     }
 
     suspend fun getAllLockers(roomId: RoomId, keyspace: LockerKeyspace, revalidate: Boolean = true): List<IdentifiedLocker> {
+        val roomId = roomId.canonical(); val keyspace = keyspace.canonical()
         val cached = lockerStore.getAllLockers(roomId, keyspace)
 
         if (cached.isNotEmpty()) {
@@ -823,6 +838,7 @@ class LockerClient(
         hydrateRoom(roomId).filter { it.locker != null && it.lockerId?.keyspaceOrDefault() == keyspace } }
 
     suspend fun getLocker(roomId: RoomId, lockerId: LockerId, revalidate: Boolean = true): IdentifiedLocker? {
+        val roomId = roomId.canonical(); val lockerId = lockerId.canonical()
         val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
 
         if (cached != null) {
@@ -846,6 +862,7 @@ class LockerClient(
     }
 
     suspend fun getLockers(roomId: RoomId, lockerIds: List<LockerId>): List<IdentifiedLocker?> {
+        val roomId = roomId.canonical(); val lockerIds = lockerIds.map { it.canonical() }
         require(lockerIds.size <= 64)
         val caps = capabilities()
         if (!caps.getLockers) return coroutineScope { lockerIds.map { id -> async { fetchLocker(roomId, id) } }.awaitAll() }
@@ -873,10 +890,10 @@ class LockerClient(
                 before?.let { forgetUnchanged(it) }
             } else acceptLocked(identified.toUpdate(room))
         }
-        return identified?.takeIf { it.locker != null }
+        return identified?.takeIf { it.locker != null }?.let { it.copy(lockerId = it.lockerId?.canonical()) }
     }
 
-    private suspend fun fetchLocker(roomId: RoomId, lockerId: LockerId): IdentifiedLocker? = telemetry.observe(TelemetryOperation.CONNECTOR_GET) { sync.read(roomId to lockerId.canonical()) {
+    private suspend fun fetchLocker(roomId: RoomId, lockerId: LockerId): IdentifiedLocker? = telemetry.observe(TelemetryOperation.CONNECTOR_GET) { sync.read(roomId.canonical() to lockerId.canonical()) {
         val before = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
         val response = roomService.getLocker(GetLockerRequest(roomId, lockerId.canonical()))
         check(response.result.isOk()) { "Locker read rejected" }
@@ -890,7 +907,7 @@ class LockerClient(
      * original request, receipt, signature and notification, including on legacy servers.
      */
     suspend fun deleteLocker(roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.() -> Unit = {}) =
-        sync.mutate(roomId to lockerId.canonical()) { telemetry.observe(TelemetryOperation.CONNECTOR_DELETE) { deleteLockerSerialized(roomId, lockerId.canonical(), notificationBuilder) } }
+        roomId.canonical().let { room -> lockerId.canonical().let { id -> sync.mutate(room to id) { telemetry.observe(TelemetryOperation.CONNECTOR_DELETE) { deleteLockerSerialized(room, id, notificationBuilder) } } } }
 
     private suspend fun deleteLockerSerialized(
         roomId: RoomId,
@@ -971,7 +988,7 @@ class LockerClient(
         roomId: RoomId, lockerId: LockerId,
         notificationBuilder: NotificationBuilder.(Locker?) -> Unit = {}, ratchet: Boolean = false,
         transform: suspend (ByteArray) -> ByteArray,
-    ): Locker? = sync.mutate(roomId to lockerId.canonical()) { telemetry.observe(TelemetryOperation.CONNECTOR_WRITE) { updateLockerSerialized(roomId, lockerId.canonical(), notificationBuilder, ratchet, transform) } }
+    ): Locker? = roomId.canonical().let { room -> lockerId.canonical().let { id -> sync.mutate(room to id) { telemetry.observe(TelemetryOperation.CONNECTOR_WRITE) { updateLockerSerialized(room, id, notificationBuilder, ratchet, transform) } } } }
 
     private suspend fun updateLockerSerialized(
         roomId: RoomId,
@@ -1177,6 +1194,7 @@ class LockerClient(
         parentKeyPair: Secp256r1KeyPair? = null,
         parentLockVersion: Long = 0L
     ): LockLockerResponse {
+        val roomId = roomId.canonical(); val scope = scope.canonical()
         val caps = capabilities()
         val state = if (caps.authorityV2) getLockScope(roomId, scope) else null
         val targetVersion = if (caps.authorityV2 && parentLockVersion == 0L) state?.scopeState?.lockVersion ?: 0L else parentLockVersion
@@ -1209,6 +1227,7 @@ class LockerClient(
         keyPair: Secp256r1KeyPair,
         parentLockVersion: Long
     ): UnlockLockerResponse {
+        val roomId = roomId.canonical(); val scope = scope.canonical()
         val v2 = capabilities().authorityV2
         val context = if (v2) LockerSigning.unlockContextV2(roomId, scope, parentLockVersion) else LockerSigning.unlockContext(roomId, scope)
         return roomService.unlockLocker(UnlockLockerRequest {
@@ -1222,7 +1241,7 @@ class LockerClient(
     }
 
     suspend fun getLockScope(roomId: RoomId, scope: LockScope): GetLockScopeResponse =
-        sync.network { roomService.getLockScope(GetLockScopeRequest(roomId, scope)) }.also { check(it.result.isOk()) { "Authority discovery rejected" } }
+        sync.network { roomService.getLockScope(GetLockScopeRequest(roomId.canonical(), scope.canonical())) }.also { check(it.result.isOk()) { "Authority discovery rejected" } }
 
     private suspend fun currentAuthorityVersion(roomId: RoomId, lockerId: LockerId): Long {
         val response = sync.network { roomService.getLocker(GetLockerRequest(roomId, lockerId.canonical())) }

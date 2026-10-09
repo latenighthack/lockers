@@ -197,13 +197,14 @@ class SubscriptionController(
     private val rpcClient: RpcClient,
     private val subscriptionStore: SubscriptionStore,
     @Suppress("UNUSED_PARAMETER") sessionStore: SessionStore,
-    private val sessionIdSource: Flow<SessionId?>,
+    sessionIdSource: Flow<SessionId?>,
     private val log: KmLog = logging(),
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
     coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default,
     private val connectionSource: StateFlow<StreamConnectionState>? = null,
     private val signRequest: (suspend (String, SessionId, ByteArray) -> SessionProof)? = null,
 ) {
+    private val sessionIdSource = sessionIdSource.map { it?.canonical() }.distinctUntilChanged()
     private val controllerJob = SupervisorJob(coroutineContext[Job])
     private val controllerScope = CoroutineScope(coroutineContext + controllerJob)
     private val started = MutableStateFlow(false)
@@ -321,6 +322,7 @@ class SubscriptionController(
     }
 
     suspend fun awaitSubscription(roomId: RoomId) {
+        val roomId = roomId.canonical()
         combine(sessionIdSource, confirmations, closed, connectionSource ?: MutableStateFlow<StreamConnectionState>(StreamConnectionState.Connecting)) { session, confirmed, isClosed, state ->
             when (state) {
                 is StreamConnectionState.Failed -> throw StreamFailedException(state.error)
@@ -334,11 +336,11 @@ class SubscriptionController(
     fun watchNewSubscriptions(): Flow<RoomId> = newSubscriptions
 
     suspend fun subscribe(roomId: RoomId) {
-        changes.send(Change.Desired(roomId, true))
+        changes.send(Change.Desired(roomId.canonical(), true))
     }
 
     suspend fun unsubscribe(roomId: RoomId) {
-        changes.send(Change.Desired(roomId, false))
+        changes.send(Change.Desired(roomId.canonical(), false))
     }
 
     suspend fun closeAndJoin() { stop(); controllerJob.join() }
@@ -448,13 +450,13 @@ class Stream(
     /** Sign an unsigned unary request for the currently connected session incarnation. */
     suspend fun signSessionRequest(operation: String, session: SessionId, unsignedRequest: ByteArray): SessionProof {
         currentCoroutineContext().ensureActive()
-        if (sessionId.value != session) throw RetryableStreamException("Session changed before unary proof")
+        if (sessionId.value?.canonical() != session.canonical()) throw RetryableStreamException("Session changed before unary proof")
         val key = keySource.getSessionKeyPair()
         val nonce = Random.nextBytes(32)
         val issued = Clock.System.now().toEpochMilliseconds()
         val context = SessionSigning.context(operation, session, SHA256.digest(unsignedRequest), issued, nonce)
         val signature = key.privateKey.sign(context)
-        if (sessionId.value != session) throw RetryableStreamException("Session changed while signing unary proof")
+        if (sessionId.value?.canonical() != session.canonical()) throw RetryableStreamException("Session changed while signing unary proof")
         return SessionProof(issuedAtMs = issued, nonce = nonce, signature = Signature(
             publicKey = Secp256R1Key.PublicKey(key.publicKey.encode()), signature = signature, signingVersion = 2))
     }
@@ -539,7 +541,7 @@ class Stream(
         }
         try {
         val (currentSessionId, isNew) = (
-            sessionStore.getSessionId()?.let { Pair(it, false) } ?: Pair(SessionId(Random.nextBytes(32)), true)
+            sessionStore.getSessionId()?.let { Pair(it.canonical(), false) } ?: Pair(SessionId(Random.nextBytes(32)), true)
         )
         val nextSequenceBytes = sessionStore.getNextSequenceBytes()
         val keyPair = keySource.getSessionKeyPair()
