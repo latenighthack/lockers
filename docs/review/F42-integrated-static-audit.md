@@ -120,3 +120,15 @@ exact inventory and red/green logs are `evidence/F42/pass3-static-*`.
 The aggregate ten-module static gate passes. Publication still waits for the
 independently reproduced server subscription dispatcher/transaction deadlock fix;
 its final source diff requires another static check.
+
+
+## Final dispatcher ordering gate
+
+The independent `4a93a9e` checkpoint includes the server dispatcher/transaction
+inversion fix. Its aggregate static run found 23 formatting occurrences/IDs:
+15 line lengths and eight wildcard imports, primarily in the new gated regression.
+Only those formatting IDs were recorded; there were no new exception, complexity,
+stub or coroutine-correctness findings. The final ten-module detekt gate passes.
+Exact inventory and raw reproduction/confirmation logs are in
+`evidence/F42/final-static-*`. Functional regressions and the immutable consumer
+matrix remain separate evidence from static analysis.

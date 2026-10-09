@@ -1174,6 +1174,7 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$sourceVersions = response.sourceVersions.ifEmpty { response.changes.map { WriteSourceVersion(version = it.version) } }</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$stored != null &amp;&amp; stored.version == request.parentVersion &amp;&amp; request.parentVersion &lt; Long.MAX_VALUE -&gt; request.parentVersion + 1</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$subscriptionRevisions = subscriptionStore.supportsIntentRevisions()</ID>
+    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$subscriptionStore</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$subscriptionStore.addSubscription(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$subscriptionStore.removeSubscription(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$suspend</ID>
@@ -1439,6 +1440,9 @@
     <ID>MaxLineLength:ShardCountReshardTest.kt$ShardCountReshardTest$assertThat(a.rpc.postLockerChange(post(room, byteArrayOf(1), version = 0L)).result is PostLockerChangeResponse.Result.OK).isTrue()</ID>
     <ID>MaxLineLength:ShardCountReshardTest.kt$ShardCountReshardTest$assertThat(subscribe(a, room, "sess-1").result is com.latenighthack.lockers.room.v1.SubscriptionResponse.Result.OK).isTrue()</ID>
     <ID>MaxLineLength:ShardCountReshardTest.kt$ShardCountReshardTest.RecordingGatewayDiscovery.&lt;no name provided&gt;$override suspend fun postEvents(request: PostEventsRequest)</ID>
+    <ID>MaxLineLength:ShardedDispatcher.kt$ShardedDispatcher$/** For effects already serialized by a storage transaction: never wait on a key mutex while owning that transaction. */</ID>
+    <ID>MaxLineLength:ShardedDispatcher.kt$ShardedDispatcher$entry = if (serialize) locks.compute(id) { _, existing -&gt; (existing ?: Entry()).also { it.users++ } }!! else null</ID>
+    <ID>MaxLineLength:ShardedDispatcherTest.kt$ShardedDispatcherTest$val effect = launch { dispatcher.runWithoutKeyLock("one") { effectEntered.complete(Unit); effectRelease.await() } }</ID>
     <ID>MaxLineLength:ShardedFanoutTest.kt$ShardedFanoutTest$val core = ServerCore::class.create(LockersConfig.defaults(), com.latenighthack.lockers.server.ServerStorage.inMemory())</ID>
     <ID>MaxLineLength:ShardedFanoutTest.kt$ShardedFanoutTest.RecordingSessionGateway$override suspend fun postEvents(request: PostEventsRequest)</ID>
     <ID>MaxLineLength:ShardedFanoutTest.kt$ShardedFanoutTest.RecordingSessionGatewayServer$override suspend fun postEvents(context: GrpcRequestContext, request: PostEventsRequest)</ID>
@@ -1572,6 +1576,17 @@
     <ID>MaxLineLength:SubscriptionIntents.kt$SubscriptionIntents$val owned = database.count(definition.storeName, definition.session.query(1, lower = sid.rawValue, upper = sid.rawValue))</ID>
     <ID>MaxLineLength:SubscriptionIntents.kt$fun bytes(): ByteArray</ID>
     <ID>MaxLineLength:SubscriptionIntents.kt$private</ID>
+    <ID>MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$@Test</ID>
+    <ID>MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$DriverManager.getConnection(base).use { it.createStatement().use { statement -&gt; statement.execute("CREATE SCHEMA $schema") } }</ID>
+    <ID>MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$DriverManager.getConnection(base).use { it.createStatement().use { statement -&gt; statement.execute("DROP SCHEMA $schema CASCADE") } }</ID>
+    <ID>MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$LocalRoomOwnership()</ID>
+    <ID>MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$SessionSigning.context(SessionSigning.SUBSCRIPTION, sid, SHA256.digest(request.toByteArray()), issued, nonce)</ID>
+    <ID>MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$assertEquals(1L, realSubscriptions.withIntent(ServerSessionId(sid.rawValue), ServerRoomId(room.rawValue), 0, false) { error("stale effect") }.currentRevision)</ID>
+    <ID>MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$assertEquals(listOf(ServerRoomId(room.rawValue)), realSubscriptions.getAllSubscriptions(ServerSessionId(sid.rawValue)))</ID>
+    <ID>MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$grant = LockGrant(LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM), publicKeyOf(roomKey.publicKey.encode()))</ID>
+    <ID>MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$object : SessionGatewayDiscovery { override suspend fun findServer(sessionId: SessionId): SessionGatewayService? = null }</ID>
+    <ID>MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$sessions.updateSession(ServerSession(sessionId = ServerSessionId(sid.rawValue), authorizedPublicKey = identity.publicKey.encode()))</ID>
+    <ID>MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest.&lt;no name provided&gt;$override suspend</ID>
     <ID>MaxLineLength:SubscriptionStore.kt$SubscriptionStore$if (revision != 0L) throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.UNIMPLEMENTED, "Custom subscription store does not support intent revisions")</ID>
     <ID>MaxLineLength:SubscriptionStore.kt$SubscriptionStore$suspend</ID>
     <ID>MaxLineLength:SubscriptionStore.kt$SubscriptionStoreImpl$class</ID>
@@ -2321,6 +2336,14 @@
     <ID>WildcardImport:SubscriptionIntents.kt$import com.latenighthack.ktstore.*</ID>
     <ID>WildcardImport:SubscriptionIntents.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
     <ID>WildcardImport:SubscriptionIntents.kt$import java.io.*</ID>
+    <ID>WildcardImport:SubscriptionLockOrderTest.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:SubscriptionLockOrderTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:SubscriptionLockOrderTest.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:SubscriptionLockOrderTest.kt$import com.latenighthack.lockers.server.services.room.v1.*</ID>
+    <ID>WildcardImport:SubscriptionLockOrderTest.kt$import com.latenighthack.lockers.server.services.session.v1.*</ID>
+    <ID>WildcardImport:SubscriptionLockOrderTest.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
+    <ID>WildcardImport:SubscriptionLockOrderTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:SubscriptionLockOrderTest.kt$import kotlinx.coroutines.*</ID>
     <ID>WildcardImport:SubscriptionStore.kt$import com.latenighthack.ktstore.*</ID>
     <ID>WildcardImport:SubscriptionStore.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
     <ID>WildcardImport:SubscriptionStoreDefinitionsV1.kt$import com.latenighthack.ktstore.*</ID>
