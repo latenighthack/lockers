@@ -26,6 +26,7 @@ import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
 import org.slf4j.LoggerFactory
 import com.latenighthack.lockers.server.LockersConfig
+import com.latenighthack.lockers.server.CpuAdmission
 import com.latenighthack.lockers.server.ProtocolValidation
 import com.latenighthack.lockers.server.ResourceLimitException
 import java.security.SignatureException
@@ -101,6 +102,8 @@ class SessionServiceImpl(
     private val pushDelivery: PushDeliveryStore? = null,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
     private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
+    private val cpuAdmission: CpuAdmission = CpuAdmission(config.resourceLimits),
+
 ) : BaseServiceImpl(), SessionServer, SessionGatewayServer, BroadcastAdminServer {
     private val lifecycleStarted = java.util.concurrent.atomic.AtomicBoolean(false)
     private val lifecycleClosed = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -595,7 +598,8 @@ class SessionServiceImpl(
         val serverSessionId = open.sessionId?.rawValue?.let { ServerSessionId(it) }
         val requestSequenceSignature = open.sequenceKeySignature?.signature
 
-        if (requestSequenceSignature == null) {
+        if (requestSequenceSignature == null || requestSequenceSignature.size != 64 ||
+            open.toByteArray().size > ProtocolValidation.MAX_ENVELOPE_BYTES || !CpuAdmission.signatureShape(open.sequenceKeySignature, required = true)) {
             result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
             meterRegistry.counter("lockers.session.opens", "result", "INVALID_SEQUENCE").increment()
             return null
@@ -604,6 +608,11 @@ class SessionServiceImpl(
         if (serverSessionId == null || !ProtocolValidation.identity(serverSessionId.rawValue)) {
             result = WatchSessionResponse.Open.Result.INVALID_SESSION_ID
             meterRegistry.counter("lockers.session.opens", "result", "INVALID_SESSION_ID").increment()
+            return null
+        }
+
+        if (!cpuAdmission.tryAcquire(open.toByteArray().size, 3)) {
+            result = WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED
             return null
         }
 
@@ -682,15 +691,21 @@ class SessionServiceImpl(
         val serverSessionId = create.sessionId?.rawValue?.let { ServerSessionId(it) }
         val requestPublicKey = create.publicKey?.rawValue
 
+        if (serverSessionId == null || !ProtocolValidation.identity(serverSessionId.rawValue)) {
+            result = WatchSessionResponse.Open.Result.INVALID_SESSION_ID
+            return null
+        }
+        if (!CpuAdmission.keyShape(requestPublicKey) || create.toByteArray().size > ProtocolValidation.MAX_ENVELOPE_BYTES) {
+            result = WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY
+            return null
+        }
+        if (!cpuAdmission.tryAcquire(create.toByteArray().size, 1)) {
+            result = WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED
+            return null
+        }
         if (!ProtocolValidation.publicKey(requestPublicKey)) {
             result = WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY
             meterRegistry.counter("lockers.session.creates", "result", "INVALID_PUBLIC_KEY").increment()
-            return null
-        }
-
-        if (serverSessionId == null || !ProtocolValidation.identity(serverSessionId.rawValue)) {
-            result = WatchSessionResponse.Open.Result.INVALID_SESSION_ID
-            meterRegistry.counter("lockers.session.creates", "result", "INVALID_SESSION_ID").increment()
             return null
         }
 

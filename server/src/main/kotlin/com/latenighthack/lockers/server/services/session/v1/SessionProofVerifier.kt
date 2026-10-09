@@ -26,7 +26,8 @@ object UsedSessionProofDefinitionV2 : StoreDefinition<UsedSessionProof>(
 /** Public unary RPC boundary. Proof consumption and local mutation are one transaction. */
 class SessionProofVerifier(private val database: Database, private val sessions: SessionStore,
     private val clock: () -> Long = System::currentTimeMillis,
-    private val limits: com.latenighthack.lockers.server.ServerResourceLimits = com.latenighthack.lockers.server.ServerResourceLimits()) {
+    private val limits: com.latenighthack.lockers.server.ServerResourceLimits = com.latenighthack.lockers.server.ServerResourceLimits(),
+    private val cpuAdmission: com.latenighthack.lockers.server.CpuAdmission = com.latenighthack.lockers.server.CpuAdmission(limits)) {
     private class ProofStore(database: Database) : Store<UsedSessionProof>(database, UsedSessionProofDefinitionV2) {
         suspend fun find(identity: ByteArray) = get(UsedSessionProofDefinitionV2.identity.eq(identity))
         suspend fun put(row: UsedSessionProof) = save(row)
@@ -41,9 +42,10 @@ class SessionProofVerifier(private val database: Database, private val sessions:
         encodedRequest: ByteArray, rejected: () -> T, mutation: suspend () -> T): T {
         if (sessionId == null || sessionId.rawValue.size !in 1..128 || proof == null ||
             proof.nonce.size != 32 || proof.signature?.signingVersion != 2 || proof.toByteArray().size > 512 ||
-            proof.signature?.signature?.size !in 8..80 || encodedRequest.size > 8 * 1024 * 1024) return rejected()
+            !com.latenighthack.lockers.server.CpuAdmission.signatureShape(proof.signature, required = true) || encodedRequest.size > 8 * 1024 * 1024) return rejected()
         val now = clock()
         if (proof.issuedAtMs < now - WINDOW_MS || proof.issuedAtMs > now + FUTURE_SKEW_MS) return rejected()
+        cpuAdmission.require(encodedRequest.size, 3)
         val digest = SHA256.digest(encodedRequest)
         val identity = SHA256.digest(sessionId.toByteArray() + proof.nonce)
         return database.transaction("lockers.session-authority") {

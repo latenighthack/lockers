@@ -8,6 +8,7 @@ import com.latenighthack.ktbuf.net.ServerDescriptor
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.room.v1.*
 import com.latenighthack.lockers.server.LockersConfig
+import com.latenighthack.lockers.server.CpuAdmission
 import com.latenighthack.lockers.server.ProtocolValidation
 import com.latenighthack.lockers.server.ReadAdmission
 import com.latenighthack.lockers.server.invalidArgument
@@ -69,6 +70,8 @@ class RoomServiceImpl(
     private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
     private val agentTimeoutMs: Long = 30_000,
     private val agentMaxAttempts: Int = 8,
+    private val cpuAdmission: CpuAdmission = CpuAdmission(config.resourceLimits),
+
 ) : BaseServiceImpl(), RoomServer {
     init { require(agentTimeoutMs in 1..300_000 && agentMaxAttempts in 1..32) }
     private class AgentOutputRejected(message: String) : IllegalArgumentException(message)
@@ -360,10 +363,20 @@ class RoomServiceImpl(
             request.toByteArray().size > minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)) {
             return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.INVALID)
         }
+        if (!ProtocolValidation.identity(room.rawValue) || changes.any { change ->
+                !ProtocolValidation.locker(change.lockerId) || !CpuAdmission.signatureShape(change.writeSignature) ||
+                    !CpuAdmission.signatureShape(change.locker?.sealed?.payload?.enclosure?.signature) ||
+                    change.ratchet?.let { !CpuAdmission.keyShape(it.newPublicKey?.rawValue) ||
+                        !ProtocolValidation.sharedKeys(it.newSharedKeys) || !CpuAdmission.signatureShape(it.signature, required = true) } == true
+            } || request.initialLock?.let { !CpuAdmission.keyShape(it.publicKey?.rawValue) ||
+                !CpuAdmission.signatureShape(it.parentSignature) } == true)
+            return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.INVALID)
+        cpuAdmission.require(trace.requestBytes, 1 + changes.size * 12 + if (request.initialLock == null) 0 else 8)
         if (!ProtocolValidation.room(room) || request.parentLockVersion < 0 ||
             request.initialLock?.let { !ProtocolValidation.grant(it) } == true ||
             changes.any { !ProtocolValidation.change(it, room) })
             return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.INVALID)
+
         for (space in changes.map { it.lockerId?.keyspace?.value ?: 0L }.distinct()) {
             trace.phase("ownership") { redirectIfNotOwner(space, room) }?.let { redirect ->
                 trace.phase("forward") { forwardToOwnerOrNull(context, redirect) { it.postLockerChanges(request) } }?.let { return it }
@@ -684,7 +697,7 @@ class RoomServiceImpl(
         request: PostLockerChangeRequest
     ) = meterRegistry.trackResponse("lockers.room.locker.postlockerchange", PostLockerChangeResponse::result, telemetry) {
             val room = request.roomId
-            if (room == null || !ProtocolValidation.room(room) || !ProtocolValidation.change(request, room) ||
+            if (room == null || !ProtocolValidation.identity(room.rawValue) ||
                 request.writeRequestId.isNotEmpty() && request.writeRequestId.size !in 16..64)
                 return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.NOT_AUTHORIZED)
             val batch = postLockerChanges(context, PostLockerChangesRequest(roomId = request.roomId,
@@ -817,8 +830,12 @@ class RoomServiceImpl(
     ) = boundedResponse(meterRegistry.trackResponse("lockers.room.locker.deletelocker", DeleteLockerResponse::result, telemetry) {
         val room = request.roomId
         val id = request.lockerId
-        if (room == null || !ProtocolValidation.room(room) || !ProtocolValidation.locker(id) ||
-            request.parentVersion < 0 || !ProtocolValidation.notification(request.notification) ||
+        val encodedBytes = request.toByteArray().size
+        if (room == null || !ProtocolValidation.identity(room.rawValue) || !ProtocolValidation.locker(id) ||
+            encodedBytes > ProtocolValidation.MAX_ENVELOPE_BYTES || !CpuAdmission.signatureShape(request.writeSignature))
+            return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
+        cpuAdmission.require(encodedBytes, 4)
+        if (!ProtocolValidation.room(room) || request.parentVersion < 0 || !ProtocolValidation.notification(request.notification) ||
             !ProtocolValidation.signature(request.writeSignature) ||
             (request.writeRequestId.isNotEmpty() && request.writeRequestId.size !in 16..64))
             return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
@@ -896,11 +913,16 @@ class RoomServiceImpl(
     ) = boundedResponse(meterRegistry.trackResponse("lockers.room.locker.lock", LockLockerResponse::result, telemetry) {
         val requestRoomId = request.roomId ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)
         val grant = request.grant ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)
-        if (!ProtocolValidation.room(requestRoomId) || !ProtocolValidation.grant(grant) || request.parentLockVersion < 0)
-            return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.NOT_AUTHORIZED)
 
         // A lock and the lockers it governs must be coordinated on the same shard, so gate by the
         // scope's keyspace; a room-wide scope carries no keyspace and pins to keyspace 0.
+        val encodedBytes = request.toByteArray().size
+        if (encodedBytes > ProtocolValidation.MAX_ENVELOPE_BYTES || !ProtocolValidation.identity(requestRoomId.rawValue) ||
+            !CpuAdmission.signatureShape(request.grant?.parentSignature) || !CpuAdmission.keyShape(grant.publicKey?.rawValue) ||
+            grant.toByteArray().size > 1024 || !ProtocolValidation.scope(grant.scope)) com.latenighthack.lockers.server.invalidArgument("Invalid write shape")
+        cpuAdmission.require(encodedBytes, 5)
+        if (!ProtocolValidation.room(requestRoomId) || !ProtocolValidation.grant(grant) || request.parentLockVersion < 0)
+            return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.NOT_AUTHORIZED)
         redirectIfNotOwner(grant.scope?.keyspace?.value ?: 0L, requestRoomId)?.let { redirect ->
             forwardToOwnerOrNull(context, redirect) { it.lockLocker(request) }?.let {
                 return@trackResponse it
@@ -934,10 +956,14 @@ class RoomServiceImpl(
     ) = meterRegistry.trackResponse("lockers.room.locker.unlock", UnlockLockerResponse::result, telemetry) {
         val requestRoomId = request.roomId ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)
         val scope = request.scope ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)
+
+        val encodedBytes = request.toByteArray().size
+        if (encodedBytes > ProtocolValidation.MAX_ENVELOPE_BYTES || !ProtocolValidation.identity(requestRoomId.rawValue) ||
+            !CpuAdmission.signatureShape(request.signature, required = true) || !ProtocolValidation.scope(scope)) com.latenighthack.lockers.server.invalidArgument("Invalid write shape")
+        cpuAdmission.require(encodedBytes, 4)
         if (!ProtocolValidation.room(requestRoomId) || !ProtocolValidation.scope(scope) || request.parentLockVersion < 0 ||
             !ProtocolValidation.signature(request.signature, required = true))
             return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.SIGNATURE_INVALID)
-
         redirectIfNotOwner(scope.keyspace?.value ?: 0L, requestRoomId)?.let { redirect ->
             forwardToOwnerOrNull(context, redirect) { it.unlockLocker(request) }?.let {
                 return@trackResponse it

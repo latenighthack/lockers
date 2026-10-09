@@ -53,6 +53,8 @@ abstract class ServerCore(
     @get:Provides val coroutineContext: kotlin.coroutines.CoroutineContext get() = contextHolder.value
     suspend fun closeAndJoin() { coroutineContext[kotlinx.coroutines.Job]?.let { it.cancel(); it.join() } }
 
+    @get:Provides val cpuAdmission by lazy { CpuAdmission(config.resourceLimits) }
+
     private val pushDeliveryImpl by lazy { com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore(storageDelegate) }
     @get:Provides val pushDelivery: com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore? get() = pushDeliveryImpl
     private val deliveryOutboxImpl by lazy { com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStore(storageDelegate) }
@@ -67,7 +69,7 @@ abstract class ServerCore(
     private val pushQueueStoreImpl by lazy { PushQueueStoreImpl(storageDelegate) }
     private val pushDeadLetterStoreImpl by lazy { PushDeadLetterStoreImpl(storageDelegate) }
 
-    @get:Provides val sessionProofVerifier by lazy { com.latenighthack.lockers.server.services.session.v1.SessionProofVerifier(storageDelegate, sessionStore, limits = config.resourceLimits) }
+    @get:Provides val sessionProofVerifier by lazy { com.latenighthack.lockers.server.services.session.v1.SessionProofVerifier(storageDelegate, sessionStore, limits = config.resourceLimits, cpuAdmission = cpuAdmission) }
     @get:Provides val sessionStore: SessionStore = sessionStoreImpl
     @get:Provides val sessionInboxStore: SessionInboxStore = sessionInboxStoreImpl
     @get:Provides val subscriptionStore: SubscriptionStore = subscriptionStoreImpl

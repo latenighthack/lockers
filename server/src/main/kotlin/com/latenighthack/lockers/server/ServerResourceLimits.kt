@@ -25,6 +25,8 @@ data class ServerResourceLimits(
     val maxSnapshotRetainedBytes: Long = 256L * 1024 * 1024,
     val snapshotLeaseMillis: Long = 60_000,
     val maxLegacySnapshotLockers: Int = 1024,
+    val globalCpuUnitsPerSecond: Int = 2000,
+    val globalCpuBurst: Int = 4000,
     val globalReadsPerSecond: Int = 1000,
     val globalReadBurst: Int = 2000,
     val roomReadsPerSecond: Int = 100,
@@ -42,6 +44,7 @@ data class ServerResourceLimits(
         require(maxLockers > 0 && maxLockersPerRoom in 1..maxLockers)
         require(maxSnapshotLeasesPerRoom > 0 && maxSnapshotRetainedBytes > 0)
         require(maxSnapshotLockers > 0 && maxSnapshotBytes > 0 && maxSnapshotLeases > 0)
+        require(globalCpuUnitsPerSecond > 0 && globalCpuBurst > 0)
         require(globalReadsPerSecond > 0 && globalReadBurst > 0 && roomReadsPerSecond > 0 && roomReadBurst > 0 && maxTrackedReadRooms > 0)
         require(snapshotLeaseMillis in 1..3_600_000 && maxLegacySnapshotLockers > 0)
     }
@@ -74,6 +77,8 @@ data class ServerResourceLimits(
                 maxSnapshotRetainedBytes = limit("LOCKERS_MAX_RETAINED_SNAPSHOT_BYTES", 256 * 1024 * 1024).toLong(),
                 snapshotLeaseMillis = limit("LOCKERS_SNAPSHOT_LEASE_MS", 60_000).toLong(),
                 maxLegacySnapshotLockers = limit("LOCKERS_MAX_LEGACY_SNAPSHOT_LOCKERS", 1024),
+                globalCpuUnitsPerSecond = limit("LOCKERS_CPU_UNITS_PER_SEC", 2000),
+                globalCpuBurst = limit("LOCKERS_CPU_BURST", 4000),
                 globalReadsPerSecond = limit("LOCKERS_READS_PER_SEC", 1000),
                 globalReadBurst = limit("LOCKERS_READ_BURST", 2000),
                 roomReadsPerSecond = limit("LOCKERS_ROOM_READS_PER_SEC", 100),

@@ -47,7 +47,7 @@ class SessionBoundaryValidationTest {
         }, LocalSessionOwnership(), LockersConfig.defaults())
         try {
             sessions.updateSession(ServerSession(ServerSessionId(sid.rawValue), ByteArray(32), byteArrayOf()))
-            val result = firstOpen(service, WatchSessionRequest { request.open { sessionId = sid; sequenceKeySignature { signature = byteArrayOf(1) } } })
+            val result = firstOpen(service, WatchSessionRequest { request.open { sessionId = sid; sequenceKeySignature { signature = ByteArray(64) } } })
             assertEquals(WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY, result.result)
         } finally { service.close(); db.close() }
     }
