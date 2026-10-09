@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.claim.ClaimLoadSoakTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:19:52.877Z" hostname="Mikes-MacBook-Pro.local" time="30.867">
+  <properties/>
+  <testcase name="two-node claim cluster sustains the target write load()" classname="com.latenighthack.lockers.server.claim.ClaimLoadSoakTest" time="30.863"/>
+  <system-out><![CDATA[== claim 2-node (100 rooms, 50w/s, 15s) ==
+writes=736 errors=0 redirectsFollowed=0
+latency p50=4.48ms p99=113.75ms max=128.31ms
+
+node1: rooms.owned=50 acquires=50 steals=0 lost=0 renew.rounds=3 renew.max=1.2ms
+node2: rooms.owned=50 acquires=50 steals=0 lost=0 renew.rounds=3 renew.max=0.1ms
+== monolith baseline ==
+writes=752 errors=0 redirectsFollowed=0
+latency p50=3.61ms p99=10.49ms max=14.38ms
+
+p99 delta (claim - monolith) = 103.26ms  [doc target: < 5ms on real hardware; in-JVM numbers are indicative only]
+]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>
