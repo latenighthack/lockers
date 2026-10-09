@@ -315,6 +315,21 @@ open class LockerSourceCommittedException(
 class RatchetAdoptionPendingException(version: Long, cause: Throwable? = null, roomId: RoomId? = null, writeRequestId: ByteArray = byteArrayOf(), sourceVersions: List<WriteSourceVersion> = emptyList()) :
     LockerSourceCommittedException(version, false, "Source committed at version $version; signing key adoption is pending", cause, roomId, writeRequestId, sourceVersions)
 
+/** The receipt is unavailable and current authority cannot prove this key transition committed.
+ * The confidential intent is retained; callers must not blindly resubmit the mutation. */
+class RatchetRecoveryUnresolvedException(roomId: RoomId, writeRequestId: ByteArray, cause: Throwable? = null) :
+    LockerWriteException("Ratchet outcome is unresolved; its private key intent is retained", cause) {
+    private val roomBytes = roomId.rawValue.copyOf()
+    private val requestBytes = writeRequestId.copyOf()
+    val roomId: RoomId get() = RoomId(roomBytes.copyOf())
+    val writeRequestId: ByteArray get() = requestBytes.copyOf()
+}
+
+/** Authority proves the atomic source/key transition, but the expired receipt cannot report derived work. */
+class RatchetReceiptUnavailableException(version: Long, roomId: RoomId, lockerId: LockerId, writeRequestId: ByteArray) :
+    LockerSourceCommittedException(version, true, "Ratchet source and key committed at version $version; receipt and agent outcome unavailable",
+        roomId = roomId, writeRequestId = writeRequestId, sourceVersions = listOf(WriteSourceVersion(lockerId, version)))
+
 class LockerClient(
     rpcClient: RpcClient,
     private val stream: Stream,
@@ -979,7 +994,10 @@ class LockerClient(
      * the [LockKeySource]) the result is wrapped in a signed envelope and the write is
      * signed. The signature binds the parent version, so a version conflict re-runs
      * [transform] and re-signs against the fresh version — preserving the fair-read
-     * retry. Set [ratchet] to rotate the signing key atomically with this write.
+     * retry. Set [ratchet] to rotate the signing key atomically with this write. A rejected
+     * ratchet after an ambiguous attempt is resolved against current authority rather
+     * than rebased: its retained confidential intent may represent a committed write
+     * whose receipt expired.
      *
      * Throws [LockerWriteException] for retry exhaustion, terminal rejection, or a committed
      * source whose synchronous agent did not complete successfully.
@@ -1014,6 +1032,7 @@ class LockerClient(
         val supportsReceipts = caps.writeReceipts
         if (pendingRatchetKey != null && !supportsReceipts) throw LockerWriteException("Ratchets require durable server write receipts")
         var submitted: PostLockerChangeRequest? = null
+        var ambiguousAttempt = false
         var committedAgentStatus: PostLockerChangeResponse? = null
         var committedResponse: PostLockerChangeResponse? = null
         val updatedLocker = try {
@@ -1039,7 +1058,8 @@ class LockerClient(
                         frozen
                     }
                 }
-                val result = sync.network { roomService.postLockerChange(request) }
+                val result = try { sync.network { roomService.postLockerChange(request) } }
+                catch (failure: Exception) { ambiguousAttempt = true; throw failure }
 
                 if (result.result.isOk()) committedResponse = result
                 if (result.result.isOk() && (result.agentFailed || result.agentPending || result.agentIndeterminate)) committedAgentStatus = result
@@ -1049,7 +1069,10 @@ class LockerClient(
                     is PostLockerChangeResponse.Result.OK -> request.locker!!
                     is PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION -> {
                         telemetry.safeRecord(TelemetryOperation.CONNECTOR_CONFLICT, TelemetryOutcome.CONFLICT)
-                        submitted?.let { if (pendingRatchetKey != null) lockerStore.clearRatchet(it) }
+                        if (pendingRatchetKey != null) {
+                            if (ambiguousAttempt) resolveRejectedRatchet(request, pendingRatchetKey)
+                            lockerStore.clearRatchet(request) // First definitive CAS rejection cannot have committed.
+                        }
                         submitted = null
                         currentPlaintext = result.existingLocker?.plaintextPayload() ?: byteArrayOf()
                         parentVersion = result.version
@@ -1059,14 +1082,30 @@ class LockerClient(
                         // This node doesn't own the room's shard; cache the redirect and retry so
                         // the routing client re-targets the owner on the next attempt.
                         recordRoomRedirect(roomId, result.redirect)
+                        ambiguousAttempt = true // The owner may have committed before forwarding failed.
                         retry()
                     }
-                    is PostLockerChangeResponse.Result.SIGNATURE_REQUIRED ->
+                    is PostLockerChangeResponse.Result.SIGNATURE_REQUIRED -> {
+                        if (pendingRatchetKey != null) {
+                            if (ambiguousAttempt) resolveRejectedRatchet(request, pendingRatchetKey)
+                            lockerStore.clearRatchet(request)
+                        }
                         throw LockerWriteException("locker is locked; a signing key is required ($writeContext)")
-                    is PostLockerChangeResponse.Result.SIGNATURE_INVALID ->
+                    }
+                    is PostLockerChangeResponse.Result.SIGNATURE_INVALID -> {
+                        if (pendingRatchetKey != null) {
+                            if (ambiguousAttempt) resolveRejectedRatchet(request, pendingRatchetKey)
+                            lockerStore.clearRatchet(request)
+                        }
                         throw LockerWriteException("locker write signature was rejected ($writeContext)")
-                    is PostLockerChangeResponse.Result.NOT_AUTHORIZED ->
+                    }
+                    is PostLockerChangeResponse.Result.NOT_AUTHORIZED -> {
+                        if (pendingRatchetKey != null) {
+                            if (ambiguousAttempt) resolveRejectedRatchet(request, pendingRatchetKey)
+                            lockerStore.clearRatchet(request)
+                        }
                         throw LockerWriteException("locker write not authorized ($writeContext)")
+                    }
                     else -> {
                         // Unknown/transient server result: the write may have persisted before the
                         // server failed (e.g. a fan-out error), so a blind retry with the same
@@ -1131,11 +1170,47 @@ class LockerClient(
                 is PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION,
                 is PostLockerChangeResponse.Result.SIGNATURE_INVALID,
                 is PostLockerChangeResponse.Result.SIGNATURE_REQUIRED,
-                is PostLockerChangeResponse.Result.NOT_AUTHORIZED -> lockerStore.clearRatchet(request)
+                is PostLockerChangeResponse.Result.NOT_AUTHORIZED -> recoverRatchetAuthority(pending)
                 else -> throw IllegalStateException("Unresolved ratchet receipt: ${response.result}")
             }
         }
         if (serialized) resolve() else sync.mutate(room to id.canonical()) { resolve() }
+    }
+
+    private suspend fun resolveRejectedRatchet(request: PostLockerChangeRequest, key: Secp256r1KeyPair): Nothing {
+        recoverRatchetAuthority(PendingRatchet(request, key.privateKey.encode()))
+        throw RatchetReceiptUnavailableException(request.parentVersion + 1, requireNotNull(request.roomId).canonical(),
+            requireNotNull(request.lockerId).canonical(), request.writeRequestId)
+    }
+
+    /** Receipt expiry is not proof of rejection. A matching live authority proves the atomic
+     * source/key transition; a different key can hide an ancestor or a later rotation. */
+    private suspend fun recoverRatchetAuthority(pending: PendingRatchet) {
+        val request = pending.request
+        val room = requireNotNull(request.roomId).canonical(); val id = requireNotNull(request.lockerId).canonical()
+        val publicKey = requireNotNull(request.ratchet?.newPublicKey).rawValue
+        val state: LockState
+        try {
+            val caps = capabilities()
+            val current = sync.network { roomService.getLocker(GetLockerRequest(room, id)) }
+            check(current.result.isOk()) { "Ratchet authority read rejected" }
+            // Cache only the actual current payload/version, never the expired request's body.
+            acceptRead(room, current.locker, lockerStore.getLocker(room, id.keyspaceOrDefault(), id))
+            val candidates = if (caps.authorityV2) {
+                val scopes = listOf(LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM),
+                    LockScope(kind = LockScopeKind.LOCK_SCOPE_KEYSPACE, keyspace = id.keyspace),
+                    LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER, keyspace = id.keyspace, lockerRawValue = id.rawValue))
+                scopes.map { getLockScope(room, it).scopeState }
+            } else listOf(current.locker?.lockState)
+            state = candidates.firstOrNull { it?.locked == true && it.publicKey?.rawValue?.contentEquals(publicKey) == true }
+                ?: throw RatchetRecoveryUnresolvedException(room, request.writeRequestId)
+            check(request.parentVersion in 0 until Long.MAX_VALUE) { "Invalid ratchet source version" }
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (unresolved: RatchetRecoveryUnresolvedException) { throw unresolved }
+        catch (failure: Exception) { throw RatchetRecoveryUnresolvedException(room, request.writeRequestId, failure) }
+        // A single ratchet and its source write commit atomically at parent + 1. Receipt
+        // expiry prevents recovering the agent outcome, but does not invalidate this key.
+        adoptCommittedRatchet(pending, PostLockerChangeResponse(version = request.parentVersion + 1, lockState = state))
     }
 
     private fun adoptionPending(archive: ArchivedRatchet, target: LockerId, cause: Throwable? = null) =
@@ -1154,6 +1229,7 @@ class LockerClient(
         val room = archive.room.canonical(); val target = target.canonical()
         val source = lockKeySource ?: throw adoptionPending(archive, target)
         val newKey = requireNotNull(Secp256r1KeyPair.fromPrivateKey(archive.pending.privateKey)) { "Invalid archived ratchet key" }
+        if (!newKey.publicKey.encode().contentEquals(archive.publicKey)) throw adoptionPending(archive, target)
         val current = source.writeKeyFor(room, target)?.publicKey?.encode()
         if (current?.contentEquals(archive.publicKey) == true) return
         val old = archive.pending.request.writeSignature?.publicKey?.rawValue

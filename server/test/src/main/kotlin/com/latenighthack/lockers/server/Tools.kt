@@ -34,7 +34,7 @@ suspend fun Application.attachTestServices() = attachTestServicesWithConfig(Lock
 suspend fun Application.attachFastpathTestServices() = attachTestServicesWithConfig(LockersConfig.defaults().copy(deliveryOutboxEnabled = true))
 
 suspend fun Application.attachTestServicesWithConfig(config: LockersConfig) {
-    attachOwnedTestServices(config) {}
+    attachOwnedTestServices(config, {})
 }
 
 /**
@@ -46,8 +46,11 @@ suspend fun Application.attachTestServicesWith(configureCore: (ServerCore) -> Un
     return attachOwnedTestServices(LockersConfig.defaults(), configureCore)
 }
 
-private suspend fun Application.attachOwnedTestServices(config: LockersConfig, configureCore: (ServerCore) -> Unit): MonolithComponent {
-    val database = ServerStorage.inMemory()
+/** Test-only owned database seam for durable-store failure and retention regressions. */
+suspend fun Application.attachTestServicesWithDatabase(database: Database, configureCore: (ServerCore) -> Unit = {}): MonolithComponent =
+    attachOwnedTestServices(LockersConfig.defaults(), configureCore, database)
+
+private suspend fun Application.attachOwnedTestServices(config: LockersConfig, configureCore: (ServerCore) -> Unit, database: Database = ServerStorage.inMemory()): MonolithComponent {
     var core: ServerCore? = null
     var component: MonolithComponent? = null
     try {
