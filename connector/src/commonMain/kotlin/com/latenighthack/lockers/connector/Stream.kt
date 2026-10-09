@@ -266,6 +266,8 @@ class SubscriptionController(
             val rows = subscriptionStore.getAllSubscriptions()
             if (rows.size > subscriptionStore.maxSubscriptions) throw SubscriptionCapacityException()
             rows.associate { RoomId(it.roomIdRawValue).canonical() to !it.isPendingRemove }.toMutableMap()
+        } catch (exhausted: RetryLimitExceeded) {
+            currentCoroutineContext().ensureActive(); controllerFailure.value = exhausted; stop(); throw exhausted
         } catch (cancelled: CancellationException) { stop(); throw cancelled }
         catch (failure: Exception) { controllerFailure.value = retainedProtocolFailure(failure); stop(); throw failure }
 
@@ -301,6 +303,9 @@ class SubscriptionController(
                         }
                         currentCoroutineContext().ensureActive()
                         changes.send(Change.Confirmed(roomId, targetSession, generation, subscribed))
+                    } catch (exhausted: RetryLimitExceeded) {
+                        currentCoroutineContext().ensureActive()
+                        changes.send(Change.Failed(roomId, targetSession, generation, exhausted))
                     } catch (cancelled: CancellationException) { throw cancelled }
                     catch (failure: Exception) {
                         currentCoroutineContext().ensureActive()
@@ -356,10 +361,12 @@ class SubscriptionController(
                                 confirmations.update { it.copy(failures = it.failures + (change.roomId to change.cause)) }
                             }
                         }
-                    } catch (cancelled: CancellationException) {
-                        (change as? Change.Desired)?.applied?.completeExceptionally(cancelled)
-                        throw cancelled
                     } catch (failure: Exception) {
+                        if (failure is CancellationException && failure !is RetryLimitExceeded) {
+                            (change as? Change.Desired)?.applied?.completeExceptionally(failure)
+                            throw failure
+                        }
+                        currentCoroutineContext().ensureActive()
                         val room = when (change) {
                             is Change.Desired -> change.roomId.also { change.applied.completeExceptionally(failure) }
                             is Change.Confirmed -> change.roomId

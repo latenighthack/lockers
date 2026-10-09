@@ -57,3 +57,7 @@ Node tests, and Apple simulator tests
 (`/tmp/connector-controller-final-platforms.log`). Regressions include per-room
 isolation, explicit retry, stale-session failure, startup/save/delete failures,
 replacement recovery, finite room churn, quota admission and retained metadata.
+
+### Retry budget is a domain failure
+
+Upstream RetryLimitExceeded extends CancellationException. Two virtual-clock tests exhaust real repeatWithBackoff transport budgets after three RESOURCE_EXHAUSTED attempts; the old subscription/push actor silently canceled its worker, leaving waiters to time out. Domain boundaries now catch budget exhaustion before cancellation, verify the owning job is still active, and publish the exact observable failure while retaining durable desired intent. True parent/caller cancellation still propagates. Reducer/startup storage budget failures follow the same distinction. Both tests fail in `/tmp/connector-controller-budget-red.log`; budget, subscription and push regressions pass in `/tmp/connector-controller-budget-green.log`.

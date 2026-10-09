@@ -6,6 +6,7 @@ import com.latenighthack.ktstore.*
 import com.latenighthack.ktbuf.net.RpcClient
 import com.latenighthack.ktbuf.net.RpcResponseException
 import com.latenighthack.ktbuf.rpc.repeatWithBackoff
+import com.latenighthack.ktbuf.rpc.RetryLimitExceeded
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -174,6 +175,9 @@ class PushRegistrationController(
                         state.update { it.copy(desired = it.desired + (command.backend to command.intent.copy(pending = false)), errors = it.errors - command.backend, confirmed = it.confirmed + (command.backend to command.intent.revision), reconciled = if (command.intent.encodedRegistration.isEmpty()) it.reconciled - command.backend else it.reconciled + command.backend) }
                     }
                 }
+            } catch (exhausted: RetryLimitExceeded) {
+                currentCoroutineContext().ensureActive()
+                state.update { it.copy(errors = PushBackendType.entries.associate { backend -> backend.protoValue to exhausted }) }; stop()
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Throwable) { state.update { it.copy(errors = PushBackendType.entries.associate { backend -> backend.protoValue to failure }) }; stop() }
         }
@@ -195,6 +199,7 @@ class PushRegistrationController(
                 val session = target.session ?: return@collectLatest
                 val intent = state.value.desired[backend.protoValue]?.takeIf { it.revision == target.revision } ?: return@collectLatest
                 val failure = try { reconcile(session, intent); null }
+                catch (exhausted: RetryLimitExceeded) { currentCoroutineContext().ensureActive(); exhausted }
                 catch (cancelled: CancellationException) { throw cancelled }
                 catch (error: Exception) { retainedProtocolFailure(error) }
                 commands.send(Command.Completed(backend.protoValue, target, intent, failure))
