@@ -515,3 +515,7 @@ Room and locker reads currently remain broadly available by identifier. The sign
 State whether session IDs are public names or bearer capabilities. The signature-based session open design points toward public names with key proof; unary methods must follow the same model.
 
 State what a parent rotation or revocation means for already-established child grants, how long receipts and ACK deduplication remain valid, and how an unresolved agent result is reconciled. These decisions determine safe storage retention, protocol migration, and public Flow replay semantics.
+
+## Follow-up from final consumer verification: F44
+
+Actual signed Fullhouse onboarding exposes an SDK authority establishment race. The write discovers an unlocked room, then connected account initialization establishes ROOM epoch1 before the signed epoch0 request arrives. The server correctly rejects it; the SDK currently reports permanent SIGNATURE_INVALID even though the same owned key is still authorized. [The minimal consumer repro](F44-authority-establishment.md) correlates metadata and verifies both signature contexts. Bounded authority-only recovery must preserve frozen payload/notification, immutable ambiguous outcomes, private ratchet keys and anti-replay checks. This follow-up remains open; earlier passing library/platform/source review gates do not cover it.

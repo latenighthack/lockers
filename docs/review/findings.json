@@ -19,7 +19,7 @@
     ],
     "reproduction": "LockVerifierTest: unsigned descendants cannot replace room or keyspace authority (baseline assertion failure)",
     "regression": "LockVerifierTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F02",
@@ -46,7 +46,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F02-stored-envelope.md, docs/review/F02.md",
     "regression": "ConflictEnvelopeBoundaryTest; ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F03",
@@ -73,7 +73,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F03-connector.md, docs/review/F03.md",
     "regression": "LockVerifierTest; ReviewAuthorityV2Tests; ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F04",
@@ -101,7 +101,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F04-admin-boundary.md, docs/review/F04-public-convenience.md, docs/review/F04-runtime.md",
     "regression": "GatewayBoundaryTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F05",
@@ -122,7 +122,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F05-runtime.md",
     "regression": "WebPushEndpointTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F06",
@@ -158,7 +158,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F06-connector.md, docs/review/F06-revocation.md, docs/review/F06.md",
     "regression": "ReviewDestroyReconnectTests; ReviewSessionProofTests; SessionProofBoundaryTest; SessionRevocationTest; actual red/green evidence in linked issue notes; SessionRevocationTest actual two PostgreSQL handles and SQLite reopen confirmation",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F07",
@@ -181,7 +181,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F07.md",
     "regression": "ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F08",
@@ -207,7 +207,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F08.md",
     "regression": "RoomMutationFencePgTest (four actual PostgreSQL regressions); ReviewRegressionTest; RatchetAtomicityRegressionTest",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F09",
@@ -229,7 +229,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F09-runtime.md",
     "regression": "DefaultAgentAuthorityTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F10",
@@ -259,7 +259,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F10-delete-receipts.md, docs/review/F10.md",
     "regression": "RatchetAtomicityRegressionTest; ReviewDeleteReceiptTests; ReviewRatchetAdoptionTests",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F11",
@@ -277,7 +277,8 @@
       "docs/review/evidence/connector-ratchet-adversarial-isolation-red.log",
       "docs/review/evidence/lockers-integration-ratchet-archive-green.log",
       "docs/review/F11-archive-source-metadata.md",
-      "docs/review/F26-archive-migration.md"
+      "docs/review/F26-archive-migration.md",
+      "docs/review/F11-legacy-archive-authority.md"
     ],
     "fix": "Persist a pending ratchet key and immutable request identity before submission. Resolve a committed outcome and adopt that key even when derived agent work is pending or failed. Return a typed outcome separating source commit from agent completion; reserve an ordinary write-failed exception for a source mutation that did not commit. Recover pending key transitions on startup.",
     "status": "partial",
@@ -291,11 +292,12 @@
       "4e66a0d0d68de7cc89399a640f5351941a5e9bd9",
       "0dd7a49efbcdb68f8b71c0090a98c452f1145001",
       "119cfb316377cb867d68d395dfb33bd966cc51d6",
-      "1011735cdcc48c04731c108a23993ad303f70046"
+      "1011735cdcc48c04731c108a23993ad303f70046",
+      "24c8d8b6f1df79aadcb9448e61d54a1840d2f5b7"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F11-connector.md",
     "regression": "ReviewConnectorTests; ReviewExpiredRatchetTests; ReviewRatchetArchiveOrderingTests; exact receipt/key adoption, source uncertainty, isolated recovery and epoch ordering regressions",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F12",
@@ -319,7 +321,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F12-runtime.md",
     "regression": "SessionAtomicityTest; SessionOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F13",
@@ -342,7 +344,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F13.md",
     "regression": "ReviewBatchCreationTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F14",
@@ -375,7 +377,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F14-connector.md, docs/review/F14.md",
     "regression": "CanonicalBatchRegressionTest; ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F15",
@@ -398,7 +400,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F15.md",
     "regression": "ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F16",
@@ -422,7 +424,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F16-connector.md",
     "regression": "ReviewSnapshotRepairTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F17",
@@ -446,7 +448,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F17-runtime.md",
     "regression": "SubscriptionFreshnessTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F18",
@@ -472,7 +474,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F18-default-construction.md, docs/review/F18-runtime.md",
     "regression": "LegacyDeliveryModeTest; LockersConfigTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F19",
@@ -496,7 +498,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F19-runtime.md",
     "regression": "PushServiceTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F20",
@@ -520,7 +522,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F20-runtime.md",
     "regression": "PushQueueClaimsTest; PushServiceTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F21",
@@ -548,7 +550,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F21-connector.md, docs/review/F21-session-admission.md",
     "regression": "ReviewPushControllerTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F22",
@@ -576,7 +578,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F22-connector.md, docs/review/F22-public-boundary.md, docs/review/F22-runtime.md",
     "regression": "PushQueueClaimsTest; PushServiceTest; ReviewPushControllerTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F23",
@@ -599,7 +601,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F23-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F24",
@@ -623,7 +625,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F24-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F25",
@@ -653,11 +655,12 @@
       "2f59f54c123b71fae7b14117b34ac793799a8d10",
       "c862e868dafbc24893963043cc8c477567feed80",
       "845fbfd7264f80eaf7d4d7316aae5df8ca3ae9e9",
-      "f9af60db42319d1dff810c9a50b1bd057ed4ce8e"
+      "f9af60db42319d1dff810c9a50b1bd057ed4ce8e",
+      "e718c345daecd3ccc4b176c78c0c590dd1f046d7"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F25-advisory-cancellation.md, docs/review/F25-connector.md, docs/review/F25-coordination-sql-limits.md, docs/review/F25-runtime.md, docs/review/F25-telemetry-cancellation.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F26",
@@ -702,7 +705,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F26-connector.md, docs/review/F26-host-lifetime.md, docs/review/F26-runtime.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F27",
@@ -730,7 +733,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F27-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F28",
@@ -755,7 +758,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F28-connector.md, docs/review/F28-runtime.md",
     "regression": "ReviewConnectorTests; SessionAtomicityTest; SessionHeartbeatTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F29",
@@ -781,7 +784,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F29-runtime.md",
     "regression": "InMemorySessionGatewayStoreTest; RegistryIncarnationTest; RegistrySessionGatewayDiscoveryTest; SessionAtomicityTest; SessionAttachFailureTest; SessionHeartbeatTest; SessionOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F30",
@@ -805,7 +808,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F30-runtime.md",
     "regression": "OwnerLifecycleTest; OwnerRecoveryTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F31",
@@ -828,7 +831,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F31-runtime.md",
     "regression": "OwnerLifecycleTest; RoomOwnershipTest; ShardCountReshardTest; WholeRoomOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F32",
@@ -853,7 +856,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F32-runtime.md",
     "regression": "ClaimRenewalServiceTest; ClaimResourceDrainTest; InMemorySessionGatewayStoreTest; RegistryIncarnationTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F33",
@@ -887,7 +890,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F33-connector.md, docs/review/F33-runtime.md",
     "regression": "DeliveryFrameBoundsTest; GatewayAdmissionTest; InboxDeliveryReceiptTest; InboxReceiptPersistenceTest; PushQuotaPgTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F34",
@@ -913,7 +916,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F34-notification-metadata.md",
     "regression": "BroadcastServiceTest; SessionAtomicityTest; SessionInboxMetadataPersistenceTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes; InboxByteAdmissionTest mutable result/lookup isolation",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F35",
@@ -938,7 +941,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F35-connector.md",
     "regression": "BroadcastShapeTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F36",
@@ -970,7 +973,7 @@
     ],
     "reproduction": "ReviewRoutingOwnershipTests: real bare/full HTTP destination failed before address normalization; PublicForwardingRecoveryTest: private forward failure/NOT_OWNER poisoned public route before fix. Red/green linked in issue notes.",
     "regression": "ReviewRoutingOwnershipTests; PeerConnectionOwnershipTest; PublicForwardingRecoveryTest (six actual HTTP tests); ReviewTerminalProtocolTests; RingPublicSessionRecoveryTest; PublicSessionAddressContractTest",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F37",
@@ -998,7 +1001,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F37-connector.md",
     "regression": "AgentRecoveryTest; DeliveryLatencyTest; PersistedEnvelopeValidationTest; RequestPreflightTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F38",
@@ -1059,7 +1062,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F38-boundaries.md, docs/review/F38-claim-capacity.md",
     "regression": "BoundaryAuthorityTest; CpuAdmissionBoundaryTest; GatewayAdmissionTest; GeneratedDecodeAllocationTest; InboxReplayPagingTest; LockVerifierTest; NamespaceAdmissionPgTest; NamespaceAdmissionTest; ResourceAdmissionTest; ResponseBoundaryTest; RoomIdentityAdmissionTest; SessionAdmissionFailureContractTest; SessionFrameBoundaryTest; SnapshotPagingTest; StorageAdoptionTest; actual red/green evidence in linked issue notes; StorageFetchBudgetTest",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F39",
@@ -1110,7 +1113,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F39-build.md, docs/review/F39-historical-schema.md, docs/review/F39-source-project-pins.md",
     "regression": "NamespaceAdmissionPgTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F40",
@@ -1132,7 +1135,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F40-runtime.md",
     "regression": "PostgresShardMapSourceTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F41",
@@ -1156,7 +1159,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F41-build.md",
     "regression": "NetworkDependencyContractTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F42",
@@ -1186,11 +1189,18 @@
       "467755990837fecdfeb79e49219ac5b5286881d4",
       "2765fbded599cd8f0f2fe9d788dc8d6f7daf39c4",
       "3c7de14940fc36ae33e7dda98d408a7d294df1c5",
-      "701290492c41ce9a16d29c5650394d188e793dcb"
+      "701290492c41ce9a16d29c5650394d188e793dcb",
+      "91376a7d6cc9ed669ada482f829dca77eab0dd46",
+      "90614744e8fd6a787216b5b5c2d73490c246c813",
+      "5ffd86e0a50a4fe3ce90601747cb89fb67c26a74",
+      "31aba202a57cb00f3c0237c0730e870e04560a69",
+      "5c3e9012c2b20dcca1807e5c7da82c6020b0ea41",
+      "22266765b6de13fe742347ca6675a2a43d66e708",
+      "6c41d579897ed73f324fbf9df200c38e0d7c727e"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F42-build.md, docs/review/F42-connector.md",
     "regression": "GeneratedEqualityContractTest; PackedEnumGeneratorContractTest; ReviewAuthorityV2Tests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   },
   {
     "id": "F43",
@@ -1207,7 +1217,8 @@
       "docs/review/evidence/F43-subscription-order-red.xml",
       "docs/review/F43-runtime.md",
       "docs/review/F43-connector.md",
-      "docs/review/F43-storage-platforms.md"
+      "docs/review/F43-storage-platforms.md",
+      "docs/review/evidence/F43-lock-order/test-counts.json"
     ],
     "fix": "Add signed durable intent revisions, atomic server monotonic comparison and retained unsubscribe tombstones, binding ordinary and snapshot paths. Preserve legacy wire and frozen schemas through additive negotiated support.",
     "status": "partial",
@@ -1219,10 +1230,33 @@
       "d770eb3dbe25881ecd7bfcc00ad6541165d98b6d",
       "079a32be55623069b316ae30ae5e87a2d1bb0b8f",
       "4bb5ea4ad2bca00fc67078aef9cceeeffb7e7db2",
-      "701290492c41ce9a16d29c5650394d188e793dcb"
+      "701290492c41ce9a16d29c5650394d188e793dcb",
+      "4e91ca4f06b11d419d2e704232cd7ed0b9c665d1",
+      "4a93a9e2fb4ed0daaef853b690a44a3bf72a823b"
     ],
     "reproduction": "SubscriptionHttpOrderingTest: actual HTTP late old subscribe restored the revoked subscription, baseline assertion failure",
     "regression": "SubscriptionHttpOrderingTest; SubscriptionIntentBoundaryTest; SubscriptionIntentStoreTest; SubscriptionIntentPgTest; ReviewSubscriptionRevisionTests; ReviewSubscriptionRevisionPersistenceTests; shared persistent V7 contracts",
-    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+  },
+  {
+    "id": "F44",
+    "priority": "P2",
+    "title": "A concurrent authority establishment permanently rejects an otherwise valid SDK write",
+    "locations": [
+      "connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1111",
+      "connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1172"
+    ],
+    "problem": "Actual Fullhouse onboarding observes no effective authority for a new account profile-source locker, signs at epoch0, then account setup establishes ROOM epoch1 before its write arrives. The same owned key remains authorized. Server rejection is correct, but the SDK treats SIGNATURE_INVALID as permanent rather than resolving this authority-only conflict safely. Offline-first account readiness makes this a real Flow/coroutine startup interleaving.",
+    "evidence": [
+      "docs/review/F44-authority-establishment.md",
+      "docs/review/evidence/F44-consumer-red/TEST-gg.roll.viewmodel.core.OnboardingViewModelTests.xml",
+      "docs/review/evidence/F44-consumer-red/gradle.log"
+    ],
+    "fix": "Bound authority-only reconciliation for a definitive first rejection when current authority still uses the original owned key. Preserve encoded payload/notification and transform purity; use a fresh write identity for changed signed bytes. Never re-sign or rebase an outcome-uncertain request, weaken epoch checks, silently adopt another key, or discard a pending ratchet key. Retain finite retry budgets.",
+    "status": "partial",
+    "commits": [],
+    "reproduction": "Actual immutable31aba20 consumer OnboardingViewModelTests fails with SIGNATURE_INVALID; diagnostic proves V2 signature valid at observed epoch0, current response ROOMepoch1 samepub, and invalid at1, zero skipped tests.",
+    "regression": "Deterministic gated SDK authority-establishment regression pending; actual Fullhouse onboarding repro retained.",
+    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
   }
 ]
