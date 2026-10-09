@@ -1,0 +1,326 @@
+Type-safe project accessors is an incubating feature.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://github.com/yarnpkg/yarn/releases/download' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :kotlinKotlinNpmCachesSetup
+> Task :kotlinNodeJsSetup
+> Task :kotlinRestoreYarnLock
+> Task :kotlinYarnSetup
+> Task :api:jsPackageJson
+> Task :api:jsTestPackageJson
+> Task :observability-api:jsPackageJson
+> Task :connector:jsPackageJson
+> Task :connector:jsTestPackageJson
+> Task :observability-api:jsTestPackageJson
+> Task :observability-connector:jsPackageJson
+> Task :observability-connector:jsTestPackageJson
+> Task :api:jsPublicPackageJson
+> Task :api:jsTestPublicPackageJson
+> Task :connector:jsPublicPackageJson
+> Task :connector:jsTestPublicPackageJson
+> Task :observability-api:jsPublicPackageJson
+> Task :observability-api:jsTestPublicPackageJson
+> Task :observability-connector:jsPublicPackageJson
+> Task :observability-connector:jsTestPublicPackageJson
+> Task :kotlinPackageJsonUmbrella
+> Task :rootPackageJson
+
+> Task :kotlinNpmInstall
+(node:88089) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+warning Ignored scripts due to flag.
+
+> Task :kotlinStoreYarnLock
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:generateCodegenFixtures UP-TO-DATE
+> Task :api:jsProcessResources NO-SOURCE
+> Task :api:jsTestProcessResources NO-SOURCE
+> Task :api:kotlinNodeJsSetup
+> Task :api:downloadKotlinNativeDistribution
+
+> Task :api:compileKotlinJs
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileKotlinIosSimulatorArm64
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:jsMainClasses
+> Task :api:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :api:iosSimulatorArm64MainKlibrary
+> Task :api:compileTestKotlinJs
+> Task :api:compileTestKotlinIosSimulatorArm64
+> Task :api:jsTestClasses
+> Task :api:compileTestDevelopmentExecutableKotlinJs
+> Task :api:linkDebugTestIosSimulatorArm64
+> Task :api:jsTestTestDevelopmentExecutableCompileSync
+> Task :api:jsNodeTest
+> Task :api:iosSimulatorArm64Test
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :connector:jsProcessResources NO-SOURCE
+> Task :connector:jsTestProcessResources NO-SOURCE
+> Task :connector:kotlinNodeJsSetup
+> Task :connector:downloadKotlinNativeDistribution
+> Task :observability-api:downloadKotlinNativeDistribution
+> Task :observability-api:compileKotlinJs
+> Task :observability-api:compileKotlinIosSimulatorArm64
+> Task :connector:compileKotlinJs
+> Task :connector:compileKotlinIosSimulatorArm64
+> Task :connector:jsMainClasses
+> Task :connector:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :connector:iosSimulatorArm64MainKlibrary
+> Task :connector:compileTestKotlinJs
+> Task :connector:compileTestKotlinIosSimulatorArm64
+> Task :connector:jsTestClasses
+> Task :connector:compileTestDevelopmentExecutableKotlinJs
+
+> Task :connector:linkDebugTestIosSimulatorArm64
+warning: /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/Foundation-26APARFLUI2TQ.pcm: No such file or directory
+note: while processing /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/Foundation-26APARFLUI2TQ.pcm
+note: Linking a static library that was built with -gmodules, but the module cache was not found.  Redistributable static libraries should never be built with module debugging enabled.  The debug experience will be degraded due to incomplete debug information.
+warning: /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/_SwiftConcurrencyShims-1O6J4FRGOX9K.pcm: No such file or directory
+note: while processing /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/_SwiftConcurrencyShims-1O6J4FRGOX9K.pcm
+
+> Task :connector:jsTestTestDevelopmentExecutableCompileSync
+> Task :connector:jsNodeTest
+> Task :connector:iosSimulatorArm64Test
+> Task :observability-api:jsProcessResources NO-SOURCE
+> Task :observability-api:jsMainClasses
+> Task :observability-api:jsTestProcessResources NO-SOURCE
+
+> Task :observability-api:compileTestKotlinJs
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/observability-api/src/commonTest/kotlin/com/latenighthack/lockers/observability/TelemetryTest.kt:34:104 The corresponding parameter in the supertype 'LockersTelemetry' is named 'outcome'. This may cause problems when calling this function with named arguments.
+
+> Task :observability-api:kotlinNodeJsSetup
+> Task :observability-api:jsTestClasses
+> Task :observability-api:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :observability-api:iosSimulatorArm64MainKlibrary
+
+> Task :observability-api:compileTestKotlinIosSimulatorArm64
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/observability-api/src/commonTest/kotlin/com/latenighthack/lockers/observability/TelemetryTest.kt:34:104 The corresponding parameter in the supertype 'LockersTelemetry' is named 'outcome'. This may cause problems when calling this function with named arguments.
+
+> Task :observability-api:linkDebugTestIosSimulatorArm64
+> Task :observability-api:iosSimulatorArm64Test
+> Task :observability-api:compileTestDevelopmentExecutableKotlinJs
+> Task :observability-connector:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:jsTestTestDevelopmentExecutableCompileSync
+> Task :observability-api:jsNodeTest
+> Task :observability-connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-connector:jsProcessResources NO-SOURCE
+> Task :observability-connector:jsTestProcessResources NO-SOURCE
+> Task :observability-connector:kotlinNodeJsSetup
+> Task :observability-connector:downloadKotlinNativeDistribution
+> Task :observability-connector:compileKotlinJs
+> Task :observability-connector:compileKotlinIosSimulatorArm64
+> Task :observability-connector:jsMainClasses
+> Task :observability-connector:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :observability-connector:iosSimulatorArm64MainKlibrary
+> Task :observability-connector:compileTestKotlinJs
+> Task :observability-connector:compileTestKotlinIosSimulatorArm64
+> Task :observability-connector:jsTestClasses
+> Task :observability-connector:linkDebugTestIosSimulatorArm64
+> Task :observability-connector:iosSimulatorArm64Test
+> Task :api:preBuild UP-TO-DATE
+> Task :api:preDebugBuild UP-TO-DATE
+> Task :api:generateDebugResValues
+> Task :api:generateDebugResources
+> Task :api:packageDebugResources
+> Task :api:processDebugNavigationResources
+> Task :connector:preBuild UP-TO-DATE
+> Task :connector:preDebugBuild UP-TO-DATE
+> Task :connector:generateDebugResValues
+> Task :api:javaPreCompileDebug
+> Task :connector:generateDebugResources
+> Task :connector:packageDebugResources
+> Task :connector:processDebugNavigationResources
+> Task :observability-api:preBuild UP-TO-DATE
+> Task :observability-api:preDebugBuild UP-TO-DATE
+> Task :observability-api:generateDebugResValues
+> Task :observability-api:generateDebugResources
+> Task :observability-api:packageDebugResources
+> Task :observability-api:processDebugNavigationResources
+> Task :observability-connector:preBuild UP-TO-DATE
+> Task :observability-connector:preDebugBuild UP-TO-DATE
+> Task :observability-api:javaPreCompileDebug
+> Task :observability-connector:generateDebugResValues
+> Task :observability-connector:generateDebugResources
+> Task :observability-connector:packageDebugResources
+> Task :observability-connector:processDebugNavigationResources
+> Task :observability-api:parseDebugLocalResources
+> Task :observability-connector:parseDebugLocalResources
+> Task :api:parseDebugLocalResources
+> Task :connector:parseDebugLocalResources
+> Task :observability-connector:compileTestDevelopmentExecutableKotlinJs
+
+> Task :connector:jsBrowserTest
+> Task :observability-connector:jsTestTestDevelopmentExecutableCompileSync
+> Task :observability-connector:jsNodeTest
+> Task :connector:javaPreCompileDebug
+> Task :api:compileDebugLibraryResources
+> Task :connector:preDebugAndroidTestBuild UP-TO-DATE
+> Task :connector:writeDebugAarMetadata
+> Task :api:writeDebugAarMetadata
+> Task :api:generateDebugRFile
+> Task :connector:generateDebugRFile
+> Task :observability-api:generateDebugRFile
+> Task :observability-connector:generateDebugRFile
+> Task :observability-api:writeDebugAarMetadata
+> Task :connector:checkDebugAndroidTestAarMetadata
+> Task :connector:processDebugAndroidTestNavigationResources
+> Task :connector:compileDebugLibraryResources
+> Task :connector:compileDebugAndroidTestNavigationResources
+> Task :connector:generateDebugAndroidTestResValues
+> Task :connector:mapDebugAndroidTestSourceSetPaths
+> Task :connector:generateDebugAndroidTestResources
+> Task :connector:mergeDebugAndroidTestResources
+> Task :api:extractDeepLinksDebug
+> Task :connector:extractDeepLinksDebug
+> Task :observability-api:extractDeepLinksDebug
+> Task :observability-api:compileDebugLibraryResources
+> Task :connector:javaPreCompileDebugAndroidTest
+> Task :api:mergeDebugShaders
+> Task :api:compileDebugShaders NO-SOURCE
+> Task :api:debugAssetsCopyForAGP NO-SOURCE
+> Task :api:generateDebugAssets UP-TO-DATE
+> Task :api:mergeDebugAssets
+> Task :connector:mergeDebugAndroidTestShaders
+> Task :connector:compileDebugAndroidTestShaders NO-SOURCE
+> Task :connector:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :connector:mergeDebugShaders
+> Task :connector:compileDebugShaders NO-SOURCE
+> Task :connector:debugAssetsCopyForAGP NO-SOURCE
+> Task :connector:generateDebugAssets UP-TO-DATE
+> Task :connector:mergeDebugAssets
+> Task :observability-api:mergeDebugShaders
+> Task :connector:processDebugManifest
+> Task :observability-api:compileDebugShaders NO-SOURCE
+> Task :observability-api:processDebugManifest
+> Task :observability-api:debugAssetsCopyForAGP NO-SOURCE
+> Task :api:processDebugManifest
+> Task :observability-api:generateDebugAssets UP-TO-DATE
+
+> Task :connector:processDebugAndroidTestManifest
+[com.latenighthack.ktbuf:ktbuf-rpc-android:1.1.10-fh.9c3962ea021c76107b84] /Users/mikeroberts/.gradle/caches/9.5.1/transforms/d35761be0e69b0cfc47707e1de2dd92c/transformed/rpc-release/AndroidManifest.xml Warning:
+	Namespace 'com.latenighthack.ktbuf' is used in multiple modules and/or libraries: com.latenighthack.ktbuf:ktbuf-rpc-android:1.1.10-fh.9c3962ea021c76107b84, com.latenighthack.ktbuf:ktbuf-library-android:1.1.10-fh.9c3962ea021c76107b84. Please ensure that all modules and libraries have a unique namespace. For more information, See https://developer.android.com/studio/build/configure-app-module#set-namespace
+
+> Task :observability-api:mergeDebugAssets
+> Task :connector:mergeDebugAndroidTestAssets
+> Task :connector:compressDebugAndroidTestAssets
+> Task :connector:desugarDebugAndroidTestFileDependencies
+> Task :api:mergeDebugJniLibFolders
+> Task :api:mergeDebugNativeLibs NO-SOURCE
+> Task :connector:checkDebugAndroidTestDuplicateClasses
+> Task :api:copyDebugJniLibsProjectOnly
+> Task :connector:mergeDebugJniLibFolders
+> Task :connector:mergeDebugNativeLibs NO-SOURCE
+> Task :connector:copyDebugJniLibsProjectOnly
+> Task :connector:mergeDebugAndroidTestJniLibFolders
+> Task :observability-api:mergeDebugJniLibFolders
+> Task :observability-api:mergeDebugNativeLibs NO-SOURCE
+> Task :observability-api:copyDebugJniLibsProjectOnly
+> Task :connector:validateSigningDebugAndroidTest
+> Task :connector:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :connector:stripDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :connector:writeDebugAndroidTestSigningConfigVersions
+> Task :connector:processDebugAndroidTestResources
+> Task :observability-api:compileDebugKotlinAndroid
+> Task :observability-api:compileDebugJavaWithJavac NO-SOURCE
+> Task :observability-api:processDebugJavaRes
+> Task :observability-api:bundleLibRuntimeToJarDebug
+> Task :observability-api:bundleLibCompileToJarDebug
+> Task :observability-api:bundleLibRuntimeToDirDebug
+> Task :observability-connector:compileDebugKotlinAndroid
+> Task :connector:mergeExtDexDebugAndroidTest
+
+> Task :api:compileDebugKotlinAndroid
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/kitkit/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileDebugJavaWithJavac NO-SOURCE
+> Task :api:processDebugJavaRes
+> Task :api:bundleLibRuntimeToJarDebug
+> Task :api:bundleLibCompileToJarDebug
+> Task :api:bundleLibRuntimeToDirDebug
+> Task :connector:compileDebugKotlinAndroid
+> Task :connector:compileDebugJavaWithJavac NO-SOURCE
+> Task :connector:processDebugJavaRes
+> Task :connector:bundleLibCompileToJarDebug
+> Task :connector:bundleLibRuntimeToJarDebug
+> Task :connector:bundleLibRuntimeToDirDebug
+> Task :connector:compileDebugAndroidTestKotlinAndroid
+> Task :connector:compileDebugAndroidTestJavaWithJavac NO-SOURCE
+> Task :connector:dexBuilderDebugAndroidTest
+> Task :connector:processDebugAndroidTestJavaRes
+> Task :connector:mergeProjectDexDebugAndroidTest
+> Task :connector:mergeDebugAndroidTestJavaResource
+> Task :connector:mergeDebugAndroidTestGlobalSynthetics
+> Task :connector:mergeLibDexDebugAndroidTest
+> Task :connector:packageDebugAndroidTest
+> Task :connector:createDebugAndroidTestApkListingFileRedirect
+
+> Task :connector:connectedDebugAndroidTest
+Starting 9 tests on LockersMainReview(AVD) - 14
+
+Finished 9 tests on LockersMainReview(AVD) - 14
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/kitkit/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 17s
+172 actionable tasks: 168 executed, 4 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

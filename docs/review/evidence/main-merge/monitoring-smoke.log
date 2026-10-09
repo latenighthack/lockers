@@ -1,0 +1,20 @@
+Checking /etc/prometheus/lockers-alerts/lockers.yml
+  SUCCESS: 7 rules found
+
+  SUCCESS
+
+{
+  "dashboards_provisioned": 10,
+  "dashboards_manually_imported": 10,
+  "valid_queries": 102,
+  "fixture_states": [
+    "healthy",
+    "idle",
+    "disabled",
+    "failing"
+  ],
+  "shared_backlog_not_doubled": true,
+  "trace_id": "0123456789abcdef0123456789abcdef",
+  "client_correlation_across_services": true,
+  "grafana": "http://127.0.0.1:64733"
+}

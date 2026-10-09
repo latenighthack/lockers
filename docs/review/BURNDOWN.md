@@ -4,7 +4,9 @@ Each row is complete only after its reproduction, regression, fix, commit and in
 
 43 of44 library findings are complete. Final validation:627 actual JVM executions,73 applicable actual platform executions,78 final focused SDK checks, all10 static modules, required PostgreSQL, host compilation and resolved security checks passed. Fullhouse executed69 JVM tests (one existing ignore), with Android compilation, JS distribution and Apple framework link passing. Independent available Codex verification accepted the source. Exact repro/green commands, commits, retained failed runs and scope are in findings.json and the linked issue notes.
 
-F39's default released-mode connector/server build still cannot resolve public ktstore-library0.2.0. Local publication does not satisfy that release prerequisite. Separately, actual consumer verification reproduced Social profile-key exposure through anonymous reads; [application confidentiality debt](F39-final-consumer.md) remains outside the library's documented open-read contract. No application security qualification or external release is claimed.
+F39's default released-mode connector/server build still cannot resolve public ktstore-library0.2.1 on merged main. Local publication does not satisfy that release prerequisite. Separately, actual consumer verification reproduced Social profile-key exposure through anonymous reads; [application confidentiality debt](F39-final-consumer.md) remains outside the library's documented open-read contract. No application security qualification or external release is claimed.
+
+The full review history is now on main atdb6df6b; [fresh main validation](main-merge-validation.md) records627 JVM/73 platform executions plus consumer and monitoring checks.
 
 | Finding | Priority | Issue | Status | Commits |
 |---|---|---|---|---|

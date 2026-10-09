@@ -1,0 +1,13 @@
+# Main integration and fresh test verification
+
+Merge commit db6df6b places the entire fix/review-burndown history (through4b01198) on local main. Its first parent is the existing user commit ee6ec15. The review snapshot already contained that commit's source apart from five later changes: ktstore0.2.1 plus monitoring README/data-source/fixture/verification changes. Those five changes were reapplied cleanly after resolving the duplicated snapshot conflicts. The final merge differs from the reviewed branch only in those five intended files.
+
+Fresh wrapper validation on main passed627 JVM executions across all eight test modules, with zero failures/errors. The server's two optional load drivers were skipped in this run. PostgreSQL correctness tests were required and actually ran against the owned localhost58594 instance. Host compilation, resolved runtime dependency security, ten static modules and monitoring bundle creation passed. All73 Node/browser/Apple/Android executions passed with zero failures/errors/skips; all four Android library compilations passed. Android used a fresh owned API34 AVD on5590.
+
+Monitoring generation verified10 dashboards/94 catalog entries. The real isolated Docker monitoring smoke passed102 queries, all dashboard imports, alert-rule checks and cross-service trace/log correlation, including the newer main changes.
+
+The isolated Fullhouse consumer was also retested:69 JVM executions passed, one pre-existing account-settings ignore remained, and server/Android compilation, JS production distribution and Apple framework link passed. Build outputs for unchanged consumer targets were legitimately up-to-date. This consumer uses the frozen immutable library artifacts already recorded in F39-final-consumer.md; main's production Kotlin, proto, generator inputs and module build scripts are identical to their reviewed publisher00a0990 source. No new publication was performed.
+
+Default released-mode tests were attempted first and stopped resolving public ktstore-library0.2.1. Successful tests explicitly used the retained dependencies-indexeddb-final.json manifest and isolated Fullhouse Maven repository (ktstore0.2.0-fh.d53a47cbc15434b3ce1e, ktbuf1.1.10-fh.9c3962ea021c76107b84); global Maven Local was not consulted. F39 remains open for the separate coordinated public release. Counts, manifest digest and raw logs are retained in evidence/main-merge.
+
+Only task-owned monitoring containers, emulator5590 and PostgreSQL58594 were started, then stopped after validation. Other services were left alone. Generated bindings were produced by the checked-in pinned generator installer and were not edited.

@@ -1167,7 +1167,8 @@
       "docs/review/F26-archive-migration.md",
       "docs/review/F43-storage-platforms.md",
       "docs/review/final-source-verification.md",
-      "docs/review/F39-final-consumer.md"
+      "docs/review/F39-final-consumer.md",
+      "docs/review/main-merge-validation.md"
     ],
     "fix": "Complete the dependency publication/version transition and verify released-mode resolution before release. Preserve isolated workspace repositories while allowing toolchain distribution resolution. Pin and provision the same generator in local, CI, and container builds; include all generator/compiler inputs in caching. Move portable protocol/reducer tests to commonTest and add real platform storage/transport tests plus Fullhouse consumer checks for affected variants.",
     "status": "partial",
@@ -1195,7 +1196,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F39-build.md, docs/review/F39-historical-schema.md, docs/review/F39-source-project-pins.md",
     "regression": "NamespaceAdmissionPgTest; actual red/green evidence in linked issue notes",
-    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit. Released-mode connector/server was rechecked atfe7ec24 and still cannot resolve public ktstore-library0.2.0. Complete the separate coordinated public release/generator transition and rerun without workspace pins before closing F39."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit. Released-mode connector/server was rechecked atfe7ec24 and still cannot resolve public ktstore-library0.2.0. Complete the separate coordinated public release/generator transition and rerun without workspace pins before closing F39. Main integration db6df6b preserved the newer ktstore0.2.1 pin; default released-mode tests still fail resolving that public artifact. Fresh workspace main627JVM/73platform/69consumer executions and monitoring smoke passed; see docs/review/main-merge-validation.md."
   },
   {
     "id": "F40",

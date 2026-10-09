@@ -1,0 +1,161 @@
+{
+  "validatedCommit": "db6df6bde7d0ede930ecbe1ccf4c75e08146db04",
+  "parents": [
+    "ee6ec15b1c2830bd82fdc29171d6c4c8718664e7",
+    "4b011988b69e14bfa7a1bf944e02cfd85de6d301"
+  ],
+  "workspaceManifest": "/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/dependencies-indexeddb-final.json",
+  "workspaceManifestSha256": "74c98576c29a7b0285e1219986ba71ee0cbf8c9247b91ce7a349f85354282c56",
+  "jvm": {
+    "api": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 12
+    },
+    "connector": {
+      "tests": 209,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 209
+    },
+    "server": {
+      "tests": 361,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2,
+      "executed": 359
+    },
+    "sharding-core": {
+      "tests": 29,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 29
+    },
+    "keymaster": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 2
+    },
+    "observability-api": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 6
+    },
+    "observability-connector": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 4
+    },
+    "observability-server": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 6
+    }
+  },
+  "platform": {
+    "api:jsNodeTest": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 10
+    },
+    "api:iosSimulatorArm64Test": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 10
+    },
+    "connector:jsNodeTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 6
+    },
+    "connector:iosSimulatorArm64Test": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 9
+    },
+    "observability-api:jsNodeTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 6
+    },
+    "observability-api:iosSimulatorArm64Test": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 6
+    },
+    "observability-connector:jsNodeTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 4
+    },
+    "observability-connector:iosSimulatorArm64Test": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 4
+    },
+    "connector:jsBrowserTest": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 9
+    },
+    "connector:connectedDebugAndroidTest": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 9
+    }
+  },
+  "fullhouse": {
+    "server": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 11
+    },
+    "core/test": {
+      "tests": 59,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "executed": 58
+    }
+  },
+  "monitoring": {
+    "dashboards": 10,
+    "queries": 102,
+    "crossServiceCorrelation": true
+  },
+  "releasedMode": "blocked: public ktstore-library0.2.1 unavailable"
+}
