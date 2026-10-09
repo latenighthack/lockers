@@ -47,7 +47,9 @@ class StorageAdoptionTest {
                         assertContentEquals(expected.data as ByteArray, getAll(StoreName(table)).single() as ByteArray)
                         // Every independently captured scalar key remains queryable after rebuilding.
                         expected.keys.forEach { key ->
-                            assertContentEquals(expected.data as ByteArray, get(StoreName(table), StoreRelation.Eq(key)) as ByteArray)
+                            val currentKey = if (table == "lockers" && key is BoundStoreKey.LongKey)
+                                BoundStoreKey.SerializedKey(key.name, com.latenighthack.lockers.server.services.room.v1.lockerKeyspaceKey(key.value)) else key
+                            assertContentEquals(expected.data as ByteArray, get(StoreName(table), StoreRelation.Eq(currentKey)) as ByteArray)
                         }
                     }
                 }

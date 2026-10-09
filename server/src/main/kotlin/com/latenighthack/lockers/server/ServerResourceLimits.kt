@@ -16,6 +16,8 @@ data class ServerResourceLimits(
     val maxSnapshotLockers: Int = 10_000,
     val maxSnapshotBytes: Int = 64 * 1024 * 1024,
     val maxSnapshotLeases: Int = 128,
+    val maxSnapshotLeasesPerRoom: Int = 4,
+    val maxSnapshotRetainedBytes: Long = 256L * 1024 * 1024,
     val snapshotLeaseMillis: Long = 60_000,
     val maxLegacySnapshotLockers: Int = 1024,
     val globalReadsPerSecond: Int = 1000,
@@ -31,6 +33,7 @@ data class ServerResourceLimits(
         require(maxInboxReceipts > 0 && maxInboxReceiptsPerSession in 1..maxInboxReceipts)
         require(maxRoomClaims > 0)
         require(maxLockers > 0 && maxLockersPerRoom in 1..maxLockers)
+        require(maxSnapshotLeasesPerRoom > 0 && maxSnapshotRetainedBytes > 0)
         require(maxSnapshotLockers > 0 && maxSnapshotBytes > 0 && maxSnapshotLeases > 0)
         require(globalReadsPerSecond > 0 && globalReadBurst > 0 && roomReadsPerSecond > 0 && roomReadBurst > 0 && maxTrackedReadRooms > 0)
         require(snapshotLeaseMillis in 1..3_600_000 && maxLegacySnapshotLockers > 0)
@@ -55,6 +58,8 @@ data class ServerResourceLimits(
                 maxSnapshotLockers = limit("LOCKERS_MAX_SNAPSHOT_LOCKERS", 10_000),
                 maxSnapshotBytes = limit("LOCKERS_MAX_SNAPSHOT_BYTES", 64 * 1024 * 1024),
                 maxSnapshotLeases = limit("LOCKERS_MAX_SNAPSHOT_LEASES", 128),
+                maxSnapshotLeasesPerRoom = limit("LOCKERS_MAX_ROOM_SNAPSHOT_LEASES", 4),
+                maxSnapshotRetainedBytes = limit("LOCKERS_MAX_RETAINED_SNAPSHOT_BYTES", 256 * 1024 * 1024).toLong(),
                 snapshotLeaseMillis = limit("LOCKERS_SNAPSHOT_LEASE_MS", 60_000).toLong(),
                 maxLegacySnapshotLockers = limit("LOCKERS_MAX_LEGACY_SNAPSHOT_LOCKERS", 1024),
                 globalReadsPerSecond = limit("LOCKERS_READS_PER_SEC", 1000),

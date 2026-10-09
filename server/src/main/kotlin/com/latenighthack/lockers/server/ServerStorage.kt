@@ -28,6 +28,7 @@ object ServerStorage {
         com.latenighthack.lockers.server.services.room.v1.OutboxHeadsDefinitionV2("delivery"),
         com.latenighthack.lockers.server.services.room.v1.OutboxEntriesDefinitionV2("push_delivery"),
         com.latenighthack.lockers.server.services.room.v1.OutboxHeadsDefinitionV2("push_delivery"),
+        com.latenighthack.lockers.server.services.room.v1.SnapshotDefinitionV2,
         com.latenighthack.lockers.server.services.push.v1.PushWorkDefinitionV2,
         com.latenighthack.lockers.server.services.push.v1.PushRetentionDefinitionV3,
         com.latenighthack.lockers.server.services.push.v1.PushDeadLetterIndexDefinitionV2,
@@ -40,7 +41,9 @@ object ServerStorage {
     )
     val definitions = legacyDefinitionsV3.map { definition ->
         if (definition === com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreImplDefinitionV1)
-            com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreDefinitionV2 else definition
+            com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreDefinitionV2
+        else if (definition === com.latenighthack.lockers.server.services.room.v1.LockerStoreImplDefinitionV1)
+            com.latenighthack.lockers.server.services.room.v1.LockerStoreDefinitionV2 else definition
     } + additionsV4
     fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()): DatabaseConfiguration {
         val historical = definitionDatabaseConfiguration(identity, legacyDefinitionsV3 + additional)
@@ -51,6 +54,10 @@ object ServerStorage {
                 val inbox = com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreDefinitionV2
                 rebuildStore(inbox.storeName, inbox.declaration) { raw ->
                     StoreRow(raw.copyOf(), inbox.encodeRow(inbox.decode(raw)).keys)
+                }
+                val lockers = com.latenighthack.lockers.server.services.room.v1.LockerStoreDefinitionV2
+                rebuildStore(lockers.storeName, lockers.declaration) { raw ->
+                    StoreRow(raw.copyOf(), lockers.encodeRow(lockers.decode(raw)).keys)
                 }
             })
     }

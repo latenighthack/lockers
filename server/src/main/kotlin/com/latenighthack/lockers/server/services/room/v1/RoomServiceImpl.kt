@@ -31,6 +31,7 @@ import me.tatarka.inject.annotations.Provides
 import org.slf4j.LoggerFactory
 import kotlin.random.Random
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.collect
 
 /** Query-param stamp on east-west forwarded writes; its presence means "do not forward again". */
 private const val FORWARDED_PARAM = "fwd"
@@ -89,6 +90,7 @@ class RoomServiceImpl(
     private val dispatchers = ShardedDispatcher<RoomId>(config.shardCount, "room-shard") {
         it.rawValue.contentHashCode()
     }
+    private val snapshots by lazy { lockerStore.snapshotStore(config.resourceLimits) }
     private val readAdmission = ReadAdmission(config.resourceLimits)
     private suspend fun validateRead(room: RoomId) = readAdmission.require(room)
     private val rateLimiter = RoomRateLimiter(config.roomWritesPerSecond, config.roomWriteBurst)
@@ -250,8 +252,7 @@ class RoomServiceImpl(
     }
 
     override suspend fun capabilities(context: GrpcRequestContext, request: CapabilitiesRequest) = meterRegistry.trackRpc(TelemetryOperation.ROOM_CAPABILITIES, telemetry) { CapabilitiesResponse(
-        authorityV2 = true,
-        deleteReceipts = true,
+        authorityV2 = true, deleteReceipts = true, snapshotPaging = lockerStore.supportsSnapshotPaging(),
         subscribeAndSnapshot = config.deliveryOutboxEnabled, getLockers = true,
         postLockerChanges = config.deliveryOutboxEnabled, writeReceipts = config.deliveryOutboxEnabled,
         maxBatchItems = 64, maxBatchBytes = minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)
@@ -293,18 +294,22 @@ class RoomServiceImpl(
         val room = request.roomId ?: invalidArgument("Missing room identity")
         val session = requireNotNull(request.sessionId)
         validateRead(room)
+        snapshots.validate(request.pageSize, request.pageToken)
+        val spaces = request.keyspaces.map { it.value }.toSet()
+        if (request.pageToken.isNotEmpty()) {
+            val page = snapshots.next(1, room, session, spaces, request.pageSize, request.pageToken)
+            return SubscribeAndSnapshotResponse(SubscriptionResponse.Result.OK, page.lockers, page.roomSequence, page.nextPageToken)
+        }
         check(config.deliveryOutboxEnabled)
         return requireNotNull(deliveryOutbox).atomic(room) {
-            val spaces = request.keyspaces.map { it.value }.toSet()
-            val reads = lockerStore.getAllLockers(ServerRoomId(room.rawValue)).filter { spaces.isEmpty() || it.keyspace in spaces }
-                .map { storedRead(room, it) }
+            val reads = captureSnapshot(room, spaces)
             if (reads.any { !it.valid }) return@atomic SubscribeAndSnapshotResponse(result = SubscriptionResponse.Result.INVALID_DATA,
                 lockers = reads.filter { !it.valid }.map { it.value })
+            val page = snapshots.create(1, room, session, spaces, request.pageSize,
+                requireNotNull(deliveryOutbox).watermark(room), reads.map { it.value })
             subscriptionStore.addSubscription(ServerSessionId(session.rawValue), ServerRoomId(room.rawValue))
             roomToSessionCache.invalidate(room)
-            val lockers = reads.map { it.value }
-            SubscribeAndSnapshotResponse(result = SubscriptionResponse.Result.OK, lockers = lockers,
-                roomSequence = requireNotNull(deliveryOutbox).watermark(room))
+            SubscribeAndSnapshotResponse(SubscriptionResponse.Result.OK, page.lockers, page.roomSequence, page.nextPageToken)
         }
     }
 
@@ -489,30 +494,35 @@ class RoomServiceImpl(
             locker = read.value)
     }
 
+    private suspend fun captureSnapshot(room: RoomId, spaces: Set<Long>): List<StoredRead> {
+        val reads = mutableListOf<StoredRead>(); var bytes = 0L
+        lockerStore.lockerPages(ServerRoomId(room.rawValue)).collect { page ->
+            for (stored in page) if (spaces.isEmpty() || stored.keyspace in spaces) {
+                val read = storedRead(room, stored)
+                bytes += read.value.toByteArray().size + 16
+                if (reads.size == config.resourceLimits.maxSnapshotLockers || bytes > config.resourceLimits.maxSnapshotBytes)
+                    throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.RESOURCE_EXHAUSTED, "Snapshot capture capacity exhausted")
+                reads.add(read)
+            }
+        }
+        return reads
+    }
+
     override suspend fun getAllLockers(
         context: GrpcRequestContext,
         request: GetAllLockersRequest
     ) = meterRegistry.trackResponse("lockers.room.locker.getall", GetAllLockersResponse::result, telemetry) {
-        val startTime = System.nanoTime()
-        val roomId = request.roomId
-            ?: return@trackResponse GetAllLockersResponse(result = GetAllLockersResponse.Result.UNKNOWN_ERROR)
-
+        val roomId = request.roomId ?: invalidArgument("Missing room identity")
         validateRead(roomId)
-        val keyspace = request.keyspace
-
-        val storedLockers = if (keyspace == null) {
-            lockerStore.getAllLockers(ServerRoomId(roomId.rawValue))
-        } else {
-            lockerStore.getAllLockersInKeyspace(ServerRoomId(roomId.rawValue), keyspace.value)
+        snapshots.validate(request.pageSize, request.pageToken)
+        val spaces = request.keyspace?.let { setOf(it.value) } ?: emptySet()
+        if (request.pageToken.isNotEmpty()) return@trackResponse snapshots.next(0, roomId, null, spaces, request.pageSize, request.pageToken)
+        lockStore.atomic(ServerRoomId(roomId.rawValue)) {
+            val reads = captureSnapshot(roomId, spaces)
+            if (reads.any { !it.valid }) return@atomic GetAllLockersResponse(result = GetAllLockersResponse.Result.INVALID_DATA,
+                lockers = reads.filter { !it.valid }.map { it.value })
+            snapshots.create(0, roomId, null, spaces, request.pageSize, deliveryOutbox?.watermark(roomId) ?: 0, reads.map { it.value })
         }
-
-        lockersReturnedSummary.record(storedLockers.size.toDouble())
-        getAllLockersTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
-
-        val reads = storedLockers.map { storedRead(roomId, it) }
-        if (reads.any { !it.valid }) return@trackResponse GetAllLockersResponse(result = GetAllLockersResponse.Result.INVALID_DATA,
-            lockers = reads.filter { !it.valid }.map { it.value })
-        GetAllLockersResponse(result = GetAllLockersResponse.Result.OK, lockers = reads.map { it.value })
     }
 
     override suspend fun postLockerChange(

@@ -1,9 +1,16 @@
 package com.latenighthack.lockers.server.services.room.v1
 
 import com.latenighthack.ktstore.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import com.latenighthack.lockers.server.storage.v1.*
 
 interface LockerStore {
+    fun supportsSnapshotPaging(): Boolean = false
+    fun lockerPages(roomId: ServerRoomId): Flow<List<ServerLocker>> =
+        throw UnsupportedOperationException("Locker extension requires bounded indexed pages")
+    fun snapshotStore(limits: com.latenighthack.lockers.server.ServerResourceLimits): SnapshotStore =
+        throw UnsupportedOperationException("Locker extension requires durable snapshot leases")
     suspend fun getLockers(roomId: ServerRoomId, ids: List<Pair<Long, ServerLockerId>>): List<ServerLocker> =
         ids.mapNotNull { (space, id) -> getLocker(roomId, space, id) }
 
@@ -15,26 +22,39 @@ interface LockerStore {
     suspend fun deleteLocker(roomId: ServerRoomId, keyspace: Long, lockerId: ServerLockerId)
 }
 
-class LockerStoreImpl(delegate: Database) : LockerStore, Store<ServerLocker>(delegate, LockerStoreImplDefinitionV1) {
-    private val roomIdKey = LockerStoreImplDefinitionV1.roomIdKey
-    private val lockerIdKey = LockerStoreImplDefinitionV1.lockerIdKey
-    private val keyspaceKey = LockerStoreImplDefinitionV1.keyspaceKey
-    private val roomIdAndKeyspace = LockerStoreImplDefinitionV1.roomIdAndKeyspace
-    private val roomIdAndKeyspaceAndLockerIdKey = LockerStoreImplDefinitionV1.roomIdAndKeyspaceAndLockerIdKey
+class LockerStoreImpl(private val database: Database) : LockerStore, Store<ServerLocker>(database, LockerStoreDefinitionV2) {
+    private val roomIdKey = LockerStoreDefinitionV2.roomIdKey
+    private val lockerIdKey = LockerStoreDefinitionV2.lockerIdKey
+    private val keyspaceKey = LockerStoreDefinitionV2.keyspaceKey
+    private val roomIdAndKeyspace = LockerStoreDefinitionV2.roomIdAndKeyspace
+    private val roomIdAndKeyspaceAndLockerIdKey = LockerStoreDefinitionV2.roomIdAndKeyspaceAndLockerIdKey
 
+    override fun supportsSnapshotPaging() = true
+    override fun snapshotStore(limits: com.latenighthack.lockers.server.ServerResourceLimits) = SnapshotStore(database, limits)
+    override fun lockerPages(roomId: ServerRoomId): Flow<List<ServerLocker>> = flow {
+        var after: LocalContinuation? = null
+        do {
+            val page = database.query(LockerStoreDefinitionV2.storeName, roomIdKey.query(64,
+                lower = roomId.toByteArray(), upper = roomId.toByteArray(), after = after))
+            if (page.records.isNotEmpty()) emit(page.records.map { when (it) {
+                is ServerLocker -> it; is ByteArray -> LockerStoreDefinitionV2.decode(it); else -> error("Invalid locker row")
+            } })
+            after = page.continuation
+        } while (after != null)
+    }
     override suspend fun getAllLockers(roomId: ServerRoomId): List<ServerLocker> = getAll(roomIdKey.eq(roomId.toByteArray()))
 
     override suspend fun getAllLockersInKeyspace(roomId: ServerRoomId, keyspace: Long): List<ServerLocker> = getAll(roomIdAndKeyspace.eq(
         listOf(
             BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.toByteArray()),
-            BoundStoreKey.LongKey(keyspaceKey.name.value, keyspace)
+            BoundStoreKey.SerializedKey(keyspaceKey.name.value, lockerKeyspaceKey(keyspace))
         )
     ))
 
     override suspend fun getLocker(roomId: ServerRoomId, keyspace: Long, lockerId: ServerLockerId): ServerLocker? = get(roomIdAndKeyspaceAndLockerIdKey.eq(
         listOf(
             BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.toByteArray()),
-            BoundStoreKey.LongKey(keyspaceKey.name.value, keyspace),
+            BoundStoreKey.SerializedKey(keyspaceKey.name.value, lockerKeyspaceKey(keyspace)),
             BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.toByteArray())
         )
     ))
@@ -42,7 +62,7 @@ class LockerStoreImpl(delegate: Database) : LockerStore, Store<ServerLocker>(del
     override suspend fun getLockers(roomId: ServerRoomId, ids: List<Pair<Long, ServerLockerId>>) = getMany(ids.map { (space, id) ->
         roomIdAndKeyspaceAndLockerIdKey.eq(listOf(
             BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.toByteArray()),
-            BoundStoreKey.LongKey(keyspaceKey.name.value, space),
+            BoundStoreKey.SerializedKey(keyspaceKey.name.value, lockerKeyspaceKey(space)),
             BoundStoreKey.SerializedKey(lockerIdKey.name.value, id.toByteArray())
         ))
     })
@@ -53,7 +73,7 @@ class LockerStoreImpl(delegate: Database) : LockerStore, Store<ServerLocker>(del
     override suspend fun deleteLocker(roomId: ServerRoomId, keyspace: Long, lockerId: ServerLockerId) = delete(roomIdAndKeyspaceAndLockerIdKey.eq(
         listOf(
             BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.toByteArray()),
-            BoundStoreKey.LongKey(keyspaceKey.name.value, keyspace),
+            BoundStoreKey.SerializedKey(keyspaceKey.name.value, lockerKeyspaceKey(keyspace)),
             BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.toByteArray())
         )
     ))
