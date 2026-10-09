@@ -34,8 +34,12 @@ Commands use the wrapper with the generated isolated Fullhouse manifest:
 The patched ktstore publication was prepared by `./fh deps resolve` and
 `./fh deps publish --library ktstore`, never global Maven Local.
 
-Remaining release gate: ktstore 0.2.0 must exist in the configured released repository
-before a clean released dependency resolution, CI build or full released Docker build
-can succeed. Workspace builds do not prove this gate. External publication is a
-separate release operation and was not performed. Fullhouse verification must run
-again after all remediation commits are integrated and locally published immutably.
+Remaining release gate: release the tested checkpoints in the order documented in
+[F39-release-transition.md](F39-release-transition.md), beginning with ktstore0.2.1,
+then update released dependency pins. The current released-mode ktstore0.2.0 lookup
+still fails; an unrelated older artifact would not satisfy the new owner, index and
+IndexedDB mutation contract. Clean released resolution, CI and Docker verification
+remain blocked until the compatible release transition is performed. Workspace
+builds do not prove this gate. External publication remains a separate release
+operation and was not performed. Fullhouse verification must run again after all
+remediation commits are integrated and locally published immutably.
