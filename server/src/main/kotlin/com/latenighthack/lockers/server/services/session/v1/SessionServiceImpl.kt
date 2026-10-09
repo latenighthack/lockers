@@ -686,8 +686,9 @@ class SessionServiceImpl(
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (ex: Exception) {
             logger.warn("session create failed unexpectedly", ex)
-            result = WatchSessionResponse.Open.Result.SESSION_EXISTS
-            meterRegistry.counter("lockers.session.creates", "result", "SESSION_EXISTS").increment()
+            result = if (ex is UnsupportedOperationException) WatchSessionResponse.Open.Result.UPGRADE_REQUIRED
+                else WatchSessionResponse.Open.Result.UNKNOWN_ERROR
+            meterRegistry.counter("lockers.session.creates", "result", result.toString()).increment()
             return null
         }
 
