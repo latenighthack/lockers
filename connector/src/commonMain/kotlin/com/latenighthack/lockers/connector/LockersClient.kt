@@ -45,6 +45,7 @@ class LockersClient private constructor(
     /** The current session id once the session has opened, else null. */
     val sessionId: StateFlow<SessionId?> get() = stream.sessionId
 
+    val subscriptionWork: StateFlow<SubscriptionWorkState> get() = stream.subscriptionWork
     val subscriptionFailures: StateFlow<Map<com.latenighthack.lockers.common.v1.RoomId, Throwable>> get() = stream.subscriptionFailures
     val subscriptionFailure: StateFlow<Throwable?> get() = stream.subscriptionFailure
 

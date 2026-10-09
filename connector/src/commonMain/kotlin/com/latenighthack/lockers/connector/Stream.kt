@@ -18,6 +18,7 @@ import com.latenighthack.lockers.common.SessionSigning
 import kotlinx.datetime.Clock
 import com.latenighthack.lockers.session.v1.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.withLock
 import kotlin.random.Random
@@ -211,6 +212,10 @@ class SubscriptionStoreImpl(private val database: Database, private val retentio
     override suspend fun deleteSubscription(roomId: RoomId) = database.transaction("connector-subscriptions") { delete(roomIdKey.eq(roomId.rawValue)) }
 }
 
+/** Occupied slots include canceled effects until their actual completion. Queued work is latest desired intent. */
+data class SubscriptionWorkState(val occupiedEffects: Int = 0, val retiringEffects: Int = 0,
+    val queuedRooms: Set<RoomId> = emptySet(), val maxEffects: Int = 0)
+
 class SubscriptionController(
     private val rpcClient: RpcClient,
     private val subscriptionStore: SubscriptionStore,
@@ -237,6 +242,7 @@ class SubscriptionController(
         data class Desired(val roomId: RoomId, val subscribed: Boolean, val applied: CompletableDeferred<Unit>) : Change
         data class Session(val sessionId: SessionId?) : Change
         data object Refresh : Change
+        data class Finished(val generation: Long) : Change
         data class Confirmed(val roomId: RoomId, val sessionId: SessionId,
                              val generation: Long, val subscribed: Boolean) : Change
         data class Failed(val roomId: RoomId, val sessionId: SessionId, val generation: Long, val cause: Throwable) : Change
@@ -247,6 +253,10 @@ class SubscriptionController(
     private val confirmations = MutableStateFlow(Confirmations())
     private val closed = MutableStateFlow(false)
     private val controllerFailure = MutableStateFlow<Throwable?>(null)
+    private val workState = MutableStateFlow(SubscriptionWorkState(maxEffects = subscriptionStore.maxSubscriptions.coerceIn(1, 100_000) * 2))
+    val work: StateFlow<SubscriptionWorkState> = MappedStateFlow(workState) { snapshot ->
+        snapshot.copy(queuedRooms = snapshot.queuedRooms.map { it.canonical() }.toSet())
+    }
     /** Permanent room failures retain persisted intent until an explicit retry or new session. */
     val failures: StateFlow<Map<RoomId, Throwable>> = MappedStateFlow(confirmations) { state ->
         state.failures.mapKeys { (room, _) -> room.canonical() }
@@ -275,15 +285,18 @@ class SubscriptionController(
             var sessionId: SessionId? = null
             var nextGeneration = 0L
             val generations = mutableMapOf<RoomId, Long>()
-            val jobs = mutableMapOf<RoomId, Job>()
+            data class Target(val room: RoomId, val session: SessionId, val generation: Long, val subscribed: Boolean)
+            val maxWork = subscriptionStore.maxSubscriptions.coerceIn(1, 100_000) * 2
+            val jobs = mutableMapOf<Long, Pair<RoomId, Job>>() // Includes retiring canceled work until actual completion.
+            val active = mutableMapOf<RoomId, Long>()
+            val roomCounts = mutableMapOf<RoomId, Int>()
+            val pending = mutableMapOf<RoomId, Target>() // Latest generation only, bounded by persisted intents.
+            val completed = kotlinx.coroutines.channels.Channel<Long>(maxWork)
 
-            fun reconcile(roomId: RoomId, subscribed: Boolean) {
-                jobs.remove(roomId)?.cancel()
-                check(nextGeneration < Long.MAX_VALUE) { "Subscription generation exhausted" }
-                val generation = ++nextGeneration
-                generations[roomId] = generation
-                val targetSession = sessionId ?: return
-                jobs[roomId] = controllerScope.launch {
+            fun launchTarget(target: Target) {
+                val roomId = target.room; val subscribed = target.subscribed
+                val generation = target.generation; val targetSession = target.session
+                val worker = controllerScope.launch(start = CoroutineStart.LAZY) {
                     try {
                         repeatWithBackoff(exceptionHandler = ::isRetryableProtocolFailure) {
                             telemetry.observe(TelemetryOperation.CONNECTOR_SUBSCRIBE) {
@@ -312,10 +325,45 @@ class SubscriptionController(
                         changes.send(Change.Failed(roomId, targetSession, generation, retainedProtocolFailure(failure)))
                     }
                 }
+                jobs[generation] = roomId to worker
+                roomCounts[roomId] = (roomCounts[roomId] ?: 0) + 1
+                active[roomId] = generation
+                worker.invokeOnCompletion {
+                    // One notification per still-accounted worker fits the dedicated bounded channel.
+                    // Never share the user-command queue: a full command queue cannot lose slot release.
+                    completed.trySend(generation)
+                }
+                worker.start()
+            }
+            fun publishWork() { workState.value = SubscriptionWorkState(jobs.size, jobs.size - active.size, pending.keys.toSet(), maxWork) }
+            fun drain() {
+                for (room in pending.keys.toList()) {
+                    if (jobs.size >= maxWork) break
+                    if ((roomCounts[room] ?: 0) >= 2) continue
+                    val target = pending.remove(room) ?: continue
+                    if (desired[room] != target.subscribed || sessionId != target.session || generations[room] != target.generation) continue
+                    launchTarget(target)
+                }
+                publishWork()
+            }
+            fun cancelActive(room: RoomId) { active.remove(room)?.let { jobs[it]?.second?.cancel() } }
+            fun reconcile(roomId: RoomId, subscribed: Boolean) {
+                cancelActive(roomId)
+                check(nextGeneration < Long.MAX_VALUE) { "Subscription generation exhausted" }
+                val generation = ++nextGeneration
+                generations[roomId] = generation
+                val targetSession = sessionId
+                if (targetSession == null) pending.remove(roomId)
+                else pending[roomId] = Target(roomId, targetSession, generation, subscribed)
+                drain()
             }
 
             try {
-                for (change in changes) {
+                while (currentCoroutineContext().isActive) {
+                    val change = select<Change> {
+                        completed.onReceive { Change.Finished(it) }
+                        changes.onReceive { it }
+                    }
                     try {
                         when (change) {
                             is Change.Desired -> {
@@ -339,28 +387,38 @@ class SubscriptionController(
                                     sessionId = change.sessionId
                                 }
                                 confirmations.value = Confirmations(sessionId)
-                                jobs.values.forEach { it.cancel() }; jobs.clear()
+                                jobs.values.forEach { it.second.cancel() }; active.clear(); pending.clear()
                                 desired.forEach { (room, subscribed) -> reconcile(room, subscribed) }
                             }
                             is Change.Confirmed -> {
                                 if (change.sessionId != sessionId || generations[change.roomId] != change.generation) continue
-                                jobs.remove(change.roomId)
+                                active.remove(change.roomId)
                                 if (change.subscribed) {
                                     subscriptionStore.updateSubscription(StoredSubscription { roomIdRawValue = change.roomId.rawValue })
                                     confirmations.update { it.copy(rooms = it.rooms + change.roomId, failures = it.failures - change.roomId) }
                                     newSubscriptions.tryEmit(change.roomId)
                                 } else {
                                     subscriptionStore.deleteSubscription(change.roomId)
-                                    desired.remove(change.roomId); generations.remove(change.roomId)
+                                    desired.remove(change.roomId); generations.remove(change.roomId); pending.remove(change.roomId)
                                     confirmations.update { it.copy(failures = it.failures - change.roomId) }
                                 }
                             }
                             is Change.Failed -> {
                                 if (change.sessionId != sessionId || generations[change.roomId] != change.generation) continue
-                                jobs.remove(change.roomId)
+                                active.remove(change.roomId); pending.remove(change.roomId)
                                 confirmations.update { it.copy(failures = it.failures + (change.roomId to change.cause)) }
                             }
+                            is Change.Finished -> {
+                                val retired = jobs.remove(change.generation)
+                                if (retired != null) {
+                                    if (active[retired.first] == change.generation) active.remove(retired.first)
+                                    val count = (roomCounts[retired.first] ?: 1) - 1
+                                    if (count == 0) roomCounts.remove(retired.first) else roomCounts[retired.first] = count
+                                }
+                                drain()
+                            }
                         }
+                        publishWork()
                     } catch (failure: Exception) {
                         if (failure is CancellationException && failure !is RetryLimitExceeded) {
                             (change as? Change.Desired)?.applied?.completeExceptionally(failure)
@@ -374,7 +432,7 @@ class SubscriptionController(
                             else -> null
                         }
                         if (room != null) {
-                            jobs.remove(room)?.cancel()
+                            cancelActive(room); pending.remove(room); publishWork()
                             // Do not retain failed new-room requests outside the bounded persisted intent set.
                             if (room in desired) confirmations.update { it.copy(failures = it.failures + (room to retainedProtocolFailure(failure))) }
                         } else { controllerFailure.value = retainedProtocolFailure(failure); stop(); return@launch }
@@ -382,7 +440,7 @@ class SubscriptionController(
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) { controllerFailure.value = retainedProtocolFailure(failure); stop() }
-            finally { jobs.values.forEach { it.cancel() } }
+            finally { completed.close(); jobs.values.forEach { it.second.cancel() } }
         }
         controllerScope.launch {
             try { sessionIdSource.distinctUntilChanged().collect { changes.send(Change.Session(it)) } }
@@ -594,6 +652,7 @@ class Stream(
         return subscriptionController.watchNewSubscriptions()
     }
 
+    val subscriptionWork: StateFlow<SubscriptionWorkState> get() = subscriptionController.work
     val subscriptionFailures: StateFlow<Map<RoomId, Throwable>> get() = subscriptionController.failures
     val subscriptionFailure: StateFlow<Throwable?> get() = subscriptionController.failure
 

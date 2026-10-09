@@ -14,6 +14,77 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.*
 
 class ReviewSubscriptionFailureTests {
+    @Test fun `retiring subscription effects remain bounded across session generations`() = runBlocking { withContext(Dispatchers.Default) {
+        val db = ConnectorStorage.inMemory(); db.open()
+        val sessions = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), db).also { it.prepare() }
+        val subscriptions = SubscriptionStoreImpl(db, ConnectorRetentionPolicy(maxSubscriptions = 2)).also { it.prepare() }
+        val source = MutableStateFlow<SessionId?>(SessionId(byteArrayOf(1)))
+        val entered = kotlinx.coroutines.channels.Channel<Int>(32)
+        val release = CompletableDeferred<Unit>()
+        val active = AtomicInteger(); val peak = AtomicInteger(); val total = AtomicInteger()
+        val heldRoom = RoomId(byteArrayOf(2)); val healthyRoom = RoomId(byteArrayOf(3))
+        val controller = SubscriptionController(ReviewRpc { _, bytes ->
+            val request = SubscriptionRequest.fromByteArray(bytes)
+            if (request.roomId!!.rawValue[0] == 2.toByte()) {
+                val count = active.incrementAndGet(); peak.updateAndGet { maxOf(it, count) }; total.incrementAndGet()
+                entered.send(request.sessionId!!.rawValue[0].toInt())
+                try { withContext(NonCancellable) { release.await() } } finally { active.decrementAndGet() }
+            }
+            SubscriptionResponse().toByteArray()
+        }, subscriptions, sessions, source, coroutineContext = currentCoroutineContext())
+        try {
+            controller.subscribe(heldRoom); controller.subscribe(healthyRoom)
+            assertEquals(1, withTimeout(2_000) { entered.receive() })
+            for (generation in 2..20) {
+                source.value = SessionId(byteArrayOf(generation.toByte()))
+                withTimeout(2_000) { controller.awaitSubscription(healthyRoom) }
+                if (generation == 2) assertEquals(2, withTimeout(2_000) { entered.receive() })
+                delay(10) // Healthy confirmation is the processed-session barrier; queued held-room work is conflated.
+            }
+            assertEquals(2, subscriptions.getAllSubscriptions().size)
+            assertTrue(peak.get() <= 2, "one room retained ${active.get()} RPC effects (peak=${peak.get()}, total=${total.get()}) despite only two persisted intents")
+            release.complete(Unit)
+            withTimeout(2_000) { controller.awaitSubscription(heldRoom) }
+            assertEquals(20, withTimeout(2_000) { entered.receive() }, "completion must run only the latest deferred session")
+        } finally { release.complete(Unit); controller.closeAndJoin(); assertEquals(0, active.get()); db.close() }
+    } }
+
+    @Test fun `removed room identities retain their global work budget until actual cleanup completes`() = runBlocking { withContext(Dispatchers.Default) {
+        val db = ConnectorStorage.inMemory(); db.open()
+        val sessions = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), db).also { it.prepare() }
+        val subscriptions = SubscriptionStoreImpl(db, ConnectorRetentionPolicy(maxSubscriptions = 1)).also { it.prepare() }
+        val release = CompletableDeferred<Unit>(); val entered = kotlinx.coroutines.channels.Channel<Unit>(2)
+        val active = AtomicInteger(); val peak = AtomicInteger()
+        val controller = SubscriptionController(ReviewRpc { _, bytes ->
+            val request = SubscriptionRequest.fromByteArray(bytes)
+            if (request.kind is SubscriptionRequest.OneOfKind.subscribe) {
+                val count = active.incrementAndGet(); peak.updateAndGet { maxOf(it, count) }; entered.send(Unit)
+                try { withContext(NonCancellable) { release.await() } } finally { active.decrementAndGet() }
+            }
+            SubscriptionResponse().toByteArray()
+        }, subscriptions, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), coroutineContext = currentCoroutineContext())
+        try {
+            val first = RoomId(byteArrayOf(2)); val second = RoomId(byteArrayOf(3))
+            controller.subscribe(first); withTimeout(1_500) { entered.receive() }; controller.unsubscribe(first)
+            withTimeout(1_500) { while (subscriptions.getAllSubscriptions().isNotEmpty()) delay(10) }
+            controller.subscribe(second); withTimeout(1_500) { entered.receive() }; controller.unsubscribe(second)
+            val removed = withTimeoutOrNull(200) { while (subscriptions.getAllSubscriptions().isNotEmpty()) delay(10); true }
+            assertNull(removed, "retired deleted-room work must still consume the finite global effect budget")
+            assertTrue(subscriptions.getAllSubscriptions().single().isPendingRemove)
+            assertEquals(2, controller.work.value.occupiedEffects)
+            assertEquals(2, controller.work.value.retiringEffects)
+            assertEquals(1, controller.work.value.queuedRooms.size)
+            assertContentEquals(second.rawValue, controller.work.value.queuedRooms.single().rawValue)
+            controller.work.value.queuedRooms.single().rawValue.fill(0)
+            assertContentEquals(second.rawValue, controller.work.value.queuedRooms.single().rawValue)
+            assertFailsWith<SubscriptionCapacityException> { controller.subscribe(RoomId(byteArrayOf(4))) }
+            assertEquals(2, peak.get())
+            release.complete(Unit)
+            withTimeout(1_500) { while (subscriptions.getAllSubscriptions().isNotEmpty()) delay(10) }
+            controller.subscribe(RoomId(byteArrayOf(4))); withTimeout(1_500) { controller.awaitSubscription(RoomId(byteArrayOf(4))) }
+        } finally { release.complete(Unit); controller.closeAndJoin(); assertEquals(0, active.get()); db.close() }
+    } }
+
     @Test fun `one permanent subscription failure is observable and does not stop another room`() = runBlocking { withContext(Dispatchers.Default) {
         val db = ConnectorStorage.inMemory(); db.open()
         val sessions = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), db).also { it.prepare() }

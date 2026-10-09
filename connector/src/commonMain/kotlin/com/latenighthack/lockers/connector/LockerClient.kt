@@ -846,6 +846,7 @@ class LockerClient(
 
     suspend fun closeAndJoin() { stop(); processingJob.join() }
 
+    val subscriptionWork: StateFlow<SubscriptionWorkState> get() = stream.subscriptionWork
     val subscriptionFailures: StateFlow<Map<RoomId, Throwable>> get() = stream.subscriptionFailures
     val subscriptionFailure: StateFlow<Throwable?> get() = stream.subscriptionFailure
 
