@@ -29,6 +29,7 @@
     <ID>ComplexCondition:SessionServiceImpl.kt$SessionServiceImpl$request.sessionIds.size &gt; ProtocolValidation.MAX_RECIPIENTS || request.sessionIds.any { !ProtocolValidation.identity(it.rawValue) } || request.toByteArray().size &gt; ProtocolValidation.MAX_ENVELOPE_BYTES || !ProtocolValidation.event(request.event)</ID>
     <ID>ComplexCondition:SessionServiceImpl.kt$SessionServiceImpl$requestSequenceSignature == null || requestSequenceSignature.size != 64 || open.toByteArray().size &gt; ProtocolValidation.MAX_ENVELOPE_BYTES || !CpuAdmission.signatureShape(open.sequenceKeySignature, required = true)</ID>
     <ID>ComplexCondition:SnapshotStore.kt$SnapshotStore$pageSize !in 0..64 || (token.isNotEmpty() &amp;&amp; (pageSize == 0 || token.size != 36))</ID>
+    <ID>ComplexCondition:SubscriptionIntents.kt$SubscriptionIntents$revision != floor || (revision &gt; 0 &amp;&amp; (existing?.subscribed != true || !active()))</ID>
     <ID>ComplexCondition:WebPushEndpointPolicy.kt$WebPushEndpointPolicy$address.isAnyLocalAddress || address.isLoopbackAddress || address.isLinkLocalAddress || address.isSiteLocalAddress || address.isMulticastAddress</ID>
     <ID>ComplexCondition:WebPushEndpointPolicy.kt$WebPushEndpointPolicy$allowedHosts.none { trusted -&gt; host == trusted || (trusted.startsWith("*.") &amp;&amp; host.endsWith(trusted.substring(1)) &amp;&amp; host != trusted.substring(2)) }</ID>
     <ID>ComplexCondition:WebPushEndpointPolicy.kt$WebPushEndpointPolicy$uri.scheme != "https" || uri.port !in listOf(-1, 443) || uri.userInfo != null || uri.fragment != null</ID>
@@ -59,7 +60,7 @@
     <ID>CyclomaticComplexMethod:SessionServiceImpl.kt$SessionServiceImpl$private suspend fun WatchSessionResponse_OpenBuilder.observedHandleCreate(create: WatchSessionRequest.Create): ServerSessionId?</ID>
     <ID>CyclomaticComplexMethod:SessionServiceImpl.kt$SessionServiceImpl$private suspend fun WatchSessionResponse_OpenBuilder.observedHandleOpen(open: WatchSessionRequest.Open): ServerSessionId?</ID>
     <ID>CyclomaticComplexMethod:SessionServiceImpl.kt$SessionServiceImpl$private suspend fun enqueueEvent(sessionIds: List&lt;SessionId&gt;, offered: Event): Enqueued</ID>
-    <ID>CyclomaticComplexMethod:SnapshotStore.kt$SnapshotStore$suspend fun create(operation: Int, room: RoomId, session: SessionId?, spaces: Set&lt;Long&gt;, pageSize: Int, sequence: Long, lockers: List&lt;IdentifiedLocker&gt;): GetAllLockersResponse</ID>
+    <ID>CyclomaticComplexMethod:SnapshotStore.kt$SnapshotStore$suspend fun create(operation: Int, room: RoomId, session: SessionId?, spaces: Set&lt;Long&gt;, pageSize: Int, sequence: Long, lockers: List&lt;IdentifiedLocker&gt;, intentRevision: Long = 0): GetAllLockersResponse</ID>
     <ID>CyclomaticComplexMethod:WebPushEndpointPolicy.kt$WebPushEndpointPolicy$private fun isPublic(address: InetAddress): Boolean</ID>
     <ID>CyclomaticComplexMethod:WebPushProvider.kt$WebPushProvider$override suspend fun send(registration: PushRegistration, push: Push): PushResult</ID>
     <ID>EmptyElseBlock:LockerWireValidation.kt$LockerWireValidation$if (end - position &lt; 4) return false</ID>
@@ -67,6 +68,7 @@
     <ID>EmptyFunctionBlock:InMemoryClaimStores.kt$InMemoryRoomClaimStore${}</ID>
     <ID>EmptyFunctionBlock:InMemoryClaimStores.kt$InMemorySessionGatewayStore${}</ID>
     <ID>EmptyFunctionBlock:InboxDeliveryReceiptTest.kt$InboxDeliveryReceiptTest.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest.&lt;no name provided&gt;${}</ID>
     <ID>EmptyFunctionBlock:RuntimeCancellationTest.kt$RuntimeCancellationTest.&lt;no name provided&gt;${}</ID>
     <ID>EmptyFunctionBlock:SessionAttachFailureTest.kt$SessionAttachFailureTest.&lt;no name provided&gt;${}</ID>
     <ID>EmptyWhileBlock:PeerConnectionOwnershipTest.kt$PeerConnectionOwnershipTest${ }</ID>
@@ -88,6 +90,7 @@
     <ID>LongParameterList:ClaimContext.kt$ClaimContext$( /** Unique process incarnation; direct embedders must never share this value across live processes. */ val nodeId: String, val advertiseAddr: String, val roomClaims: RoomClaimStore, val sessionGateways: SessionGatewayStore, val pool: PeerConnectionPool, val ttlMs: Long, val renewMs: Long, val meters: ClaimMetrics, /** Set by [fromConfig] so [close] can release the coordination pool it created. */ private val ownedJdbcPool: ClaimJdbcPool? = null, )</ID>
     <ID>LongParameterList:ClaimRenewalService.kt$ClaimRenewalService$( private val roomClaims: RoomClaimStore, private val ownership: ClaimRoomOwnership, private val nodeId: String, private val ttlMs: Long, private val renewIntervalMs: Long, private val meters: ClaimMetrics, /** Invoked after any demotion so the component can evict room caches. */ private val onDemoted: suspend () -&gt; Unit = {}, /** The session-registry renew round (claim mode wires `ClaimSessionRegistry::renewRound`). */ private val sessionRenewRound: suspend () -&gt; Unit = {}, /** Session-registry drain, run alongside [RoomClaimStore.releaseAll] on stop. */ private val sessionReleaseAll: suspend () -&gt; Unit = {}, private val clock: () -&gt; Long = System::currentTimeMillis, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, )</ID>
     <ID>LongParameterList:ClaimRoomOwnership.kt$ClaimRoomOwnership$( private val store: RoomClaimStore, private val selfNodeId: String, private val advertiseAddr: String, private val ttlMs: Long, renewIntervalMs: Long, private val meters: ClaimMetrics, private val nonOwnerCacheTtlMs: Long = NON_OWNER_CACHE_TTL_MS, private val clock: () -&gt; Long = System::currentTimeMillis, )</ID>
+    <ID>LongParameterList:ClusterContext.kt$ClusterContext$( val router: ShardRouter, val sessionGateways: RemoteGateway&lt;SessionGatewayService&gt;, val pushGateways: RemoteGateway&lt;PushGatewayService&gt;, val ownerCoordinator: OwnershipCoordinator? = null, val roomKeyspaces: List&lt;Keyspace&gt; = listOf(Keyspace(0L)), val ownerMetrics: OwnerLifecycleMetrics = OwnerLifecycleMetrics.NONE, /** Null only for trusted legacy embeddings with directly reachable ring addresses. */ sessionPublicAddresses: Map&lt;NodeId, String&gt;? = null, )</ID>
     <ID>LongParameterList:LockVerifier.kt$LockVerifier$( lock: ServerLock, roomId: RoomId, lockerId: LockerId, parentVersion: Long, contentHash: ByteArray, signature: Signature?, notification: Notification? = null, )</ID>
     <ID>LongParameterList:PushServiceImpl.kt$PushServiceImpl$( private val pushSessionStore: PushSessionStore, private val pushQueueStore: PushQueueStore, private val pushDeadLetterStore: PushDeadLetterStore, private val meterRegistry: MeterRegistry, private val pushProviders: List&lt;PushProvider&gt;, private val dispatch: PushDispatchConfig = PushDispatchConfig.DEFAULT, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext, )</ID>
     <ID>LongParameterList:PushServiceTest.kt$PushServiceTest.Harness$( val impl: PushServiceImpl, val sessionStore: PushSessionStoreImpl, val deadLetterStore: PushDeadLetterStoreImpl, val registry: SimpleMeterRegistry, val client: LocalPushServiceRpc, val gateway: LocalPushGatewayServiceRpc, val admin: LocalPushAdminServiceRpc, )</ID>
@@ -96,8 +99,9 @@
     <ID>LongParameterList:SessionProofVerifier.kt$SessionProofVerifier$(operation: String, sessionId: SessionId?, proof: SessionProof?, encodedRequest: ByteArray, rejected: () -&gt; T, mutation: suspend () -&gt; T)</ID>
     <ID>LongParameterList:SessionServiceImpl.kt$SessionServiceImpl$( private val sessionStore: SessionStore, private val sessionInboxStore: SessionInboxStore, private val meterRegistry: MeterRegistry, private val pushGatewayDiscovery: PushGatewayDiscovery, private val sessionOwnership: SessionOwnership, private val config: LockersConfig, private val sessionRegistry: SessionRegistry = SessionRegistry.Noop, private val pushDelivery: PushDeliveryStore? = null, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext, private val cpuAdmission: CpuAdmission = CpuAdmission(config.resourceLimits), )</ID>
     <ID>LongParameterList:ShardCountReshardTest.kt$ShardCountReshardTest$( id: NodeId, sim: SimCluster, subs: SubscriptionStoreImpl, lockers: LockerStoreImpl, locks: LockStoreImpl, scope: CoroutineScope, )</ID>
-    <ID>LongParameterList:SnapshotStore.kt$SnapshotStore$(operation: Int, room: RoomId, session: SessionId?, spaces: Set&lt;Long&gt;, pageSize: Int, sequence: Long, lockers: List&lt;IdentifiedLocker&gt;)</ID>
-    <ID>LongParameterList:SnapshotStore.kt$SnapshotStore$(operation: Int, room: RoomId, session: SessionId?, spaces: Set&lt;Long&gt;, pageSize: Int, token: ByteArray)</ID>
+    <ID>LongParameterList:SnapshotStore.kt$SnapshotStore$(operation: Int, room: RoomId, session: SessionId?, spaces: Set&lt;Long&gt;, pageSize: Int, intentRevision: Long)</ID>
+    <ID>LongParameterList:SnapshotStore.kt$SnapshotStore$(operation: Int, room: RoomId, session: SessionId?, spaces: Set&lt;Long&gt;, pageSize: Int, sequence: Long, lockers: List&lt;IdentifiedLocker&gt;, intentRevision: Long = 0)</ID>
+    <ID>LongParameterList:SnapshotStore.kt$SnapshotStore$(operation: Int, room: RoomId, session: SessionId?, spaces: Set&lt;Long&gt;, pageSize: Int, token: ByteArray, intentRevision: Long = 0)</ID>
     <ID>LongParameterList:TwoNodeClaimHarness.kt$( nodeId: String, delegate: Database, roomClaims: RoomClaimStore, sessionGateways: SessionGatewayStore, ttlMs: Long, renewMs: Long, configureCore: (ServerCore) -&gt; Unit = {}, )</ID>
     <ID>LoopWithTooManyJumpStatements:AgentWorkflow.kt$AgentWorkflow$for</ID>
     <ID>LoopWithTooManyJumpStatements:DeliveryOutboxStore.kt$DeliveryOutboxStore$for</ID>
@@ -205,6 +209,8 @@
     <ID>MagicNumber:ProtocolValidation.kt$ProtocolValidation$4096</ID>
     <ID>MagicNumber:ProtocolValidation.kt$ProtocolValidation$512</ID>
     <ID>MagicNumber:ProtocolValidation.kt$ProtocolValidation$64</ID>
+    <ID>MagicNumber:PublicSessionAddresses.kt$PublicSessionAddresses$2048</ID>
+    <ID>MagicNumber:PublicSessionAddresses.kt$PublicSessionAddresses$65535</ID>
     <ID>MagicNumber:PushDeadLetterStore.kt$PushDeadLetterStoreImpl$128</ID>
     <ID>MagicNumber:PushDeadLetterStore.kt$PushDeadLetterStoreImpl$1_000_000</ID>
     <ID>MagicNumber:PushDeadLetterStore.kt$PushDeadLetterStoreImpl$256</ID>
@@ -280,6 +286,7 @@
     <ID>MagicNumber:ServerResourceLimits.kt$ServerResourceLimits.Companion$64L</ID>
     <ID>MagicNumber:ServerStorage.kt$ServerStorage$3</ID>
     <ID>MagicNumber:ServerStorage.kt$ServerStorage$4</ID>
+    <ID>MagicNumber:ServerStorage.kt$ServerStorage$5</ID>
     <ID>MagicNumber:SessionGatewayStore.kt$JdbcSessionGatewayStore$3</ID>
     <ID>MagicNumber:SessionGatewayStore.kt$JdbcSessionGatewayStore$4</ID>
     <ID>MagicNumber:SessionGatewayStore.kt$JdbcSessionGatewayStore$5</ID>
@@ -332,6 +339,8 @@
     <ID>MagicNumber:SnapshotStore.kt$SnapshotStore$64</ID>
     <ID>MagicNumber:SnapshotStore.kt$SnapshotStore$8</ID>
     <ID>MagicNumber:StaticMembership.kt$ClusterTopology.Companion$65535</ID>
+    <ID>MagicNumber:SubscriptionIntents.kt$128</ID>
+    <ID>MagicNumber:SubscriptionIntents.kt$SubscriptionIntents$256</ID>
     <ID>MagicNumber:UsedSessionProofOwnersDefinitionV2.kt$UsedSessionProofOwnersDefinitionV2$128</ID>
     <ID>MagicNumber:UsedSessionProofOwnersDefinitionV2.kt$UsedSessionProofOwnersDefinitionV2$255</ID>
     <ID>MagicNumber:UsedSessionProofOwnersDefinitionV2.kt$UsedSessionProofOwnersDefinitionV2$32</ID>
@@ -513,6 +522,8 @@
     <ID>MaxLineLength:ClaimSessionRegistry.kt$ClaimSessionRegistry$catch (failure: Exception) { logger.warn("session_gateway delete failed (row will expire by TTL)", failure) }</ID>
     <ID>MaxLineLength:ClaimSessionRegistry.kt$ClaimSessionRegistry$catch (failure: Exception) { logger.warn("session_gateway upsert failed (renew round will retry)", failure) }</ID>
     <ID>MaxLineLength:ClaimSessionRegistry.kt$ClaimSessionRegistry$if</ID>
+    <ID>MaxLineLength:ClusterContext.kt$ClusterContext$require</ID>
+    <ID>MaxLineLength:ClusterContext.kt$ClusterContext$val sessionPublicAddresses = sessionPublicAddresses?.mapValues { PublicSessionAddresses.validate(it.value) }?.toMap()</ID>
     <ID>MaxLineLength:ClusterTopologyTest.kt$ClusterTopologyTest$val topo = ClusterTopology.fromEnv(peers = "10.0.0.1:8080,10.0.0.2:8080", nodeId = "10.0.0.1", advertise = null)!!</ID>
     <ID>MaxLineLength:ConflictEnvelopeBoundaryTest.kt$ConflictEnvelopeBoundaryTest$assertContentEquals(bad.toByteArray(), store.getLocker(ServerRoomId(room.rawValue), 0, ServerLockerId(id.rawValue))!!.locker)</ID>
     <ID>MaxLineLength:ConflictEnvelopeBoundaryTest.kt$ConflictEnvelopeBoundaryTest$private suspend</ID>
@@ -846,6 +857,24 @@
     <ID>MaxLineLength:PublicPushRevisionTest.kt$PublicPushRevisionTest$assertEquals(revision &gt; 0, rpc.unregisterSession(unregister.copy(proof = signed(SessionSigning.UNREGISTER_PUSH, unregister.toByteArray()))).result.isOk())</ID>
     <ID>MaxLineLength:PublicPushRevisionTest.kt$PublicPushRevisionTest$core.sessionStore.updateSession(ServerSession(ServerSessionId(sid.rawValue), byteArrayOf(32), key.publicKey.encode()))</ID>
     <ID>MaxLineLength:PublicPushRevisionTest.kt$PublicPushRevisionTest.&lt;no name provided&gt;$override suspend fun getPushConfig(context: GrpcRequestContext, request: GetPushConfigRequest)</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest$"LOCKERS_ADVERTISE_ADDR" to "a.internal:8081"</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest$"a=https://a.example?secret=1,b=b.example:80"</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest$@Test</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest$assertEquals("https://b.example", (ownership.resolve(remote) as com.latenighthack.lockers.server.services.session.v1.SessionOwner.Remote).address)</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest$assertFailsWith&lt;IllegalArgumentException&gt; { BlueprintV.wire(base.copy(sharding = base.sharding.copy(publicSessionAddresses = raw)), scope) }</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest$assertFailsWith&lt;IllegalArgumentException&gt; { MonolithComponent(core, cluster = ClusterContext(router, sessions, push)) }</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest$for</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest$val</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest$val added = (0..1000).map { SessionId("new-$it".encodeToByteArray()) }.first { router.routeSession(it.rawValue).node == NodeId("c") }</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest$val addresses = PublicSessionAddresses.parse("a=https://a.example/sessions/,b=b.example:8443,c=https://future.example", nodes)</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest$val core = ServerCore::class.create(LockersConfig.defaults().copy(peerToken = "secret"), ServerStorage.inMemory())</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest$val remote = (0..1000).map { SessionId("sid-$it".encodeToByteArray()) }.first { router.routeSession(it.rawValue).node == NodeId("b") }</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest.&lt;no name provided&gt;$override suspend fun connect(node: NodeId, address: PeerAddress?): com.latenighthack.lockers.push.v1.PushGatewayService?</ID>
+    <ID>MaxLineLength:PublicSessionAddressContractTest.kt$PublicSessionAddressContractTest.&lt;no name provided&gt;$override suspend fun connect(node: NodeId, address: PeerAddress?): com.latenighthack.lockers.session.v1.SessionGatewayService?</ID>
+    <ID>MaxLineLength:PublicSessionAddresses.kt$PublicSessionAddresses$require(!raw.isNullOrBlank()) { "LOCKERS_PUBLIC_SESSION_ADDRS must map every ring node to its public session endpoint" }</ID>
+    <ID>MaxLineLength:PublicSessionAddresses.kt$PublicSessionAddresses$require(address.isNotEmpty() &amp;&amp; address.length &lt;= 2048 &amp;&amp; address.none { it.isWhitespace() || it.isISOControl() }) { "Invalid public session endpoint" }</ID>
+    <ID>MaxLineLength:PublicSessionAddresses.kt$PublicSessionAddresses$require(addresses.keys.containsAll(nodes)) { "LOCKERS_PUBLIC_SESSION_ADDRS must cover the complete ring node set" }</ID>
+    <ID>MaxLineLength:PublicSessionAddresses.kt$PublicSessionAddresses$uri.rawQuery == null</ID>
     <ID>MaxLineLength:PushAdministrationBoundsTest.kt$PushAdministrationBoundsTest$queue.enqueue(ServerPush(pushId = ServerPushId(byteArrayOf(1)), sessionId = ServerSessionId(byteArrayOf(1)), backend = 1), true)</ID>
     <ID>MaxLineLength:PushAdministrationBoundsTest.kt$PushAdministrationBoundsTest$repeat(300) { i -&gt; dead.saveDeadLetter(ServerDeadLetter(pushId = ServerPushId(java.nio.ByteBuffer.allocate(4).putInt(i).array()), sessionId = ServerSessionId(byteArrayOf(1)), backend = 1)) }</ID>
     <ID>MaxLineLength:PushAdministrationBoundsTest.kt$PushAdministrationBoundsTest.&lt;no name provided&gt;$check(tableName != "push" &amp;&amp; tableName != "push_deadletter") { "push administration performed an unbounded read" }</ID>
@@ -1009,10 +1038,29 @@
     <ID>MaxLineLength:ReviewRegressionTest.kt$ReviewRegressionTest.&lt;no name provided&gt;$override suspend fun processPayload(roomId: RoomId, lockerId: LockerId, locker: Locker)</ID>
     <ID>MaxLineLength:ReviewRegressionTest.kt$ReviewRegressionTest.&lt;no name provided&gt;$}</ID>
     <ID>MaxLineLength:RevokedSessionDefinitionV2.kt$RevokedSessionDefinitionV2$val sessionId = bytesIndex(IndexName("sessionId"), ServerSessionId::serializedIdentity, "protobuf-v2").also { primaryKey(it) }</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest$actualCore.sessionStore</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest$assertEquals(Codes.UNAUTHENTICATED, assertFailsWith&lt;RpcResponseException&gt; { SessionGatewayServiceRpc(privateClient).postEvent(PostEventRequest()) }.code)</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest$assertEquals(NodeId("b"), aWiring.context.router.routeSession(sid.rawValue).node, "Ring authority remains on B")</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest$assertEquals(b.publicAddress, withTimeout(5000) { firstOwnerDial.await() }, "A real SDK reconnect must dial the configured public owner endpoint")</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest$assertFalse(actualCore.sessionStore.getSessionById(ServerSessionId(sid.rawValue))!!.nextKeyMaterial.contentEquals(material))</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest$val actualCore = ServerCore::class.create(config("a"), serverDb).also { core = it; it.overrideCoroutineContext = scope.coroutineContext; it.setup() }</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest$val connected = withTimeout(5000) { sdk.connection.filterIsInstance&lt;StreamConnectionState.Connected&gt;().first() }</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest$val routing = RoutingRpcClient(seed, { address -&gt; firstOwnerDial.complete(address); HttpRpcClient(address).also { transports.add(it) } })</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest$val sdk = Stream(routing, auth, sessions, subs, Version(), coroutineContext = scope.coroutineContext).also { stream = it }</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest$val sessions = com.latenighthack.lockers.connector.SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), clientDb).also { it.prepare() }</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest.Node$if (!validPeerToken("secret", token)) throw RpcResponseException(context.originalUrl, "POST", Codes.UNAUTHENTICATED, "Invalid peer credential")</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest.Node$serveUnary</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest.Node$val token = context.headers.entries.firstOrNull { it.key.equals(PEER_TOKEN_HEADER, true) }?.value.orEmpty()</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest.Node.&lt;no name provided&gt;$override</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest.Node.&lt;no name provided&gt;$override suspend fun postEvent(context: GrpcRequestContext, request: PostEventRequest)</ID>
+    <ID>MaxLineLength:RingPublicSessionRecoveryTest.kt$RingPublicSessionRecoveryTest.Node.&lt;no name provided&gt;$override suspend fun postEvents(context: GrpcRequestContext, request: PostEventsRequest)</ID>
     <ID>MaxLineLength:RingRoomOwnership.kt$RingRoomOwnership$if (!route.isLocal || (lifecycle != null &amp;&amp; lease == null)) throw com.latenighthack.lockers.server.services.room.v1.RoomOwnershipLost()</ID>
     <ID>MaxLineLength:RingRoomOwnership.kt$RingRoomOwnership$override suspend</ID>
     <ID>MaxLineLength:RingRoomOwnership.kt$RingRoomOwnership$return</ID>
     <ID>MaxLineLength:RingRoomOwnership.kt$RingRoomOwnership$router.roomMap().epoch == map.epoch &amp;&amp; router.routeRoom(ks, roomId.rawValue).isLocal &amp;&amp; (lease?.isValid ?: true)</ID>
+    <ID>MaxLineLength:RingSessionOwnership.kt$RingSessionOwnership$?:</ID>
+    <ID>MaxLineLength:RingSessionOwnership.kt$RingSessionOwnership$private</ID>
+    <ID>MaxLineLength:RingSessionOwnership.kt$RingSessionOwnership$require(addresses == null || addresses.keys.containsAll(router.sessionMap().nodes)) { "Public session endpoints must cover every session ring member" }</ID>
     <ID>MaxLineLength:RoomClaimStore.kt$JdbcRoomClaimStore$class</ID>
     <ID>MaxLineLength:RoomClaimStore.kt$JdbcRoomClaimStore$conn.createStatement().use { it.executeUpdate("UPDATE room_claim_capacity SET reserved = reserved + 1 WHERE singleton = 1") }</ID>
     <ID>MaxLineLength:RoomClaimStore.kt$JdbcRoomClaimStore$st.execute("CREATE TABLE IF NOT EXISTS room_claim_capacity (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), reserved BIGINT NOT NULL CHECK (reserved &gt;= 0))")</ID>
@@ -1061,7 +1109,6 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$PostLockerChangeResponse.Result.NOT_OWNER</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$SubscribeAndSnapshotResponse(SubscriptionResponse.Result.OK, page.lockers, page.roomSequence, page.nextPageToken)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$agentFailed = work.state == AgentWorkState.FAILED</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$authorityV2 = true</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$boundedResponse</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$catch (_: com.latenighthack.ktbuf.ProtobufOutputLimitException) { protocolCapacityExceeded("Complete response exceeds transport envelope") }</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$catch (_: com.latenighthack.ktbuf.bytes.ByteArrayLimitException) { protocolCapacityExceeded("Complete response exceeds transport envelope") }</ID>
@@ -1090,11 +1137,8 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$lockState = lockState</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$locker = IdentifiedLocker(lockerId, version = version, lockState = state)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$locker { locker = updatedLocker; lockerId = requestLockerId; version = updatedLockerVersion; lockState = effectiveState }</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$meterRegistry.counter("lockers.room.subscriptions", "operation", "subscribe", "result", "OK").increment()</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$meterRegistry.counter("lockers.room.subscriptions", "operation", "unknown", "result", "ERROR").increment()</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$meterRegistry.counter("lockers.room.subscriptions", "operation", "unsubscribe", "result", "OK").increment()</ID>
+    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$meterRegistry.counter("lockers.room.subscriptions", "operation", if (subscribed) "subscribe" else "unsubscribe", "result", "OK").increment()</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$meterRegistry.timer("lockers.write.phase", "phase", "room_queue").record(System.nanoTime() - queuedAt, java.util.concurrent.TimeUnit.NANOSECONDS)</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$outbox.agentWork.create(room, request.copy(changes = normalized), pending!!, agentVersion, order + 1, applied = agentRegistry === LockerAgentRegistry.None)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$outcome = "ok"</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$override suspend</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$override suspend fun getLockers(context: GrpcRequestContext, request: GetLockersRequest): GetLockersResponse</ID>
@@ -1120,7 +1164,6 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$return</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$return PostLockerChangeResponse(result = PostLockerChangeResponse.Result.OK, version = updatedLockerVersion, lockState = effectiveState)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_OWNER, redirect = redirect)</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$return SubscribeAndSnapshotResponse(SubscriptionResponse.Result.OK, page.lockers, page.roomSequence, page.nextPageToken)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$return boundedResponse(GetLockScopeResponse(scopeState = lockVerifier.scopeState(room, scope), parentState = lockVerifier.parentState(room, scope)), GetLockScopeResponse::writeTo)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$return trace.run { postLockerChangesTraced(context, request, trace).also { trace.result = it.result.toString() } }</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$return@commit DeleteLockerResponse(result = DeleteLockerResponse.Result.REQUEST_ID_REUSED, writeRequestId = request.writeRequestId)</ID>
@@ -1130,6 +1173,7 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$sourceVersions = normalized.zip(results) { change, result -&gt; WriteSourceVersion(change.lockerId, result.version) }</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$sourceVersions = response.sourceVersions.ifEmpty { response.changes.map { WriteSourceVersion(version = it.version) } }</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$stored != null &amp;&amp; stored.version == request.parentVersion &amp;&amp; request.parentVersion &lt; Long.MAX_VALUE -&gt; request.parentVersion + 1</ID>
+    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$subscriptionRevisions = subscriptionStore.supportsIntentRevisions()</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$subscriptionStore.addSubscription(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$subscriptionStore.removeSubscription(ServerSessionId(sessionId.rawValue), ServerRoomId(roomId.rawValue))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$suspend</ID>
@@ -1137,7 +1181,6 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.OUT_OF_RANGE, "Snapshot capture capacity exhausted")</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$timer("lockers.agent.duration", "outcome", outcome).record(System.nanoTime() - start, java.util.concurrent.TimeUnit.NANOSECONDS)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$trace.phase("forward") { forwardToOwnerOrNull(context, room, redirect) { it.postLockerChanges(request) } }?.let { return it }</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$try { block() } catch (failure: Throwable) { if (failed == null) failed = failure else failed!!.addSuppressed(failure) }</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val claim = outbox.agentWork.claim(room, writeRequestId, result.agentVersion, System.currentTimeMillis()) ?: return true</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val complete = responseForWork(ready).copy(agentPending = false, agentFailed = false, agentIndeterminate = false)</ID>
@@ -1147,13 +1190,14 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val old = writes[id] ?: lockerStore.getLocker(ServerRoomId(room.rawValue), write.keyspace, ServerLockerId(write.lockerId))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val outcome = WriteOutcome(roomCopy, identity.copyOf(), response.sourceVersions, agentState(work.state))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val outputs = if (agentRegistry is IdempotentLockerAgentRegistry) agentRegistry.processPayload(effectKey.copyOf(), room, id, locker) else agentRegistry.processPayload(room, id, locker)</ID>
+    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val page = snapshots.next(1, room, session, spaces, request.pageSize, request.pageToken, request.intentRevision)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val requestRoomId = request.roomId ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val requestRoomId = request.roomId ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val response = responseForWork(claim).copy(agentPending = false, agentFailed = state == AgentWorkState.FAILED, agentIndeterminate = state == AgentWorkState.INDETERMINATE)</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val roomId = request.roomId ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)</ID>
+    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val roomId = request.roomId?.let { RoomId(it.rawValue.copyOf()) } ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val roomLocks = lockStore.getAllLocksInRoom(ServerRoomId(room.rawValue)).filter { lockVerifier.stateOf(it).locked }</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val scope = request.scope ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val sessionId = request.sessionId ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)</ID>
+    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val sessionId = request.sessionId?.let { SessionId(it.rawValue.copyOf()) } ?: return@trackResponse SubscriptionResponse(result = SubscriptionResponse.Result.UNKNOWN_ERROR)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val state = if (claim.agentVersion.isEmpty() &amp;&amp; current?.state != AgentWorkState.READY) AgentWorkState.INDETERMINATE else AgentWorkState.FAILED</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val stored = lockerStore.getLocker(ServerRoomId(room.rawValue), lockerId.keyspace?.value ?: 0L, ServerLockerId(lockerId.rawValue))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val storedLocker = lockerStore.getLocker(ServerRoomId(roomId.rawValue), lockerId.keyspace?.value ?: 0L, ServerLockerId(lockerId.rawValue))</ID>
@@ -1200,6 +1244,7 @@
     <ID>MaxLineLength:ServerResourceLimits.kt$ServerResourceLimits$require(globalReadsPerSecond &gt; 0 &amp;&amp; globalReadBurst &gt; 0 &amp;&amp; roomReadsPerSecond &gt; 0 &amp;&amp; roomReadBurst &gt; 0 &amp;&amp; maxTrackedReadRooms &gt; 0)</ID>
     <ID>MaxLineLength:ServerResourceLimits.kt$ServerResourceLimits$require(maxSubscriptions &gt; 0 &amp;&amp; maxSubscriptionsPerSession in 1..maxSubscriptions &amp;&amp; maxSubscriptionsPerRoom in 1..1024)</ID>
     <ID>MaxLineLength:ServerStorage.kt$ServerStorage$Database(configuration(identity + "-${kotlin.random.Random.nextLong()}"), com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(com.latenighthack.lockers.server.services.room.v1.FencedMemoryDelegate(InMemoryStoreDelegate()), meterRegistry, telemetry))</ID>
+    <ID>MaxLineLength:ServerStorage.kt$ServerStorage$createStore(com.latenighthack.lockers.server.services.room.v1.SubscriptionIntentDefinitionV2.declaration)</ID>
     <ID>MaxLineLength:ServerStorage.kt$ServerStorage$fun</ID>
     <ID>MaxLineLength:ServerStorage.kt$ServerStorage$return Database(configuration, com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(SqlStoreDelegate(driver, "BYTEA", configuration), meterRegistry, telemetry))</ID>
     <ID>MaxLineLength:ServerStorage.kt$ServerStorage$val configuration = configuration("lockers-server", additional).copy(externalTables = setOf("room_claim", "room_claim_capacity", "session_gateway", "shard_map", "shard_fence"))</ID>
@@ -1382,6 +1427,7 @@
     <ID>MaxLineLength:SessionStore.kt$SessionStore$if</ID>
     <ID>MaxLineLength:SessionStore.kt$SessionStore$suspend</ID>
     <ID>MaxLineLength:SessionStore.kt$SessionStoreImpl$class</ID>
+    <ID>MaxLineLength:SessionStore.kt$SessionStoreImpl$com.latenighthack.lockers.server.services.room.v1.SubscriptionIntents(database, ServerResourceLimits()).clearForSession(sessionId)</ID>
     <ID>MaxLineLength:SessionStore.kt$SessionStoreImpl$override suspend fun getSessionById(sessionId: ServerSessionId): ServerSession?</ID>
     <ID>MaxLineLength:SessionStore.kt$SessionStoreImpl$val active = database.count(SessionStoreImplDefinitionV1.storeName, SessionStoreImplDefinitionV1.sessionIdKey.query(1))</ID>
     <ID>MaxLineLength:SessionStore.kt$SessionStoreImpl$val revoked = database.count(RevokedSessionDefinitionV2.storeName, RevokedSessionDefinitionV2.sessionId.query(1))</ID>
@@ -1415,6 +1461,7 @@
     <ID>MaxLineLength:SnapshotStore.kt$SnapshotStore$fun pageToken(index: Int)</ID>
     <ID>MaxLineLength:SnapshotStore.kt$SnapshotStore$if</ID>
     <ID>MaxLineLength:SnapshotStore.kt$SnapshotStore$if (chunks.size == 1) return@transaction GetAllLockersResponse(lockers = chunks.single(), roomSequence = sequence)</ID>
+    <ID>MaxLineLength:SnapshotStore.kt$SnapshotStore$if (intentRevision &gt; 0) out.writeLong(intentRevision)</ID>
     <ID>MaxLineLength:SnapshotStore.kt$SnapshotStore$if (pageSize !in 0..64 || (token.isNotEmpty() &amp;&amp; (pageSize == 0 || token.size != 36))) invalidArgument("Invalid snapshot paging request")</ID>
     <ID>MaxLineLength:SnapshotStore.kt$SnapshotStore$leases.sumOf { it.bytes } + total &gt; limits.maxSnapshotRetainedBytes</ID>
     <ID>MaxLineLength:SnapshotStore.kt$SnapshotStore$lower = true</ID>
@@ -1461,9 +1508,76 @@
     <ID>MaxLineLength:SubscriptionFreshnessTest.kt$SubscriptionFreshnessTest.&lt;no name provided&gt;$override suspend</ID>
     <ID>MaxLineLength:SubscriptionFreshnessTest.kt$SubscriptionFreshnessTest.&lt;no name provided&gt;.&lt;no name provided&gt;$override suspend fun postEvent(request: PostEventRequest)</ID>
     <ID>MaxLineLength:SubscriptionFreshnessTest.kt$SubscriptionFreshnessTest.&lt;no name provided&gt;.&lt;no name provided&gt;$override suspend fun postEvents(request: PostEventsRequest)</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest$@Test</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest$SessionProof(issued, nonce, Signature(signingVersion = 2, signature = key.privateKey.sign(SessionSigning.context(operation, session, SHA256.digest(bytes), issued, nonce))))</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest$assertTrue(core.subscriptionStore.getAllSubscriptions(ServerSessionId(sid.rawValue)).isEmpty(), "late old subscribe restored the revoked subscription")</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest$assertTrue(core.subscriptionStore.getAllSubscriptions(ServerSessionId(sid.rawValue)).isEmpty(), "new HTTP unsubscribe completed")</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest$core.sessionStore.updateSession(ServerSession(sessionId = ServerSessionId(sid.rawValue), authorizedPublicKey = key.publicKey.encode(), nextKeyMaterial = byteArrayOf(3)))</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest$val</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest$val entered = CompletableDeferred&lt;Unit&gt;()</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest$val module = RoomServiceModule::class.create(core, object : SessionGatewayDiscovery { override suspend fun findServer(sessionId: SessionId): SessionGatewayService? = null }, LocalRoomOwnership())</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest$val sessionStore = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), clientDb).also { it.prepare() }</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest$}</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest.&lt;no name provided&gt;$override suspend</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest.&lt;no name provided&gt;$val proof = SessionProof(issued, nonce, Signature(signingVersion = 2, signature = key.privateKey.sign(SessionSigning.context(SessionSigning.SUBSCRIPTION, sid, SHA256.digest(unsigned.toByteArray()), issued, nonce))))</ID>
+    <ID>MaxLineLength:SubscriptionHttpOrderingTest.kt$SubscriptionHttpOrderingTest.&lt;no name provided&gt;$val unsigned = decoded.copy(proof = null, intentRevision = if (decoded.intentRevision &gt; 0) decoded.intentRevision else if (decoded.kind is SubscriptionRequest.OneOfKind.subscribe) 1 else 2)</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$@Test</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$assertEquals(0L, f.db.count(SnapshotDefinitionV2.storeName, SnapshotDefinitionV2.session.query(1, lower = f.sid.rawValue, upper = f.sid.rawValue)))</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$assertEquals(0L, f.db.count(definition.storeName, definition.session.query(1, lower = f.sid.rawValue, upper = f.sid.rawValue)))</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$assertEquals(1L, f.db.count(definition.storeName, definition.session.query(1, lower = f.sid.rawValue, upper = f.sid.rawValue)))</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$assertEquals(Codes.INVALID_ARGUMENT, assertFailsWith&lt;RpcResponseException&gt; { f.snapshot(2, first.nextPageToken) }.code, "token binding must include generation")</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$assertEquals(Codes.UNIMPLEMENTED, assertFailsWith&lt;RpcResponseException&gt; { rpc.subscribeAndSnapshot(SubscribeAndSnapshotRequest(roomId = RoomId(byteArrayOf(2)), sessionId = SessionId(byteArrayOf(1)), intentRevision = 1)) }.code)</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$assertEquals(Codes.UNIMPLEMENTED, assertFailsWith&lt;RpcResponseException&gt; { rpc.subscription(request(1)) }.code)</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$assertEquals(listOf(ServerRoomId(f.room.rawValue)), f.core.subscriptionStore.getAllSubscriptions(ServerSessionId(f.sid.rawValue)))</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$assertTrue(fresh.result.isOk())</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$f.core.lockerStore.updateLocker(ServerLocker(ServerRoomId(f.room.rawValue), 0, ServerLockerId(byteArrayOf(1)), Locker { open { encodedPayload = byteArrayOf(9) } }.toByteArray(), 1))</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$f.core.lockerStore.updateLocker(ServerLocker(ServerRoomId(f.room.rawValue), 0, ServerLockerId(byteArrayOf(1)), byteArrayOf(0xff.toByte()), 1))</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$f.rpc.subscription(unsigned.copy(proof = f.proof(SessionSigning.SUBSCRIPTION, unsigned.toByteArray())))</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$for</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$fun request(revision: Long)</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$val absent = f.core.subscriptionStore.observeIntent(ServerSessionId(f.sid.rawValue), ServerRoomId(f.room.rawValue), 2) { error("desired fence does not confirm live membership") }</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$val first = f.snapshot(1)</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$val invalid = f.snapshot(2)</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$val service = RoomServiceImpl(custom, LockerStoreImpl(db), LockStoreImpl(db), object : SessionGatewayDiscovery { override suspend fun findServer(sessionId: SessionId): SessionGatewayService? = null }, LocalRoomOwnership(), LockerAgentRegistry.None, SimpleMeterRegistry(), LockersConfig.defaults().copy(deliveryWorkerEnabled = false))</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$val stale = f.snapshot(2, fresh.nextPageToken)</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest$val unsigned = SubscriptionRequest { sessionId = f.sid; roomId = RoomId(raw); intentRevision = 1; kind.subscribe {} }</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest.Fixture$core.sessionStore.updateSession(ServerSession(sessionId = ServerSessionId(sid.rawValue), authorizedPublicKey = key.publicKey.encode(), nextKeyMaterial = byteArrayOf(3)))</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest.Fixture$for</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest.Fixture$module = RoomServiceModule::class.create(core, object : SessionGatewayDiscovery { override suspend fun findServer(sessionId: SessionId): SessionGatewayService? = null }, LocalRoomOwnership())</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest.Fixture$return SessionProof(issued, nonce, Signature(signingVersion = 2, signature = key.privateKey.sign(SessionSigning.context(operation, sid, SHA256.digest(bytes), issued, nonce))))</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest.Fixture$suspend</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest.Fixture$val request = SubscribeAndSnapshotRequest(roomId = room, sessionId = sid, intentRevision = revision, pageSize = size, pageToken = token, keyspaces = spaces)</ID>
+    <ID>MaxLineLength:SubscriptionIntentBoundaryTest.kt$SubscriptionIntentBoundaryTest.Fixture$val request = SubscriptionRequest { sessionId = sid; roomId = room; intentRevision = revision; if (subscribe) kind.subscribe {} else kind.unsubscribe {} }</ID>
+    <ID>MaxLineLength:SubscriptionIntentPgTest.kt$SubscriptionIntentPgTest$DriverManager.getConnection(base).use { it.createStatement().use { statement -&gt; statement.execute("CREATE SCHEMA $schema") } }</ID>
+    <ID>MaxLineLength:SubscriptionIntentPgTest.kt$SubscriptionIntentPgTest$DriverManager.getConnection(base).use { it.createStatement().use { statement -&gt; statement.execute("DROP SCHEMA $schema CASCADE") } }</ID>
+    <ID>MaxLineLength:SubscriptionIntentPgTest.kt$SubscriptionIntentPgTest$assertEquals(1, accepted.count { it }, "unsubscribed identities reserve lifetime capacity across both SQL handles")</ID>
+    <ID>MaxLineLength:SubscriptionIntentPgTest.kt$SubscriptionIntentPgTest$assertEquals(2L, stores[1].withIntent(sid, room, 1, true) { error("cross-handle stale mutation") }.currentRevision)</ID>
+    <ID>MaxLineLength:SubscriptionIntentPgTest.kt$SubscriptionIntentPgTest$try</ID>
+    <ID>MaxLineLength:SubscriptionIntentStoreTest.kt$SubscriptionIntentStoreTest$@Test</ID>
+    <ID>MaxLineLength:SubscriptionIntentStoreTest.kt$SubscriptionIntentStoreTest$assertFailsWith&lt;IllegalStateException&gt; { store.withIntent(sid, room, 10, true) { store.addSubscription(sid, room); error("source rollback") } }</ID>
+    <ID>MaxLineLength:SubscriptionIntentStoreTest.kt$SubscriptionIntentStoreTest$assertTrue(ledger.apply(ServerSessionId(byteArrayOf(1)), ServerRoomId(byteArrayOf(2)), 0, true) { error("original frozen authority exists") }.stale)</ID>
+    <ID>MaxLineLength:SubscriptionIntentStoreTest.kt$SubscriptionIntentStoreTest$suspend</ID>
+    <ID>MaxLineLength:SubscriptionIntentStoreTest.kt$SubscriptionIntentStoreTest$val failure = assertFailsWith&lt;RpcResponseException&gt; { store.withIntent(sid, ServerRoomId(byteArrayOf(3)), 2, true) { error("capacity must prevent mutation") } }</ID>
+    <ID>MaxLineLength:SubscriptionIntentStoreTest.kt$SubscriptionIntentStoreTest$val old = modern.copy(version = 4, stores = ServerStorage.definitionsV4.map { it.declaration }, migrations = modern.migrations.dropLast(1))</ID>
+    <ID>MaxLineLength:SubscriptionIntentStoreTest.kt$SubscriptionIntentStoreTest$val store = SubscriptionStoreImpl(db, ServerResourceLimits(maxSubscriptionIntents = 1, maxSubscriptionIntentsPerSession = 1))</ID>
+    <ID>MaxLineLength:SubscriptionIntents.kt$SubscriptionIntents$SubscriptionIntentDefinitionV2.session.query(256, lower = sid, upper = sid)</ID>
+    <ID>MaxLineLength:SubscriptionIntents.kt$SubscriptionIntents$class</ID>
+    <ID>MaxLineLength:SubscriptionIntents.kt$SubscriptionIntents$conflict("Subscription intent identity namespace exhausted; replace the session or perform trusted namespace maintenance")</ID>
+    <ID>MaxLineLength:SubscriptionIntents.kt$SubscriptionIntents$if</ID>
+    <ID>MaxLineLength:SubscriptionIntents.kt$SubscriptionIntents$if (!ProtocolValidation.identity(sid.rawValue) || !ProtocolValidation.identity(rid.rawValue)) invalidArgument("Invalid subscription intent identity")</ID>
+    <ID>MaxLineLength:SubscriptionIntents.kt$SubscriptionIntents$if (revision &gt; 0 &amp;&amp; revision == floor &amp;&amp; existing!!.subscribed != subscribed) conflict("Subscription intent revision reused for a different desired state")</ID>
+    <ID>MaxLineLength:SubscriptionIntents.kt$SubscriptionIntents$private fun conflict(message: String): Nothing</ID>
+    <ID>MaxLineLength:SubscriptionIntents.kt$SubscriptionIntents$return</ID>
+    <ID>MaxLineLength:SubscriptionIntents.kt$SubscriptionIntents$suspend</ID>
+    <ID>MaxLineLength:SubscriptionIntents.kt$SubscriptionIntents$val owned = database.count(definition.storeName, definition.session.query(1, lower = sid.rawValue, upper = sid.rawValue))</ID>
+    <ID>MaxLineLength:SubscriptionIntents.kt$fun bytes(): ByteArray</ID>
+    <ID>MaxLineLength:SubscriptionIntents.kt$private</ID>
+    <ID>MaxLineLength:SubscriptionStore.kt$SubscriptionStore$if (revision != 0L) throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.UNIMPLEMENTED, "Custom subscription store does not support intent revisions")</ID>
+    <ID>MaxLineLength:SubscriptionStore.kt$SubscriptionStore$suspend</ID>
     <ID>MaxLineLength:SubscriptionStore.kt$SubscriptionStoreImpl$class</ID>
     <ID>MaxLineLength:SubscriptionStore.kt$SubscriptionStoreImpl$if</ID>
     <ID>MaxLineLength:SubscriptionStore.kt$SubscriptionStoreImpl$override suspend</ID>
+    <ID>MaxLineLength:SubscriptionStore.kt$SubscriptionStoreImpl$override suspend fun &lt;T&gt; withIntent(sessionId: ServerSessionId, roomId: ServerRoomId, revision: Long, subscribed: Boolean, mutation: suspend () -&gt; T)</ID>
     <ID>MaxLineLength:SubscriptionStore.kt$SubscriptionStoreImpl$private suspend</ID>
     <ID>MaxLineLength:SubscriptionStore.kt$SubscriptionStoreImpl$return page.records.map { when (it) { is ServerSubscription -&gt; it; is ByteArray -&gt; SubscriptionStoreImplDefinitionV1.decode(it); else -&gt; error("Invalid subscription row") } }</ID>
     <ID>MaxLineLength:SubscriptionStore.kt$SubscriptionStoreImpl$val</ID>
@@ -1576,7 +1690,6 @@
     <ID>TooGenericExceptionCaught:FcmPushProvider.kt$FcmPushProvider$cleanup: Throwable</ID>
     <ID>TooGenericExceptionCaught:FcmPushProvider.kt$FcmPushProvider$e: Exception</ID>
     <ID>TooGenericExceptionCaught:FcmPushProvider.kt$FcmPushProvider$failure: Throwable</ID>
-    <ID>TooGenericExceptionCaught:LockVerifier.kt$LockVerifier$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MonolithComponent.kt$MonolithComponent$cleanup: Throwable</ID>
     <ID>TooGenericExceptionCaught:MonolithComponent.kt$MonolithComponent$failure: Throwable</ID>
     <ID>TooGenericExceptionCaught:OwnerLifecycle.kt$OwnerLifecycle$error: Exception</ID>
@@ -1889,6 +2002,11 @@
     <ID>WildcardImport:PublicPushRevisionTest.kt$import com.latenighthack.lockers.push.v1.*</ID>
     <ID>WildcardImport:PublicPushRevisionTest.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
     <ID>WildcardImport:PublicPushRevisionTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:PublicSessionAddressContractTest.kt$import com.latenighthack.lockers.server.cluster.*</ID>
+    <ID>WildcardImport:PublicSessionAddressContractTest.kt$import com.latenighthack.lockers.sharding.*</ID>
+    <ID>WildcardImport:PublicSessionAddressContractTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:PublicSessionAddressContractTest.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:PublicSessionAddressContractTest.kt$import kotlinx.coroutines.test.*</ID>
     <ID>WildcardImport:PushAdministrationBoundsTest.kt$import com.latenighthack.ktstore.*</ID>
     <ID>WildcardImport:PushAdministrationBoundsTest.kt$import com.latenighthack.lockers.push.v1.*</ID>
     <ID>WildcardImport:PushAdministrationBoundsTest.kt$import com.latenighthack.lockers.server.services.push.v1.*</ID>
@@ -1990,6 +2108,16 @@
     <ID>WildcardImport:RevokedSessionAuthorityDefinitionV2.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
     <ID>WildcardImport:RevokedSessionDefinitionV2.kt$import com.latenighthack.ktstore.*</ID>
     <ID>WildcardImport:RevokedSessionDefinitionV2.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
+    <ID>WildcardImport:RingPublicSessionRecoveryTest.kt$import com.latenighthack.ktbuf.net.*</ID>
+    <ID>WildcardImport:RingPublicSessionRecoveryTest.kt$import com.latenighthack.ktbuf.server.*</ID>
+    <ID>WildcardImport:RingPublicSessionRecoveryTest.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:RingPublicSessionRecoveryTest.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:RingPublicSessionRecoveryTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:RingPublicSessionRecoveryTest.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
+    <ID>WildcardImport:RingPublicSessionRecoveryTest.kt$import com.latenighthack.lockers.session.v1.*</ID>
+    <ID>WildcardImport:RingPublicSessionRecoveryTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:RingPublicSessionRecoveryTest.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:RingPublicSessionRecoveryTest.kt$import kotlinx.coroutines.flow.*</ID>
     <ID>WildcardImport:RoomIdentityAdmissionTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
     <ID>WildcardImport:RoomIdentityAdmissionTest.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:RoomMutationFence.kt$import com.latenighthack.ktstore.*</ID>
@@ -2166,6 +2294,34 @@
     <ID>WildcardImport:SubscriptionFreshnessTest.kt$import com.latenighthack.lockers.room.v1.*</ID>
     <ID>WildcardImport:SubscriptionFreshnessTest.kt$import com.latenighthack.lockers.server.services.room.v1.*</ID>
     <ID>WildcardImport:SubscriptionFreshnessTest.kt$import com.latenighthack.lockers.session.v1.*</ID>
+    <ID>WildcardImport:SubscriptionHttpOrderingTest.kt$import com.latenighthack.ktbuf.net.*</ID>
+    <ID>WildcardImport:SubscriptionHttpOrderingTest.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:SubscriptionHttpOrderingTest.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:SubscriptionHttpOrderingTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:SubscriptionHttpOrderingTest.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:SubscriptionHttpOrderingTest.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:SubscriptionHttpOrderingTest.kt$import com.latenighthack.lockers.server.services.room.v1.*</ID>
+    <ID>WildcardImport:SubscriptionHttpOrderingTest.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
+    <ID>WildcardImport:SubscriptionHttpOrderingTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:SubscriptionHttpOrderingTest.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:SubscriptionIntentBoundaryTest.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:SubscriptionIntentBoundaryTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:SubscriptionIntentBoundaryTest.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:SubscriptionIntentBoundaryTest.kt$import com.latenighthack.lockers.server.services.room.v1.*</ID>
+    <ID>WildcardImport:SubscriptionIntentBoundaryTest.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
+    <ID>WildcardImport:SubscriptionIntentBoundaryTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:SubscriptionIntentPgTest.kt$import com.latenighthack.lockers.server.services.room.v1.*</ID>
+    <ID>WildcardImport:SubscriptionIntentPgTest.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
+    <ID>WildcardImport:SubscriptionIntentPgTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:SubscriptionIntentPgTest.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:SubscriptionIntentStoreTest.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:SubscriptionIntentStoreTest.kt$import com.latenighthack.lockers.server.services.room.v1.*</ID>
+    <ID>WildcardImport:SubscriptionIntentStoreTest.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
+    <ID>WildcardImport:SubscriptionIntentStoreTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:SubscriptionIntentStoreTest.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:SubscriptionIntents.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:SubscriptionIntents.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
+    <ID>WildcardImport:SubscriptionIntents.kt$import java.io.*</ID>
     <ID>WildcardImport:SubscriptionStore.kt$import com.latenighthack.ktstore.*</ID>
     <ID>WildcardImport:SubscriptionStore.kt$import com.latenighthack.lockers.server.storage.v1.*</ID>
     <ID>WildcardImport:SubscriptionStoreDefinitionsV1.kt$import com.latenighthack.ktstore.*</ID>

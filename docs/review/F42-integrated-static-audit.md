@@ -67,3 +67,32 @@ unstable StateFlow implementation warnings remain visible for the owning follow-
 this change does not add warning suppressions. The previous commonMain naming and GlobalScope probes remain
 valid gate evidence in F42. Runtime cancellation tests supplement syntax analysis;
 a clean detekt report alone does not prove coroutine correctness.
+
+
+## V7 integrated follow-up
+
+The independent `4bb5ea4` checkpoint includes V6 archive adoption and V7 ordered
+subscription intent storage. The first aggregate run found 571 additional
+occurrences: 373 line-length, 117 wildcard-import and 45 numeric-literal findings,
+plus 36 complexity/exception findings. These remain documented style and complexity
+debt; this audit does not claim that a larger adoption baseline improves readability.
+The exact additional and stale IDs are in `evidence/F42/v7-static-audit.json`.
+
+The six additional generic catch occurrences all map to one detekt identity,
+`TooGenericExceptionCaught:Stream.kt$SubscriptionController$failure: Exception`.
+They were inspected at these boundaries:
+
+| Boundary | Occurrences | Cancellation and outcome contract |
+| --- | ---: | --- |
+| Persisted startup intent and revision loading | 2 | Retry-budget exhaustion is handled before ordinary cancellation. Storage failures record controller failure, stop owned work and rethrow to the caller. |
+| Per-room subscription worker | 1 | Ordinary cancellation is rethrown; an activity check precedes the typed `Change.Failed` message, retaining a bounded observable protocol failure. |
+| Reducer command processing | 1 | Ordinary cancellation completes the pending caller promise exceptionally and propagates. Budget exhaustion is a domain failure; other failures settle the promise, cancel active work and retain only bounded desired-room failures, or stop the controller for a global failure. |
+| Outer reducer and session-source collection | 2 | Explicit cancellation branches precede generic handling. Other failures record controller failure and stop owned work. |
+
+The two additional `InstanceOfCheckForException` IDs belong to the reducer's explicit
+ordinary-cancellation versus `RetryLimitExceeded` classification. This subtype is a
+domain retry-budget outcome despite inheriting `CancellationException`; treating it
+as ordinary cancellation would leave waiters without the modeled terminal result.
+No swallowing, finally-throwing or coroutine-correctness rule was baselined. Stale
+IDs were removed rather than kept as blanket future exclusions. Final integrated
+source and runtime tests remain required after subsequent actor corrections.

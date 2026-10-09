@@ -2,11 +2,15 @@
 <SmellBaseline>
   <ManuallySuppressedIssues />
   <CurrentIssues>
+    <ID>ComplexCondition:LockerClient.kt$LockerClient$expectation.sourceUncertaintyAcknowledged &amp;&amp; state.scope?.canonical() == scope &amp;&amp; state.lockVersion &gt;= original.lockVersion + 1 &amp;&amp; (!state.locked || state.publicKey?.rawValue?.contentEquals(proposed) != true)</ID>
     <ID>ComplexCondition:LockerClient.kt$LockerClient$result.result.isOk() &amp;&amp; (result.agentFailed || result.agentPending || result.agentIndeterminate)</ID>
     <ID>ComplexCondition:LockerClient.kt$LockerClient$stored != null &amp;&amp; (stored.version &gt; update.version || (stored.roomSequence &gt; 0 &amp;&amp; update.roomSequence &gt; 0 &amp;&amp; stored.roomSequence &gt;= update.roomSequence) || (stored.version == update.version &amp;&amp; (stored.deleted || stored.lockerPayload.contentEquals(update.payload))))</ID>
+    <ID>ComplexCondition:ProtocolRetry.kt$failure is RpcResponseException &amp;&amp; (failure.path.length &gt; 2_048 || failure.verb.length &gt; 64 || failure.errorMessage.length &gt; 2_048)</ID>
+    <ID>CyclomaticComplexMethod:ArchiveMigrationContract.kt$suspend fun verifyHistoricalConnectorMigration( identity: String, version: Int, factory: (DatabaseConfiguration) -&gt; Database, )</ID>
     <ID>CyclomaticComplexMethod:LockerClient.kt$LockerClient$fun writeOutcomes(roomId: RoomId, writeRequestId: ByteArray, pollIntervalMillis: Long = 1_000, timeoutMillis: Long = 300_000): Flow&lt;WriteOutcomeObservation&gt;</ID>
     <ID>CyclomaticComplexMethod:LockerClient.kt$LockerClient$private suspend fun deleteLockerSerialized( roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.() -&gt; Unit = {} )</ID>
-    <ID>CyclomaticComplexMethod:LockerClient.kt$LockerClient$private suspend fun hydrateRoom(room: RoomId, session: SessionId? = stream.sessionId.value): List&lt;IdentifiedLocker&gt;</ID>
+    <ID>CyclomaticComplexMethod:LockerClient.kt$LockerClient$private suspend fun hydrateRoom(room: RoomId, session: SessionId? = stream.sessionId.value, intentRevision: Long? = null): List&lt;IdentifiedLocker&gt;</ID>
+    <ID>CyclomaticComplexMethod:LockerClient.kt$LockerClient$private suspend fun recoverRatchetAuthority(pending: PendingRatchet): RatchetRecoveryUnresolvedException</ID>
     <ID>CyclomaticComplexMethod:LockerClient.kt$LockerClient$private suspend fun updateLockerSerialized( roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.(Locker?) -&gt; Unit = {}, ratchet: Boolean = false, transform: suspend (ByteArray) -&gt; ByteArray, ): Locker?</ID>
     <ID>CyclomaticComplexMethod:LockerClient.kt$LockerClient$private suspend fun updateLockersObserved(roomId: RoomId, changes: List&lt;Change&gt;, initialKey: Secp256r1KeyPair?)</ID>
     <ID>CyclomaticComplexMethod:PushRegistration.kt$PushRegistrationController$fun start()</ID>
@@ -26,6 +30,7 @@
     <ID>EmptyFunctionBlock:ReviewConnectorTests.kt$ReviewConnectorTests.&lt;no name provided&gt;.&lt;no name provided&gt;${}</ID>
     <ID>EmptyFunctionBlock:ReviewDestroyReconnectTests.kt$ReviewDestroyReconnectTests.&lt;no name provided&gt;${}</ID>
     <ID>EmptyFunctionBlock:ReviewNotificationContextTests.kt$ReviewNotificationContextTests.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:ReviewPublicObservationIsolationTests.kt$ReviewPublicObservationIsolationTests.&lt;no name provided&gt;${}</ID>
     <ID>EmptyFunctionBlock:ReviewSessionAdmissionTests.kt$ReviewSessionAdmissionTests.&lt;no name provided&gt;${}</ID>
     <ID>EmptyFunctionBlock:ReviewSessionAdmissionTests.kt$ReviewSessionAdmissionTests.&lt;no name provided&gt;.&lt;no name provided&gt;${}</ID>
     <ID>EmptyFunctionBlock:ReviewSessionProofTests.kt$ReviewSessionProofTests.&lt;no name provided&gt;${}</ID>
@@ -36,11 +41,18 @@
     <ID>EmptyFunctionBlock:StreamTests.kt$StreamTests.&lt;no name provided&gt;${ }</ID>
     <ID>EmptyFunctionBlock:StreamTests.kt$StreamTests.FixedKeySource${}</ID>
     <ID>InstanceOfCheckForException:PushRegistration.kt$PushRegistrationController$failure is CancellationException</ID>
+    <ID>InstanceOfCheckForException:Stream.kt$SubscriptionController$failure !is RetryLimitExceeded</ID>
+    <ID>InstanceOfCheckForException:Stream.kt$SubscriptionController$failure is CancellationException</ID>
     <ID>LargeClass:LockerClient.kt$LockerClient</ID>
     <ID>LargeClass:LockerClientTests.kt$LockerClientTests</ID>
+    <ID>LongMethod:ArchiveMigrationContract.kt$suspend fun verifyHistoricalConnectorMigration( identity: String, version: Int, factory: (DatabaseConfiguration) -&gt; Database, )</ID>
+    <ID>LongMethod:LockerClient.kt$LockerClient$private suspend fun hydrateRoom(room: RoomId, session: SessionId? = stream.sessionId.value, intentRevision: Long? = null): List&lt;IdentifiedLocker&gt;</ID>
     <ID>LongMethod:LockerClient.kt$LockerClient$private suspend fun updateLockerSerialized( roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.(Locker?) -&gt; Unit = {}, ratchet: Boolean = false, transform: suspend (ByteArray) -&gt; ByteArray, ): Locker?</ID>
     <ID>LongMethod:LockerClient.kt$LockerClient$private suspend fun updateLockersObserved(roomId: RoomId, changes: List&lt;Change&gt;, initialKey: Secp256r1KeyPair?)</ID>
+    <ID>LongMethod:PersistentMutationContract.kt$suspend fun verifyPersistentConnectorMutations(factory: () -&gt; Database)</ID>
+    <ID>LongMethod:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$@Test(timeout = 20_000) fun `a different source write reaching the exact expected key epoch remains source unknown`()</ID>
     <ID>LongMethod:Stream.kt$Stream$private suspend fun connectInternal()</ID>
+    <ID>LongMethod:Stream.kt$SubscriptionController$suspend fun startWatchingSubscriptions()</ID>
     <ID>LongParameterList:LockerClient.kt$LockerClient$( keyPair: Secp256r1KeyPair, roomId: RoomId, lockerId: LockerId, parentVersion: Long, contentHash: ByteArray, lockVersion: Long = 0, notification: Notification? = null, v2: Boolean = false, )</ID>
     <ID>LongParameterList:LockerClient.kt$LockerClient$( oldKey: Secp256r1KeyPair, newKey: Secp256r1KeyPair, roomId: RoomId, lockerId: LockerId, parentVersion: Long, lockVersion: Long = 0, v2: Boolean = false, )</ID>
     <ID>LongParameterList:LockerClient.kt$LockerClient$( rpcClient: RpcClient, private val stream: Stream, private val lockerStore: LockerStore, private val lockKeySource: LockKeySource? = null, codecs: NotificationCodecs = NotificationCodecs.identity(), internal val log: KmLog = logging(), private val telemetry: LockersTelemetry = LockersTelemetry.NONE, coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default, private val broadcastCodecs: BroadcastCodecs = BroadcastCodecs.identity(), )</ID>
@@ -52,9 +64,10 @@
     <ID>LongParameterList:PushRegistration.kt$PushRegistrationController$( rpcClient: RpcClient, private val store: PushRegistrationStore, private val sessionIdSource: StateFlow&lt;SessionId?&gt;, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default, private val connectionSource: StateFlow&lt;StreamConnectionState&gt;? = null, private val signRequest: (suspend (String, SessionId, ByteArray) -&gt; SessionProof)? = null, )</ID>
     <ID>LongParameterList:RoutingRpcClient.kt$RoutingRpcClient$( private val seed: RpcClient, private val clientFactory: (address: String) -&gt; RpcClient, private val normalizeAddress: (String) -&gt; String = ::defaultNormalizeAddress, private val disposeClient: suspend (RpcClient) -&gt; Unit = { if (it is HttpRpcClient) it.closeAndJoin() }, private val maxClients: Int = 64, private val maxRoutes: Int = 2_048, private val ownsSeed: Boolean = false, )</ID>
     <ID>LongParameterList:Stream.kt$Stream$( private val rpcClient: RpcClient, private val keySource: AuthenticationKeySource, private val sessionStore: SessionStore, private val subscriptionStore: SubscriptionStore, private val appVersion: Version, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default, private val heartbeatIntervalMillis: Long = PING_TIMEOUT, private val heartbeatTimeoutMillis: Long = 2 * PING_TIMEOUT, )</ID>
-    <ID>LongParameterList:Stream.kt$SubscriptionController$( private val rpcClient: RpcClient, private val subscriptionStore: SubscriptionStore, @Suppress("UNUSED_PARAMETER") sessionStore: SessionStore, sessionIdSource: Flow&lt;SessionId?&gt;, private val log: KmLog = logging(), private val telemetry: LockersTelemetry = LockersTelemetry.NONE, coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default, private val connectionSource: StateFlow&lt;StreamConnectionState&gt;? = null, private val signRequest: (suspend (String, SessionId, ByteArray) -&gt; SessionProof)? = null, )</ID>
+    <ID>LongParameterList:Stream.kt$SubscriptionController$( private val rpcClient: RpcClient, private val subscriptionStore: SubscriptionStore, @Suppress("UNUSED_PARAMETER") sessionStore: SessionStore, sessionIdSource: Flow&lt;SessionId?&gt;, private val log: KmLog = logging(), private val telemetry: LockersTelemetry = LockersTelemetry.NONE, coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default, private val connectionSource: StateFlow&lt;StreamConnectionState&gt;? = null, private val signRequest: (suspend (String, SessionId, ByteArray) -&gt; SessionProof)? = null, supportsRevisions: (suspend () -&gt; Boolean)? = null, )</ID>
     <ID>LoopWithTooManyJumpStatements:PushRegistration.kt$PushRegistrationController$for</ID>
     <ID>LoopWithTooManyJumpStatements:Stream.kt$SubscriptionController$for</ID>
+    <ID>LoopWithTooManyJumpStatements:Stream.kt$SubscriptionController$while</ID>
     <ID>MagicNumber:ConnectorEventJournal.kt$255</ID>
     <ID>MagicNumber:ConnectorEventJournal.kt$3</ID>
     <ID>MagicNumber:ConnectorEventJournal.kt$4</ID>
@@ -63,10 +76,15 @@
     <ID>MagicNumber:ConnectorEventJournal.kt$ConnectorEventJournal$16</ID>
     <ID>MagicNumber:ConnectorEventJournal.kt$ConnectorEventJournal$1_000</ID>
     <ID>MagicNumber:ConnectorEventJournal.kt$ConnectorEventJournal$64</ID>
+    <ID>MagicNumber:ConnectorRetention.kt$ConnectorRetentionPolicy$100_000</ID>
     <ID>MagicNumber:ConnectorRetention.kt$ConnectorRetentionPolicy$1024</ID>
+    <ID>MagicNumber:ConnectorRetention.kt$ConnectorRetentionPolicy$1_000_000</ID>
     <ID>MagicNumber:ConnectorRetention.kt$ConnectorRetentionPolicy$64</ID>
     <ID>MagicNumber:ConnectorStorage.kt$ConnectorStorage$3</ID>
     <ID>MagicNumber:ConnectorStorage.kt$ConnectorStorage$4</ID>
+    <ID>MagicNumber:ConnectorStorage.kt$ConnectorStorage$5</ID>
+    <ID>MagicNumber:ConnectorStorage.kt$ConnectorStorage$6</ID>
+    <ID>MagicNumber:ConnectorStorage.kt$ConnectorStorage$7</ID>
     <ID>MagicNumber:LockerClient.kt$6</ID>
     <ID>MagicNumber:LockerClient.kt$LockerClient$1024</ID>
     <ID>MagicNumber:LockerClient.kt$LockerClient$16</ID>
@@ -78,6 +96,8 @@
     <ID>MagicNumber:LockerSyncCoordinator.kt$LockerSyncCoordinator$1_024</ID>
     <ID>MagicNumber:LockerSyncCoordinator.kt$LockerSyncCoordinator$4</ID>
     <ID>MagicNumber:LockerSyncCoordinator.kt$PriorityNetworkGate$256</ID>
+    <ID>MagicNumber:ProtocolRetry.kt$2_048</ID>
+    <ID>MagicNumber:ProtocolRetry.kt$64</ID>
     <ID>MagicNumber:PushIntentDefinitionsV2.kt$255</ID>
     <ID>MagicNumber:PushIntentDefinitionsV2.kt$3</ID>
     <ID>MagicNumber:PushIntentDefinitionsV2.kt$4</ID>
@@ -89,9 +109,18 @@
     <ID>MagicNumber:PushRegistrationDefinitionsV1.kt$8</ID>
     <ID>MagicNumber:RatchetArchive.kt$3</ID>
     <ID>MagicNumber:RatchetArchive.kt$4</ID>
+    <ID>MagicNumber:RatchetArchive.kt$ArchiveMigrationDefinitionV2$10_000</ID>
+    <ID>MagicNumber:RatchetArchive.kt$ArchiveMigrationDefinitionV2$3</ID>
+    <ID>MagicNumber:RatchetArchive.kt$RatchetArchive$1024</ID>
     <ID>MagicNumber:RatchetArchive.kt$RatchetArchive$10_000</ID>
+    <ID>MagicNumber:RatchetArchive.kt$RatchetArchive$32</ID>
+    <ID>MagicNumber:RatchetArchive.kt$RatchetArchive$33</ID>
+    <ID>MagicNumber:RatchetArchive.kt$RatchetArchive$4</ID>
+    <ID>MagicNumber:RatchetArchive.kt$RatchetArchive$64</ID>
+    <ID>MagicNumber:RatchetArchive.kt$RatchetArchive$8</ID>
     <ID>MagicNumber:RatchetJournal.kt$24</ID>
     <ID>MagicNumber:RatchetJournal.kt$255</ID>
+    <ID>MagicNumber:RatchetJournal.kt$3</ID>
     <ID>MagicNumber:RatchetJournal.kt$4</ID>
     <ID>MagicNumber:RatchetJournal.kt$8</ID>
     <ID>MagicNumber:RatchetJournal.kt$RatchetJournal$1_024</ID>
@@ -100,9 +129,31 @@
     <ID>MagicNumber:Stream.kt$64</ID>
     <ID>MagicNumber:Stream.kt$SessionStore$64</ID>
     <ID>MagicNumber:Stream.kt$SessionStoreImpl$64</ID>
+    <ID>MagicNumber:Stream.kt$Stream$2_048</ID>
     <ID>MagicNumber:Stream.kt$Stream$32</ID>
+    <ID>MagicNumber:Stream.kt$SubscriptionController$100_000</ID>
+    <ID>MagicNumber:Stream.kt$SubscriptionController$128</ID>
+    <ID>MagicNumber:Stream.kt$SubscriptionController$3</ID>
     <ID>MagicNumber:Stream.kt$SubscriptionController$64</ID>
+    <ID>MagicNumber:Stream.kt$SubscriptionStore$1_024</ID>
+    <ID>MagicNumber:Stream.kt$SubscriptionStoreImpl$128</ID>
     <ID>MagicNumber:StreamDefinitionsV2.kt$AckConfirmationAgeDefinitionV1$3</ID>
+    <ID>MagicNumber:SubscriptionIntentRevisions.kt$128</ID>
+    <ID>MagicNumber:SubscriptionIntentRevisions.kt$3</ID>
+    <ID>MaxLineLength:ArchiveMigrationContract.kt$assertContentEquals(pendingBytes, getAll(RatchetJournalDefinitionV1.storeName).single() as ByteArray)</ID>
+    <ID>MaxLineLength:ArchiveMigrationContract.kt$assertEquals(Long.MAX_VALUE, archives.single { it.scope.lockerRawValue.contentEquals(byteArrayOf(4)) }.state!!.lockVersion)</ID>
+    <ID>MaxLineLength:ArchiveMigrationContract.kt$lockerId = LockerId(byteArrayOf(2), LockerKeyspace(4))</ID>
+    <ID>MaxLineLength:ArchiveMigrationContract.kt$save(LockerStoreImplDefinitionV1.storeName, StoreRow(cacheBytes, LockerStoreImplDefinitionV1.encodeRow(cache).keys))</ID>
+    <ID>MaxLineLength:ArchiveMigrationContract.kt$state = value.state!!.copy(lockVersion = Long.MAX_VALUE, scope = value.state.scope!!.copy(lockerRawValue = byteArrayOf(4)))</ID>
+    <ID>MaxLineLength:ArchiveMigrationSafetyTest.kt$ArchiveMigrationSafetyTest$assertContentEquals(RatchetArchiveDefinitionV1.encodePayload(invalid), getAll(RatchetArchiveDefinitionV1.storeName).single() as ByteArray)</ID>
+    <ID>MaxLineLength:ArchiveMigrationSafetyTest.kt$ArchiveMigrationSafetyTest$assertTrue(ArchiveMigrationDefinitionV2.decode(getAll(ArchiveMigrationDefinitionV2.storeName).single() as ByteArray).complete)</ID>
+    <ID>MaxLineLength:ArchiveMigrationSafetyTest.kt$ArchiveMigrationSafetyTest$db</ID>
+    <ID>MaxLineLength:ArchiveMigrationSafetyTest.kt$ArchiveMigrationSafetyTest$kind = LockScopeKind.LOCK_SCOPE_LOCKER</ID>
+    <ID>MaxLineLength:ArchiveMigrationSafetyTest.kt$ArchiveMigrationSafetyTest$lockerId = LockerId(byteArrayOf(scope.toByte()), LockerKeyspace(0))</ID>
+    <ID>MaxLineLength:ArchiveMigrationSafetyTest.kt$ArchiveMigrationSafetyTest$resumed.deleteBatch(RatchetArchiveDefinitionV1.storeName, IndexedQuery(RatchetArchiveDefinitionV1.room.key, 10_000))</ID>
+    <ID>MaxLineLength:ArchiveMigrationSafetyTest.kt$ArchiveMigrationSafetyTest$val status = ArchiveMigrationDefinitionV2.decode(getAll(ArchiveMigrationDefinitionV2.storeName).single() as ByteArray)</ID>
+    <ID>MaxLineLength:ArchiveMigrationSafetyTest.kt$ArchiveMigrationSafetyTest.PausingDelegate$override suspend fun &lt;T&gt; transaction(lockKey: String, block: suspend () -&gt; T)</ID>
+    <ID>MaxLineLength:BrowserStorageContractTest.kt$BrowserStorageContractTest$@Test</ID>
     <ID>MaxLineLength:ConnectorEventJournal.kt$ConnectorEventJournal$)</ID>
     <ID>MaxLineLength:ConnectorEventJournal.kt$ConnectorEventJournal$if (previous - retained.floor &gt;= policy.maxAcceptedEvents || bytes &gt; policy.maxAcceptedEventBytes - retained.retainedBytes) throw ConnectorRetentionExceededException("Accepted event journal is full; advance the application cursor retention watermark")</ID>
     <ID>MaxLineLength:ConnectorEventJournal.kt$ConnectorEventJournal$internal</ID>
@@ -120,7 +171,7 @@
     <ID>MaxLineLength:ConnectorEventJournal.kt$private fun encodeEntry(entry: ConnectorJournalEntry)</ID>
     <ID>MaxLineLength:ConnectorRetention.kt$ConnectorCursorExpiredException : IllegalStateException</ID>
     <ID>MaxLineLength:ConnectorRetention.kt$ConnectorRetentionPolicy$data</ID>
-    <ID>MaxLineLength:ConnectorRetention.kt$ConnectorRetentionPolicy$init { require(maxAcceptedEvents &gt; 0 &amp;&amp; maxAcknowledgements &gt; 0 &amp;&amp; maxAcceptedEventBytes &gt; 0 &amp;&amp; maxCachedLockers &gt; 0) }</ID>
+    <ID>MaxLineLength:ConnectorStorage.kt$ConnectorStorage$for</ID>
     <ID>MaxLineLength:ConnectorStorage.kt$ConnectorStorage$rebuildStore</ID>
     <ID>MaxLineLength:FastpathClientTests.kt$FastpathClientTests$@Test</ID>
     <ID>MaxLineLength:FastpathClientTests.kt$FastpathClientTests$return</ID>
@@ -137,16 +188,15 @@
     <ID>MaxLineLength:LockerClient.kt$LockerClient$/** All change, notification, broadcast and raw-event consumers share the journal. Supply their minimum durable cursor. */</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$// The builder sees a provisional payload envelope; the final V2 signature binds its encoded notification.</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$LockGrant(scope, Secp256R1Key.PublicKey(public), signatureOf(key, context, if (caps.authorityV2) 2 else 1), authorityVersion, targetVersion)</ID>
-    <ID>MaxLineLength:LockerClient.kt$LockerClient$LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER, keyspace = id.keyspace, lockerRawValue = id.rawValue)</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$PostLockerChangeRequest</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$PostLockerChangesRequest</ID>
-    <ID>MaxLineLength:LockerClient.kt$LockerClient$RatchetAdoptionPendingException(archive.version, cause, archive.room, archive.pending.request.writeRequestId, listOf(WriteSourceVersion(target, archive.version)))</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$RatchetExpectation</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$accept(LockerUpdate(roomId, lockerId, version, body!!.plaintextPayload(), deleted = false, roomSequence = event.roomSequence))</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$accept(LockerUpdate(roomId, lockerId, version, byteArrayOf(), deleted = true, roomSequence = event.roomSequence))</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$acceptCommitted</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$acceptCommitted(LockerUpdate(roomId, lockerId, result.version, byteArrayOf(), deleted = true), request.writeRequestId)</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$authorityState</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$buildRatchet(signingKey, pendingRatchetKey, roomId, lockerId, parentVersion, authority, caps.authorityV2)</ID>
-    <ID>MaxLineLength:LockerClient.kt$LockerClient$catch (failure: Exception) { throw adoptionPending(archive, requireNotNull(archive.pending.request.lockerId), failure) }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$check(response.changes.size == request.changes.size &amp;&amp; response.changes.all { it.result.isOk() }) { "Incomplete committed batch metadata" }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$current[changes[index].lockerId] = item.version to (item.existingLocker?.plaintextPayload() ?: byteArrayOf())</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$else</ID>
@@ -155,34 +205,43 @@
     <ID>MaxLineLength:LockerClient.kt$LockerClient$if</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$if (!caps.getLockers) return coroutineScope { lockerIds.map { id -&gt; async { fetchLocker(roomId, id) } }.awaitAll() }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$if (!caps.writeOutcomes) { emit(WriteOutcomeObservation.Unavailable(WriteOutcomeObservation.UnavailableReason.NOT_SUPPORTED)); return@flow }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$if (acknowledgedUncertainty) fetchLocker(roomId, lockerId)</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$if (caps == null) { emit(WriteOutcomeObservation.Unavailable(WriteOutcomeObservation.UnavailableReason.DEADLINE_EXCEEDED)); return@flow }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$if (caps.authorityV2 &amp;&amp; current != null &amp;&amp; current.lockVersion &gt;= (archive.state?.lockVersion ?: 0)) lockerStore.forgetArchivedRatchet(archive)</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$if (currentKey != null &amp;&amp; !currentKey.contentEquals(original.publicKey?.rawValue ?: byteArrayOf())) return unknown()</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$if (e.code == com.latenighthack.ktbuf.proto.Codes.UNIMPLEMENTED || e.code == com.latenighthack.ktbuf.proto.Codes.NOT_FOUND) CapabilitiesResponse() else throw e</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$if (failure.code == com.latenighthack.ktbuf.proto.Codes.UNIMPLEMENTED || failure.code == com.latenighthack.ktbuf.proto.Codes.NOT_FOUND) CapabilitiesResponse() else throw failure</ID>
-    <ID>MaxLineLength:LockerClient.kt$LockerClient$if (lockerStore.pendingRatchets().none { it.request.writeRequestId.contentEquals(request.writeRequestId) }) return</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$if (pendingRatchetKey != null &amp;&amp; !supportsReceipts) throw LockerWriteException("Ratchets require durable server write receipts")</ID>
-    <ID>MaxLineLength:LockerClient.kt$LockerClient$if (pendingRatchetKey != null) lockerStore.saveRatchet(PendingRatchet(frozen, pendingRatchetKey.privateKey.encode()))</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$if (response == null) { emit(WriteOutcomeObservation.Unavailable(WriteOutcomeObservation.UnavailableReason.DEADLINE_EXCEEDED, last)); return@flow }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$if (response.result is SubscriptionResponse.Result.STALE_INTENT) throw SubscriptionIntentStaleException(response.currentRevision)</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$if (result.result.isOk() &amp;&amp; (result.agentFailed || result.agentPending || result.agentIndeterminate)) committedAgentStatus = result</ID>
-    <ID>MaxLineLength:LockerClient.kt$LockerClient$if (watermark == null) watermark = sequence else check(watermark == sequence) { "Snapshot watermark changed between pages" }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$if (watermark == null) watermark = sequence else require(watermark == sequence) { "Snapshot watermark changed between pages" }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$is DeleteLockerResponse.Result.NOT_AUTHORIZED -&gt; throw LockerWriteException("locker delete not authorized")</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$is DeleteLockerResponse.Result.REQUEST_ID_REUSED -&gt; throw LockerWriteException("delete receipt identifier was reused with different request bytes")</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$is DeleteLockerResponse.Result.SIGNATURE_INVALID -&gt; throw LockerWriteException("locker delete signature was rejected")</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$is DeleteLockerResponse.Result.SIGNATURE_REQUIRED -&gt; throw LockerWriteException("locker is locked; a signing key is required to delete")</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$is PostLockerChangesResponse.Result.NOT_OWNER -&gt; { recordRoomRedirect(roomId, response.redirect); retry() }</ID>
-    <ID>MaxLineLength:LockerClient.kt$LockerClient$lockerStore.pendingRatchets().filter { it.request.roomId?.canonical() == roomId.canonical() &amp;&amp; it.request.lockerId?.canonical() == lockerId.canonical() }.forEach { recoverRatchet(it, serialized = true) }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$it.request.roomId?.canonical() == room &amp;&amp; it.request.lockerId?.canonical() == id &amp;&amp; it.request.writeRequestId.contentEquals(requestId)</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$lockVersion = it.lockVersion</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$lockerStore.clearRatchet(request)</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$log.debug { "updated locker=${lockerId.toLogString()} result=${result.result} version=${result.version}" }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$message = "Batch source committed; agent ${if (response.agentIndeterminate) "indeterminate" else if (response.agentPending) "pending" else "failed"}"</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$message = "Source committed at version ${it.version}; agent ${if (it.agentIndeterminate) "indeterminate" else if (it.agentPending) "pending" else "failed"}"</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$private suspend</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$private suspend fun currentAuthorityVersion(roomId: RoomId, lockerId: LockerId): Long</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$request.changes.zip(response.changes).map { (source, committed) -&gt; WriteSourceVersion(source.lockerId, committed.version) }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$require(changes.isNotEmpty() &amp;&amp; changes.size &lt;= 64 &amp;&amp; changes.map { it.lockerId }.distinct().size == changes.size)</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$require(response.result !is GetAllLockersResponse.Result.INVALID_DATA) { "Snapshot has invalid stored data; owner repair required" }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$require(response.result !is GetLockerResponse.Result.INVALID_DATA) { "Missing snapshot record has invalid stored data; owner repair required" }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$require(response.result !is SubscriptionResponse.Result.INVALID_DATA) { "Snapshot has invalid stored data; owner repair required" }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$require(response.result !is SubscriptionResponse.Result.INVALID_DATA) { "Subscription has invalid stored data; owner repair required" }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$requireNotNull(pending.request.roomId)</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$return LockerUpdate(RoomId(stored.roomIdRawValue), LockerId(stored.lockerIdRawValue, LockerKeyspace(stored.lockerKeyspace)), stored.version, stored.lockerPayload, stored.deleted, stored.roomSequence)</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$roomId</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$roomId.canonical().let { room -&gt; lockerId.canonical().let { id -&gt; sync.mutate(room to id) { telemetry.observe(TelemetryOperation.CONNECTOR_DELETE) { deleteLockerSerialized(room, id, notificationBuilder) } } } }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$sourceVersions = listOf(WriteSourceVersion(lockerId, it.version))</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$sourceVersions = request.changes.zip(response.changes).map { (change, result) -&gt; WriteSourceVersion(change.lockerId, result.version) }</ID>
-    <ID>MaxLineLength:LockerClient.kt$LockerClient$state</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$state.lockVersion &gt;= original.lockVersion + 1</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$suspend</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$sync.network { roomService.getLockScope(GetLockScopeRequest(roomId.canonical(), scope.canonical())) }.also { check(it.result.isOk()) { "Authority discovery rejected" } }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$sync.network { roomService.getLocker(GetLockerRequest(archive.room, target.canonical())) }.locker?.lockState</ID>
@@ -193,21 +252,22 @@
     <ID>MaxLineLength:LockerClient.kt$LockerClient$try { adoptCommittedRatchet(pending, response) } catch (failure: RatchetAdoptionPendingException) { adoptionPending = failure }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val authority = if (initialKey != null) targetVersion + 1 else authorities[change.lockerId] ?: 0L</ID>
-    <ID>MaxLineLength:LockerClient.kt$LockerClient$val authority = if (signingKey != null &amp;&amp; caps.authorityV2) currentAuthorityVersion(roomId, lockerId) else 0L</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val authority = sync.network { roomService.getLocker(GetLockerRequest(room, id.canonical())) }.locker?.lockState?.publicKey?.rawValue ?: return</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$val authorityState = if (signingKey != null &amp;&amp; caps.authorityV2) currentAuthorityState(roomId, lockerId) else null</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val body = if (caps.authorityV2) buildWriteBody(signingKey, roomId, lockerId, parentVersion, newPlaintext, authority, notif, true) else provisional</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val context = if (v2) LockerSigning.unlockContextV2(roomId, scope, parentLockVersion) else LockerSigning.unlockContext(roomId, scope)</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val entry = watchMutex.withLock { check(watched.size &lt; 1_024 || watched.containsKey(identity)) { "Snapshot watcher admission limit exceeded" }; watched.getOrPut(identity) { SnapshotWatch() }.also { it.users++ } }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val lock = lockLocker(roomId, LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM), initialKey, initialKey)</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val missing = before.filter { LockerId(it.lockerIdRawValue, LockerKeyspace(it.lockerKeyspace)).canonical() !in present }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val newKey = requireNotNull(Secp256r1KeyPair.fromPrivateKey(archive.pending.privateKey)) { "Invalid archived ratchet key" }</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$val pending = lockerStore.pendingRatchetsFlow().firstOrNull { it.request.writeRequestId.contentEquals(request.writeRequestId) } ?: return</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val response = roomService.subscribeAndSnapshot(unsigned.copy(proof = stream.signSessionRequest(SessionSigning.SNAPSHOT, session, unsigned.toByteArray())))</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val response = roomService.subscription(unsigned.copy(proof = stream.signSessionRequest(SessionSigning.SUBSCRIPTION, session, unsigned.toByteArray())))</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val result = sync.network { roomService.getLockers(GetLockersRequest(roomId, changes.map { it.lockerId })) }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val room = RoomId(expected.roomIdRawValue)</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val signature = signingKey?.let { signWrite(it, roomId, lockerId, parentVersion, ByteArray(0), authority, notif, caps.authorityV2) }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val targetVersion = if (caps.authorityV2 &amp;&amp; parentLockVersion == 0L) state?.scopeState?.lockVersion ?: 0L else parentLockVersion</ID>
-    <ID>MaxLineLength:LockerClient.kt$LockerClient$val unsigned = SubscriptionRequest(roomId = room, sessionId = session, kind = SubscriptionRequest.OneOfKind.subscribe(SubscriptionRequest.Subscribe()))</ID>
+    <ID>MaxLineLength:LockerClient.kt$LockerClient$val unsigned = SubscriptionRequest(roomId = room, sessionId = session, intentRevision = revision, kind = SubscriptionRequest.OneOfKind.subscribe(SubscriptionRequest.Subscribe()))</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$watchMutex.withLock { watched[update.roomId to update.lockerId.keyspaceOrDefault()]?.revision?.update { it + 1 } }</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient.LockerUpdate(roomId.canonical(), lockerId!!.canonical(), version, locker?.plaintextPayload() ?: byteArrayOf(), deleted = locker == null, roomSequence = roomSequence)</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerSourceCommittedException$message: String = "Source committed at version $version; agent ${if (agentPending) "pending" else "failed"}"</ID>
@@ -216,8 +276,6 @@
     <ID>MaxLineLength:LockerClient.kt$LockerSourceCommittedException$val sourceVersions: List&lt;WriteSourceVersion&gt; get() = sources.map { it.copy(lockerId = it.lockerId?.let { id -&gt; id.copy(rawValue = id.rawValue.copyOf()) }) }</ID>
     <ID>MaxLineLength:LockerClient.kt$RatchetAdoptionPendingException$LockerSourceCommittedException(version, false, "Source committed at version $version; signing key adoption is pending", cause, roomId, writeRequestId, sourceVersions)</ID>
     <ID>MaxLineLength:LockerClient.kt$RatchetAdoptionPendingException$class</ID>
-    <ID>MaxLineLength:LockerClient.kt$RatchetReceiptUnavailableException$LockerSourceCommittedException</ID>
-    <ID>MaxLineLength:LockerClient.kt$RatchetReceiptUnavailableException$roomId = roomId</ID>
     <ID>MaxLineLength:LockerClient.kt$TypedLockerClient$"LockerId keyspace ${existing?.value} does not match this client's keyspace ${this@TypedLockerClient.keyspace.value}"</ID>
     <ID>MaxLineLength:LockerClient.kt$TypedLockerClient$fun</ID>
     <ID>MaxLineLength:LockerClient.kt$TypedLockerClient$private</ID>
@@ -240,21 +298,26 @@
     <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$val result = ctx.typedClient.updateLocker(roomId, lockerId) { it.copy { title = "change-test"; sequenceNumber = 42 } }</ID>
     <ID>MaxLineLength:LockerClientTests.kt$LockerClientTests$val typedClient = lockers.typed(DEFAULT_KEYSPACE, ExampleLocker::toByteArray, ExampleLocker.Companion::fromByteArray)</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStore$deleteLocker(RoomId(expected.roomIdRawValue), LockerKeyspace(expected.lockerKeyspace), LockerId(expected.lockerIdRawValue))</ID>
+    <ID>MaxLineLength:LockerStore.kt$LockerStore$fun archivedRatchetsFlow(): kotlinx.coroutines.flow.Flow&lt;ArchivedRatchet&gt;</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStore$fun changesAfter(cursor: Long): kotlinx.coroutines.flow.Flow&lt;ConnectorJournalEntry&gt;</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStore$fun liveChanges(): kotlinx.coroutines.flow.Flow&lt;ConnectorJournalEntry&gt;</ID>
+    <ID>MaxLineLength:LockerStore.kt$LockerStore$fun pendingRatchetsFlow(): kotlinx.coroutines.flow.Flow&lt;PendingRatchet&gt;</ID>
+    <ID>MaxLineLength:LockerStore.kt$LockerStore$suspend fun acknowledgeRatchetUncertainty(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest): Unit</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStore$suspend fun archiveRatchet(value: ArchivedRatchet): Unit</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStore$suspend fun clearRatchet(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest): Unit</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStore$suspend fun forgetArchivedRatchet(value: ArchivedRatchet): Unit</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStore$suspend fun pruneEventsThrough(cursor: Long): Unit</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStore$suspend fun saveRatchet(value: PendingRatchet): Unit</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$class</ID>
-    <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$eventJournal.append(1, expected.copy(deleted = true, lockerPayload = byteArrayOf()).toByteArray(), kotlin.random.Random.nextBytes(32))</ID>
+    <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$eventJournal.append(1, snapshot.copy(deleted = true, lockerPayload = byteArrayOf()).toByteArray(), kotlin.random.Random.nextBytes(32))</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$if</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$override suspend</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$override suspend fun acceptAtomically(action: suspend () -&gt; Unit)</ID>
+    <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$override suspend fun acknowledgeRatchetUncertainty(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest)</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$override suspend fun clearRatchet(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest)</ID>
+    <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$override suspend fun getAllLockers(roomId: RoomId)</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$throw com.latenighthack.lockers.connector.ConnectorRetentionExceededException("Locker cache admission limit exceeded")</ID>
-    <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$val room = RoomId(expected.roomIdRawValue)</ID>
+    <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$val room = RoomId(snapshot.roomIdRawValue)</ID>
     <ID>MaxLineLength:LockerStoreDefinitionsV1.kt$LockerStoreImplDefinitionV1$val lockerIdKey = bytesIndex(IndexName("lockerIdRawValuebyteArrayIdentity"), StoredLocker::lockerIdKeyStorage, "byteArrayIdentity-v1")</ID>
     <ID>MaxLineLength:LockerStoreDefinitionsV1.kt$LockerStoreImplDefinitionV1$val roomIdKey = bytesIndex(IndexName("roomIdRawValuebyteArrayIdentity"), StoredLocker::roomIdKeyStorage, "byteArrayIdentity-v1")</ID>
     <ID>MaxLineLength:LockerStoreDefinitionsV1.kt$LockerStoreImplDefinitionV1$val roomIdLockerIdLockerKeyspaceKey = compositeIndex(IndexName("composite_roomIdRawValuebyteArrayIdentity_lockerIdRawValuebyteArrayIdentity_lockerKeyspace"), roomIdKey, lockerIdKey, lockerKeyspaceKey).also { primaryKey(it) }</ID>
@@ -273,6 +336,7 @@
     <ID>MaxLineLength:LockersClient.kt$LockersClient$fun</ID>
     <ID>MaxLineLength:LockersClient.kt$LockersClient$suspend</ID>
     <ID>MaxLineLength:LockersClient.kt$LockersClient$val pushRegistrationStates: StateFlow&lt;Map&lt;PushBackendType, PushRegistrationStatus&gt;&gt; get() = pushRegistrations.registrations</ID>
+    <ID>MaxLineLength:LockersClient.kt$LockersClient$val subscriptionFailures: StateFlow&lt;Map&lt;com.latenighthack.lockers.common.v1.RoomId, Throwable&gt;&gt; get() = stream.subscriptionFailures</ID>
     <ID>MaxLineLength:LockersClient.kt$LockersClient.Companion$val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs, telemetry = telemetry, coroutineContext = ownedContext, broadcastCodecs = broadcastCodecs)</ID>
     <ID>MaxLineLength:LockersClient.kt$LockersClient.Companion$val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId, telemetry, ownedContext, stream.connection, stream::signSessionRequest)</ID>
     <ID>MaxLineLength:LockersClient.kt$LockersClient.Companion$val stream = Stream(rpcClient, keySource, sessionStore, subscriptionStore, appVersion, telemetry, ownedContext)</ID>
@@ -295,9 +359,13 @@
     <ID>MaxLineLength:OwnedTestFixtureTests.kt$OwnedTestFixtureTests$runBlocking { assertFailsWith&lt;IllegalStateException&gt; { transport!!.unaryCall(RpcMethodSpecifier("test", "Test", "Call"), emptyMap(), byteArrayOf()) } }</ID>
     <ID>MaxLineLength:OwnedTestFixtureTests.kt$OwnedTestFixtureTests$val</ID>
     <ID>MaxLineLength:PortableContractTest.kt$PortableContractTest$val context = NotificationContext(RoomId(byteArrayOf(1)), LockerId(byteArrayOf(2), space), space, "title", "body")</ID>
+    <ID>MaxLineLength:ProtocolRetry.kt$RpcResponseException(failure.path.take(2_048), failure.verb.take(64), failure.code, failure.errorMessage.take(2_048))</ID>
+    <ID>MaxLineLength:ProtocolRetry.kt$if</ID>
     <ID>MaxLineLength:PushIntentDefinitionsV2.kt$PushIntentDefinitionV2$object</ID>
     <ID>MaxLineLength:PushIntentDefinitionsV2.kt$PushIntentDefinitionV2$val backend = bytesIndex(IndexName("backend"), PushRegistrationIntent::backendKey, "i32-big-endian-v1").also { primaryKey(it) }</ID>
     <ID>MaxLineLength:PushIntentDefinitionsV2.kt$PushIntentStore$suspend fun intent(backend: Int): PushRegistrationIntent?</ID>
+    <ID>MaxLineLength:PushIntentDefinitionsV2.kt$PushIntentStore$suspend fun intents(): List&lt;PushRegistrationIntent&gt;</ID>
+    <ID>MaxLineLength:PushIntentDefinitionsV2.kt$PushIntentStore$suspend fun put(intent: PushRegistrationIntent)</ID>
     <ID>MaxLineLength:PushIntentDefinitionsV2.kt$PushRegistrationIntent$data</ID>
     <ID>MaxLineLength:PushIntentDefinitionsV2.kt$private fun encodeIntent(value: PushRegistrationIntent)</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$catch (failure: Throwable) { state.update { it.copy(errors = PushBackendType.entries.associate { backend -&gt; backend.protoValue to failure }) }; stop() }</ID>
@@ -311,6 +379,7 @@
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$sessionIdSource.collect { session -&gt; commands.send(Command.Session(session?.canonical(), if (session == null) epoch else ++epoch)) }</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$state.update { it.copy(desired = it.desired + (command.backend to command.intent.copy(pending = false)), errors = it.errors - command.backend, confirmed = it.confirmed + (command.backend to command.intent.revision), reconciled = if (command.intent.encodedRegistration.isEmpty()) it.reconciled - command.backend else it.reconciled + command.backend) }</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$state.update { it.copy(desired = it.desired + (command.backend to intent), errors = it.errors - command.backend, reconciled = it.reconciled - command.backend, confirmed = it.confirmed - command.backend) }</ID>
+    <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$state.update { it.copy(errors = PushBackendType.entries.associate { backend -&gt; backend.protoValue to exhausted }) }</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$state.update { it.copy(session = command.session, epoch = command.epoch, reconciled = emptySet(), confirmed = emptyMap(), errors = if (command.failure == null) emptyMap() else PushBackendType.entries.associate { backend -&gt; backend.protoValue to command.failure }) }</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$suspend fun register(registration: PushRegistration)</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$val intent = state.value.desired[backend.protoValue]?.takeIf { it.revision == target.revision } ?: return@collectLatest</ID>
@@ -320,7 +389,7 @@
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$val response = telemetry.observe(TelemetryOperation.CONNECTOR_PUSH_UNREGISTER) { pushService.unregisterSession(request) }</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$val unsigned = RegisterSessionRequest(sessionId = session, registration = PushRegistration.fromByteArray(intent.encodedRegistration), credentialRevision = intent.revision)</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$val unsigned = UnregisterSessionRequest(sessionId = session, backend = PushBackend.fromInt(intent.backend), credentialRevision = intent.revision)</ID>
-    <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$when (failure) { is PushRegistrationException -&gt; false; is RpcResponseException -&gt; failure.retriable(); else -&gt; true }</ID>
+    <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$when (failure) { is PushRegistrationException -&gt; false; is RpcResponseException -&gt; failure.retriable(); else -&gt; isRetryableProtocolFailure(failure) }</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController$}</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationController.Command$Completed : Command</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationStatus$data</ID>
@@ -329,23 +398,38 @@
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationStore$suspend fun nextIntent(backend: Int, encodedRegistration: ByteArray): PushRegistrationIntent</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationStoreImpl$class</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationStoreImpl$if</ID>
+    <ID>MaxLineLength:PushRegistration.kt$PushRegistrationStoreImpl$override suspend fun getAllRegistrations(): List&lt;StoredPushRegistration&gt;</ID>
     <ID>MaxLineLength:PushRegistration.kt$PushRegistrationStoreImpl$override suspend fun getRegistration(backend: Int): StoredPushRegistration?</ID>
+    <ID>MaxLineLength:PushRegistration.kt$PushRegistrationStoreImpl$override suspend fun saveRegistration(registration: StoredPushRegistration)</ID>
     <ID>MaxLineLength:PushRegistrationDefinitionsV1.kt$PushRegistrationStoreImplDefinitionV1$StoreName("push_registrations")</ID>
     <ID>MaxLineLength:PushRegistrationDefinitionsV1.kt$PushRegistrationStoreImplDefinitionV1$val backendKey = bytesIndex(IndexName("backendintToBytes"), StoredPushRegistration::backendKeyStorage, "intToBytes-v1").also { primaryKey(it) }</ID>
+    <ID>MaxLineLength:RatchetArchive.kt$ArchiveMigrationProgress</ID>
+    <ID>MaxLineLength:RatchetArchive.kt$ArchiveProgress$private</ID>
     <ID>MaxLineLength:RatchetArchive.kt$ArchivedRatchet$keyspace = pending.request.lockerId!!.canonical().keyspace</ID>
-    <ID>MaxLineLength:RatchetArchive.kt$RatchetArchive$if</ID>
+    <ID>MaxLineLength:RatchetArchive.kt$LockScopeKind.LOCK_SCOPE_KEYSPACE -&gt; LockScope(kind = scope.kind, keyspace = LockerKeyspace(scope.keyspace?.value ?: 0))</ID>
+    <ID>MaxLineLength:RatchetArchive.kt$LockScopeKind.LOCK_SCOPE_LOCKER</ID>
+    <ID>MaxLineLength:RatchetArchive.kt$RatchetArchive$(state.scope != null &amp;&amp; state.lockVersion &gt;= 1L)</ID>
+    <ID>MaxLineLength:RatchetArchive.kt$RatchetArchive$BoundStoreKey.SerializedKey(RatchetArchiveDefinitionV2.publicKey.name.value, publicKeyBytes)</ID>
     <ID>MaxLineLength:RatchetArchive.kt$RatchetArchive$internal</ID>
-    <ID>MaxLineLength:RatchetArchive.kt$RatchetArchive$suspend fun hasRoom(room: RoomId): Boolean</ID>
     <ID>MaxLineLength:RatchetArchive.kt$RatchetArchive$throw com.latenighthack.lockers.connector.ConnectorRetentionExceededException("Ratchet archive admission limit exceeded")</ID>
-    <ID>MaxLineLength:RatchetArchive.kt$RatchetArchive$val identity = RatchetArchiveDefinitionV1.roomScope.eq(listOf(BoundStoreKey.SerializedKey(RatchetArchiveDefinitionV1.room.name.value, value.roomKey), BoundStoreKey.SerializedKey(RatchetArchiveDefinitionV1.scope.name.value, value.scopeKey)))</ID>
+    <ID>MaxLineLength:RatchetArchive.kt$RatchetArchive$val key = requireNotNull(Secp256r1KeyPair.fromPrivateKey(value.pending.privateKey)) { "Invalid archived private key" }</ID>
     <ID>MaxLineLength:RatchetArchive.kt$RatchetArchiveDefinitionV1$object</ID>
     <ID>MaxLineLength:RatchetArchive.kt$private fun encodeArchive(value: ArchivedRatchet)</ID>
     <ID>MaxLineLength:RatchetArchive.kt$return ArchivedRatchet(PendingRatchet(com.latenighthack.lockers.room.v1.PostLockerChangeRequest.fromByteArray(fields[0]), fields[1]), fields[2].takeIf { it.isNotEmpty() }?.let { LockState.fromByteArray(it) }, bytesLong(fields[3]))</ID>
+    <ID>MaxLineLength:RatchetJournal.kt$PendingRatchet$data</ID>
+    <ID>MaxLineLength:RatchetJournal.kt$RatchetExpectation$data</ID>
+    <ID>MaxLineLength:RatchetJournal.kt$RatchetExpectationDefinitionV2$val requestId = bytesIndex(IndexName("request_id"), RatchetExpectation::requestId, "writeRequestId-v2").also { primaryKey(it) }</ID>
     <ID>MaxLineLength:RatchetJournal.kt$RatchetJournal$if</ID>
     <ID>MaxLineLength:RatchetJournal.kt$RatchetJournal$internal</ID>
-    <ID>MaxLineLength:RatchetJournal.kt$RatchetJournal$suspend fun remove(request: PostLockerChangeRequest)</ID>
+    <ID>MaxLineLength:RatchetJournal.kt$RatchetJournal$require(encodePending(existing).contentEquals(encodePending(value))) { "Ratchet intent identity reused" }</ID>
+    <ID>MaxLineLength:RatchetJournal.kt$RatchetJournal$require(it.requestId.contentEquals(value.requestId) &amp;&amp; it.previous.scope != null &amp;&amp; it.previous.locked &amp;&amp; it.previous.lockVersion in 1 until Long.MAX_VALUE)</ID>
+    <ID>MaxLineLength:RatchetJournal.kt$RatchetJournal$require(pending.request.toByteArray().contentEquals(request.toByteArray())) { "Ratchet intent identity mismatch" }</ID>
     <ID>MaxLineLength:RatchetJournal.kt$RatchetJournal$throw com.latenighthack.lockers.connector.ConnectorRetentionExceededException("Pending ratchet admission limit exceeded")</ID>
+    <ID>MaxLineLength:RatchetJournal.kt$RatchetJournal$val expected = requireNotNull(expectations.find(request.writeRequestId)) { "Original authority unavailable" }</ID>
+    <ID>MaxLineLength:RatchetJournal.kt$RatchetJournal$val page = database.query(RatchetJournalDefinitionV1.storeName, IndexedQuery(RatchetJournalDefinitionV1.requestId.key, 1, after = after))</ID>
+    <ID>MaxLineLength:RatchetJournal.kt$RatchetJournal$val pending = requireNotNull(get(RatchetJournalDefinitionV1.requestId.eq(request.writeRequestId))) { "Unknown ratchet intent" }</ID>
     <ID>MaxLineLength:RatchetJournal.kt$RatchetJournalDefinitionV1$val requestId = bytesIndex(IndexName("request_id"), PendingRatchet::requestId, "writeRequestId-v1").also { primaryKey(it) }</ID>
+    <ID>MaxLineLength:RatchetJournal.kt$private fun encodeExpectation(value: RatchetExpectation)</ID>
     <ID>MaxLineLength:ReviewAcceptanceCursorTests.kt$ReviewAcceptanceCursorTests$LockerStoreImpl(db).acceptLocker(StoredLocker(roomIdRawValue = byteArrayOf(1), lockerIdRawValue = byteArrayOf(2), version = 1))</ID>
     <ID>MaxLineLength:ReviewAcceptanceCursorTests.kt$ReviewAcceptanceCursorTests$SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), db).receive(Event(roomId = RoomId(byteArrayOf()), eventId = EventId(byteArrayOf(3)))) { true }</ID>
     <ID>MaxLineLength:ReviewAcceptanceCursorTests.kt$ReviewAcceptanceCursorTests$assertTrue(session.hasReceived(com.latenighthack.lockers.connector.storage.v1.StoredAck(byteArrayOf(1), byteArrayOf(2))))</ID>
@@ -396,6 +480,11 @@
     <ID>MaxLineLength:ReviewConnectorTests.kt$ReviewRpc$override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map&lt;String, String&gt;, request: ByteArray)</ID>
     <ID>MaxLineLength:ReviewConnectorTests.kt$internal suspend</ID>
     <ID>MaxLineLength:ReviewConnectorTests.kt$return LockerClient(rpc, Stream(rpc, auth, session, subscriptions, Version()), LockerStoreImpl(db).also { it.prepare() }, keys, codecs, broadcastCodecs = broadcastCodecs)</ID>
+    <ID>MaxLineLength:ReviewControllerBudgetTests.kt$ReviewControllerBudgetTests$@Test</ID>
+    <ID>MaxLineLength:ReviewControllerBudgetTests.kt$ReviewControllerBudgetTests$assertFailsWith&lt;RetryLimitExceeded&gt; { withTimeout(5_000) { controller.awaitRegistered(PushBackendType.FCM) } }</ID>
+    <ID>MaxLineLength:ReviewControllerBudgetTests.kt$ReviewControllerBudgetTests$assertFailsWith&lt;RetryLimitExceeded&gt; { withTimeout(5_000) { controller.awaitSubscription(RoomId(byteArrayOf(2))) } }</ID>
+    <ID>MaxLineLength:ReviewControllerBudgetTests.kt$ReviewControllerBudgetTests$val</ID>
+    <ID>MaxLineLength:ReviewControllerBudgetTests.kt$ReviewControllerBudgetTests$}</ID>
     <ID>MaxLineLength:ReviewDeleteReceiptTests.kt$ReviewDeleteReceiptTests$"DeleteLocker" -&gt; { calls++; DeleteLockerResponse(result = DeleteLockerResponse.Result.REQUEST_ID_REUSED).toByteArray() }</ID>
     <ID>MaxLineLength:ReviewDeleteReceiptTests.kt$ReviewDeleteReceiptTests$"GetLocker" -&gt; GetLockerResponse(locker = IdentifiedLocker(id, com.latenighthack.lockers.common.v1.Locker(open = com.latenighthack.lockers.common.v1.Locker.OpenLocker(byteArrayOf(9))), 3)).toByteArray()</ID>
     <ID>MaxLineLength:ReviewDeleteReceiptTests.kt$ReviewDeleteReceiptTests$2 -&gt; DeleteLockerResponse(result = DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION, version = 3).toByteArray()</ID>
@@ -412,25 +501,55 @@
     <ID>MaxLineLength:ReviewDestroyReconnectTests.kt$ReviewDestroyReconnectTests$val client = createOwnedTestClient(delayed, ConnectorStorage.inMemory(), KeyValueStore(InMemoryKeyValueStoreDelegate()), auth(Secp256r1KeyPair.generate()), Version())</ID>
     <ID>MaxLineLength:ReviewDestroyReconnectTests.kt$ReviewDestroyReconnectTests$val client = createOwnedTestClient(held, ConnectorStorage.inMemory(), values, auth(Secp256r1KeyPair.generate()), Version())</ID>
     <ID>MaxLineLength:ReviewDestroyReconnectTests.kt$ReviewDestroyReconnectTests.&lt;no name provided&gt;$override suspend</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$"GetLockScope" -&gt; GetLockScopeResponse(scopeState = state(GetLockScopeRequest.fromByteArray(bytes).roomId!!.rawValue[0].toInt())).toByteArray()</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$"GetLocker"</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$"GetLocker" -&gt; GetLockerResponse(locker = IdentifiedLocker(id, Locker(open = Locker.OpenLocker(byteArrayOf(9))), 8, state)).toByteArray()</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$@Test</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$LockState(locked = true, scope = ancestor, lockVersion = 2, publicKey = submitted!!.ratchet!!.newPublicKey)</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$LockState(locked = true, scope = scope, lockVersion = 2, publicKey = submitted!!.ratchet!!.newPublicKey)</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION, version = 8).toByteArray()</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$PostLockerChangeResponse(result = PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION, version = 9).toByteArray()</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertContentEquals(old.publicKey.encode(), active.publicKey.encode(), "a different epoch cannot certify the expected transition")</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertContentEquals(pub.rawValue, active.publicKey.encode(), "exact current authority may safely restore the private key")</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertContentEquals(rotated.publicKey.encode(), active.publicKey.encode(), "expired receipt discarded the only new private key")</ID>
-    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertEquals(LockScopeKind.LOCK_SCOPE_ROOM, LockerStoreImpl(database).archivedRatchets().single().scope.kind)</ID>
-    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertEquals(listOf(LockScopeKind.LOCK_SCOPE_ROOM, LockScopeKind.LOCK_SCOPE_KEYSPACE, LockScopeKind.LOCK_SCOPE_LOCKER), scopes)</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertEquals(1, LockerStoreImpl(database).pendingRatchets().size, "an unrelated grant must not erase source uncertainty")</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertEquals(1, LockerStoreImpl(database).pendingRatchets().size, "authority proves key validity, never the original source write")</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertEquals(before, originalPosts.get(), "ACKed source must never replay, including after volatile provider reset")</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertFailsWith&lt;IllegalArgumentException&gt; { recovered.acknowledgeRatchetSourceUncertainty(room, id, ByteArray(32)) }</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertFailsWith&lt;RatchetRecoveryUnresolvedException&gt; { client.updateLocker(room, id, ratchet = true) { byteArrayOf(3) } }</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertFailsWith&lt;RatchetRecoveryUnresolvedException&gt; { recovered.acknowledgeRatchetSourceUncertainty(room, id, intent.writeRequestId) }</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertFalse(unknown.authorityRecovered)</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertTrue(otherReceipt.result.isOk())</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$assertTrue(unknown.authorityRecovered)</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$definition.request.query(1, lower = pending.request.writeRequestId, upper = pending.request.writeRequestId)</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$fun</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$grant</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$if (n == 1 &amp;&amp; !reachable.get()) throw RpcResponseException("test", "POST", Codes.UNAVAILABLE, "temporarily unreachable")</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$keyspace = LockerKeyspace(0)</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$lockerId = LockerId(byteArrayOf(1), LockerKeyspace(0))</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$ratchet = PostLockerChangeRequest.Ratchet(newPublicKey = Secp256R1Key.PublicKey(pairs.getValue(n).publicKey.encode()))</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$signature = old.privateKey.sign(LockerSigning.ratchetContextV2(room, id, 1, 1, pub.rawValue, emptyList()))</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$store.saveRatchet(pending(1))</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$suspend</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$suspend fun current()</ID>
-    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$val failure = assertFailsWith&lt;RatchetReceiptUnavailableException&gt; { client.updateLocker(room, id, ratchet = true) { transforms++; byteArrayOf(3) } }</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$val</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$val failure = assertFailsWith&lt;RatchetRecoveryUnresolvedException&gt; { client.updateLocker(room, id, ratchet = true) { transforms++; byteArrayOf(3) } }</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$val old = Secp256r1KeyPair.generate()</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$val oldState = LockState(locked = true, scope = original, lockVersion = 1, publicKey = Secp256R1Key.PublicKey(old.publicKey.encode()))</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$val original = LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER, keyspace = id.keyspace, lockerRawValue = id.rawValue)</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$val scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER, keyspace = id.keyspace, lockerRawValue = id.rawValue)</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$val state = LockState(locked = true, lockVersion = 9, publicKey = Secp256R1Key.PublicKey(unrelated.publicKey.encode()))</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$val unknown = assertFailsWith&lt;RatchetRecoveryUnresolvedException&gt; { recovered.updateLocker(room, id) { rerun++; byteArrayOf(10) } }</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$val unknown = assertFailsWith&lt;RatchetRecoveryUnresolvedException&gt; { recovered.updateLocker(room, id) { transforms++; byteArrayOf(10) } }</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$withTimeout(5_000) { while (!active.publicKey.encode().contentEquals(rotated.publicKey.encode())) delay(10) }</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$writeRequestId = ByteArray(32) { 99 }</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$writeRequestId = ByteArray(32) { n.toByte() }</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests$}</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests.&lt;no name provided&gt;$if (intent.ratchet != null) { proposed.complete(intent); awaitCancellation() }</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests.&lt;no name provided&gt;$if (method.methodName == "PostLockerChange" &amp;&amp; PostLockerChangeRequest.fromByteArray(request).writeRequestId.contentEquals(intent.writeRequestId)) originalPosts.incrementAndGet()</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests.&lt;no name provided&gt;$override suspend</ID>
     <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests.&lt;no name provided&gt;$override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair)</ID>
+    <ID>MaxLineLength:ReviewExpiredRatchetTests.kt$ReviewExpiredRatchetTests.&lt;no name provided&gt;$override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId)</ID>
     <ID>MaxLineLength:ReviewIdentityAliasTests.kt$ReviewIdentityAliasTests$"GetLocker" -&gt; GetLockerResponse(locker = IdentifiedLocker(id, version = 1, lockState = state)).toByteArray()</ID>
     <ID>MaxLineLength:ReviewIdentityAliasTests.kt$ReviewIdentityAliasTests$"PostLockerChange" -&gt; { submitted += bytes.copyOf(); PostLockerChangeResponse(version = submitted.size.toLong(), lockState = state).toByteArray() }</ID>
     <ID>MaxLineLength:ReviewIdentityAliasTests.kt$ReviewIdentityAliasTests$assertContentEquals(request.toByteArray(), submitted.first(), "legacy receipt replay must retain its original wire bytes")</ID>
@@ -448,20 +567,33 @@
     <ID>MaxLineLength:ReviewNotificationContextTests.kt$ReviewNotificationContextTests$val replacement = client(server.rpcClient, receiveDatabase, receiveValues, receiveKey).also { receiver = it }</ID>
     <ID>MaxLineLength:ReviewNotificationContextTests.kt$ReviewNotificationContextTests$while (requireNotNull(capturedCore).sessionInboxStore.getAllEvents(ServerSessionId(session.rawValue)).isEmpty()) delay(10)</ID>
     <ID>MaxLineLength:ReviewNotificationContextTests.kt$ReviewNotificationContextTests.&lt;no name provided&gt;$assertContentEquals(binding(context), payload.copyOfRange(0, 32), "transport metadata changed the authenticated context")</ID>
+    <ID>MaxLineLength:ReviewPublicObservationIsolationTests.kt$ReviewPublicObservationIsolationTests$@Test</ID>
+    <ID>MaxLineLength:ReviewPublicObservationIsolationTests.kt$ReviewPublicObservationIsolationTests$assertContentEquals(byteArrayOf(1), controller.registrations.value.getValue(PushBackendType.FCM).sessionId!!.rawValue)</ID>
+    <ID>MaxLineLength:ReviewPublicObservationIsolationTests.kt$ReviewPublicObservationIsolationTests$assertContentEquals(original, (client.connection.value as StreamConnectionState.Connected).sessionId.rawValue)</ID>
+    <ID>MaxLineLength:ReviewPublicObservationIsolationTests.kt$ReviewPublicObservationIsolationTests$controller.register(PushRegistrations.fcm("one"))</ID>
+    <ID>MaxLineLength:ReviewPublicObservationIsolationTests.kt$ReviewPublicObservationIsolationTests$controller.register(PushRegistrations.fcm("two"))</ID>
+    <ID>MaxLineLength:ReviewPublicObservationIsolationTests.kt$ReviewPublicObservationIsolationTests$store.getNextSequenceBytes()!!.fill(0)</ID>
+    <ID>MaxLineLength:ReviewPublicObservationIsolationTests.kt$ReviewPublicObservationIsolationTests$val ack = StoredAck(roomIdRawValue = byteArrayOf(4), eventIdRawValue = byteArrayOf(5), unknownFields = byteArrayOf(0x98.toByte(), 6, 1))</ID>
+    <ID>MaxLineLength:ReviewPublicObservationIsolationTests.kt$ReviewPublicObservationIsolationTests$val client = createOwnedTestClient(server.ownedRpcClient, ConnectorStorage.inMemory(), KeyValueStore(InMemoryKeyValueStoreDelegate()), auth, Version())</ID>
+    <ID>MaxLineLength:ReviewPublicObservationIsolationTests.kt$ReviewPublicObservationIsolationTests$val input = StoredSubscription(roomIdRawValue = byteArrayOf(2), isPendingAdd = true, unknownFields = unknown.copyOf())</ID>
     <ID>MaxLineLength:ReviewPushControllerTests.kt$ReviewPushControllerTests$"UnregisterSession" -&gt; { unregistered.complete(Unit); UnregisterSessionResponse(result = UnregisterSessionResponse.Result.OK).toByteArray() }</ID>
     <ID>MaxLineLength:ReviewPushControllerTests.kt$ReviewPushControllerTests$assertContentEquals(PushRegistrations.fcm("new").toByteArray(), store.getRegistration(2)!!.encodedRegistration)</ID>
+    <ID>MaxLineLength:ReviewPushControllerTests.kt$ReviewPushControllerTests$assertFailsWith&lt;ProtobufOutputLimitException&gt; { withTimeout(1_500) { controller.awaitRegistered(PushBackendType.FCM) } }</ID>
     <ID>MaxLineLength:ReviewPushControllerTests.kt$ReviewPushControllerTests$if (request.credentialRevision == 1L) { entered.complete(Unit); withContext(NonCancellable) { release.await() } }</ID>
     <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$"GetLockScope" -&gt; GetLockScopeResponse(scopeState = LockState(locked = true, scope = scope, lockVersion = 3, publicKey = Secp256R1Key.PublicKey(newer.publicKey.encode()))).toByteArray()</ID>
     <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$"GetLocker" -&gt; GetLockerResponse(locker = IdentifiedLocker(submitted!!.lockerId, version = 1, lockState = authority())).toByteArray()</ID>
+    <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$"GetLocker" -&gt; GetLockerResponse(locker = IdentifiedLocker(target, version = 17, lockState = state)).toByteArray()</ID>
     <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$"PostLockerChange" -&gt; { submitted = PostLockerChangeRequest.fromByteArray(bytes); PostLockerChangeResponse(version = 1).toByteArray() }</ID>
     <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$"PostLockerChange" -&gt; { submitted = PostLockerChangeRequest.fromByteArray(bytes); PostLockerChangeResponse(version = 1, lockState = authority()).toByteArray() }</ID>
     <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$LockState(locked = true, scope = scope, lockVersion = 2, publicKey = Secp256R1Key.PublicKey(archived.publicKey.encode()))</ID>
+    <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$LockerStoreImpl(db).archiveRatchet(ArchivedRatchet(PendingRatchet(request, rotated.privateKey.encode()), state, 5))</ID>
     <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$assertFailsWith&lt;LockerWriteException&gt; { client.updateLocker(RoomId(byteArrayOf(1)), LockerId(byteArrayOf(2)), ratchet = true) { byteArrayOf(3) } }</ID>
     <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$ratchet = PostLockerChangeRequest.Ratchet(newPublicKey = Secp256R1Key.PublicKey(archived.publicKey.encode()))</ID>
     <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$val client = reviewClient(rpc, object : LockKeySource { override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = old }, db)</ID>
     <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$val scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER, keyspace = LockerKeyspace(0), lockerRawValue = byteArrayOf(2))</ID>
     <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$val scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER, keyspace = LockerKeyspace(0), lockerRawValue = id.rawValue)</ID>
     <ID>MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests.&lt;no name provided&gt;$override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair)</ID>
+    <ID>MaxLineLength:ReviewRatchetArchiveOrderingTests.kt$ReviewRatchetArchiveOrderingTests$LockState(locked = true, scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM), lockVersion = epoch, publicKey = pub)</ID>
     <ID>MaxLineLength:ReviewRetentionTests.kt$ReviewRetentionTests$val session = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), db, ConnectorRetentionPolicy(maxAcceptedEvents = 1))</ID>
     <ID>MaxLineLength:ReviewRoutingOwnershipTests.kt$ReviewRoutingOwnershipTests$ReviewRpc { _, _ -&gt; if (address.endsWith("a:1")) { entered.complete(Unit); release.await(); byteArrayOf(1) } else byteArrayOf(2) }.also { created[address] = it }</ID>
     <ID>MaxLineLength:ReviewRoutingOwnershipTests.kt$ReviewRoutingOwnershipTests$assertContentEquals(byteArrayOf('x'.code.toByte()), withTimeout(2_000) { routed.unaryCall(method("rid"), emptyMap(), byteArrayOf()).data })</ID>
@@ -487,10 +619,53 @@
     <ID>MaxLineLength:ReviewSessionProofTests.kt$ReviewSessionProofTests.&lt;no name provided&gt;$verify(SessionSigning.SUBSCRIPTION, decoded.sessionId, decoded.proof, decoded.copy(proof = null).toByteArray())</ID>
     <ID>MaxLineLength:ReviewSessionProofTests.kt$ReviewSessionProofTests.&lt;no name provided&gt;$verify(SessionSigning.UNREGISTER_PUSH, decoded.sessionId, decoded.proof, decoded.copy(proof = null).toByteArray())</ID>
     <ID>MaxLineLength:ReviewSessionProofTests.kt$ReviewSessionProofTests.&lt;no name provided&gt;.&lt;no name provided&gt;$if (first) { first = false; return WatchSessionResponse(response = WatchSessionResponse.OneOfResponse.open(WatchSessionResponse.Open(result = WatchSessionResponse.Open.Result.OK, nextSequenceKey = ByteArray(32)))).toByteArray() }</ID>
+    <ID>MaxLineLength:ReviewSnapshotRepairTests.kt$ReviewSnapshotRepairTests$assertFailsWith&lt;IllegalArgumentException&gt; { client.getAllLockers(RoomId(byteArrayOf(1)), LockerKeyspace(0)) }</ID>
     <ID>MaxLineLength:ReviewSnapshotRepairTests.kt$ReviewSnapshotRepairTests$assertNull(client.getLocker(room, id, revalidate = false), "A missing server record must repair the cached record")</ID>
     <ID>MaxLineLength:ReviewSnapshotRepairTests.kt$ReviewSnapshotRepairTests$fun value(id: Int)</ID>
     <ID>MaxLineLength:ReviewSnapshotRepairTests.kt$ReviewSnapshotRepairTests$if</ID>
     <ID>MaxLineLength:ReviewSnapshotRepairTests.kt$ReviewSnapshotRepairTests$val old = StoredLocker(roomIdRawValue = room.rawValue, lockerIdRawValue = id.rawValue, version = 5, lockerPayload = byteArrayOf(3))</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$@Test</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$assertEquals(20, withTimeout(2_000) { entered.receive() }, "completion must run only the latest deferred session")</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$assertEquals(failure.message, assertFailsWith&lt;IllegalStateException&gt; { controller.startWatchingSubscriptions() }.message)</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$assertEquals(failure.message, assertFailsWith&lt;IllegalStateException&gt; { withTimeout(1_500) { controller.awaitSubscription(RoomId(byteArrayOf(2))) } }.message)</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$assertEquals(failure.message, assertFailsWith&lt;IllegalStateException&gt; { withTimeout(1_500) { controller.awaitSubscription(room) } }.message)</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$assertEquals(failure.message, assertFailsWith&lt;IllegalStateException&gt; { withTimeout(1_500) { controller.subscribe(RoomId(byteArrayOf(2))) } }.message)</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$assertTrue(peak.get() &lt;= 2, "one room retained ${active.get()} RPC effects (peak=${peak.get()}, total=${total.get()}) despite only two persisted intents")</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$controller.startWatchingSubscriptions()</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$controller.subscribe(RoomId(byteArrayOf(3)))</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$controller.subscribe(RoomId(byteArrayOf(4)))</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$if (calls.get() == 2) throw RpcResponseException("test", "POST", Codes.RESOURCE_EXHAUSTED, "temporary quota")</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$if (request.kind is SubscriptionRequest.OneOfKind.subscribe) throw RpcResponseException("test", "POST", Codes.FAILED_PRECONDITION, "permanent quota")</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$if (room == 2 &amp;&amp; reject) throw RpcResponseException("test", "POST", Codes.FAILED_PRECONDITION, "permanent room namespace ceiling")</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$replacement.startWatchingSubscriptions()</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$val</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$val entered = CompletableDeferred&lt;Unit&gt;()</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$val failure = assertFailsWith&lt;RpcResponseException&gt; { withTimeout(1_500) { controller.awaitSubscription(RoomId(byteArrayOf(2))) } }</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$val failure = assertFailsWith&lt;RpcResponseException&gt; { withTimeout(1_500) { controller.awaitSubscription(room) } }</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$val first = RoomId(byteArrayOf(20))</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$val removed = withTimeoutOrNull(200) { while (subscriptions.getAllSubscriptions().isNotEmpty()) delay(10); true }</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$val replacement = SubscriptionController(rpc, actual, sessions, source, coroutineContext = currentCoroutineContext(), supportsRevisions = { true })</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$val subscriptions = SubscriptionStoreImpl(db, ConnectorRetentionPolicy(maxSubscriptions = 1)).also { it.prepare() }</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$val subscriptions = SubscriptionStoreImpl(db, ConnectorRetentionPolicy(maxSubscriptions = 2)).also { it.prepare() }</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$withTimeout(1_500) { while (store.getSubscription(room) != null || controller.failures.value.isNotEmpty()) delay(10) }</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$}</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests.&lt;no name provided&gt;$override suspend</ID>
+    <ID>MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests.&lt;no name provided&gt;$}</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionPersistenceTests.kt$ReviewSubscriptionRevisionPersistenceTests$@Test</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionPersistenceTests.kt$ReviewSubscriptionRevisionPersistenceTests$assertEquals(2L, store.commitIntent(room, false))</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionPersistenceTests.kt$ReviewSubscriptionRevisionPersistenceTests$assertFailsWith&lt;SubscriptionRevisionConflictException&gt; { store.commitIntent(room, false, expectedRevision = 2, minimumRevision = 100) }</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionPersistenceTests.kt$ReviewSubscriptionRevisionPersistenceTests$database.close()</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionPersistenceTests.kt$ReviewSubscriptionRevisionPersistenceTests$val legacy = target.copy(version = 6, stores = ConnectorStorage.definitionsV6.map { it.declaration }, migrations = target.migrations.filter { it.toVersion &lt;= 6 })</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionTests.kt$ReviewSubscriptionRevisionTests$"Subscription"</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionTests.kt$ReviewSubscriptionRevisionTests$"Subscription" -&gt; { requests += SubscriptionRequest.fromByteArray(bytes); SubscriptionResponse().toByteArray() }</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionTests.kt$ReviewSubscriptionRevisionTests$SubscriptionResponse(SubscriptionResponse.Result.STALE_INTENT, request.intentRevision + 1).toByteArray()</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionTests.kt$ReviewSubscriptionRevisionTests$assertEquals("Capabilities", method.methodName); calls++; CapabilitiesResponse(subscriptionRevisions = false).toByteArray()</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionTests.kt$ReviewSubscriptionRevisionTests$assertFailsWith&lt;SubscriptionOrderingUnsupportedException&gt; { withTimeout(2_000) { controller.awaitSubscription(RoomId(byteArrayOf(2))) } }</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionTests.kt$ReviewSubscriptionRevisionTests$assertFailsWith&lt;SubscriptionRevisionConflictException&gt; { withTimeout(2_000) { controller.awaitSubscription(RoomId(byteArrayOf(2))) } }</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionTests.kt$ReviewSubscriptionRevisionTests$controller.unsubscribe(room)</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionTests.kt$ReviewSubscriptionRevisionTests$if</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionTests.kt$ReviewSubscriptionRevisionTests$val entered = CompletableDeferred&lt;Unit&gt;()</ID>
+    <ID>MaxLineLength:ReviewSubscriptionRevisionTests.kt$ReviewSubscriptionRevisionTests$val store = SubscriptionStoreImpl(db, ConnectorRetentionPolicy(maxSubscriptions = 1, maxSubscriptionHistories = 2))</ID>
     <ID>MaxLineLength:ReviewTerminalProtocolTests.kt$ReviewTerminalProtocolTests$val client = LockersClient.create(rpc, db, KeyValueStore(InMemoryKeyValueStoreDelegate()), auth(key), Version(), coroutineContext = Dispatchers.Default)</ID>
     <ID>MaxLineLength:ReviewTerminalProtocolTests.kt$ReviewTerminalProtocolTests$val observed = assertFailsWith&lt;StreamFailedException&gt; { withTimeout(1_500) { client.awaitConnected() } }</ID>
     <ID>MaxLineLength:ReviewTerminalProtocolTests.kt$ReviewTerminalProtocolTests.&lt;no name provided&gt;$if (!malformed &amp;&amp; attempt == 1) throw RpcResponseException("test", "BIDI", Codes.RESOURCE_EXHAUSTED, "temporary quota")</ID>
@@ -539,6 +714,7 @@
     <ID>MaxLineLength:Stream.kt$SessionStoreImpl$ackAges.remove(AckConfirmationAgeDefinitionV1.identity.eq(listOf(BoundStoreKey.SerializedKey(AckConfirmationAgeDefinitionV1.room.name.value, age.room), BoundStoreKey.SerializedKey(AckConfirmationAgeDefinitionV1.event.name.value, age.event))))</ID>
     <ID>MaxLineLength:Stream.kt$SessionStoreImpl$class</ID>
     <ID>MaxLineLength:Stream.kt$SessionStoreImpl$if</ID>
+    <ID>MaxLineLength:Stream.kt$SessionStoreImpl$override suspend fun getNextSequenceBytes(): ByteArray?</ID>
     <ID>MaxLineLength:Stream.kt$SessionStoreImpl$override suspend fun getSessionId(): SessionId?</ID>
     <ID>MaxLineLength:Stream.kt$SessionStoreImpl$query</ID>
     <ID>MaxLineLength:Stream.kt$SessionStoreImpl$throw ConnectorRetentionExceededException("ACK deduplication store is full; prune confirmations beyond the server replay horizon")</ID>
@@ -546,7 +722,7 @@
     <ID>MaxLineLength:Stream.kt$SessionStoreImpl$upper = QueryBound(BoundStoreKey.IntegerKey(SessionStoreImplDefinitionV2.confirmed.name.value, 1))</ID>
     <ID>MaxLineLength:Stream.kt$SessionStoreImpl$upper = QueryBound(BoundStoreKey.SerializedKey(AckConfirmationAgeDefinitionV1.at.name.value, com.latenighthack.lockers.connector.internal.longBytes(cutoffMillis)), false)</ID>
     <ID>MaxLineLength:Stream.kt$SessionStoreImpl$val</ID>
-    <ID>MaxLineLength:Stream.kt$SessionStoreImpl$val acks = page.records.map { if (it is StoredAck) it else SessionStoreImplDefinitionV2.decode(it as ByteArray) }</ID>
+    <ID>MaxLineLength:Stream.kt$SessionStoreImpl$val acks = page.records.map { if (it is StoredAck) StoredAck.fromByteArray(it.toByteArray()) else SessionStoreImplDefinitionV2.decode(it as ByteArray) }</ID>
     <ID>MaxLineLength:Stream.kt$SessionStoreImpl$val age = if (row is AckConfirmationAge) row else AckConfirmationAgeDefinitionV1.decode(row as ByteArray)</ID>
     <ID>MaxLineLength:Stream.kt$SessionStoreImpl$val identity = roomIdEventIdKey.eq(listOf(BoundStoreKey.SerializedKey(roomIdKey.name.value, age.room), BoundStoreKey.SerializedKey(eventIdKey.name.value, age.event)))</ID>
     <ID>MaxLineLength:Stream.kt$SessionStoreImpl$val observedAt = com.latenighthack.lockers.connector.internal.longBytes(Clock.System.now().toEpochMilliseconds())</ID>
@@ -556,10 +732,11 @@
     <ID>MaxLineLength:Stream.kt$Stream$if (previous is StreamConnectionState.Closed || (previous is StreamConnectionState.Failed &amp;&amp; next !is StreamConnectionState.Closed)) previous else next</ID>
     <ID>MaxLineLength:Stream.kt$Stream$if (sessionId.value?.canonical() != session.canonical()) throw RetryableStreamException("Session changed before unary proof")</ID>
     <ID>MaxLineLength:Stream.kt$Stream$if (sessionId.value?.canonical() != session.canonical()) throw RetryableStreamException("Session changed while signing unary proof")</ID>
+    <ID>MaxLineLength:Stream.kt$Stream$internal suspend fun ensureSubscribedRevision(room: RoomId): Long</ID>
     <ID>MaxLineLength:Stream.kt$Stream$is WatchSessionResponse.Open.Result.INVALID_REQUEST -&gt; failFatally(StreamFatalError.InvalidRequest)</ID>
     <ID>MaxLineLength:Stream.kt$Stream$is WatchSessionResponse.Open.Result.NAMESPACE_EXHAUSTED -&gt; failFatally(StreamFatalError.NamespaceExhausted)</ID>
     <ID>MaxLineLength:Stream.kt$Stream$is WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED -&gt; throw RetryableStreamException("session capacity exhausted")</ID>
-    <ID>MaxLineLength:Stream.kt$Stream$private val sessionIdSource = MappedStateFlow(connectionState) { (it as? StreamConnectionState.Connected)?.sessionId }</ID>
+    <ID>MaxLineLength:Stream.kt$Stream$private val sessionIdSource = MappedStateFlow(connectionState) { (it as? StreamConnectionState.Connected)?.sessionId?.canonical() }</ID>
     <ID>MaxLineLength:Stream.kt$Stream$private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource, telemetry = telemetry, coroutineContext = streamScope.coroutineContext, connectionSource = connectionState, signRequest = ::signSessionRequest)</ID>
     <ID>MaxLineLength:Stream.kt$Stream$publicKey = Secp256R1Key.PublicKey(key.publicKey.encode())</ID>
     <ID>MaxLineLength:Stream.kt$Stream$sessionStore.getSessionId()?.let { Pair(it.canonical(), false) } ?: Pair(SessionId(Random.nextBytes(32)), true)</ID>
@@ -569,10 +746,49 @@
     <ID>MaxLineLength:Stream.kt$Stream$val context = SessionSigning.context(SessionSigning.DESTROY, session, SHA256.digest(unsigned.toByteArray()), issued, nonce)</ID>
     <ID>MaxLineLength:Stream.kt$Stream$when</ID>
     <ID>MaxLineLength:Stream.kt$StreamFatalError$NamespaceExhausted : StreamFatalError</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionCapacityException : IllegalStateException</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$// Durable intent precedes reducer changes; a storage rejection cannot erase the previous intent.</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$Confirmations</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$Target</ID>
     <ID>MaxLineLength:Stream.kt$SubscriptionController$combine</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$confirmations.update { it.copy(failures = it.failures + (change.roomId to change.cause)) }</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$confirmations.update { it.copy(rooms = it.rooms + change.roomId, failures = it.failures - change.roomId) }</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$confirmations.update { it.copy(rooms = it.rooms - change.roomId, failures = it.failures - change.roomId) }</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$desired.mapValues { (room, subscribed) -&gt; subscriptionStore.ensureIntentRevision(room, subscribed) }.toMutableMap()</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$desired.remove(change.roomId)</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$else</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$fun publishWork()</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$if</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$if (attempted &gt; 3 || change.currentRevision &lt; change.revision) throw SubscriptionRevisionConflictException(change.currentRevision)</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$if (change.roomId !in desired &amp;&amp; desired.size &gt;= subscriptionStore.maxSubscriptions) throw SubscriptionCapacityException()</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$if (change.sessionId != sessionId || generations[change.roomId] != change.generation || revisions[change.roomId] != change.revision) continue</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$if (change.sessionId != sessionId || generations[change.roomId] != change.generation) continue</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$if (count == 0) roomCounts.remove(retired.first) else roomCounts[retired.first] = count</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$if (desired[room] != target.subscribed || sessionId != target.session || generations[room] != target.generation) continue</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$if (response.result is SubscriptionResponse.Result.STALE_INTENT) throw SubscriptionIntentStaleException(response.currentRevision)</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$if (room in desired) confirmations.update { it.copy(failures = it.failures + (room to retainedProtocolFailure(failure))) }</ID>
     <ID>MaxLineLength:Stream.kt$SubscriptionController$private val newSubscriptions = MutableSharedFlow&lt;RoomId&gt;(extraBufferCapacity = 64, onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST)</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$private val workState = MutableStateFlow(SubscriptionWorkState(maxEffects = subscriptionStore.maxSubscriptions.coerceIn(1, 100_000) * 2))</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$require(response.result !is SubscriptionResponse.Result.INVALID_DATA) { "Subscription has invalid stored data; owner repair required" }</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$revisions[change.roomId] = subscriptionStore.commitIntent(change.roomId, subscribed, change.revision, change.currentRevision)</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$subscriptionStore</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$val completion = controllerJob.invokeOnCompletion { applied.completeExceptionally(controllerFailure.value ?: StreamClosedException()) }</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$val jobs = mutableMapOf&lt;Long, Pair&lt;RoomId, Job&gt;&gt;() // Includes retiring canceled work until actual completion.</ID>
     <ID>MaxLineLength:Stream.kt$SubscriptionController$val signed = unsigned.copy(proof = signRequest?.invoke(SessionSigning.SUBSCRIPTION, targetSession, unsigned.toByteArray()))</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController$}</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController.Change$Failed : Change</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionController.Change$Stale : Change</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionStore$suspend fun commitIntent(room: RoomId, subscribed: Boolean, expectedRevision: Long? = null, minimumRevision: Long = 0): Long</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionStore$suspend fun ensureIntentRevision(room: RoomId, subscribed: Boolean): Long</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionStore$suspend fun intentRevision(room: RoomId): SubscriptionIntentRevision?</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionStoreImpl$?:</ID>
     <ID>MaxLineLength:Stream.kt$SubscriptionStoreImpl$class</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionStoreImpl$database.count(SubscriptionStoreImplDefinitionV1.storeName, roomIdKey.query(1)) &gt;= maxSubscriptions</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionStoreImpl$override suspend</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionStoreImpl$return rows.map { StoredSubscription.fromByteArray(if (it is StoredSubscription) it.toByteArray() else it as ByteArray) }</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionStoreImpl$updateSubscription</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionStoreImpl$val roomId = roomId.canonical()</ID>
+    <ID>MaxLineLength:Stream.kt$SubscriptionStoreImpl$val rows = database.query(SubscriptionStoreImplDefinitionV1.storeName, roomIdKey.query(maxSubscriptions + 1)).records</ID>
     <ID>MaxLineLength:StreamDefinitionsV1.kt$SessionStoreImplDefinitionV1$val eventIdKey = bytesIndex(IndexName("eventIdRawValuebyteArrayIdentity"), StoredAck::eventIdKeyStorage, "byteArrayIdentity-v1")</ID>
     <ID>MaxLineLength:StreamDefinitionsV1.kt$SessionStoreImplDefinitionV1$val roomIdEventIdKey = compositeIndex(IndexName("composite_roomIdRawValuebyteArrayIdentity_eventIdRawValuebyteArrayIdentity"), roomIdKey, eventIdKey).also { primaryKey(it) }</ID>
     <ID>MaxLineLength:StreamDefinitionsV1.kt$SessionStoreImplDefinitionV1$val roomIdKey = bytesIndex(IndexName("roomIdRawValuebyteArrayIdentity"), StoredAck::roomIdKeyStorage, "byteArrayIdentity-v1")</ID>
@@ -590,7 +806,19 @@
     <ID>MaxLineLength:StreamTests.kt$StreamTests$val stream = createOwnedTestStream(faulty, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, Version(0, 0, 1))</ID>
     <ID>MaxLineLength:StreamTests.kt$StreamTests$val stream1 = createOwnedTestStream(rpcClient, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, version)</ID>
     <ID>MaxLineLength:StreamTests.kt$StreamTests$val stream2 = createOwnedTestStream(rpcClient, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, version)</ID>
-    <ID>MaxLineLength:SubscriptionRecoveryTests.kt$SubscriptionRecoveryTests$val controller = SubscriptionController(rpc, subscriptions, sessions, source, coroutineContext = currentCoroutineContext())</ID>
+    <ID>MaxLineLength:SubscriptionIntentRevisions.kt$SubscriptionHistoryCapacityException : IllegalArgumentException</ID>
+    <ID>MaxLineLength:SubscriptionIntentRevisions.kt$SubscriptionIntentRevisionDefinitionV1$object</ID>
+    <ID>MaxLineLength:SubscriptionIntentRevisions.kt$SubscriptionIntentRevisionDefinitionV1$val room = bytesIndex(IndexName("room"), SubscriptionIntentRevision::room, "room-raw-bytes-v1").also { primaryKey(it) }</ID>
+    <ID>MaxLineLength:SubscriptionIntentRevisions.kt$SubscriptionIntentRevisions$if</ID>
+    <ID>MaxLineLength:SubscriptionIntentRevisions.kt$SubscriptionIntentRevisions$internal</ID>
+    <ID>MaxLineLength:SubscriptionIntentRevisions.kt$SubscriptionIntentRevisions$suspend fun find(room: ByteArray): SubscriptionIntentRevision?</ID>
+    <ID>MaxLineLength:SubscriptionIntentRevisions.kt$SubscriptionIntentStaleException : IllegalArgumentException</ID>
+    <ID>MaxLineLength:SubscriptionIntentRevisions.kt$SubscriptionOrderingUnsupportedException : IllegalArgumentException</ID>
+    <ID>MaxLineLength:SubscriptionIntentRevisions.kt$SubscriptionRevisionConflictException : IllegalArgumentException</ID>
+    <ID>MaxLineLength:SubscriptionIntentRevisions.kt$private fun encodeRevision(value: SubscriptionIntentRevision)</ID>
+    <ID>MaxLineLength:SubscriptionIntentRevisions.kt$return SubscriptionIntentRevision(frames[0], bytesLong(frames[1]).also { require(it &gt; 0) }, frames[2][0] == 1.toByte())</ID>
+    <ID>MaxLineLength:SubscriptionIntentRevisions.kt$val frames = decodeFrames(bytes)</ID>
+    <ID>MaxLineLength:SubscriptionRecoveryTests.kt$SubscriptionRecoveryTests$val controller = SubscriptionController(rpc, subscriptions, sessions, source, coroutineContext = currentCoroutineContext(), supportsRevisions = { true })</ID>
     <ID>MaxLineLength:SubscriptionRecoveryTests.kt$SubscriptionRecoveryTests.GatedClient$override suspend</ID>
     <ID>MaxLineLength:WriteOutcomeObservation.kt$WriteOutcomeObservation.Response$is WriteOutcome.AgentState.APPLIED, is WriteOutcome.AgentState.FAILED, is WriteOutcome.AgentState.INDETERMINATE -&gt; true</ID>
     <ID>MaxLineLength:WriteOutcomeObservation.kt$WriteOutcomeObservation.Response$override</ID>
@@ -603,9 +831,11 @@
     <ID>MemberNameEqualsClassName:WriteOutcomeObservation.kt$WriteOutcomeObservation.Response$val response: GetWriteOutcomeResponse get() = GetWriteOutcomeResponse.fromByteArray(bytes.copyOf())</ID>
     <ID>ReturnCount:LockerClient.kt$LockerClient$private suspend fun decodeNotification(event: Event): IncomingNotification?</ID>
     <ID>ReturnCount:LockerClient.kt$LockerClient$private suspend fun processEvent(event: Event): Boolean</ID>
+    <ID>ReturnCount:LockerClient.kt$LockerClient$private suspend fun recoverRatchetAuthority(pending: PendingRatchet): RatchetRecoveryUnresolvedException</ID>
+    <ID>ReturnCount:RatchetArchive.kt$RatchetArchive$private suspend fun merge(record: ArchiveRecordV2)</ID>
     <ID>ThrowsCount:LockerClient.kt$LockerClient$private suspend fun adoptKey(archive: ArchivedRatchet, target: LockerId)</ID>
     <ID>ThrowsCount:LockerClient.kt$LockerClient$private suspend fun deleteLockerSerialized( roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.() -&gt; Unit = {} )</ID>
-    <ID>ThrowsCount:LockerClient.kt$LockerClient$private suspend fun recoverRatchetAuthority(pending: PendingRatchet)</ID>
+    <ID>ThrowsCount:LockerClient.kt$LockerClient$private suspend fun hydrateRoom(room: RoomId, session: SessionId? = stream.sessionId.value, intentRevision: Long? = null): List&lt;IdentifiedLocker&gt;</ID>
     <ID>ThrowsCount:LockerClient.kt$LockerClient$private suspend fun updateLockerSerialized( roomId: RoomId, lockerId: LockerId, notificationBuilder: NotificationBuilder.(Locker?) -&gt; Unit = {}, ratchet: Boolean = false, transform: suspend (ByteArray) -&gt; ByteArray, ): Locker?</ID>
     <ID>ThrowsCount:LockerClient.kt$LockerClient$private suspend fun updateLockersObserved(roomId: RoomId, changes: List&lt;Change&gt;, initialKey: Secp256r1KeyPair?)</ID>
     <ID>ThrowsCount:LockerClient.kt$LockerClient$suspend fun resolve()</ID>
@@ -614,6 +844,7 @@
     <ID>ThrowsCount:PushRegistration.kt$PushRegistrationController$suspend fun awaitRegistered(backend: PushBackendType)</ID>
     <ID>ThrowsCount:PushRegistration.kt$PushRegistrationController$suspend fun awaitUnregistered(backend: PushBackendType)</ID>
     <ID>ThrowsCount:Stream.kt$SubscriptionController$suspend fun awaitSubscription(roomId: RoomId)</ID>
+    <ID>ThrowsCount:Stream.kt$SubscriptionController$suspend fun startWatchingSubscriptions()</ID>
     <ID>TooGenericExceptionCaught:LockerClient.kt$LockerClient$e: Exception</ID>
     <ID>TooGenericExceptionCaught:LockerClient.kt$LockerClient$failure: Exception</ID>
     <ID>TooGenericExceptionCaught:LockersClient.kt$LockersClient.Companion$failure: Throwable</ID>
@@ -622,6 +853,7 @@
     <ID>TooGenericExceptionCaught:RoutingRpcClient.kt$RoutingRpcClient$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:Stream.kt$Stream$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Stream.kt$Stream$failure: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Stream.kt$SubscriptionController$failure: Exception</ID>
     <ID>TooGenericExceptionThrown:Stream.kt$Stream$throw Exception("Failed to open session: ${open.result}")</ID>
     <ID>TooGenericExceptionThrown:Stream.kt$Stream$throw Exception("Received null response")</ID>
     <ID>TooManyFunctions:LockerClient.kt$LockerClient</ID>
@@ -631,12 +863,13 @@
     <ID>TooManyFunctions:LockerStore.kt$LockerStoreImpl : LockerStoreStore</ID>
     <ID>TooManyFunctions:LockersClient.kt$LockersClient</ID>
     <ID>TooManyFunctions:PushRegistration.kt$PushRegistrationController</ID>
+    <ID>TooManyFunctions:RatchetArchive.kt$RatchetArchive : Store</ID>
     <ID>TooManyFunctions:Stream.kt$SessionStore</ID>
     <ID>TooManyFunctions:Stream.kt$SessionStoreImpl : StoreSessionStore</ID>
     <ID>TooManyFunctions:Stream.kt$Stream</ID>
+    <ID>TooManyFunctions:Stream.kt$SubscriptionController</ID>
     <ID>UnusedPrivateMember:RoutingRpcClientTests.kt$RoutingRpcClientTests$private fun postRequest(roomId: RoomId, lockerId: LockerId)</ID>
     <ID>UnusedPrivateProperty:Stream.kt$Stream$private val appVersion: Version</ID>
-    <ID>UnusedPrivateProperty:Stream.kt$SubscriptionController$private val log: KmLog = logging()</ID>
     <ID>UnusedPrivateProperty:StreamTests.kt$StreamTests$val postResponse = roomRpc.postLockerChange(PostLockerChangeRequest { roomId = testRoomId lockerId = testLockerId parentVersion = 0 locker { open { encodedPayload = byteArrayOf() } } notification { push { title = "This is..." body = "...a test" } payload { rawValue = byteArrayOf(1, 2, 3) } } })</ID>
     <ID>UseCheckOrError:LockerClient.kt$LockerClient$throw IllegalStateException("Ratchet recovery needs current owner")</ID>
     <ID>UseCheckOrError:LockerClient.kt$LockerClient$throw IllegalStateException("Unresolved ratchet receipt: ${response.result}")</ID>
@@ -649,6 +882,20 @@
     <ID>VariableNaming:NotificationCodecTests.kt$NotificationCodecTests$private val KEYSPACE = LockerKeyspace { value = 1L }</ID>
     <ID>VariableNaming:NotificationCodecTests.kt$NotificationCodecTests$private val OTHER_KEYSPACE = LockerKeyspace { value = 30L }</ID>
     <ID>VariableNaming:PushRegistrationTests.kt$PushRegistrationTests$private val KEYSPACE = LockerKeyspace { value = 1L }</ID>
+    <ID>WildcardImport:ArchiveMigrationContract.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:ArchiveMigrationContract.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:ArchiveMigrationContract.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:ArchiveMigrationContract.kt$import com.latenighthack.lockers.connector.internal.*</ID>
+    <ID>WildcardImport:ArchiveMigrationContract.kt$import com.latenighthack.lockers.connector.storage.v1.*</ID>
+    <ID>WildcardImport:ArchiveMigrationContract.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:ArchiveMigrationContract.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:ArchiveMigrationSafetyTest.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:ArchiveMigrationSafetyTest.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:ArchiveMigrationSafetyTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:ArchiveMigrationSafetyTest.kt$import com.latenighthack.lockers.connector.internal.*</ID>
+    <ID>WildcardImport:ArchiveMigrationSafetyTest.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:ArchiveMigrationSafetyTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:ArchiveMigrationSafetyTest.kt$import kotlinx.coroutines.*</ID>
     <ID>WildcardImport:BroadcastCodec.kt$import com.latenighthack.lockers.common.v1.*</ID>
     <ID>WildcardImport:ConnectorEventJournal.kt$import com.latenighthack.ktstore.*</ID>
     <ID>WildcardImport:ConnectorEventJournal.kt$import com.latenighthack.lockers.connector.*</ID>
@@ -684,6 +931,8 @@
     <ID>WildcardImport:LockerClientTests.kt$import kotlinx.coroutines.flow.*</ID>
     <ID>WildcardImport:LockerStore.kt$import com.latenighthack.ktstore.*</ID>
     <ID>WildcardImport:LockerStoreDefinitionsV1.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:LockerStoreIsolationTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:LockerStoreIsolationTest.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:LockerSyncCoordinator.kt$import com.latenighthack.lockers.common.v1.*</ID>
     <ID>WildcardImport:LockerSyncCoordinator.kt$import com.latenighthack.lockers.observability.*</ID>
     <ID>WildcardImport:LockerSyncCoordinator.kt$import kotlinx.coroutines.*</ID>
@@ -708,6 +957,13 @@
     <ID>WildcardImport:OwnedTestFixtureTests.kt$import com.latenighthack.lockers.server.*</ID>
     <ID>WildcardImport:OwnedTestFixtureTests.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:OwnedTestFixtureTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:PersistentMutationContract.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:PersistentMutationContract.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:PersistentMutationContract.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:PersistentMutationContract.kt$import com.latenighthack.lockers.connector.internal.*</ID>
+    <ID>WildcardImport:PersistentMutationContract.kt$import com.latenighthack.lockers.connector.storage.v1.*</ID>
+    <ID>WildcardImport:PersistentMutationContract.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:PersistentMutationContract.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:PersistentStorageContract.kt$import com.latenighthack.lockers.common.v1.*</ID>
     <ID>WildcardImport:PersistentStorageContract.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:PortableContractTest.kt$import com.latenighthack.lockers.common.v1.*</ID>
@@ -726,10 +982,14 @@
     <ID>WildcardImport:PushRegistrationTests.kt$import com.latenighthack.lockers.connector.*</ID>
     <ID>WildcardImport:PushRegistrationTests.kt$import com.latenighthack.lockers.example.v1.*</ID>
     <ID>WildcardImport:PushRegistrationTests.kt$import com.latenighthack.lockers.server.*</ID>
+    <ID>WildcardImport:RatchetArchive.kt$import com.latenighthack.ktcrypto.*</ID>
     <ID>WildcardImport:RatchetArchive.kt$import com.latenighthack.ktstore.*</ID>
     <ID>WildcardImport:RatchetArchive.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:RatchetArchive.kt$import kotlinx.coroutines.flow.*</ID>
     <ID>WildcardImport:RatchetJournal.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:RatchetJournal.kt$import com.latenighthack.lockers.common.v1.*</ID>
     <ID>WildcardImport:RatchetJournal.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:RatchetJournal.kt$import kotlinx.coroutines.flow.*</ID>
     <ID>WildcardImport:ReviewAcceptanceCursorTests.kt$import com.latenighthack.ktstore.*</ID>
     <ID>WildcardImport:ReviewAcceptanceCursorTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
     <ID>WildcardImport:ReviewAcceptanceCursorTests.kt$import com.latenighthack.lockers.connector.*</ID>
@@ -771,6 +1031,14 @@
     <ID>WildcardImport:ReviewConnectorTests.kt$import com.latenighthack.lockers.session.v1.*</ID>
     <ID>WildcardImport:ReviewConnectorTests.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:ReviewConnectorTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:ReviewControllerBudgetTests.kt$import com.latenighthack.ktbuf.net.*</ID>
+    <ID>WildcardImport:ReviewControllerBudgetTests.kt$import com.latenighthack.ktbuf.rpc.*</ID>
+    <ID>WildcardImport:ReviewControllerBudgetTests.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:ReviewControllerBudgetTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:ReviewControllerBudgetTests.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:ReviewControllerBudgetTests.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:ReviewControllerBudgetTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:ReviewControllerBudgetTests.kt$import kotlinx.coroutines.flow.*</ID>
     <ID>WildcardImport:ReviewDeleteReceiptTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
     <ID>WildcardImport:ReviewDeleteReceiptTests.kt$import com.latenighthack.lockers.connector.*</ID>
     <ID>WildcardImport:ReviewDeleteReceiptTests.kt$import com.latenighthack.lockers.connector.internal.*</ID>
@@ -809,6 +1077,17 @@
     <ID>WildcardImport:ReviewNotificationContextTests.kt$import com.latenighthack.lockers.server.*</ID>
     <ID>WildcardImport:ReviewNotificationContextTests.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:ReviewNotificationContextTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:ReviewPublicObservationIsolationTests.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:ReviewPublicObservationIsolationTests.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:ReviewPublicObservationIsolationTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:ReviewPublicObservationIsolationTests.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:ReviewPublicObservationIsolationTests.kt$import com.latenighthack.lockers.connector.storage.v1.*</ID>
+    <ID>WildcardImport:ReviewPublicObservationIsolationTests.kt$import com.latenighthack.lockers.push.v1.*</ID>
+    <ID>WildcardImport:ReviewPublicObservationIsolationTests.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:ReviewPublicObservationIsolationTests.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:ReviewPublicObservationIsolationTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:ReviewPublicObservationIsolationTests.kt$import kotlinx.coroutines.flow.*</ID>
+    <ID>WildcardImport:ReviewPushControllerTests.kt$import com.latenighthack.ktbuf.*</ID>
     <ID>WildcardImport:ReviewPushControllerTests.kt$import com.latenighthack.ktstore.*</ID>
     <ID>WildcardImport:ReviewPushControllerTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
     <ID>WildcardImport:ReviewPushControllerTests.kt$import com.latenighthack.lockers.connector.*</ID>
@@ -823,6 +1102,12 @@
     <ID>WildcardImport:ReviewRatchetAdoptionTests.kt$import com.latenighthack.lockers.room.v1.*</ID>
     <ID>WildcardImport:ReviewRatchetAdoptionTests.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:ReviewRatchetAdoptionTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:ReviewRatchetArchiveOrderingTests.kt$import com.latenighthack.ktcrypto.*</ID>
+    <ID>WildcardImport:ReviewRatchetArchiveOrderingTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:ReviewRatchetArchiveOrderingTests.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:ReviewRatchetArchiveOrderingTests.kt$import com.latenighthack.lockers.connector.internal.*</ID>
+    <ID>WildcardImport:ReviewRatchetArchiveOrderingTests.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:ReviewRatchetArchiveOrderingTests.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:ReviewRetentionTests.kt$import com.latenighthack.ktstore.*</ID>
     <ID>WildcardImport:ReviewRetentionTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
     <ID>WildcardImport:ReviewRetentionTests.kt$import com.latenighthack.lockers.connector.*</ID>
@@ -860,6 +1145,26 @@
     <ID>WildcardImport:ReviewSnapshotRepairTests.kt$import com.latenighthack.lockers.room.v1.*</ID>
     <ID>WildcardImport:ReviewSnapshotRepairTests.kt$import kotlin.test.*</ID>
     <ID>WildcardImport:ReviewSnapshotRepairTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionFailureTests.kt$import com.latenighthack.ktbuf.net.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionFailureTests.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionFailureTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionFailureTests.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionFailureTests.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionFailureTests.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionFailureTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionPersistenceTests.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionPersistenceTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionPersistenceTests.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionPersistenceTests.kt$import com.latenighthack.lockers.connector.storage.v1.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionPersistenceTests.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionTests.kt$import com.latenighthack.ktbuf.net.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionTests.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionTests.kt$import com.latenighthack.lockers.connector.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionTests.kt$import com.latenighthack.lockers.room.v1.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionTests.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:ReviewSubscriptionRevisionTests.kt$import kotlinx.coroutines.flow.*</ID>
     <ID>WildcardImport:ReviewTerminalProtocolTests.kt$import com.latenighthack.ktbuf.*</ID>
     <ID>WildcardImport:ReviewTerminalProtocolTests.kt$import com.latenighthack.ktbuf.net.*</ID>
     <ID>WildcardImport:ReviewTerminalProtocolTests.kt$import com.latenighthack.ktcrypto.*</ID>
@@ -906,6 +1211,8 @@
     <ID>WildcardImport:StreamTests.kt$import com.latenighthack.lockers.server.*</ID>
     <ID>WildcardImport:StreamTests.kt$import io.ktor.server.application.*</ID>
     <ID>WildcardImport:StreamTests.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:SubscriptionIntentRevisions.kt$import com.latenighthack.ktstore.*</ID>
+    <ID>WildcardImport:SubscriptionIntentRevisions.kt$import com.latenighthack.lockers.connector.internal.*</ID>
     <ID>WildcardImport:SubscriptionRecoveryTests.kt$import com.latenighthack.ktbuf.net.*</ID>
     <ID>WildcardImport:SubscriptionRecoveryTests.kt$import com.latenighthack.ktstore.*</ID>
     <ID>WildcardImport:SubscriptionRecoveryTests.kt$import com.latenighthack.lockers.common.v1.*</ID>
