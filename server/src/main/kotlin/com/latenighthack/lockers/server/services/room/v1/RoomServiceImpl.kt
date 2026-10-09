@@ -577,7 +577,10 @@ class RoomServiceImpl(
                 return PostLockerChangeResponse {
                     result = PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION
                     version = storedLocker?.version ?: 0L
-                    existingLocker = storedLocker?.takeUnless { it.deleted }?.let { Locker.fromByteArray(it.locker) }
+                    existingLocker = storedLocker?.takeUnless { it.deleted }?.let { stored ->
+                        if (!LockerWireValidation.valid(stored.locker)) throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.DATA_LOSS, "Invalid locker data at version ${stored.version}")
+                        Locker.fromByteArray(stored.locker).also { if (!LockerEnvelope.isSupported(it)) throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.DATA_LOSS, "Unsupported locker data at version ${stored.version}") }
+                    }
                     lockState = effectiveState
                 }
             }
@@ -716,7 +719,10 @@ class RoomServiceImpl(
                     else -> {
                         reshardCasConflictsCounter.increment()
                         return@commit DeleteLockerResponse(result = DeleteLockerResponse.Result.UPDATE_LOCAL_VERSION, version = stored?.version ?: 0L,
-                            existingLocker = stored?.takeUnless { it.deleted }?.let { Locker.fromByteArray(it.locker) }, lockState = state)
+                            existingLocker = stored?.takeUnless { it.deleted }?.let { existing ->
+                                if (!LockerWireValidation.valid(existing.locker)) throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.DATA_LOSS, "Invalid locker data at version ${existing.version}")
+                                Locker.fromByteArray(existing.locker).also { if (!LockerEnvelope.isSupported(it)) throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.DATA_LOSS, "Unsupported locker data at version ${existing.version}") }
+                            }, lockState = state)
                     }
                 }
                 if (!alreadyDeleted) {
