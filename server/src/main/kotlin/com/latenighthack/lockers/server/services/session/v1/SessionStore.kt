@@ -2,8 +2,13 @@ package com.latenighthack.lockers.server.services.session.v1
 
 import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.server.storage.v1.*
+import com.latenighthack.lockers.server.ServerResourceLimits
+
+enum class SessionAdmission { CREATED, EXISTS, EXHAUSTED }
 
 interface SessionStore {
+    suspend fun admitIfAbsent(session: ServerSession, limits: ServerResourceLimits): SessionAdmission =
+        throw UnsupportedOperationException("SessionStore requires bounded identity admission")
     /** Shared authority transaction; implementations must serialize with authorization and destroy. */
     suspend fun <T> atomic(sessionId: ServerSessionId, block: suspend () -> T): T =
         throw UnsupportedOperationException("SessionStore requires atomic session authority transactions")
@@ -45,6 +50,16 @@ class SessionStoreImpl(private val database: Database) : SessionStore, Store<Ser
     private val inbox = SessionInboxStoreImpl(database)
     private val pushInfo = com.latenighthack.lockers.server.services.push.v1.PushSessionStoreImpl(database)
     private val pushQueue = com.latenighthack.lockers.server.services.push.v1.PushQueueStoreImpl(database)
+
+    override suspend fun admitIfAbsent(session: ServerSession, limits: ServerResourceLimits): SessionAdmission =
+        atomic(requireNotNull(session.sessionId)) {
+            val id = requireNotNull(session.sessionId)
+            if (isRevoked(id) || getSessionById(id) != null) return@atomic SessionAdmission.EXISTS
+            val active = database.count(SessionStoreImplDefinitionV1.storeName, SessionStoreImplDefinitionV1.sessionIdKey.query(1))
+            val revoked = database.count(RevokedSessionDefinitionV2.storeName, RevokedSessionDefinitionV2.sessionId.query(1))
+            if (active >= limits.maxSessions || active + revoked >= limits.maxReservedSessionIds) SessionAdmission.EXHAUSTED
+            else if (createIfAbsent(session)) SessionAdmission.CREATED else SessionAdmission.EXISTS
+        }
 
     private val sessionIdKey = SessionStoreImplDefinitionV1.sessionIdKey
 

@@ -4,6 +4,7 @@ import com.latenighthack.ktcrypto.Secp256r1PublicKey
 import com.latenighthack.ktcrypto.decode
 import com.latenighthack.ktcrypto.encode
 import com.latenighthack.lockers.common.RoomKeying
+import com.latenighthack.lockers.common.LockerEnvelope
 import com.latenighthack.lockers.common.v1.*
 import kotlinx.coroutines.CancellationException
 
@@ -39,5 +40,14 @@ object ProtocolValidation {
             (value.push?.body?.encodeToByteArray()?.size ?: 0) <= 4096)
     fun sharedKeys(keys: List<SharedKey>): Boolean = keys.size <= 1024 && keys.all {
         identity(it.keyId?.rawValue) && it.encryptedKey.size in 1..4096
+    }
+    suspend fun event(value: Event?): Boolean {
+        if (value == null || !identity(value.eventId?.rawValue) || value.roomId == null || value.roomSequence < 0 ||
+            value.toByteArray().size > MAX_ENVELOPE_BYTES - 16 * 1024 || !notification(value.notification)) return false
+        val roomId = requireNotNull(value.roomId)
+        if (roomId.rawValue.isNotEmpty() && !room(roomId)) return false
+        val identified = value.locker ?: return true
+        return locker(identified.lockerId) && identified.version >= 0 &&
+            (identified.locker?.let { LockerEnvelope.isSupported(it) } ?: true)
     }
 }

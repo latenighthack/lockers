@@ -61,6 +61,8 @@ message WatchSessionResponse {
             SERVICE_UNAVAILABLE = 7;
             // This node does not own the session's shard; reconnect to `redirect.owner_address`.
             EPOCH_STALE = 8;
+            RESOURCE_EXHAUSTED = 9;
+            INVALID_REQUEST = 11;
             UNKNOWN_ERROR = 10;
         }
 

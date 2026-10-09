@@ -128,6 +128,7 @@ data class LockersConfig(
     val deliveryWorkerEnabled: Boolean = true,
     /** Shared cluster credential for the internal peer listener; never passed to public clients. */
     val peerToken: String? = null,
+    val resourceLimits: ServerResourceLimits = ServerResourceLimits(),
 ) {
     val shardCount: Int get() = (Runtime.getRuntime().availableProcessors() * shardMultiplier).coerceAtLeast(1)
 
@@ -146,6 +147,7 @@ data class LockersConfig(
             fun long(name: String, default: Long) = env(name)?.trim()?.toLongOrNull() ?: default
             fun bool(name: String, default: Boolean) = env(name)?.trim()?.toBooleanStrictOrNull() ?: default
             return LockersConfig(
+                resourceLimits = ServerResourceLimits.fromEnv(env),
                 deliveryOutboxEnabled = bool("LOCKERS_DELIVERY_OUTBOX_ENABLED", true),
                 deliveryWorkerEnabled = bool("LOCKERS_DELIVERY_WORKER_ENABLED", true),
                 peerToken = env("LOCKERS_PEER_TOKEN")?.takeIf { it.isNotBlank() },

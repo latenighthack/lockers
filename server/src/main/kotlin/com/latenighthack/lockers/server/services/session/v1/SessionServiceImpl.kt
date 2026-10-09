@@ -26,6 +26,7 @@ import me.tatarka.inject.annotations.Provides
 import org.slf4j.LoggerFactory
 import com.latenighthack.lockers.server.LockersConfig
 import com.latenighthack.lockers.server.ProtocolValidation
+import com.latenighthack.lockers.server.ResourceLimitException
 import java.security.SignatureException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
@@ -406,35 +407,24 @@ class SessionServiceImpl(
         meterRegistry.trackRpc(TelemetryOperation.SESSION_POST_MANY, telemetry, { if (it.results.all { result -> result.result.isOk() }) TelemetryOutcome.OK else TelemetryOutcome.REJECTED }) { observedPostEvents(context, request) }
 
     private suspend fun observedPostEvents(context: GrpcRequestContext, request: PostEventsRequest): PostEventsResponse {
-        require(request.groups.size <= 64 && request.toByteArray().size <= 8 * 1024 * 1024)
-        val rows = request.groups.flatMap { group ->
-            val event = requireNotNull(group.event)
-            require(event.eventId?.rawValue?.isNotEmpty() == true)
-            group.sessionIds.distinct().map { id -> ServerSessionEvent(ServerSessionId(id.rawValue),
-                ServerRoomId(event.roomId?.rawValue ?: byteArrayOf()), ServerEventId(event.eventId!!.rawValue),
-                event.notification?.payload?.rawValue ?: byteArrayOf(), event.locker?.toByteArray() ?: byteArrayOf(), event.roomSequence) to event }
+        if (request.groups.size > 64 || request.groups.sumOf { it.sessionIds.size.toLong() } > ProtocolValidation.MAX_RECIPIENTS ||
+            request.toByteArray().size > ProtocolValidation.MAX_ENVELOPE_BYTES) {
+            throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.INVALID_ARGUMENT, "Invalid gateway batch")
         }
-        sessionInboxStore.saveClientEvents(rows)
-        val moved = sessionRegistry.remoteSessions(request.groups.flatMap { it.sessionIds }.distinct())
-        return PostEventsResponse(request.groups.map { group ->
-            try {
-                enqueueEvent(group.sessionIds, group.event!!, persistInbox = false)
-                PostEventResponse(result = if (group.sessionIds.any { it in moved }) PostEventResponse.Result.RETRY_ROUTING else PostEventResponse.Result.OK)
-            }
-            catch (e: CancellationException) { throw e }
-            catch (e: Exception) { logger.warn("gateway group side effects not yet durable", e); PostEventResponse(result = PostEventResponse.Result.UNKNOWN_ERROR) }
-        })
+        return PostEventsResponse(request.groups.map { postEvent(context, it) })
     }
 
     override suspend fun postEvent(context: GrpcRequestContext, request: PostEventRequest) = meterRegistry.trackResponse("lockers.session.post", PostEventResponse::result, telemetry) {
-        val event = request.event ?: return@trackResponse PostEventResponse(result = PostEventResponse.Result.UNKNOWN_ERROR)
-        if (event.eventId?.rawValue?.isNotEmpty() != true) return@trackResponse PostEventResponse(result = PostEventResponse.Result.UNKNOWN_ERROR)
-        enqueueEvent(request.sessionIds, event)
-
-        val moved = sessionRegistry.remoteSessions(request.sessionIds)
-        return@trackResponse PostEventResponse {
-            result = if (moved.isEmpty()) PostEventResponse.Result.OK else PostEventResponse.Result.RETRY_ROUTING
-        }
+        if (request.sessionIds.size > ProtocolValidation.MAX_RECIPIENTS || request.sessionIds.any { !ProtocolValidation.identity(it.rawValue) } ||
+            request.toByteArray().size > ProtocolValidation.MAX_ENVELOPE_BYTES || !ProtocolValidation.event(request.event))
+            return@trackResponse PostEventResponse(result = PostEventResponse.Result.INVALID)
+        try {
+            val accepted = enqueueEvent(request.sessionIds, requireNotNull(request.event))
+            val moved = sessionRegistry.remoteSessions(accepted)
+            PostEventResponse(result = if (moved.isEmpty()) PostEventResponse.Result.OK else PostEventResponse.Result.RETRY_ROUTING)
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (rejected: GatewayRejected) { PostEventResponse(result = rejected.result) }
+        catch (_: ResourceLimitException) { PostEventResponse(result = PostEventResponse.Result.RESOURCE_EXHAUSTED) }
     }
 
     override suspend fun broadcast(context: GrpcRequestContext, request: BroadcastRequest): BroadcastResponse {
@@ -465,7 +455,7 @@ class SessionServiceImpl(
 
             return@trackResponse BroadcastResponse {
                 result = BroadcastResponse.Result.OK
-                this.delivered = delivered.toLong()
+                this.delivered = delivered.size.toLong()
             }
         }
     }
@@ -473,7 +463,8 @@ class SessionServiceImpl(
     // Fan one event into each target session: fire a per-session push (when the
     // event carries one), persist to the session inbox and emit live. Shared by
     // room-scoped posts and server-wide broadcasts; returns the count enqueued.
-    private suspend fun enqueueEvent(sessionIds: List<SessionId>, event: Event, persistInbox: Boolean = true): Int {
+    private class GatewayRejected(val result: PostEventResponse.Result) : RuntimeException()
+    private suspend fun enqueueEvent(sessionIds: List<SessionId>, event: Event): List<SessionId> {
         val receiveTime = System.nanoTime()
         val requestPush = event.notification?.push
         val roomIdRaw = event.roomId?.rawValue ?: byteArrayOf()
@@ -481,19 +472,32 @@ class SessionServiceImpl(
         val encodedPayload = event.notification?.payload?.rawValue ?: byteArrayOf()
         val encodedLocker = event.locker?.toByteArray() ?: byteArrayOf()
 
-        val recipients = sessionIds.distinct()
-        val events = recipients.map { sessionId ->
-            ServerSessionEvent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomIdRaw),
-                ServerEventId(eventIdRaw), encodedPayload, encodedLocker, event.roomSequence)
-        }
-        // Acceptance is durable before any socket or push side effect. Composite inbox keys
-        // make replay of the same stable event id idempotent.
-        if (requestPush != null && pushDelivery != null) {
-            val room = event.roomId ?: RoomId(byteArrayOf())
-            pushDelivery.outbox.commit(room, recipients, listOf(event.copy(locker = null))) {
-                if (persistInbox) sessionInboxStore.saveClientEvents(events.map { it to event })
+        if (sessionIds.size > ProtocolValidation.MAX_RECIPIENTS || sessionIds.any { !ProtocolValidation.identity(it.rawValue) } ||
+            !ProtocolValidation.event(event)) throw GatewayRejected(PostEventResponse.Result.INVALID)
+        if (sessionIds.isEmpty()) return emptyList()
+        val recipients = sessionStore.atomic(ServerSessionId(sessionIds.first().rawValue)) {
+            val accepted = sessionIds.distinct().filter { id ->
+                val sid = ServerSessionId(id.rawValue)
+                if (sessionStore.isRevoked(sid)) false
+                else if (sessionStore.getSessionById(sid) == null) throw GatewayRejected(PostEventResponse.Result.UNKNOWN_SESSION)
+                else true
             }
-        } else if (persistInbox) sessionInboxStore.saveClientEvents(events.map { it to event })
+            val events = accepted.map { sessionId ->
+                ServerSessionEvent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomIdRaw),
+                    ServerEventId(eventIdRaw), encodedPayload, encodedLocker, event.roomSequence)
+            }
+            if (accepted.isNotEmpty()) {
+                if (requestPush != null && pushDelivery != null) {
+                    val room = event.roomId ?: RoomId(byteArrayOf())
+                    pushDelivery.outbox.commit(room, accepted, listOf(event.copy(locker = null))) {
+                        sessionInboxStore.saveClientEvents(events.map { it to event })
+                    }
+                } else sessionInboxStore.saveClientEvents(events.map { it to event })
+            }
+            accepted
+        }
+        val events = recipients.map { sessionId -> ServerSessionEvent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomIdRaw),
+            ServerEventId(eventIdRaw), encodedPayload, encodedLocker, event.roomSequence) }
         inboxSavesCounter.increment(events.size.toDouble())
         eventsPostedCounter.increment(events.size.toDouble())
         eventsQueuedCounter.increment(events.size.toDouble())
@@ -513,7 +517,7 @@ class SessionServiceImpl(
             }
         }
 
-        return sessionIds.size
+        return recipients
     }
 
     /**
@@ -650,12 +654,15 @@ class SessionServiceImpl(
                 nextKeyMaterial = Random.nextBytes(32)
                 authorizedPublicKey = requireNotNull(requestPublicKey)
             }
-            if (!sessionStore.createIfAbsent(updatedSession)) {
+            when (sessionStore.admitIfAbsent(updatedSession, config.resourceLimits)) {
+                SessionAdmission.EXHAUSTED -> { result = WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED; return null }
+                SessionAdmission.EXISTS -> {
                 result = WatchSessionResponse.Open.Result.SESSION_EXISTS
                 meterRegistry.counter("lockers.session.creates", "result", "SESSION_EXISTS").increment()
                 return null
+                }
+                SessionAdmission.CREATED -> Unit
             }
-
             result = WatchSessionResponse.Open.Result.OK
             nextSequenceKey = updatedSession.nextKeyMaterial
             meterRegistry.counter("lockers.session.creates", "result", "OK").increment()

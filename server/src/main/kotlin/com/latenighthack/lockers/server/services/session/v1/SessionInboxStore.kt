@@ -3,6 +3,8 @@ package com.latenighthack.lockers.server.services.session.v1
 import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.server.storage.v1.*
 import com.latenighthack.lockers.common.v1.*
+import com.latenighthack.lockers.server.ServerResourceLimits
+import com.latenighthack.lockers.server.ResourceLimitException
 
 internal fun ServerSessionEvent.legacyClientEvent() = Event {
     eventId { rawValue = this@legacyClientEvent.eventId!!.rawValue }
@@ -32,7 +34,7 @@ interface SessionInboxStore {
     suspend fun deleteEvent(eventId: ServerEventId, sessionId: ServerSessionId)
 }
 
-class SessionInboxStoreImpl(private val database: Database): SessionInboxStore, Store<ServerSessionEvent>(database, SessionInboxStoreImplDefinitionV1) {
+class SessionInboxStoreImpl(private val database: Database, private val limits: ServerResourceLimits = ServerResourceLimits()): SessionInboxStore, Store<ServerSessionEvent>(database, SessionInboxStoreImplDefinitionV1) {
     private val sessionIdKey = SessionInboxStoreImplDefinitionV1.sessionIdKey
     private val eventIdKey = SessionInboxStoreImplDefinitionV1.eventIdKey
     private val sessionIdEventIdKey = SessionInboxStoreImplDefinitionV1.sessionIdEventIdKey
@@ -55,6 +57,7 @@ class SessionInboxStoreImpl(private val database: Database): SessionInboxStore, 
     ))
 
     override suspend fun saveClientEvents(events: List<Pair<ServerSessionEvent, Event>>) = database.transaction("inbox-metadata") {
+        validateAdmission(events.map { it.first })
         saveAll(events.map { it.first })
         metadata.saveRows(events.map { (row, event) -> row.copy(encodedPayload = event.toByteArray(), encodedLocker = byteArrayOf()) })
     }
@@ -62,11 +65,24 @@ class SessionInboxStoreImpl(private val database: Database): SessionInboxStore, 
         metadata.find(metadataRelation(requireNotNull(row.eventId), requireNotNull(row.sessionId)))
             ?.let { Event.fromByteArray(it.encodedPayload) } ?: row.legacyClientEvent()
 
+    private suspend fun validateAdmission(events: List<ServerSessionEvent>) {
+        val additions = events.distinctBy { requireNotNull(it.sessionId) to requireNotNull(it.eventId) }
+            .filter { get(rowRelation(requireNotNull(it.eventId), requireNotNull(it.sessionId))) == null }
+        if (additions.isEmpty()) return
+        val total = database.count(SessionInboxStoreImplDefinitionV1.storeName, sessionIdKey.query(1))
+        if (total + additions.size > limits.maxInboxEvents) throw ResourceLimitException("Global inbox capacity exhausted")
+        for ((session, rows) in additions.groupBy { requireNotNull(it.sessionId) }) {
+            val count = database.count(SessionInboxStoreImplDefinitionV1.storeName, sessionIdKey.query(1,
+                lower = session.toByteArray(), upper = session.toByteArray()))
+            if (count + rows.size > limits.maxInboxEventsPerSession) throw ResourceLimitException("Session inbox capacity exhausted")
+        }
+    }
     override suspend fun getAllClientEvents(sessionId: ServerSessionId): List<Event> = database.transaction("inbox-metadata") {
         getAllEvents(sessionId).sortedBy { it.roomSequence }.map { clientEvent(it) }
     }
     override suspend fun saveEvent(event: ServerSessionEvent) = saveEvents(listOf(event))
     override suspend fun saveEvents(events: List<ServerSessionEvent>) = database.transaction("inbox-metadata") {
+        validateAdmission(events)
         saveAll(events)
         events.forEach { metadata.remove(metadataRelation(requireNotNull(it.eventId), requireNotNull(it.sessionId))) }
     }

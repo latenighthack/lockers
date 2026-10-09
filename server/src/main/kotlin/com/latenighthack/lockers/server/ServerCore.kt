@@ -50,7 +50,7 @@ abstract class ServerCore(
     @get:Provides val deliveryOutbox: com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStore? get() = deliveryOutboxImpl
 
     private val sessionStoreImpl by lazy { SessionStoreImpl(storageDelegate) }
-    private val sessionInboxStoreImpl by lazy { SessionInboxStoreImpl(storageDelegate) }
+    private val sessionInboxStoreImpl by lazy { SessionInboxStoreImpl(storageDelegate, config.resourceLimits) }
     private val subscriptionStoreImpl by lazy { SubscriptionStoreImpl(storageDelegate) }
     private val lockerStoreImpl by lazy { LockerStoreImpl(storageDelegate) }
     private val lockStoreImpl by lazy { LockStoreImpl(storageDelegate) }
