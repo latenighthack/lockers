@@ -16,7 +16,7 @@ object PushIntentDefinitionV2 : StoreDefinition<PushRegistrationIntent>(StoreNam
     val backend = bytesIndex(IndexName("backend"), PushRegistrationIntent::backendKey, "i32-big-endian-v1").also { primaryKey(it) }
 }
 internal class PushIntentStore(database: Database) : Store<PushRegistrationIntent>(database, PushIntentDefinitionV2) {
-    suspend fun intents(): List<PushRegistrationIntent> { prepare(); return getAll() }
-    suspend fun intent(backend: Int): PushRegistrationIntent? { prepare(); return get(PushIntentDefinitionV2.backend.eq(intToBytes(backend))) }
-    suspend fun put(intent: PushRegistrationIntent) { prepare(); save(intent) }
+    suspend fun intents(): List<PushRegistrationIntent> { prepare(); return getAll().map { it.copy(encodedRegistration = it.encodedRegistration.copyOf()) } }
+    suspend fun intent(backend: Int): PushRegistrationIntent? { prepare(); return get(PushIntentDefinitionV2.backend.eq(intToBytes(backend)))?.let { it.copy(encodedRegistration = it.encodedRegistration.copyOf()) } }
+    suspend fun put(intent: PushRegistrationIntent) { prepare(); save(intent.copy(encodedRegistration = intent.encodedRegistration.copyOf())) }
 }

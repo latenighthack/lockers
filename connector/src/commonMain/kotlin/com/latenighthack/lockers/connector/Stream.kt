@@ -91,9 +91,9 @@ class SessionStoreImpl(private val keyValueStore: KeyValueStore, private val dat
         keyValueStore.save(SESSION_ID_KEY, sessionId, SessionId::toByteArray)
     } ?: keyValueStore.delete<SessionId>(SESSION_ID_KEY)
 
-    override suspend fun getNextSequenceBytes(): ByteArray? = keyValueStore.get(NEXT_SEQUENCE_KEY, ::byteArrayIdentity)
+    override suspend fun getNextSequenceBytes(): ByteArray? = keyValueStore.get(NEXT_SEQUENCE_KEY, ::byteArrayIdentity)?.copyOf()
     override suspend fun updateNextSequenceBytes(rawBytes: ByteArray?) = rawBytes?.let {
-        keyValueStore.save(NEXT_SEQUENCE_KEY, rawBytes, ::byteArrayIdentity)
+        keyValueStore.save(NEXT_SEQUENCE_KEY, rawBytes.copyOf(), ::byteArrayIdentity)
     } ?: keyValueStore.delete<ByteArray>(NEXT_SEQUENCE_KEY)
 
     override fun pendingAckBatches(): Flow<List<StoredAck>> = flow {
@@ -105,7 +105,7 @@ class SessionStoreImpl(private val keyValueStore: KeyValueStore, private val dat
                     lower = QueryBound(BoundStoreKey.IntegerKey(SessionStoreImplDefinitionV2.confirmed.name.value, 0)),
                     upper = QueryBound(BoundStoreKey.IntegerKey(SessionStoreImplDefinitionV2.confirmed.name.value, 0)), after = continuation))
             }
-            val acks = page.records.map { if (it is StoredAck) it else SessionStoreImplDefinitionV2.decode(it as ByteArray) }
+            val acks = page.records.map { if (it is StoredAck) StoredAck.fromByteArray(it.toByteArray()) else SessionStoreImplDefinitionV2.decode(it as ByteArray) }
             if (acks.isNotEmpty()) emit(acks)
             continuation = page.continuation
         } while (continuation != null)
@@ -117,10 +117,11 @@ class SessionStoreImpl(private val keyValueStore: KeyValueStore, private val dat
     ))) != null
 
     override suspend fun addAck(ack: StoredAck) {
+        val ack = StoredAck.fromByteArray(ack.toByteArray())
         prepare(); database.transaction("connector-accept") {
             if (!hasReceived(ack) && database.count(SessionStoreImplDefinitionV2.storeName, IndexedQuery(SessionStoreImplDefinitionV2.confirmed.key, 1)) >= retentionPolicy.maxAcknowledgements)
                 throw ConnectorRetentionExceededException("ACK deduplication store is full; prune confirmations beyond the server replay horizon")
-            save(ack)
+            save(StoredAck.fromByteArray(ack.toByteArray()))
         }
     }
     override suspend fun addAcks(acks: List<StoredAck>) { acks.forEach { addAck(it) } }
@@ -194,20 +195,23 @@ class SubscriptionStoreImpl(private val database: Database, private val retentio
         prepare()
         val rows = database.query(SubscriptionStoreImplDefinitionV1.storeName, roomIdKey.query(maxSubscriptions + 1)).records
         if (rows.size > maxSubscriptions) throw SubscriptionCapacityException()
-        return rows.map { if (it is StoredSubscription) it else StoredSubscription.fromByteArray(it as ByteArray) }
+        return rows.map { StoredSubscription.fromByteArray(if (it is StoredSubscription) it.toByteArray() else it as ByteArray) }
     }
 
     override suspend fun updateSubscription(subscription: StoredSubscription) {
+        val subscription = StoredSubscription.fromByteArray(subscription.toByteArray())
         prepare()
         require(subscription.roomIdRawValue.size in 1..128) { "Room identity must contain 1..128 bytes" }
         database.transaction("connector-subscriptions") {
             if (getSubscription(RoomId(subscription.roomIdRawValue)) == null &&
                 database.count(SubscriptionStoreImplDefinitionV1.storeName, roomIdKey.query(1)) >= maxSubscriptions) throw SubscriptionCapacityException()
-            save(subscription.copy(roomIdRawValue = subscription.roomIdRawValue.copyOf()))
+            save(StoredSubscription.fromByteArray(subscription.toByteArray()))
         }
     }
 
-    override suspend fun getSubscription(roomId: RoomId): StoredSubscription? = get(roomIdKey.eq(roomId.rawValue))
+    override suspend fun getSubscription(roomId: RoomId): StoredSubscription? {
+        prepare(); return get(roomIdKey.eq(roomId.rawValue))?.let { StoredSubscription.fromByteArray(it.toByteArray()) }
+    }
 
     override suspend fun deleteSubscription(roomId: RoomId) = database.transaction("connector-subscriptions") { delete(roomIdKey.eq(roomId.rawValue)) }
 }
@@ -337,6 +341,7 @@ class SubscriptionController(
             }
             fun publishWork() { workState.value = SubscriptionWorkState(jobs.size, jobs.size - active.size, pending.keys.toSet(), maxWork) }
             fun drain() {
+                if (jobs.size >= maxWork) { publishWork(); return }
                 for (room in pending.keys.toList()) {
                     if (jobs.size >= maxWork) break
                     if ((roomCounts[room] ?: 0) >= 2) continue
@@ -463,7 +468,7 @@ class SubscriptionController(
         }.first { it }
     }
 
-    fun watchNewSubscriptions(): Flow<RoomId> = newSubscriptions
+    fun watchNewSubscriptions(): Flow<RoomId> = newSubscriptions.map { it.canonical() }
     private suspend fun desired(room: RoomId, subscribed: Boolean) {
         require(room.rawValue.size in 1..128) { "Room identity must contain 1..128 bytes" }
         startWatchingSubscriptions()
@@ -529,8 +534,10 @@ class Stream(
     private val started = MutableStateFlow(false)
     private val connectionState = MutableStateFlow<StreamConnectionState>(StreamConnectionState.Connecting)
     private var connectionEpoch = 0L
-    val connection: StateFlow<StreamConnectionState> get() = connectionState.asStateFlow()
-    private val sessionIdSource = MappedStateFlow(connectionState) { (it as? StreamConnectionState.Connected)?.sessionId }
+    val connection: StateFlow<StreamConnectionState> = MappedStateFlow(connectionState) {
+        if (it is StreamConnectionState.Connected) it.copy(sessionId = it.sessionId.canonical()) else it
+    }
+    private val sessionIdSource = MappedStateFlow(connectionState) { (it as? StreamConnectionState.Connected)?.sessionId?.canonical() }
     private val sessionService = ShardedSessionServiceRpc(rpcClient)
 
     // When routing through a [RoutingRpcClient], an EPOCH_STALE + redirect on session open is

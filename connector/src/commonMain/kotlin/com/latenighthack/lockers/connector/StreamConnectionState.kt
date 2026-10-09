@@ -15,6 +15,7 @@ class StreamClosedException : IllegalStateException("Client stream is closed")
 class StreamFailedException(val error: StreamFatalError) : IllegalStateException(error.reason)
 
 /** Synchronous projections retain StateFlow.value consistency without an extra coroutine. */
+@OptIn(kotlinx.coroutines.ExperimentalForInheritanceCoroutinesApi::class)
 internal class MappedStateFlow<S, T>(private val source: StateFlow<S>, private val project: (S) -> T) : StateFlow<T> {
     override val value: T get() = project(source.value)
     override val replayCache: List<T> get() = listOf(value)

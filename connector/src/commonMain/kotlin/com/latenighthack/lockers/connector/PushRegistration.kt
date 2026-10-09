@@ -82,6 +82,7 @@ class PushRegistrationStoreImpl(private val database: Database) : PushRegistrati
         }
     }
     override suspend fun nextIntent(backend: Int, encodedRegistration: ByteArray): PushRegistrationIntent {
+        val encodedRegistration = encodedRegistration.copyOf()
         prepare(); intents.prepare()
         return database.transaction("connector-push-intent") {
             val previous = intents.intent(backend)?.revision ?: 0
@@ -90,6 +91,7 @@ class PushRegistrationStoreImpl(private val database: Database) : PushRegistrati
         }
     }
     override suspend fun confirmIntent(intent: PushRegistrationIntent): Boolean {
+        val intent = intent.copy(encodedRegistration = intent.encodedRegistration.copyOf())
         prepare(); intents.prepare()
         return database.transaction("connector-push-intent") {
             val current = intents.intent(intent.backend)
@@ -104,11 +106,11 @@ class PushRegistrationStoreImpl(private val database: Database) : PushRegistrati
     }
     private val backendKey = PushRegistrationStoreImplDefinitionV1.backendKey
 
-    override suspend fun getAllRegistrations(): List<StoredPushRegistration> = getAll()
+    override suspend fun getAllRegistrations(): List<StoredPushRegistration> = getAll().map { StoredPushRegistration.fromByteArray(it.toByteArray()) }
 
-    override suspend fun saveRegistration(registration: StoredPushRegistration) = save(registration)
+    override suspend fun saveRegistration(registration: StoredPushRegistration) = save(StoredPushRegistration.fromByteArray(registration.toByteArray()))
 
-    override suspend fun getRegistration(backend: Int): StoredPushRegistration? = get(backendKey.eq(intToBytes(backend)))
+    override suspend fun getRegistration(backend: Int): StoredPushRegistration? = get(backendKey.eq(intToBytes(backend)))?.let { StoredPushRegistration.fromByteArray(it.toByteArray()) }
 
     override suspend fun deleteRegistration(backend: Int) = delete(backendKey.eq(intToBytes(backend)))
 }
@@ -243,7 +245,7 @@ class PushRegistrationController(
     val registrations: StateFlow<Map<PushBackendType, PushRegistrationStatus>> = MappedStateFlow(state) { current ->
         PushBackendType.entries.associateWith { backend ->
             val intent = current.desired[backend.protoValue]
-            PushRegistrationStatus(intent?.revision ?: 0, current.session, current.epoch,
+            PushRegistrationStatus(intent?.revision ?: 0, current.session?.canonical(), current.epoch,
                 intent?.encodedRegistration?.isNotEmpty() == true,
                 current.confirmed[backend.protoValue] == intent?.revision && intent != null,
                 current.errors[backend.protoValue], current.closed, current.loading)
