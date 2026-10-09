@@ -601,7 +601,7 @@ class LockerClient(
         }
         withAcceptance {
             lockerStore.acceptAtomically {
-                lockers.forEach { acceptLocked(it.toUpdate(room, watermark ?: 0L)) }
+                lockers.forEach { acceptLocked(it.toUpdate(room, watermark)) }
                 repairs.forEach { (expected, confirmed) ->
                     if (confirmed == null || (confirmed.locker == null && confirmed.version == 0L)) forgetUnchanged(expected)
                     else acceptLocked(confirmed.toUpdate(room))
@@ -790,7 +790,7 @@ class LockerClient(
 
         if (lockerId != null) {
             if (hasBody) {
-                accept(LockerUpdate(roomId, lockerId, version, body!!.plaintextPayload(), deleted = false, roomSequence = event.roomSequence))
+                accept(LockerUpdate(roomId, lockerId, version, body.plaintextPayload(), deleted = false, roomSequence = event.roomSequence))
             } else {
                 // A body-less locker event is a tombstone: the server signals a
                 // delete by sending lockerId + version with no Locker body.
@@ -1512,7 +1512,7 @@ class LockerClient(
         )
 }
 
-private fun RoomId.toLogString() = "r+" + (this?.rawValue?.toBase64String()?.take(6) ?: "(nul)")
+private fun RoomId.toLogString() = "r+" + rawValue.toBase64String().take(6)
 
 private fun LockerId?.toLogString() = "l+" + (this?.rawValue?.toBase64String()?.take(6) ?: "(nul)") +
     "/ks" + (this?.keyspace?.value?.toString() ?: "0")
