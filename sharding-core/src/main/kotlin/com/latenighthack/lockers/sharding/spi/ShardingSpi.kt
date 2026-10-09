@@ -43,6 +43,8 @@ interface ShardLease {
 
     /** Monotonically increasing fence stamp; the store rejects writes bearing a lower token. */
     val fencingToken: Long
+    /** Durable fence-row identity, distinct from the monotonically advancing token. */
+    val fencingKey: Long? get() = null
 
     /** False once the lease is revoked (preempted by a higher epoch) or released. */
     val isValid: Boolean

@@ -1,0 +1,149 @@
+{
+  "config/detekt/api.xml": {
+    "addedByRule": {
+      "LongParameterList": 2,
+      "MagicNumber": 3,
+      "MaxLineLength": 9,
+      "ReturnCount": 1,
+      "WildcardImport": 18
+    },
+    "removedByRule": {},
+    "reviewedBoundaryIds": []
+  },
+  "config/detekt/connector.xml": {
+    "addedByRule": {
+      "ComplexCondition": 1,
+      "CyclomaticComplexMethod": 4,
+      "EmptyElseBlock": 1,
+      "EmptyFunctionBlock": 13,
+      "InstanceOfCheckForException": 1,
+      "LargeClass": 1,
+      "LongParameterList": 12,
+      "LoopWithTooManyJumpStatements": 1,
+      "MagicNumber": 35,
+      "MaxLineLength": 408,
+      "MemberNameEqualsClassName": 1,
+      "ReturnCount": 2,
+      "ThrowsCount": 8,
+      "TooGenericExceptionCaught": 6,
+      "TooManyFunctions": 8,
+      "UseCheckOrError": 5,
+      "WildcardImport": 183
+    },
+    "removedByRule": {
+      "ComplexCondition": 1,
+      "LongParameterList": 2,
+      "MagicNumber": 1,
+      "MaxLineLength": 16,
+      "SwallowedException": 2,
+      "ThrowsCount": 1,
+      "WildcardImport": 2
+    },
+    "reviewedBoundaryIds": [
+      "InstanceOfCheckForException:PushRegistration.kt$PushRegistrationController$failure is CancellationException",
+      "TooGenericExceptionCaught:LockerClient.kt$LockerClient$failure: Exception",
+      "TooGenericExceptionCaught:LockersClient.kt$LockersClient.Companion$failure: Throwable",
+      "TooGenericExceptionCaught:PushRegistration.kt$PushRegistrationController$error: Exception",
+      "TooGenericExceptionCaught:PushRegistration.kt$PushRegistrationController$failure: Throwable",
+      "TooGenericExceptionCaught:RoutingRpcClient.kt$RoutingRpcClient$error: Throwable",
+      "TooGenericExceptionCaught:Stream.kt$Stream$failure: Throwable"
+    ]
+  },
+  "config/detekt/observability-api.xml": {
+    "addedByRule": {
+      "EmptyFunctionBlock": 1,
+      "MaxLineLength": 2,
+      "WildcardImport": 2
+    },
+    "removedByRule": {
+      "MaxLineLength": 1
+    },
+    "reviewedBoundaryIds": []
+  },
+  "config/detekt/server-run.xml": {
+    "addedByRule": {
+      "CyclomaticComplexMethod": 1,
+      "MaxLineLength": 1,
+      "TooGenericExceptionCaught": 2
+    },
+    "removedByRule": {},
+    "reviewedBoundaryIds": [
+      "TooGenericExceptionCaught:Main.kt$cleanup: Throwable",
+      "TooGenericExceptionCaught:Main.kt$failure: Throwable"
+    ]
+  },
+  "config/detekt/server-test.xml": {
+    "addedByRule": {
+      "MaxLineLength": 2
+    },
+    "removedByRule": {
+      "MaxLineLength": 1
+    },
+    "reviewedBoundaryIds": []
+  },
+  "config/detekt/server.xml": {
+    "addedByRule": {
+      "ComplexCondition": 30,
+      "CyclomaticComplexMethod": 25,
+      "EmptyElseBlock": 2,
+      "EmptyFunctionBlock": 3,
+      "EmptyWhileBlock": 1,
+      "InstanceOfCheckForException": 2,
+      "LongMethod": 4,
+      "LongParameterList": 10,
+      "LoopWithTooManyJumpStatements": 5,
+      "MagicNumber": 215,
+      "MaxLineLength": 939,
+      "ReturnCount": 23,
+      "ThrowsCount": 4,
+      "TooGenericExceptionCaught": 30,
+      "TooManyFunctions": 7,
+      "WildcardImport": 462
+    },
+    "removedByRule": {
+      "ComplexCondition": 1,
+      "CyclomaticComplexMethod": 5,
+      "LongMethod": 2,
+      "LongParameterList": 6,
+      "MagicNumber": 1,
+      "MaxLineLength": 46,
+      "ReturnCount": 7,
+      "SwallowedException": 4,
+      "UnusedParameter": 2
+    },
+    "reviewedBoundaryIds": [
+      "InstanceOfCheckForException:RoomServiceImpl.kt$RoomServiceImpl$error !is AgentOutputRejected",
+      "InstanceOfCheckForException:SessionServiceImpl.kt$SessionServiceImpl$ex is UnsupportedOperationException",
+      "TooGenericExceptionCaught:AdvisoryLockCoordinator.kt$JdbcAdvisoryLockGateway$cleanup: Throwable",
+      "TooGenericExceptionCaught:AdvisoryLockCoordinator.kt$JdbcAdvisoryLockGateway$failure: Throwable",
+      "TooGenericExceptionCaught:AgentWorkflow.kt$AgentWorkflow$error: Exception",
+      "TooGenericExceptionCaught:ApnsPushProvider.kt$ApnsPushProvider$failure: Throwable",
+      "TooGenericExceptionCaught:ClaimContext.kt$ClaimContext.Companion$cleanup: Throwable",
+      "TooGenericExceptionCaught:ClaimContext.kt$ClaimContext.Companion$failure: Throwable",
+      "TooGenericExceptionCaught:ClaimRenewalService.kt$ClaimRenewalService$failure: Exception",
+      "TooGenericExceptionCaught:ClaimSessionRegistry.kt$ClaimSessionRegistry$failure: Exception",
+      "TooGenericExceptionCaught:ClaimSessionRegistry.kt$ClaimSessionRegistry$failure: Throwable",
+      "TooGenericExceptionCaught:FcmPushProvider.kt$FcmPushProvider$cleanup: Throwable",
+      "TooGenericExceptionCaught:FcmPushProvider.kt$FcmPushProvider$failure: Throwable",
+      "TooGenericExceptionCaught:MonolithComponent.kt$MonolithComponent$cleanup: Throwable",
+      "TooGenericExceptionCaught:MonolithComponent.kt$MonolithComponent$failure: Throwable",
+      "TooGenericExceptionCaught:OwnerLifecycle.kt$OwnerLifecycle$error: Exception",
+      "TooGenericExceptionCaught:PostgresConnections.kt$cleanup: Throwable",
+      "TooGenericExceptionCaught:PostgresConnections.kt$failure: Throwable",
+      "TooGenericExceptionCaught:PostgresShardMapSource.kt$PostgresShardMapSource$error: Exception",
+      "TooGenericExceptionCaught:PushProviders.kt$PushProviders$cleanup: Throwable",
+      "TooGenericExceptionCaught:PushProviders.kt$PushProviders$failure: Throwable",
+      "TooGenericExceptionCaught:PushServiceImpl.kt$PushServiceImpl$error: Exception",
+      "TooGenericExceptionCaught:PushServiceImpl.kt$PushServiceImpl$failure: Throwable",
+      "TooGenericExceptionCaught:RemoteGateway.kt$PeerConnectionPool$error: Throwable",
+      "TooGenericExceptionCaught:RemoteGateway.kt$PeerConnectionPool$failure: Throwable",
+      "TooGenericExceptionCaught:RoomClaimStore.kt$JdbcRoomClaimStore$cleanup: Throwable",
+      "TooGenericExceptionCaught:RoomClaimStore.kt$JdbcRoomClaimStore$failure: Throwable",
+      "TooGenericExceptionCaught:RoomServiceImpl.kt$RoomServiceImpl$error: Exception",
+      "TooGenericExceptionCaught:RoomServiceImpl.kt$RoomServiceImpl$failure: Throwable",
+      "TooGenericExceptionCaught:ServerExtension.kt$ServerExtensions$cleanup: Throwable",
+      "TooGenericExceptionCaught:ServerExtension.kt$ServerExtensions$failure: Throwable",
+      "TooGenericExceptionCaught:WebPushProvider.kt$WebPushProvider$failure: Exception"
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="jsNodeTest.com.latenighthack.lockers.observability.TelemetryTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:12:59.225Z" hostname="Mikes-MacBook-Pro.local" time="0.013">
+  <properties/>
+  <testcase name="lifecycleEventsCarryTheActiveTraceWithoutOperationData[js, node]" classname="jsNodeTest.com.latenighthack.lockers.observability.TelemetryTest" time="0.001"/>
+  <testcase name="observersCannotFailTheOperation[js, node]" classname="jsNodeTest.com.latenighthack.lockers.observability.TelemetryTest" time="0.002"/>
+  <testcase name="cancellationIsPreservedAndMeasured[js, node]" classname="jsNodeTest.com.latenighthack.lockers.observability.TelemetryTest" time="0.001"/>
+  <testcase name="ingestionRejectsUnknownOrUnboundedData[js, node]" classname="jsNodeTest.com.latenighthack.lockers.observability.TelemetryTest" time="0.009"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

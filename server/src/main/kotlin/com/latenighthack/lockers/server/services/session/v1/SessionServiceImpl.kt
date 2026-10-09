@@ -17,6 +17,7 @@ import com.latenighthack.lockers.session.v1.*
 import io.micrometer.core.instrument.MeterRegistry
 import com.latenighthack.lockers.observability.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -25,8 +26,12 @@ import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
 import org.slf4j.LoggerFactory
 import com.latenighthack.lockers.server.LockersConfig
+import com.latenighthack.lockers.server.CpuAdmission
+import com.latenighthack.lockers.server.ProtocolValidation
+import com.latenighthack.lockers.server.ResourceLimitException
 import java.security.SignatureException
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.atomic.AtomicInteger as AtomicInt
 import kotlin.random.Random
 
@@ -40,7 +45,7 @@ abstract class SessionServiceModule(
 ): GrpcRouteProvider<SessionServer> {
     abstract val serverImpl: SessionServiceImpl
 
-    override val server: SessionServer get() = serverImpl
+    override val server: SessionServer get() = AuthorizedSessionServer(serverImpl, serverCore.sessionProofVerifier)
     override val descriptor: ServerDescriptor = SessionServer.Descriptor
 }
 
@@ -80,15 +85,7 @@ class LocalSessionGatewayDiscovery(private val sessionGatewayServer: SessionGate
 
 
 
-private data class OnlineServerSessionEvent(val event: ServerSessionEvent? = null, val receiveTime: Long = 0L, val sequence: Long = 0L)
-
-private fun ServerSessionEvent.clientEvent() = Event {
-    eventId { rawValue = this@clientEvent.eventId!!.rawValue }
-    roomId { rawValue = this@clientEvent.roomId!!.rawValue }
-    roomSequence = this@clientEvent.roomSequence
-    if (encodedLocker.isNotEmpty()) locker = IdentifiedLocker.fromByteArray(encodedLocker)
-    if (encodedPayload.isNotEmpty()) notification { payload { rawValue = encodedPayload } }
-}
+private data class OnlineServerSessionEvent(val event: ServerSessionEvent? = null, val receiveTime: Long = 0L, val sequence: Long = 0L, val clientEvent: Event? = null, val catchUp: Boolean = false)
 
 private const val BROADCAST_EVENT_ID_BYTES = 16
 
@@ -104,21 +101,26 @@ class SessionServiceImpl(
     private val sessionRegistry: SessionRegistry = SessionRegistry.Noop,
     private val pushDelivery: PushDeliveryStore? = null,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
+    private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
+    private val cpuAdmission: CpuAdmission = CpuAdmission(config.resourceLimits),
+
 ) : BaseServiceImpl(), SessionServer, SessionGatewayServer, BroadcastAdminServer {
+    private val lifecycleStarted = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val lifecycleClosed = java.util.concurrent.atomic.AtomicBoolean(false)
     private val logger = LoggerFactory.getLogger(SessionServiceImpl::class.java)
-    private val deliveryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val deliveryScope = CoroutineScope(coroutineContext + SupervisorJob(coroutineContext[Job]) + Dispatchers.IO + ServiceLifecycle.context)
     private val pushPermits = kotlinx.coroutines.sync.Semaphore(4)
     private val pushWorker = pushDelivery?.let { store ->
         com.latenighthack.lockers.server.services.room.v1.DeliveryWorker(store.outbox, object : SessionGatewayDiscovery {
             override suspend fun findServer(sessionId: SessionId): SessionGatewayService = object : SessionGatewayService {
                 override suspend fun postEvent(request: PostEventRequest): PostEventResponse {
                     val gateway = pushGatewayDiscovery.findServer(sessionId) ?: error("push gateway unavailable")
-                    val response = gateway.sendPush(SendPushRequest(sessionId, request.event?.notification?.push))
+                    val response = gateway.sendPush(SendPushRequest(sessionId, request.event?.notification?.push, request.event?.eventId?.rawValue ?: byteArrayOf()))
                     return PostEventResponse(result = if (response.result.isOk()) PostEventResponse.Result.OK else PostEventResponse.Result.UNKNOWN_ERROR)
                 }
                 override suspend fun postEvents(request: PostEventsRequest) = PostEventsResponse(request.groups.map { postEvent(it) })
             }
-        }, meterRegistry, telemetry, "push_delivery").also { if (config.deliveryWorkerEnabled) it.start() }
+        }, meterRegistry, telemetry, "push_delivery", coroutineContext)
     }
     private val dispatchers = ShardedDispatcher<SessionId>(config.shardCount, "session-shard") {
         it.rawValue.contentHashCode()
@@ -155,9 +157,12 @@ class SessionServiceImpl(
         context: GrpcRequestContext,
         request: DestroySessionRequest
     ): DestroySessionResponse {
-        return DestroySessionResponse {
-            result = DestroySessionResponse.Result.OK
-        }
+        val id = request.sessionId ?: return DestroySessionResponse(result = DestroySessionResponse.Result.INVALID_SEQUENCE)
+        if (id.rawValue.size !in 1..128) return DestroySessionResponse(result = DestroySessionResponse.Result.INVALID_SEQUENCE)
+        val storedId = ServerSessionId(id.rawValue)
+        sessionStore.destroySession(storedId)
+        closeSessionStream(storedId)
+        return DestroySessionResponse(result = DestroySessionResponse.Result.OK)
     }
 
     private data class OpenState(val sessionId: ServerSessionId, val open: WatchSessionResponse.Open)
@@ -171,22 +176,35 @@ class SessionServiceImpl(
         context: GrpcRequestContext,
         request: Flow<WatchSessionRequest>
     ): Flow<StreamControlEvent<WatchSessionResponse>> {
-        val cancellationChannel = Channel<Unit>()
+        return channelFlow {
+        val cancellationChannel = Channel<Unit>(Channel.CONFLATED)
+        val registeredSession = AtomicReference<ServerSessionId?>()
         val openState = CompletableDeferred<OpenState?>()
+        val openSent = CompletableDeferred<Unit>()
+        // Delivered identities remain until durable ACK. They cannot be LRU-evicted:
+        // an old unacknowledged event must not reappear after newer events are ACKed.
+        val pendingDelivered = ConcurrentHashMap.newKeySet<List<Byte>>()
 
-        return merge(flow {
+        val producer = deliveryScope.async(currentCoroutineContext().minusKey(Job) + ServiceLifecycle.context) {
+        try {
+        flow { coroutineScope {
+        val streamJob = currentCoroutineContext()[Job]!!
+        merge(flow {
             try {
                 request.collectFirst({ openOrCreate ->
                 // attempt to handle the open OR create
                 val openBuilder = WatchSessionResponse_OpenBuilder()
-                val sessionId = when (val oneOf = openOrCreate.request) {
+                val sessionId = if (openOrCreate.toByteArray().size > 4096) {
+                    openBuilder.result = WatchSessionResponse.Open.Result.INVALID_REQUEST
+                    null
+                } else when (val oneOf = openOrCreate.request) {
                     is WatchSessionRequest.OneOfRequest.open -> openBuilder.handleOpen(oneOf.getOpen()!!)
                     is WatchSessionRequest.OneOfRequest.create -> openBuilder.handleCreate(oneOf.getCreate()!!)
                     else -> {
                         // First frame wasn't open/create (e.g. a client bug sent an ack first).
                         // Result must be explicit: the proto default is OK, and answering OK here
                         // made such a client believe it was connected to a stream that then closed.
-                        openBuilder.result = WatchSessionResponse.Open.Result.UNKNOWN_ERROR
+                        openBuilder.result = WatchSessionResponse.Open.Result.INVALID_REQUEST
                         eventsPreOpen.increment()
                         null
                     }
@@ -208,34 +226,57 @@ class SessionServiceImpl(
 
                 val open = openBuilder.build()
 
-                openStreamCancellationChannels.put(sessionId, cancellationChannel)?.let {
-                    streamCancellationCounter.increment()
-                    it.send(Unit)
+                // Attachment must still belong to the accepted challenge. A later open may
+                // already have rotated it, or destruction may have revoked the session.
+                val attached = sessionStore.atomic(sessionId) {
+                    val current = sessionStore.getSessionById(sessionId)
+                    if (current == null || !current.nextKeyMaterial.contentEquals(open.nextSequenceKey)) {
+                        openBuilder.result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
+                        openBuilder.nextSequenceKey = current?.nextKeyMaterial ?: byteArrayOf()
+                        false
+                    } else {
+                        openStreamCancellationChannels.put(sessionId, cancellationChannel)?.let {
+                            streamCancellationCounter.increment()
+                            it.trySend(Unit)
+                        }
+                        activeStreamsCount.incrementAndGet()
+                        registeredSession.set(sessionId)
+                        sessionRegistry.attachBeforeSnapshot(sessionId)
+                        true
+                    }
                 }
-
-                activeStreamsCount.incrementAndGet()
-                // Publish routing before the inbox snapshot: a stale gateway can then request
-                // re-resolution instead of accepting an event invisible to the new socket.
-                sessionRegistry.attachBeforeSnapshot(sessionId)
+                if (!attached) {
+                    emit(StreamControlEvent.Message(WatchSessionResponse { response.open = openBuilder.build() }))
+                    emit(StreamControlEvent.Close())
+                    openState.complete(null)
+                    cancellationChannel.close()
+                    throw StreamRejected()
+                }
                 openState.complete(OpenState(sessionId, open))
 
                 sessionId
             }) { sessionId, nextRequest ->
+                // The opening snapshot precedes every subsequent response, including heartbeat.
+                openSent.await()
                 when (val message = nextRequest.request) {
                     // ping, pong rally's on
                     is WatchSessionRequest.OneOfRequest.ping -> {
-                        StreamControlEvent.Message(WatchSessionResponse {
+                        emit(StreamControlEvent.Message(WatchSessionResponse {
                             response.pong {}
-                        })
+                        }))
                     }
 
                     // handle ack
                     is WatchSessionRequest.OneOfRequest.ack -> {
                         val ack = message.getAck()!!
+                        if (ack.acks.size > 256 || nextRequest.toByteArray().size > 128 * 1024 || ack.acks.any {
+                            !ProtocolValidation.identity(it.eventId?.rawValue) || it.roomId == null || it.roomId!!.rawValue.size > 128
+                        }) com.latenighthack.lockers.server.invalidArgument("Invalid session acknowledgement frame")
                         val startTime = System.nanoTime()
                         val response = dispatchers.runOnDispatcher(SessionId(sessionId.rawValue)) {
                             dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
                             sessionInboxStore.deleteEvents(ack.acks.mapNotNull { it.eventId?.let { id -> ServerEventId(id.rawValue) } }, sessionId)
+                            ack.acks.mapNotNull { it.eventId?.rawValue?.toList() }.forEach(pendingDelivered::remove)
                             inboxDeletesCounter.increment(ack.acks.size.toDouble())
 
                             WatchSessionResponse {
@@ -271,11 +312,24 @@ class SessionServiceImpl(
                     }
                 }
             }
-            } catch (e: StreamRejected) {
+            } catch (cancelled: CancellationException) {
+                // A cancelled source must end every merge branch, including unopened waiters.
+                streamJob.cancel(cancelled)
+                throw cancelled
+            } catch (ignoredSentRejection: StreamRejected) {
                 // Rejection response and Close already emitted; end this branch normally.
             }
         }, cancellationChannel.receiveAsFlow().map {
             StreamControlEvent.Close()
+        }, flow {
+            val os = openState.await() ?: return@flow
+            while (currentCoroutineContext().isActive) {
+                delay(1000)
+                if (sessionStore.getSessionById(os.sessionId) == null) {
+                    cancellationChannel.trySend(Unit)
+                    return@flow
+                }
+            }
         }, flow {
             val os = openState.await() ?: return@flow
             val sessionId = os.sessionId
@@ -284,7 +338,25 @@ class SessionServiceImpl(
             var lastSequence = 0L
             // Keyed by List<Byte> — a Set<ByteArray> compares by reference and would never match,
             // re-delivering every open-queued event on the live path too.
-            var storedQueuedEvents: Set<List<Byte>>? = null
+            suspend fun remember(events: List<Event>) {
+                for (event in events) {
+                    val raw = event.eventId?.rawValue ?: continue
+                    val identity = raw.toList()
+                    if (identity in pendingDelivered) continue
+                    if (!sessionInboxStore.isPending(ServerEventId(raw), sessionId)) continue
+                    if (pendingDelivered.size >= config.resourceLimits.maxInboxEventsPerSession) {
+                        // A concurrent ACK can finish between the pending read and
+                        // insertion. Remove only identities proved no longer pending.
+                        for (old in pendingDelivered) {
+                            if (!sessionInboxStore.isPending(ServerEventId(old.toByteArray()), sessionId)) pendingDelivered.remove(old)
+                            if (pendingDelivered.size < config.resourceLimits.maxInboxEventsPerSession) break
+                        }
+                        if (pendingDelivered.size >= config.resourceLimits.maxInboxEventsPerSession)
+                            throw ResourceLimitException("Pending stream delivery tracking exceeds inbox capacity")
+                    }
+                    pendingDelivered.add(identity)
+                }
+            }
 
             emitAll(incomingEvents
                 .onSubscription {
@@ -292,14 +364,16 @@ class SessionServiceImpl(
                 }
                 .onEach {
                     if (!isFirst) {
-                        if (it.sequence > lastSequence + 1) {
+                        if (it.sequence > lastSequence + 1 || (it.catchUp && it.event?.sessionId?.rawValue.contentEquals(sessionId.rawValue))) {
                             // A slow stream overran the bounded live buffer. Recover from the
                             // durable inbox immediately rather than waiting for reconnect.
-                            val missed = sessionInboxStore.getAllEvents(sessionId).sortedBy { row -> row.roomSequence }.map { row -> row.clientEvent() }
-                            if (missed.isNotEmpty()) emit(StreamControlEvent.Message(WatchSessionResponse {
-                                response.events { event = missed }
-                            }))
-                            storedQueuedEvents = missed.mapNotNull { event -> event.eventId?.rawValue?.toList() }.toSet()
+                            sessionInboxStore.clientEventPages(sessionId).collect { page ->
+                                val missed = page.filter { event -> event.eventId?.rawValue?.toList() !in pendingDelivered }
+                                if (missed.isNotEmpty()) emit(StreamControlEvent.Message(WatchSessionResponse {
+                                    response.events { event = missed }
+                                }))
+                                remember(missed)
+                            }
                         }
                         lastSequence = it.sequence
                         return@onEach
@@ -308,28 +382,26 @@ class SessionServiceImpl(
                     isFirst = false
                     lastSequence = it.sequence
 
-                    val startTime = System.nanoTime()
-                    val response = dispatchers.runOnDispatcher(SessionId(sessionId.rawValue)) {
-                        dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
-
-                        val queuedEvents = sessionInboxStore.getAllEvents(sessionId).sortedBy { it.roomSequence }.map { it.clientEvent() }
-
-                        storedQueuedEvents = queuedEvents.mapNotNull { it.eventId?.rawValue?.toList() }.toSet()
-
+                    var sentOpen = false
+                    sessionInboxStore.clientEventPages(sessionId).collect { queuedEvents ->
+                        remember(queuedEvents)
                         eventsDeliveredQueuedCounter.increment(queuedEvents.size.toDouble())
-
-                        WatchSessionResponse {
-                            response.open = originalOpen.copy(queuedEvents = queuedEvents)
-                        }
+                        emit(StreamControlEvent.Message(WatchSessionResponse {
+                            if (!sentOpen) response.open = originalOpen.copy(queuedEvents = queuedEvents)
+                            else response.events { event = queuedEvents }
+                        }))
+                        if (!sentOpen) { sentOpen = true; openSent.complete(Unit) }
                     }
-
-                    emit(StreamControlEvent.Message(response))
+                    if (!sentOpen) {
+                        emit(StreamControlEvent.Message(WatchSessionResponse { response.open = originalOpen }))
+                        openSent.complete(Unit)
+                    }
                 }
                 .filter {
-                    it.event?.sessionId?.rawValue.contentEquals(sessionId.rawValue)
+                    !it.catchUp && it.event?.sessionId?.rawValue.contentEquals(sessionId.rawValue)
                 }
                 .mapNotNull {
-                    if (storedQueuedEvents?.contains(it.event?.eventId?.rawValue?.toList()) == true) {
+                    if (it.event?.eventId?.rawValue?.toList() in pendingDelivered) {
                         return@mapNotNull null
                     }
 
@@ -337,86 +409,91 @@ class SessionServiceImpl(
                         .record(System.nanoTime() - it.receiveTime, java.util.concurrent.TimeUnit.NANOSECONDS)
                     eventsDeliveredCounter.increment()
 
+                    val clientEvent = requireNotNull(it.clientEvent)
+                    if (!sessionInboxStore.isPending(requireNotNull(it.event?.eventId), sessionId)) return@mapNotNull null
+                    remember(listOf(clientEvent))
                     StreamControlEvent.Message(WatchSessionResponse {
                         response.events {
-                            event {
-                                addEvent {
-                                    roomId { rawValue = it.event?.roomId!!.rawValue }
-                                    eventId { rawValue = it.event?.eventId!!.rawValue }
-                                    roomSequence = it.event!!.roomSequence
-                                    it.event?.encodedPayload?.let { encodedPayload ->
-                                        notification {
-                                            payload {
-                                                rawValue = encodedPayload
-                                            }
-                                        }
-                                    }
-                                    it.event?.encodedLocker?.let { encodedLocker ->
-                                        locker = IdentifiedLocker.fromByteArray(encodedLocker)
-                                    }
-                                }
-                            }
+                            event = listOf(clientEvent)
                         }
                     })
                 }
             )
         }).onCompletion {
-            // A rejected open completes openState with null: nothing was registered, so there is
-            // nothing to unwind (and activeStreamsCount was never incremented).
-            if (openState.isCompleted) {
-                openState.await()?.let { os ->
-                    activeStreamsCount.decrementAndGet()
-                    // Only drop the entry if it is still this stream's channel — a newer
-                    // stream for the same session may have replaced it.
-                    if (openStreamCancellationChannels.remove(os.sessionId, cancellationChannel)) {
-                        // Same guard for the gateway registry: never unregister a session whose
-                        // socket a replacing stream (possibly on this node) still holds.
-                        sessionRegistry.detach(os.sessionId)
-                    }
+            registeredSession.getAndSet(null)?.let { sessionId ->
+                activeStreamsCount.decrementAndGet()
+                if (openStreamCancellationChannels.remove(sessionId, cancellationChannel)) {
+                    sessionRegistry.detach(sessionId)
                 }
             }
+            cancellationChannel.close()
+        }.collect { emit(it) }
+        } }.collect {
+            send(it)
+            if (it is StreamControlEvent.Close) throw StreamRejected()
+        }
+        } catch (_: StreamRejected) {
+            // Close is terminal after it has reached the output channel. Joining the merged
+            // producer cancels request intake, replay and revocation polling before completion.
+        }
+        }
+        producer.invokeOnCompletion { close(it) }
+        try { awaitClose { producer.cancel() } }
+        finally { withContext(NonCancellable) { producer.cancelAndJoin() } }
         }
     }
 
-    fun close() {
-        pushWorker?.close()
-        deliveryScope.cancel()
-        dispatchers.close()
+    /** Immediately closes this node's stream; shared-store revocation also closes remote streams. */
+    fun closeSessionStream(sessionId: ServerSessionId) {
+        openStreamCancellationChannels[sessionId]?.trySend(Unit)
     }
+
+    fun start() {
+        check(!lifecycleClosed.get() && lifecycleStarted.compareAndSet(false, true)) { "Service already started or closed" }
+        if (config.deliveryWorkerEnabled) pushWorker?.start()
+    }
+    suspend fun closeAndJoin() {
+        ServiceLifecycle.requireExternalClose()
+        lifecycleClosed.set(true)
+        deliveryScope.coroutineContext[Job]!!.cancelAndJoin()
+        pushWorker?.closeAndJoin()
+        dispatchers.closeAndJoin()
+    }
+    fun close() = ServiceLifecycle.blockingClose(coroutineContext) { closeAndJoin() }
 
     override suspend fun postEvents(context: GrpcRequestContext, request: PostEventsRequest): PostEventsResponse =
         meterRegistry.trackRpc(TelemetryOperation.SESSION_POST_MANY, telemetry, { if (it.results.all { result -> result.result.isOk() }) TelemetryOutcome.OK else TelemetryOutcome.REJECTED }) { observedPostEvents(context, request) }
 
     private suspend fun observedPostEvents(context: GrpcRequestContext, request: PostEventsRequest): PostEventsResponse {
-        require(request.groups.size <= 64 && request.toByteArray().size <= 8 * 1024 * 1024)
-        val rows = request.groups.flatMap { group ->
-            val event = requireNotNull(group.event)
-            require(event.eventId?.rawValue?.isNotEmpty() == true)
-            group.sessionIds.distinct().map { id -> ServerSessionEvent(ServerSessionId(id.rawValue),
-                ServerRoomId(event.roomId?.rawValue ?: byteArrayOf()), ServerEventId(event.eventId!!.rawValue),
-                event.notification?.payload?.rawValue ?: byteArrayOf(), event.locker?.toByteArray() ?: byteArrayOf(), event.roomSequence) }
+        if (request.groups.size > 64 || request.groups.sumOf { it.sessionIds.size.toLong() } > ProtocolValidation.MAX_RECIPIENTS ||
+            request.toByteArray().size > ProtocolValidation.MAX_ENVELOPE_BYTES) {
+            throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.OUT_OF_RANGE, "Gateway batch exceeds configured bounds")
         }
-        sessionInboxStore.saveEvents(rows)
-        val moved = sessionRegistry.remoteSessions(request.groups.flatMap { it.sessionIds }.distinct())
-        return PostEventsResponse(request.groups.map { group ->
-            try {
-                enqueueEvent(group.sessionIds, group.event!!, persistInbox = false)
-                PostEventResponse(result = if (group.sessionIds.any { it in moved }) PostEventResponse.Result.RETRY_ROUTING else PostEventResponse.Result.OK)
+        var expansion = 0L
+        for (group in request.groups) {
+            val eventBytes = group.event?.toByteArray()?.size ?: 0
+            for (sid in group.sessionIds.distinctBy { it.rawValue.toList() }) {
+                expansion += com.latenighthack.lockers.common.InboxAdmission.recipientExpansionBytes(eventBytes, sid.toByteArray().size)
+                if (expansion > com.latenighthack.lockers.common.InboxAdmission.MAX_BATCH_EXPANSION_BYTES)
+                    throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.OUT_OF_RANGE,
+                        "Inbox batch expansion exceeds64MiB")
             }
-            catch (e: CancellationException) { throw e }
-            catch (e: Exception) { logger.warn("gateway group side effects not yet durable", e); PostEventResponse(result = PostEventResponse.Result.UNKNOWN_ERROR) }
-        })
+        }
+        return PostEventsResponse(request.groups.map { postEvent(context, it) })
     }
 
     override suspend fun postEvent(context: GrpcRequestContext, request: PostEventRequest) = meterRegistry.trackResponse("lockers.session.post", PostEventResponse::result, telemetry) {
-        val event = request.event ?: return@trackResponse PostEventResponse(result = PostEventResponse.Result.UNKNOWN_ERROR)
-        if (event.eventId?.rawValue?.isNotEmpty() != true) return@trackResponse PostEventResponse(result = PostEventResponse.Result.UNKNOWN_ERROR)
-        enqueueEvent(request.sessionIds, event)
-
-        val moved = sessionRegistry.remoteSessions(request.sessionIds)
-        return@trackResponse PostEventResponse {
-            result = if (moved.isEmpty()) PostEventResponse.Result.OK else PostEventResponse.Result.RETRY_ROUTING
-        }
+        if (request.sessionIds.size > ProtocolValidation.MAX_RECIPIENTS || request.sessionIds.any { !ProtocolValidation.identity(it.rawValue) } ||
+            request.toByteArray().size > ProtocolValidation.MAX_ENVELOPE_BYTES || !ProtocolValidation.event(request.event))
+            return@trackResponse PostEventResponse(result = PostEventResponse.Result.INVALID)
+        try {
+            val accepted = enqueueEvent(request.sessionIds, requireNotNull(request.event))
+            val moved = sessionRegistry.remoteSessions(accepted.accepted)
+            PostEventResponse(result = if (moved.isEmpty()) PostEventResponse.Result.OK else PostEventResponse.Result.RETRY_ROUTING)
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (rejected: GatewayRejected) { PostEventResponse(result = rejected.result) }
+        catch (_: EventIdentityReuseException) { PostEventResponse(result = PostEventResponse.Result.INVALID) }
+        catch (_: ResourceLimitException) { PostEventResponse(result = PostEventResponse.Result.RESOURCE_EXHAUSTED) }
     }
 
     override suspend fun broadcast(context: GrpcRequestContext, request: BroadcastRequest): BroadcastResponse {
@@ -447,7 +524,7 @@ class SessionServiceImpl(
 
             return@trackResponse BroadcastResponse {
                 result = BroadcastResponse.Result.OK
-                this.delivered = delivered.toLong()
+                this.delivered = delivered.inserted.size.toLong()
             }
         }
     }
@@ -455,7 +532,10 @@ class SessionServiceImpl(
     // Fan one event into each target session: fire a per-session push (when the
     // event carries one), persist to the session inbox and emit live. Shared by
     // room-scoped posts and server-wide broadcasts; returns the count enqueued.
-    private suspend fun enqueueEvent(sessionIds: List<SessionId>, event: Event, persistInbox: Boolean = true): Int {
+    private class GatewayRejected(val result: PostEventResponse.Result) : RuntimeException()
+    private data class Enqueued(val accepted: List<SessionId>, val inserted: List<SessionId>)
+    private suspend fun enqueueEvent(sessionIds: List<SessionId>, offered: Event): Enqueued {
+        val event = Event.fromByteArray(offered.toByteArray())
         val receiveTime = System.nanoTime()
         val requestPush = event.notification?.push
         val roomIdRaw = event.roomId?.rawValue ?: byteArrayOf()
@@ -463,30 +543,43 @@ class SessionServiceImpl(
         val encodedPayload = event.notification?.payload?.rawValue ?: byteArrayOf()
         val encodedLocker = event.locker?.toByteArray() ?: byteArrayOf()
 
-        val recipients = sessionIds.distinct()
-        val events = recipients.map { sessionId ->
-            ServerSessionEvent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomIdRaw),
-                ServerEventId(eventIdRaw), encodedPayload, encodedLocker, event.roomSequence)
-        }
-        // Acceptance is durable before any socket or push side effect. Composite inbox keys
-        // make replay of the same stable event id idempotent.
-        if (requestPush != null && pushDelivery != null) {
-            val room = event.roomId ?: RoomId(byteArrayOf())
-            pushDelivery.outbox.commit(room, recipients, listOf(event.copy(locker = null))) {
-                if (persistInbox) sessionInboxStore.saveEvents(events)
+        if (sessionIds.size > ProtocolValidation.MAX_RECIPIENTS || sessionIds.any { !ProtocolValidation.identity(it.rawValue) } ||
+            !ProtocolValidation.event(event)) throw GatewayRejected(PostEventResponse.Result.INVALID)
+        if (sessionIds.isEmpty()) return Enqueued(emptyList(), emptyList())
+        sessionInboxStore.initializeAdmission()
+        val recipients = sessionStore.atomic(ServerSessionId(sessionIds.first().rawValue)) {
+            val accepted = sessionIds.distinctBy { it.rawValue.toList() }.map { SessionId(it.rawValue.copyOf()) }.filter { id ->
+                val sid = ServerSessionId(id.rawValue)
+                if (sessionStore.isRevoked(sid)) false
+                else if (sessionStore.getSessionById(sid) == null) throw GatewayRejected(PostEventResponse.Result.UNKNOWN_SESSION)
+                else true
             }
-        } else if (persistInbox) sessionInboxStore.saveEvents(events)
+            val events = accepted.map { sessionId ->
+                ServerSessionEvent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomIdRaw),
+                    ServerEventId(eventIdRaw), encodedPayload, encodedLocker, event.roomSequence)
+            }
+            val inserted = sessionInboxStore.acceptClientEvents(events.map { it to event })
+            val newlyAccepted = inserted.map { SessionId(requireNotNull(it.first.sessionId).rawValue) }
+            if (newlyAccepted.isNotEmpty() && requestPush != null && pushDelivery != null) {
+                val room = event.roomId ?: RoomId(byteArrayOf())
+                pushDelivery.outbox.commit(room, newlyAccepted, listOf(event.copy(locker = null))) { }
+            }
+            Enqueued(accepted, newlyAccepted)
+        }
+        val events = recipients.inserted.map { sessionId -> ServerSessionEvent(ServerSessionId(sessionId.rawValue), ServerRoomId(roomIdRaw),
+            ServerEventId(eventIdRaw), encodedPayload, encodedLocker, event.roomSequence) }
         inboxSavesCounter.increment(events.size.toDouble())
         eventsPostedCounter.increment(events.size.toDouble())
         eventsQueuedCounter.increment(events.size.toDouble())
-        events.forEach { incomingEvents.emit(OnlineServerSessionEvent(it, receiveTime, eventSerial.incrementAndGet())) }
-        if (requestPush != null && pushDelivery == null) recipients.forEach { sessionId ->
+        events.forEach { incomingEvents.emit(OnlineServerSessionEvent(it, receiveTime, eventSerial.incrementAndGet(), event)) }
+        if (requestPush != null && pushDelivery == null) recipients.inserted.forEach { sessionId ->
             deliveryScope.launch {
                 pushPermits.acquire()
                 try {
                     pushGatewayDiscovery.findServer(sessionId)?.sendPush(SendPushRequest {
                         this.sessionId = sessionId
                         push = requestPush
+                        deliveryId = eventIdRaw
                     })
                 } catch (e: CancellationException) { throw e }
                 catch (e: Exception) { logger.warn("push enqueue failed after durable inbox acceptance", e) }
@@ -494,7 +587,12 @@ class SessionServiceImpl(
             }
         }
 
-        return sessionIds.size
+        for (sid in recipients.accepted - recipients.inserted.toSet()) {
+            val serverId = ServerSessionId(sid.rawValue)
+            if (sessionInboxStore.isPending(ServerEventId(eventIdRaw), serverId)) incomingEvents.emit(OnlineServerSessionEvent(
+                ServerSessionEvent(sessionId = serverId), sequence = eventSerial.incrementAndGet(), catchUp = true))
+        }
+        return recipients
     }
 
     /**
@@ -518,15 +616,25 @@ class SessionServiceImpl(
         val serverSessionId = open.sessionId?.rawValue?.let { ServerSessionId(it) }
         val requestSequenceSignature = open.sequenceKeySignature?.signature
 
-        if (requestSequenceSignature == null) {
+        if (requestSequenceSignature == null || requestSequenceSignature.size != 64 ||
+            open.toByteArray().size > ProtocolValidation.MAX_ENVELOPE_BYTES || !CpuAdmission.signatureShape(open.sequenceKeySignature, required = true)) {
             result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
             meterRegistry.counter("lockers.session.opens", "result", "INVALID_SEQUENCE").increment()
             return null
         }
 
-        if (serverSessionId == null) {
+        if (serverSessionId == null || !ProtocolValidation.identity(serverSessionId.rawValue)) {
             result = WatchSessionResponse.Open.Result.INVALID_SESSION_ID
             meterRegistry.counter("lockers.session.opens", "result", "INVALID_SESSION_ID").increment()
+            return null
+        }
+
+        if (!cpuAdmission.fits(open.toByteArray().size, 3)) {
+            result = WatchSessionResponse.Open.Result.INVALID_REQUEST
+            return null
+        }
+        if (!cpuAdmission.tryAcquire(open.toByteArray().size, 3)) {
+            result = WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED
             return null
         }
 
@@ -555,9 +663,12 @@ class SessionServiceImpl(
             }
         }
 
-        val authorizedPublicKey = Secp256r1PublicKey.decode(session.authorizedPublicKey)
-
+        if (!ProtocolValidation.publicKey(session.authorizedPublicKey)) {
+            result = WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY
+            return null
+        }
         try {
+            val authorizedPublicKey = Secp256r1PublicKey.decode(session.authorizedPublicKey)
             if (!authorizedPublicKey.verify(session.nextKeyMaterial, requestSequenceSignature)) {
                 result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
                 // Recovery contract: hand back the material the client must sign. It is a nonce
@@ -570,17 +681,23 @@ class SessionServiceImpl(
             }
             val updatedSession = session.copy(nextKeyMaterial = Random.nextBytes(32))
 
-            sessionStore.updateSession(updatedSession)
+            if (!sessionStore.rotateIfCurrent(session, updatedSession)) {
+                result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
+                nextSequenceKey = sessionStore.getSessionById(serverSessionId)?.nextKeyMaterial ?: byteArrayOf()
+                meterRegistry.counter("lockers.session.opens", "result", "INVALID_SEQUENCE").increment()
+                return null
+            }
 
             result = WatchSessionResponse.Open.Result.OK
             nextSequenceKey = updatedSession.nextKeyMaterial
             meterRegistry.counter("lockers.session.opens", "result", "OK").increment()
-        } catch (signatureException: SignatureException) {
+        } catch (expectedInvalidSignature: SignatureException) {
             result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
             nextSequenceKey = session.nextKeyMaterial
             meterRegistry.counter("lockers.session.opens", "result", "INVALID_SEQUENCE").increment()
             return null
-        } catch (ex: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (ex: Exception) {
             logger.warn("session open failed unexpectedly", ex)
             result = WatchSessionResponse.Open.Result.UNKNOWN_ERROR
             meterRegistry.counter("lockers.session.opens", "result", "UNKNOWN_ERROR").increment()
@@ -596,15 +713,25 @@ class SessionServiceImpl(
         val serverSessionId = create.sessionId?.rawValue?.let { ServerSessionId(it) }
         val requestPublicKey = create.publicKey?.rawValue
 
-        if (requestPublicKey == null) {
-            result = WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY
-            meterRegistry.counter("lockers.session.creates", "result", "INVALID_PUBLIC_KEY").increment()
+        if (serverSessionId == null || !ProtocolValidation.identity(serverSessionId.rawValue)) {
+            result = WatchSessionResponse.Open.Result.INVALID_SESSION_ID
             return null
         }
-
-        if (serverSessionId == null) {
-            result = WatchSessionResponse.Open.Result.INVALID_SESSION_ID
-            meterRegistry.counter("lockers.session.creates", "result", "INVALID_SESSION_ID").increment()
+        if (!CpuAdmission.keyShape(requestPublicKey) || create.toByteArray().size > ProtocolValidation.MAX_ENVELOPE_BYTES) {
+            result = WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY
+            return null
+        }
+        if (!cpuAdmission.fits(create.toByteArray().size, 1)) {
+            result = WatchSessionResponse.Open.Result.INVALID_REQUEST
+            return null
+        }
+        if (!cpuAdmission.tryAcquire(create.toByteArray().size, 1)) {
+            result = WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED
+            return null
+        }
+        if (!ProtocolValidation.publicKey(requestPublicKey)) {
+            result = WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY
+            meterRegistry.counter("lockers.session.creates", "result", "INVALID_PUBLIC_KEY").increment()
             return null
         }
 
@@ -620,17 +747,27 @@ class SessionServiceImpl(
             val updatedSession = ServerSession {
                 sessionId = serverSessionId
                 nextKeyMaterial = Random.nextBytes(32)
-                authorizedPublicKey = requestPublicKey
+                authorizedPublicKey = requireNotNull(requestPublicKey)
             }
-            sessionStore.updateSession(updatedSession)
-
+            when (sessionStore.admitIfAbsent(updatedSession, config.resourceLimits)) {
+                SessionAdmission.EXHAUSTED -> { result = WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED; return null }
+                SessionAdmission.NAMESPACE_EXHAUSTED -> { result = WatchSessionResponse.Open.Result.NAMESPACE_EXHAUSTED; return null }
+                SessionAdmission.EXISTS -> {
+                result = WatchSessionResponse.Open.Result.SESSION_EXISTS
+                meterRegistry.counter("lockers.session.creates", "result", "SESSION_EXISTS").increment()
+                return null
+                }
+                SessionAdmission.CREATED -> Unit
+            }
             result = WatchSessionResponse.Open.Result.OK
             nextSequenceKey = updatedSession.nextKeyMaterial
             meterRegistry.counter("lockers.session.creates", "result", "OK").increment()
-        } catch (ex: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (ex: Exception) {
             logger.warn("session create failed unexpectedly", ex)
-            result = WatchSessionResponse.Open.Result.SESSION_EXISTS
-            meterRegistry.counter("lockers.session.creates", "result", "SESSION_EXISTS").increment()
+            result = if (ex is UnsupportedOperationException) WatchSessionResponse.Open.Result.UPGRADE_REQUIRED
+                else WatchSessionResponse.Open.Result.UNKNOWN_ERROR
+            meterRegistry.counter("lockers.session.creates", "result", result.toString()).increment()
             return null
         }
 

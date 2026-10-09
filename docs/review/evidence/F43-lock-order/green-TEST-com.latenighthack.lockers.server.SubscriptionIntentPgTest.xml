@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.SubscriptionIntentPgTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:09:44.348Z" hostname="Mikes-MacBook-Pro.local" time="0.612">
+  <properties/>
+  <testcase name="two PostgreSQL handles serialize intent order and lifetime namespace admission()" classname="com.latenighthack.lockers.server.SubscriptionIntentPgTest" time="0.611"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="MinimalTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:21:33.838Z" hostname="Mikes-MacBook-Pro.local" time="2.116">
+  <properties/>
+  <testcase name="minimal home test[jvm]" classname="gg.roll.viewmodel.core.MinimalTest" time="2.115"/>
+  <system-out><![CDATA[DIAG: server started, url=0.0.0.0:53042
+TEST: run block started
+TEST: got home viewmodel, creating room...
+TEST: onCreateRoomTapped returned
+TEST: room created
+TEST: got room viewmodel, chatId=34
+]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

@@ -9,7 +9,7 @@ import com.latenighthack.lockers.server.MonolithComponent
 import com.latenighthack.lockers.server.ServerCore
 import com.latenighthack.lockers.server.cluster.PeerConnectionPool
 import com.latenighthack.lockers.server.create
-import com.latenighthack.lockers.server.monolith
+import com.latenighthack.lockers.server.trustedTestMonolith
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
@@ -18,6 +18,8 @@ import io.ktor.server.websocket.WebSockets
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.ktor.server.application.install
 import java.net.ServerSocket
+import com.latenighthack.ktcrypto.encode
+import com.latenighthack.ktcrypto.generate
 
 /**
  * One claim-mode node of the in-process cluster: a real [MonolithComponent] wired with a
@@ -33,15 +35,15 @@ class ClaimNode(
 ) {
     val addr: String = "127.0.0.1:$port"
 
-    // Schemeless on purpose: HttpRpcClient prepends "http://" itself for non-https paths.
+    // Transport accepts both bare authorities and complete HTTP URLs.
     val rpc: RpcClient by lazy { HttpRpcClient(addr) }
 
     fun roomClient() = RoomServiceRpc(rpc)
 
     /** Drain: releases claim/registry rows (successors need no TTL wait), then stops the listener. */
     fun stopGracefully() {
-        component.stop()
         server.stop(gracePeriodMillis = 100, timeoutMillis = 1_000)
+        component.stop()
     }
 
     /** Crash: kill the listener and the renew loop WITHOUT releasing rows — they must expire. */
@@ -118,7 +120,7 @@ suspend fun startClaimNode(
 
     val server = embeddedServer(CIO, port = port) {
         install(WebSockets)
-        routing { monolith(component) }
+        routing { trustedTestMonolith(component) }
     }
     server.start(wait = false)
     return ClaimNode(nodeId, port, component, registry, server)
@@ -150,7 +152,7 @@ suspend fun startLocalMonolithNode(delegate: Database): ClaimNode {
     component.start()
     val server = embeddedServer(CIO, port = port) {
         install(WebSockets)
-        routing { monolith(component) }
+        routing { trustedTestMonolith(component) }
     }
     server.start(wait = false)
     return ClaimNode("monolith", port, component, registry, server)
@@ -173,4 +175,12 @@ suspend fun startTwoNodeClaimCluster(
         "node2", delegate, roomClaimsForNode("node2", roomClaims), sessionGateways, ttlMs, renewMs,
     ) { configureCore("node2", it) }
     return TwoNodeClaimCluster(node1, node2, delegate, roomClaims, sessionGateways)
+}
+
+/** Trusted fixture admission; deliveries must never fabricate unknown session identities. */
+suspend fun admitFixtureSession(delegate: Database, id: com.latenighthack.lockers.common.v1.SessionId) {
+    val pair = com.latenighthack.ktcrypto.Secp256r1KeyPair.generate()
+    val store = com.latenighthack.lockers.server.services.session.v1.SessionStoreImpl(delegate).also { it.prepare() }
+    store.createIfAbsent(com.latenighthack.lockers.server.storage.v1.ServerSession(
+        com.latenighthack.lockers.server.storage.v1.ServerSessionId(id.rawValue), byteArrayOf(1), pair.publicKey.encode()))
 }

@@ -97,6 +97,78 @@ class PushServiceTest {
             this.registration = registration
         })
 
+    @Test fun `provider timeout advances durable retry budget and parks without losing work`(): Unit = runBlocking {
+        val provider = RecordingPushProvider(PushBackendKind.APNS).apply { gate = CompletableDeferred() }
+        val h = harness(listOf(provider), PushDispatchConfig(retryPolicy = fastRetries, sendTimeoutMs = 20))
+        val sid = sessionId(98)
+        h.client.register(sid, apns("token"))
+        h.impl.start()
+        try {
+            h.gateway.sendPush(SendPushRequest(sessionId = sid, push = Push(), deliveryId = ByteArray(32) { 8 }))
+            awaitDeadLetters(h, 1)
+            assertThat(h.deadLetterStore.getAllDeadLetters().single().attempts).isEqualTo(3)
+            assertThat(provider.sends.size).isEqualTo(3)
+        } finally { h.impl.stopAndJoin() }
+    }
+
+    @Test fun `replica without a backend cannot consume another replicas durable work`(): Unit = runBlocking {
+        val db = ServerStorage.inMemory()
+        val first = harness(listOf(RecordingPushProvider(PushBackendKind.APNS)), delegate = db)
+        val fcm = RecordingPushProvider(PushBackendKind.FCM)
+        val second = harness(listOf(fcm), delegate = db)
+        val sid = sessionId(99)
+        first.client.register(sid, fcm("fcm-token"))
+        first.impl.start()
+        try {
+            first.gateway.sendPush(SendPushRequest(sessionId = sid, push = Push(), deliveryId = ByteArray(32) { 9 }))
+            delay(500)
+            assertThat(first.admin.getQueueStats(GetQueueStatsRequest()).queued).isEqualTo(1L)
+            second.impl.start()
+            withTimeout(5_000) { while (fcm.sends.isEmpty()) delay(10) }
+            assertThat(fcm.sends.size).isEqualTo(1)
+        } finally { first.impl.stopAndJoin(); second.impl.stopAndJoin(); db.close() }
+    }
+
+    @Test fun `late credential revisions cannot overwrite or unregister newer registration`(): Unit = runBlocking {
+        val h = harness(emptyList())
+        val sid = sessionId(70)
+        h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = apns("new"), credentialRevision = 5))
+        val late = h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = apns("old"), credentialRevision = 4))
+        assertThat(late.result).isEqualTo(RegisterSessionResponse.Result.UNKNOWN_ERROR)
+        val unregister = h.client.unregisterSession(UnregisterSessionRequest(sessionId = sid, backend = PushBackend.fromInt(1), credentialRevision = 3))
+        assertThat(unregister.result).isEqualTo(UnregisterSessionResponse.Result.UNKNOWN_ERROR)
+        val registration = h.sessionStore.getPushInfo(ServerSessionId(sid.rawValue))!!.registrations.single()
+        assertThat(PushRegistration.fromByteArray(registration.encodedRegistration).backend!!.getApns()!!.deviceToken.decodeToString()).isEqualTo("new")
+    }
+
+    @Test fun `credential tombstone rejects late registration and revision payload conflicts`(): Unit = runBlocking {
+        val h = harness(emptyList())
+        val sid = sessionId(71)
+        val registration = RegisterSessionRequest(sessionId = sid, registration = apns("first"), credentialRevision = 1)
+        assertThat(h.client.registerSession(registration).result).isEqualTo(RegisterSessionResponse.Result.OK)
+        assertThat(h.client.registerSession(registration).result).isEqualTo(RegisterSessionResponse.Result.OK)
+        assertThat(h.client.registerSession(registration.copy(registration = apns("conflict"))).result).isEqualTo(RegisterSessionResponse.Result.UNKNOWN_ERROR)
+        val unregister = UnregisterSessionRequest(sessionId = sid, backend = PushBackend.fromInt(1), credentialRevision = 2)
+        assertThat(h.client.unregisterSession(unregister).result).isEqualTo(UnregisterSessionResponse.Result.OK)
+        assertThat(h.client.unregisterSession(unregister).result).isEqualTo(UnregisterSessionResponse.Result.OK)
+        assertThat(h.client.registerSession(registration).result).isEqualTo(RegisterSessionResponse.Result.UNKNOWN_ERROR)
+        assertThat(h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = apns("legacy"))).result).isEqualTo(RegisterSessionResponse.Result.UNKNOWN_ERROR)
+        assertThat(h.sessionStore.getPushInfo(ServerSessionId(sid.rawValue))).isEqualTo(null)
+    }
+
+    @Test fun `provider rejection cannot remove rotated credential`(): Unit = runBlocking {
+        val h = harness(emptyList())
+        val sid = sessionId(72)
+        val old = apns("old").toByteArray()
+        val fresh = apns("fresh")
+        h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = apns("old"), credentialRevision = 1))
+        h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = fresh, credentialRevision = 2))
+        kotlin.test.assertFalse(h.sessionStore.removeCredentialIfCurrent(ServerSessionId(sid.rawValue), 1, old))
+        kotlin.test.assertTrue(h.sessionStore.removeCredentialIfCurrent(ServerSessionId(sid.rawValue), 1, fresh.toByteArray()))
+        assertThat(h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = fresh, credentialRevision = 2)).result).isEqualTo(RegisterSessionResponse.Result.UNKNOWN_ERROR)
+        assertThat(h.client.registerSession(RegisterSessionRequest(sessionId = sid, registration = apns("repaired"), credentialRevision = 3)).result).isEqualTo(RegisterSessionResponse.Result.OK)
+    }
+
     @Test
     fun `registerSession upserts per backend`() = runBlocking {
         val h = harness(listOf(RecordingPushProvider(PushBackendKind.APNS), RecordingPushProvider(PushBackendKind.FCM)))
@@ -117,6 +189,59 @@ class PushServiceTest {
         val apns = info.registrations.first { it.backend == PushBackendKind.APNS.protoValue }
         val decoded = PushRegistration.fromByteArray(apns.encodedRegistration)
         assertThat(decoded.backend?.getApns()?.deviceToken?.decodeToString()).isEqualTo("t2")
+    }
+
+    @Test fun `two workers do not concurrently send one durable queue row`() = runBlocking {
+        val database = ServerStorage.inMemory()
+        val gate = CompletableDeferred<Unit>()
+        val a = RecordingPushProvider(PushBackendKind.APNS).apply { this.gate = gate }
+        val b = RecordingPushProvider(PushBackendKind.APNS).apply { this.gate = gate }
+        val first = harness(listOf(a), delegate = database)
+        val second = PushServiceImpl(first.sessionStore, PushQueueStoreImpl(database), first.deadLetterStore,
+            SimpleMeterRegistry(), listOf(b))
+        val sid = sessionId(52, 53)
+        first.client.register(sid, apns("t1"))
+        first.gateway.sendPush(SendPushRequest { sessionId = sid; push = Push { title = "one row" } })
+        try {
+            first.impl.start(); second.start()
+            withTimeout(1000) { while (a.sends.size + b.sends.size < 1) delay(10) }
+            repeat(10) { first.admin.drainQueue(DrainQueueRequest {}) }
+            delay(300)
+            assertThat(a.sends.size + b.sends.size).isEqualTo(1)
+        } finally { gate.complete(Unit); first.impl.stop(); second.stop() }
+    }
+
+    @Test fun `gateway replay does not send an accepted delivery identity twice`() = runBlocking {
+        val provider = RecordingPushProvider(PushBackendKind.APNS)
+        val h = harness(listOf(provider))
+        val sid = sessionId(54, 55)
+        h.client.register(sid, apns("t1"))
+        val request = SendPushRequest(sessionId = sid, push = Push { title = "stable" }, deliveryId = ByteArray(16) { 1 })
+        try {
+            h.impl.start()
+            h.gateway.sendPush(request)
+            withTimeout(1000) { provider.awaitSends(1); while (h.admin.getQueueStats(GetQueueStatsRequest {}).queued != 0L) delay(10) }
+            h.gateway.sendPush(request)
+            delay(300)
+            assertThat(provider.sends.size).isEqualTo(1)
+        } finally { h.impl.stop() }
+    }
+
+    @Test fun `worker discovers pushes saved by an API-only replica after startup`() = runBlocking {
+        val database = ServerStorage.inMemory()
+        val provider = RecordingPushProvider(PushBackendKind.APNS)
+        val worker = harness(listOf(provider), delegate = database)
+        val api = PushServiceImpl(worker.sessionStore, PushQueueStoreImpl(database), worker.deadLetterStore,
+            SimpleMeterRegistry(), emptyList(), PushDispatchConfig(workerEnabled = false))
+        try {
+            worker.impl.start()
+            delay(100) // The startup snapshot has completed before the other replica enqueues.
+            val sid = sessionId(50, 51)
+            LocalPushServiceRpc(api).register(sid, apns("t1"))
+            LocalPushGatewayServiceRpc(api).sendPush(SendPushRequest { sessionId = sid; push = Push { title = "remote enqueue" } })
+            withTimeout(1000) { provider.awaitSends(1) }
+            assertThat(provider.sends.single().title).isEqualTo("remote enqueue")
+        } finally { worker.impl.stop(); api.stop() }
     }
 
     @Test

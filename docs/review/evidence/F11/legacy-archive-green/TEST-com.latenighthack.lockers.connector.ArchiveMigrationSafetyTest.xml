@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ArchiveMigrationSafetyTest[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:05:14.055Z" hostname="Mikes-MacBook-Pro.local" time="0.932">
+  <properties/>
+  <testcase name="wrongPrivateKeyFailsBeforeAnyArchiveCanBeAdopted[jvm]" classname="com.latenighthack.lockers.connector.ArchiveMigrationSafetyTest" time="0.718"/>
+  <testcase name="sameEpochConflictCannotExposePartiallyMigratedKeysAndPreservesEveryV1Byte[jvm]" classname="com.latenighthack.lockers.connector.ArchiveMigrationSafetyTest" time="0.045"/>
+  <testcase name="cancellationPreservesCommittedCursorAndReopenFinishesWithoutLegacyRescan[jvm]" classname="com.latenighthack.lockers.connector.ArchiveMigrationSafetyTest" time="0.049"/>
+  <testcase name="mutableOperationArgumentsAreFrozenBeforeMigrationSuspends[jvm]" classname="com.latenighthack.lockers.connector.ArchiveMigrationSafetyTest" time="0.12"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

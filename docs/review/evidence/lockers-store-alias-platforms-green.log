@@ -1,0 +1,184 @@
+Type-safe project accessors is an incubating feature.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://github.com/yarnpkg/yarn/releases/download' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :kotlinKotlinNpmCachesSetup
+> Task :kotlinNodeJsSetup
+> Task :kotlinRestoreYarnLock
+> Task :kotlinYarnSetup
+> Task :api:jsPackageJson
+> Task :api:jsTestPackageJson
+> Task :observability-api:jsPackageJson
+> Task :connector:jsPackageJson
+> Task :connector:jsTestPackageJson
+> Task :observability-api:jsTestPackageJson
+> Task :observability-connector:jsPackageJson
+> Task :observability-connector:jsTestPackageJson
+> Task :api:jsPublicPackageJson
+> Task :api:jsTestPublicPackageJson
+> Task :connector:jsPublicPackageJson
+> Task :connector:jsTestPublicPackageJson
+> Task :observability-api:jsPublicPackageJson
+> Task :observability-api:jsTestPublicPackageJson
+> Task :observability-connector:jsPublicPackageJson
+> Task :observability-connector:jsTestPublicPackageJson
+> Task :kotlinPackageJsonUmbrella
+> Task :rootPackageJson
+
+> Task :kotlinNpmInstall
+(node:20414) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+warning Ignored scripts due to flag.
+
+> Task :kotlinStoreYarnLock
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :connector:jsProcessResources NO-SOURCE
+> Task :connector:jsTestProcessResources NO-SOURCE
+> Task :connector:kotlinNodeJsSetup
+> Task :observability-api:compileKotlinJs
+
+> Task :api:compileKotlinJs
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:downloadKotlinNativeDistribution
+
+> Task :connector:compileKotlinJs
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:594:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:783:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1504:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/StreamConnectionState.kt:18:105 This class or interface requires opt-in to be implemented: Inheriting from this kotlinx.coroutines API is unstable. Either new methods may be added in the future, which would break the inheritance, or correctly inheriting from it requires fulfilling contracts that may change in the future.
+
+> Task :api:compileKotlinIosSimulatorArm64
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :connector:jsMainClasses
+> Task :connector:downloadKotlinNativeDistribution
+> Task :observability-api:downloadKotlinNativeDistribution
+> Task :connector:compileTestKotlinJs
+> Task :observability-api:compileKotlinIosSimulatorArm64
+> Task :connector:jsTestClasses
+
+> Task :connector:compileKotlinIosSimulatorArm64
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:594:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:783:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1504:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/StreamConnectionState.kt:18:105 This class or interface requires opt-in to be implemented: Inheriting from this kotlinx.coroutines API is unstable. Either new methods may be added in the future, which would break the inheritance, or correctly inheriting from it requires fulfilling contracts that may change in the future.
+
+> Task :connector:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :connector:iosSimulatorArm64MainKlibrary
+> Task :connector:compileTestKotlinIosSimulatorArm64
+> Task :connector:compileTestDevelopmentExecutableKotlinJs
+
+> Task :connector:linkDebugTestIosSimulatorArm64
+warning: /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/Foundation-26APARFLUI2TQ.pcm: No such file or directory
+note: while processing /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/Foundation-26APARFLUI2TQ.pcm
+note: Linking a static library that was built with -gmodules, but the module cache was not found.  Redistributable static libraries should never be built with module debugging enabled.  The debug experience will be degraded due to incomplete debug information.
+warning: /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/_SwiftConcurrencyShims-1O6J4FRGOX9K.pcm: No such file or directory
+note: while processing /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/_SwiftConcurrencyShims-1O6J4FRGOX9K.pcm
+
+> Task :connector:jsTestTestDevelopmentExecutableCompileSync
+> Task :connector:jsNodeTest
+> Task :connector:iosSimulatorArm64Test
+> Task :api:preBuild UP-TO-DATE
+> Task :api:preReleaseBuild UP-TO-DATE
+> Task :api:generateReleaseResValues
+> Task :api:generateReleaseResources
+> Task :api:packageReleaseResources
+> Task :api:processReleaseNavigationResources
+> Task :connector:preBuild UP-TO-DATE
+> Task :connector:preReleaseBuild UP-TO-DATE
+> Task :connector:generateReleaseResValues
+> Task :api:javaPreCompileRelease
+> Task :connector:generateReleaseResources
+> Task :connector:packageReleaseResources
+> Task :connector:processReleaseNavigationResources
+> Task :observability-api:preBuild UP-TO-DATE
+> Task :observability-api:preReleaseBuild UP-TO-DATE
+> Task :observability-api:generateReleaseResValues
+> Task :observability-api:generateReleaseResources
+> Task :observability-api:packageReleaseResources
+> Task :observability-api:processReleaseNavigationResources
+> Task :api:parseReleaseLocalResources
+> Task :connector:parseReleaseLocalResources
+> Task :observability-api:parseReleaseLocalResources
+> Task :observability-api:javaPreCompileRelease
+> Task :observability-api:generateReleaseRFile
+> Task :connector:generateReleaseRFile
+> Task :api:generateReleaseRFile
+> Task :observability-api:compileReleaseKotlinAndroid
+> Task :observability-api:compileReleaseJavaWithJavac NO-SOURCE
+> Task :observability-api:bundleLibCompileToJarRelease
+
+> Task :api:compileReleaseKotlinAndroid
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileReleaseJavaWithJavac NO-SOURCE
+> Task :api:bundleLibCompileToJarRelease
+
+> Task :connector:compileReleaseKotlinAndroid
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:594:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:783:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1504:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/StreamConnectionState.kt:18:105 This class or interface requires opt-in to be implemented: Inheriting from this kotlinx.coroutines API is unstable. Either new methods may be added in the future, which would break the inheritance, or correctly inheriting from it requires fulfilling contracts that may change in the future.
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 42s
+71 actionable tasks: 68 executed, 3 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

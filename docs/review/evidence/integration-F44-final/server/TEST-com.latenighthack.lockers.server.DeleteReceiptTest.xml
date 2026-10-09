@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.DeleteReceiptTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:20.961Z" hostname="Mikes-MacBook-Pro.local" time="0.021">
+  <properties/>
+  <testcase name="deletingAnExistingTombstoneDoesNotAdvanceVersionOrFanout()" classname="com.latenighthack.lockers.server.DeleteReceiptTest" time="0.006"/>
+  <testcase name="reusedDeleteIdentityRejectsDifferentPacket()" classname="com.latenighthack.lockers.server.DeleteReceiptTest" time="0.004"/>
+  <testcase name="lostDeleteReplyReplayPreservesRecreatedLockerAndDeliveryCount()" classname="com.latenighthack.lockers.server.DeleteReceiptTest" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

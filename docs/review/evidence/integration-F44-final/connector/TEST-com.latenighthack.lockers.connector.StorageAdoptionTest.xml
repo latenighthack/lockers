@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="StorageAdoptionTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:04.802Z" hostname="Mikes-MacBook-Pro.local" time="0.025">
+  <properties/>
+  <testcase name="adoptsEveryOwnedStorePreservesBytesAndSupportsReopen[jvm]" classname="com.latenighthack.lockers.connector.StorageAdoptionTest" time="0.025"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

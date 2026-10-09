@@ -1,0 +1,19 @@
+[
+  {
+    "id": "ktbuf",
+    "status": "cached"
+  },
+  {
+    "id": "ktstore",
+    "status": "cached"
+  },
+  {
+    "id": "lockers",
+    "status": "cached"
+  },
+  {
+    "id": "social",
+    "status": "passed",
+    "artifacts": 1561
+  }
+]

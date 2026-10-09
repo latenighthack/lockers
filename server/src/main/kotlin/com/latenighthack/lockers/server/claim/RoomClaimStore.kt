@@ -14,15 +14,17 @@ data class RoomClaimRow(val nodeId: String, val nodeAddr: String, val epoch: Lon
  * claim QPS ever pressures Postgres.
  */
 interface RoomClaimStore {
+    fun mutationFence(roomId: RoomId, nodeId: String, epoch: Long): com.latenighthack.lockers.server.services.room.v1.RoomMutationFence =
+        com.latenighthack.lockers.server.services.room.v1.ClaimMutationFence(roomId, nodeId, epoch)
     /** Idempotently creates the backing table/index (the app-table `createStores()` precedent). */
     suspend fun prepare()
 
     /**
      * Atomic insert-or-steal-if-expired-or-renew-own, in one round trip. Always returns the
      * current owner's row: `nodeId == [nodeId]` means this node owns the room at `epoch`; any other
-     * value is a valid owner to redirect to. The epoch bumps only on a takeover (insert after
-     * expiry or steal), never on the owner's own re-claim, so it is a monotonic fencing token whose
-     * increments count ownership changes.
+     * value is a valid owner to redirect to. The epoch advances after expiry, release or a steal, including a reclaim by
+     * the same process. An unexpired self-renew retains its epoch. Released rows remain
+     * present so no previous fencing token can become current again.
      */
     suspend fun claim(roomId: RoomId, nodeId: String, nodeAddr: String, ttlMs: Long): RoomClaimRow
 
@@ -33,10 +35,10 @@ interface RoomClaimStore {
      */
     suspend fun renewAll(nodeId: String, ttlMs: Long): Set<RoomId>
 
-    /** Deletes the claim only if [nodeId] still owns it (release-after-steal is a no-op). */
+    /** Expires the claim, preserving its epoch, only if [nodeId] still owns it (release-after-steal is a no-op). */
     suspend fun release(roomId: RoomId, nodeId: String)
 
-    /** Graceful drain: deletes every claim held by [nodeId] so successors need not wait out a TTL. */
+    /** Graceful drain: expires every claim held by [nodeId] so successors need not wait out a TTL. */
     suspend fun releaseAll(nodeId: String)
 
     /** The raw row, including an expired one (the caller decides what expiry means), or null. */
@@ -47,38 +49,57 @@ interface RoomClaimStore {
 }
 
 /** Production [RoomClaimStore] over the shared Postgres, plain JDBC on a [ClaimJdbcPool]. */
-class JdbcRoomClaimStore(private val pool: ClaimJdbcPool) : RoomClaimStore {
+class RoomClaimCapacityExceeded : IllegalStateException("Permanent room claim history capacity exceeded")
+
+class JdbcRoomClaimStore(private val pool: ClaimJdbcPool, private val maxRoomClaims: Long = 1_000_000) : RoomClaimStore {
+    init { require(maxRoomClaims > 0) }
     override suspend fun prepare() {
         pool.withConnection { conn ->
             conn.createStatement().use { st ->
                 st.execute(TABLE_DDL)
                 st.execute(INDEX_DDL)
+                st.execute("CREATE TABLE IF NOT EXISTS room_claim_capacity (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), reserved BIGINT NOT NULL CHECK (reserved >= 0))")
+                st.execute("INSERT INTO room_claim_capacity (singleton, reserved) SELECT 1, COUNT(*) FROM room_claim ON CONFLICT (singleton) DO NOTHING")
             }
         }
     }
 
     override suspend fun claim(roomId: RoomId, nodeId: String, nodeAddr: String, ttlMs: Long): RoomClaimRow {
-        // The upsert returns a row when we won (insert, steal, or self-renew); when the WHERE was
-        // false a valid owner exists — read it. A concurrent release can delete that row between
-        // the two statements, so retry the claim once rather than fail the write.
-        repeat(CLAIM_ATTEMPTS) {
-            val row = pool.withConnection { conn ->
-                conn.prepareStatement(CLAIM_SQL).use { st ->
+        require(roomId.rawValue.size in 1..128 && nodeId.isNotBlank() && nodeAddr.isNotBlank() && ttlMs > 0)
+        return pool.withConnection { conn ->
+            conn.autoCommit = false
+            try {
+                fun lookup(): RoomClaimRow? = conn.prepareStatement(LOOKUP_SQL).use { st ->
+                    st.setBytes(1, roomId.rawValue)
+                    st.executeQuery().use { rs -> if (rs.next()) rs.toClaimRow() else null }
+                }
+                if (lookup() == null) {
+                    val count = conn.createStatement().use { st ->
+                        st.executeQuery("SELECT reserved FROM room_claim_capacity WHERE singleton = 1 FOR UPDATE").use { rs ->
+                            check(rs.next()) { "Room claim capacity must be prepared before admission" }
+                            rs.getLong(1)
+                        }
+                    }
+                    // A competing admission may have installed this identity while we waited.
+                    if (lookup() == null) {
+                        if (count >= maxRoomClaims) throw RoomClaimCapacityExceeded()
+                        conn.createStatement().use { it.executeUpdate("UPDATE room_claim_capacity SET reserved = reserved + 1 WHERE singleton = 1") }
+                    }
+                }
+                val row = conn.prepareStatement(CLAIM_SQL).use { st ->
                     st.setBytes(1, roomId.rawValue)
                     st.setString(2, nodeId)
                     st.setString(3, nodeAddr)
                     st.setDouble(4, ttlMs.toDouble())
-                    st.executeQuery().use { rs ->
-                        if (rs.next()) rs.toClaimRow() else null
-                    }
-                } ?: conn.prepareStatement(LOOKUP_SQL).use { st ->
-                    st.setBytes(1, roomId.rawValue)
                     st.executeQuery().use { rs -> if (rs.next()) rs.toClaimRow() else null }
-                }
-            }
-            if (row != null) return row
+                } ?: requireNotNull(lookup()) { "Room claim disappeared during admission" }
+                conn.commit()
+                row
+            } catch (failure: Throwable) {
+                try { conn.rollback() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                throw failure
+            } finally { conn.autoCommit = true }
         }
-        error("room claim for ${roomId.rawValue.size}-byte roomId raced deletes $CLAIM_ATTEMPTS times")
     }
 
     override suspend fun renewAll(nodeId: String, ttlMs: Long): Set<RoomId> =
@@ -132,7 +153,6 @@ class JdbcRoomClaimStore(private val pool: ClaimJdbcPool) : RoomClaimStore {
     )
 
     companion object {
-        private const val CLAIM_ATTEMPTS = 3
 
         const val TABLE_DDL = """
             CREATE TABLE IF NOT EXISTS room_claim (
@@ -156,7 +176,7 @@ class JdbcRoomClaimStore(private val pool: ClaimJdbcPool) : RoomClaimStore {
             ON CONFLICT (room_id) DO UPDATE
                SET node_id    = EXCLUDED.node_id,
                    node_addr  = EXCLUDED.node_addr,
-                   epoch      = CASE WHEN room_claim.node_id = EXCLUDED.node_id
+                   epoch      = CASE WHEN room_claim.node_id = EXCLUDED.node_id AND room_claim.expires_at >= now()
                                      THEN room_claim.epoch
                                      ELSE room_claim.epoch + 1 END,
                    expires_at = EXCLUDED.expires_at
@@ -172,10 +192,10 @@ class JdbcRoomClaimStore(private val pool: ClaimJdbcPool) : RoomClaimStore {
         """
 
         private const val RELEASE_SQL =
-            "DELETE FROM room_claim WHERE room_id = ? AND node_id = ?"
+            "UPDATE room_claim SET expires_at = '-infinity'::timestamptz WHERE room_id = ? AND node_id = ?"
 
         private const val RELEASE_ALL_SQL =
-            "DELETE FROM room_claim WHERE node_id = ?"
+            "UPDATE room_claim SET expires_at = '-infinity'::timestamptz WHERE node_id = ?"
 
         private const val LOOKUP_SQL =
             "SELECT node_id, node_addr, epoch FROM room_claim WHERE room_id = ?"

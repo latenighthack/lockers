@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.claim.ClaimRoomOwnershipTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:48.938Z" hostname="Mikes-MacBook-Pro.local" time="0.135">
+  <properties/>
+  <testcase name="first resolve claims and returns Local with the claim epoch()" classname="com.latenighthack.lockers.server.claim.ClaimRoomOwnershipTest" time="0.001"/>
+  <testcase name="demoteAll clears the owned set and the gauge()" classname="com.latenighthack.lockers.server.claim.ClaimRoomOwnershipTest" time="0.001"/>
+  <testcase name="foreign-owned room resolves Remote with the owner's address()" classname="com.latenighthack.lockers.server.claim.ClaimRoomOwnershipTest" time="0.0"/>
+  <testcase name="store failure propagates out of resolve()" classname="com.latenighthack.lockers.server.claim.ClaimRoomOwnershipTest" time="0.0"/>
+  <testcase name="demote flips resolve back to the store and to Remote after a steal()" classname="com.latenighthack.lockers.server.claim.ClaimRoomOwnershipTest" time="0.001"/>
+  <testcase name="remote address is never empty across store states()" classname="com.latenighthack.lockers.server.claim.ClaimRoomOwnershipTest" time="0.003"/>
+  <testcase name="keyspace does not affect ownership()" classname="com.latenighthack.lockers.server.claim.ClaimRoomOwnershipTest" time="0.0"/>
+  <testcase name="steal of an expired foreign claim counts as steal and bumps epoch()" classname="com.latenighthack.lockers.server.claim.ClaimRoomOwnershipTest" time="0.0"/>
+  <testcase name="non-owner cache entries expire so takeovers propagate()" classname="com.latenighthack.lockers.server.claim.ClaimRoomOwnershipTest" time="0.124"/>
+  <testcase name="fresh owner cache hits skip the store()" classname="com.latenighthack.lockers.server.claim.ClaimRoomOwnershipTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

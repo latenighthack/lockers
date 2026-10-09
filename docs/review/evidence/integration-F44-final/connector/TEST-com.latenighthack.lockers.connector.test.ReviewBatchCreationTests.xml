@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewBatchCreationTests[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:06.760Z" hostname="Mikes-MacBook-Pro.local" time="0.021">
+  <properties/>
+  <testcase name="ordinaryAtomicBatchCreatesFreshUnclaimedLockers[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewBatchCreationTests" time="0.016"/>
+  <testcase name="bulkAbsentLookupMatchesSingleVersionZeroAuthority[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewBatchCreationTests" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

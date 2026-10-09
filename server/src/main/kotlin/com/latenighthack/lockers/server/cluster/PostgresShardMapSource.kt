@@ -11,6 +11,9 @@ import com.latenighthack.lockers.sharding.ShardId
 import com.latenighthack.lockers.sharding.ShardMap
 import com.latenighthack.lockers.sharding.spi.ShardMapSource
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -20,7 +23,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.sql.Connection
-import java.sql.DriverManager
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -97,12 +99,15 @@ interface ShardMapGateway {
  * The initial map is the ring computed from static membership (`fallbackAssignment`) so the node
  * routes correctly from t=0 even before the control plane has written any rows.
  */
+data class ShardMapStatus(val loaded: Boolean = false, val refreshedAtMillis: Long? = null, val failed: Boolean = false)
+
 class PostgresShardMapSource(
     private val gateway: ShardMapGateway,
     private val counts: ShardCounts,
     fallbackAssignment: Assignment,
     private val partition: PartitionFunction = HashPartitionFunction(),
     private val pollInterval: Duration = 5.seconds,
+    private val clock: () -> Long = System::currentTimeMillis,
 ) : ShardMapSource {
     private val bootstrap: ShardMap = ShardMap(
         epoch = Epoch(0),
@@ -112,19 +117,35 @@ class PostgresShardMapSource(
     )
     private val fallback: Assignment = fallbackAssignment
     private val state = MutableStateFlow(bootstrap)
+    private val status = MutableStateFlow(ShardMapStatus())
+    val health: StateFlow<ShardMapStatus> = status.asStateFlow()
+    private var job: Job? = null
+
+    fun notReadyReason(now: Long = clock()): String? {
+        val current = status.value
+        if (!current.loaded) return "shard map not loaded"
+        if (now - requireNotNull(current.refreshedAtMillis) > pollInterval.inWholeMilliseconds.coerceAtLeast(1) * 3)
+            return "shard map refresh is stale"
+        return null
+    }
 
     @Volatile
     private var primed = false
 
     /** Starts polling the table; each higher-epoch snapshot is pushed onto [watch]. */
+    @Synchronized
     fun bind(scope: CoroutineScope) {
-        scope.launch {
-            // Prime once immediately so /readyz reflects the real map without waiting a full poll.
-            refresh()
+        check(job == null) { "Shard map source already bound" }
+        job = scope.launch {
             while (isActive) {
+                try { refresh() }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (error: Exception) {
+                    status.value = status.value.copy(failed = true)
+                    org.slf4j.LoggerFactory.getLogger(PostgresShardMapSource::class.java)
+                        .warn("shard_map poll failed; retaining last map", error)
+                }
                 delay(pollInterval)
-                runCatching { refresh() }
-                    .onFailure { System.err.println("shard_map poll failed (keeping last map): ${it.message}") }
             }
         }
     }
@@ -138,6 +159,7 @@ class PostgresShardMapSource(
             primed = true
             state.value = next
         }
+        status.value = ShardMapStatus(loaded = true, refreshedAtMillis = clock())
     }
 
     override suspend fun current(): ShardMap = state.value
@@ -176,7 +198,7 @@ class JdbcShardMapGateway(private val jdbcUrl: String) : ShardMapGateway {
         }
     }
 
-    private fun connect(): Connection = DriverManager.getConnection(jdbcUrl)
+    private fun connect(): Connection = com.latenighthack.lockers.server.tools.openPostgresConnection(jdbcUrl)
 
     companion object {
         const val TABLE_DDL = """

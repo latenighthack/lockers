@@ -6,10 +6,20 @@ import com.latenighthack.ktbuf.net.RpcResponse
 import com.latenighthack.ktbuf.net.RpcResponseException
 import com.latenighthack.ktbuf.net.RpcServerStream
 import com.latenighthack.ktbuf.proto.Codes
-import com.latenighthack.ktbuf.test.server.runTestWithServer
+import com.latenighthack.lockers.connector.test.runOwnedTestWithServer as runTestWithServer
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.ktstore.InMemoryKeyValueStoreDelegate
 import com.latenighthack.ktstore.Database
+import com.latenighthack.ktstore.IndexedQuery
+import com.latenighthack.ktstore.IndexedQueryDelegate
+import com.latenighthack.ktstore.InMemoryStoreDelegate
+import com.latenighthack.ktstore.LifecycleStoreDelegate
+import com.latenighthack.ktstore.QueryPage
+import com.latenighthack.ktstore.ScopedStoreDelegate
+import com.latenighthack.ktstore.TransactionMode
+import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlin.coroutines.CoroutineContext
+import com.latenighthack.lockers.connector.internal.ConnectorEventJournalDefinitionV1
 import com.latenighthack.ktstore.KeyValueStore
 import com.latenighthack.lockers.example.v1.*
 import com.latenighthack.lockers.common.RoomKeying
@@ -17,6 +27,7 @@ import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.*
 import com.latenighthack.lockers.room.v1.*
 import com.latenighthack.lockers.server.*
+import com.latenighthack.lockers.connector.test.ownedRpcClient as rpcClient
 import io.ktor.server.application.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -24,6 +35,31 @@ import kotlin.random.Random
 import kotlin.test.*
 
 class LockerClientTests {
+    // The live watch captures its starting cursor before the first journal page query.
+    // Flow.onStart runs before that capture and cannot signal readiness for a following write.
+    private class CursorReady(val ready: CompletableDeferred<Unit>) : AbstractCoroutineContextElement(Key) {
+        companion object Key : CoroutineContext.Key<CursorReady>
+    }
+    private class CursorReadyDelegate(private val source: InMemoryStoreDelegate = InMemoryStoreDelegate()) :
+        LifecycleStoreDelegate by source, ScopedStoreDelegate, IndexedQueryDelegate {
+        override val supportsTransactions get() = source.supportsTransactions
+        override suspend fun <T> transaction(block: suspend () -> T) = source.transaction(block)
+        override suspend fun <T> transaction(lockKey: String, block: suspend () -> T) =
+            source.transaction(lockKey, block)
+        override suspend fun <T> transaction(stores: Set<String>, mode: TransactionMode, block: suspend () -> T) =
+            source.transaction(stores, mode, block)
+        override suspend fun count(tableName: String, query: IndexedQuery) = source.count(tableName, query)
+        override suspend fun deleteBatch(tableName: String, query: IndexedQuery, identity: String, version: Int) =
+            source.deleteBatch(tableName, query, identity, version)
+        override suspend fun query(tableName: String, query: IndexedQuery, identity: String, version: Int): QueryPage {
+            val page = source.query(tableName, query, identity, version)
+            if (tableName == ConnectorEventJournalDefinitionV1.storeName.value) {
+                currentCoroutineContext()[CursorReady]?.ready?.complete(Unit)
+            }
+            return page
+        }
+    }
+
     @Test(timeout = 15_000)
     fun `missing capability route selects legacy before any write`() = runTestWithServer(Application::attachTestServices) { server, _ ->
         val rpc = FaultInjectingRpcClient(server.rpcClient) { method, _ ->
@@ -60,7 +96,7 @@ class LockerClientTests {
             override suspend fun revokeKeys() {}
         }
 
-        val lockers = LockersClient.create(
+        val lockers = createOwnedTestClient(
             rpcClient = rpcClient,
             database = database,
             keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate()),
@@ -674,7 +710,8 @@ class LockerClientTests {
 
     @Test(timeout = 15_000)
     fun `watch without includeHistory skips current value`() = runTestWithServer(Application::attachTestServices) { server, _ ->
-        val ctx = createClient(server.rpcClient)
+        val database = Database(ConnectorStorage.configuration("watch-readiness"), CursorReadyDelegate())
+        val ctx = createClient(server.rpcClient, database = database)
         val roomId = randomRoomId()
         val lockerId = randomLockerId()
         ctx.typedClient.subscribeToRoom(roomId)
@@ -683,9 +720,8 @@ class LockerClientTests {
 
         val ready = CompletableDeferred<Unit>()
         val firstSeen = CompletableDeferred<String>()
-        val job = launch {
+        val job = launch(CursorReady(ready)) {
             ctx.typedClient.watch(roomId, lockerId, includeHistory = false)
-                .onStart { ready.complete(Unit) }
                 .mapNotNull { if (it is TypedLockerUpdate.Present) it.value else null }
                 .first()
                 .let { firstSeen.complete(it.title) }

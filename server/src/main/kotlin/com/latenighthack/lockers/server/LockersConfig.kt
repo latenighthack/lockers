@@ -34,6 +34,8 @@ data class WebPushConfig(
     val vapidPublicKey: String?,
     val vapidPrivateKey: String?,
     val subject: String?,
+    /** Operator-trusted push provider hosts. Subdomain wildcard allowed only as a leading '*.'. */
+    val endpointHosts: Set<String> = setOf("fcm.googleapis.com", "updates.push.services.mozilla.com", "web.push.apple.com", "*.notify.windows.com"),
 ) {
     val isConfigured: Boolean
         get() = !vapidPublicKey.isNullOrBlank() && !vapidPrivateKey.isNullOrBlank() && !subject.isNullOrBlank()
@@ -57,6 +59,8 @@ data class ShardingConfig(
     val keyspaceShardCounts: String?,
     val ringVnodes: Int,
     val sessionShardCount: Int,
+    /** Complete node=public-URL map; private advertised peer addresses are not session endpoints. */
+    val publicSessionAddresses: String? = null,
 )
 
 /**
@@ -85,6 +89,7 @@ data class ShardingConfig(
  *   WEBPUSH_SUBJECT              VAPID `sub` claim (mailto: or origin URL)
  *   LOCKERS_NODE_ID              this node's logical ring identity (default: unset => monolith)
  *   LOCKERS_ADVERTISE_ADDR       peer-reachable host:port for east-west RPC
+ *   LOCKERS_PUBLIC_SESSION_ADDRS node=public HTTP(S) endpoint map; required for authenticated ring mode
  *   LOCKERS_PEERS                comma-separated node list; presence enables cluster mode
  *   LOCKERS_SHARD_COUNT_DEFAULT  room-ring global shard count (default 256)
  *   LOCKERS_KEYSPACE_SHARD_COUNTS  per-keyspace overrides, e.g. "1=512,30=128"
@@ -122,8 +127,11 @@ data class LockersConfig(
     val claimTtlMs: Long,
     val claimRenewMs: Long,
     val ringMaxConnections: Int,
-    val deliveryOutboxEnabled: Boolean = false,
+    val deliveryOutboxEnabled: Boolean = true,
     val deliveryWorkerEnabled: Boolean = true,
+    /** Shared cluster credential for the internal peer listener; never passed to public clients. */
+    val peerToken: String? = null,
+    val resourceLimits: ServerResourceLimits = ServerResourceLimits(),
 ) {
     val shardCount: Int get() = (Runtime.getRuntime().availableProcessors() * shardMultiplier).coerceAtLeast(1)
 
@@ -142,8 +150,10 @@ data class LockersConfig(
             fun long(name: String, default: Long) = env(name)?.trim()?.toLongOrNull() ?: default
             fun bool(name: String, default: Boolean) = env(name)?.trim()?.toBooleanStrictOrNull() ?: default
             return LockersConfig(
-                deliveryOutboxEnabled = bool("LOCKERS_DELIVERY_OUTBOX_ENABLED", false),
+                resourceLimits = ServerResourceLimits.fromEnv(env),
+                deliveryOutboxEnabled = bool("LOCKERS_DELIVERY_OUTBOX_ENABLED", true),
                 deliveryWorkerEnabled = bool("LOCKERS_DELIVERY_WORKER_ENABLED", true),
+                peerToken = env("LOCKERS_PEER_TOKEN")?.takeIf { it.isNotBlank() },
                 httpPort = int("LOCKERS_HTTP_PORT", 8080),
                 adminPort = int("LOCKERS_ADMIN_PORT", 8081),
                 databaseUrl = env("LOCKERS_DB_URL")?.takeIf { it.isNotBlank() },
@@ -169,6 +179,8 @@ data class LockersConfig(
                     vapidPublicKey = env("WEBPUSH_VAPID_PUBLIC_KEY"),
                     vapidPrivateKey = env("WEBPUSH_VAPID_PRIVATE_KEY"),
                     subject = env("WEBPUSH_SUBJECT"),
+                    endpointHosts = env("WEBPUSH_ENDPOINT_HOSTS")?.split(',')?.map { it.trim().lowercase() }?.filter { it.isNotEmpty() }?.toSet()
+                        ?: WebPushConfig(null, null, null).endpointHosts,
                 ),
                 sharding = ShardingConfig(
                     nodeId = env("LOCKERS_NODE_ID")?.takeIf { it.isNotBlank() },
@@ -178,6 +190,7 @@ data class LockersConfig(
                     keyspaceShardCounts = env("LOCKERS_KEYSPACE_SHARD_COUNTS")?.takeIf { it.isNotBlank() },
                     ringVnodes = int("LOCKERS_RING_VNODES", 128),
                     sessionShardCount = int("LOCKERS_SESSION_SHARD_COUNT", 256),
+                    publicSessionAddresses = env("LOCKERS_PUBLIC_SESSION_ADDRS")?.takeIf { it.isNotBlank() },
                 ),
                 requireDb = bool("LOCKERS_REQUIRE_DB", false),
                 roomOwnership = env("LOCKERS_ROOM_OWNERSHIP")?.trim()?.takeIf { it.isNotBlank() } ?: "local",

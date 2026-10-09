@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.SubscriptionIntentStoreTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:09:44.960Z" hostname="Mikes-MacBook-Pro.local" time="0.619">
+  <properties/>
+  <testcase name="unsubscribe history rejects stale and conflicting generations but exact replay is idempotent()" classname="com.latenighthack.lockers.server.SubscriptionIntentStoreTest" time="0.003"/>
+  <testcase name="V4 SQLite subscriptions migrate without losing rows and intent revisions survive reopen()" classname="com.latenighthack.lockers.server.SubscriptionIntentStoreTest" time="0.604"/>
+  <testcase name="intent identity bytes are frozen before waiting for a transaction owner()" classname="com.latenighthack.lockers.server.SubscriptionIntentStoreTest" time="0.003"/>
+  <testcase name="source failure rolls back its new revision and tombstones count against finite namespace until cleanup()" classname="com.latenighthack.lockers.server.SubscriptionIntentStoreTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

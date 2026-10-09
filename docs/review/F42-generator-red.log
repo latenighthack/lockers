@@ -1,0 +1,46 @@
+Type-safe project accessors is an incubating feature.
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :api:jvmTestProcessResources NO-SOURCE
+> Task :api:processJvmTestResources SKIPPED
+> Task :api:compileTestKotlinJvm
+> Task :api:compileJvmTestJava NO-SOURCE
+> Task :api:jvmTestClasses
+
+> Task :api:jvmTest FAILED
+
+GeneratedEqualityContractTest[jvm] > enumEqualityIsBoundToItsDeclaredFamily[jvm] FAILED
+    java.lang.ClassCastException at GeneratedEqualityContractTest.kt:21
+
+GeneratedEqualityContractTest[jvm] > unknownFieldsHaveSymmetricEqualityAndConsistentHashing[jvm] FAILED
+    java.lang.AssertionError at GeneratedEqualityContractTest.kt:10
+
+2 tests completed, 2 failed
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':api:jvmTest'.
+> There were failing tests. See the report at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/reports/tests/jvmTest/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 5s
+7 actionable tasks: 3 executed, 4 up-to-date

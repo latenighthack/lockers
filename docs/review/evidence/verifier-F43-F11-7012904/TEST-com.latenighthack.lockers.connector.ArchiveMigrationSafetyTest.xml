@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ArchiveMigrationSafetyTest[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T03:53:46.428Z" hostname="Mikes-MacBook-Pro.local" time="1.011">
+  <properties/>
+  <testcase name="wrongPrivateKeyFailsBeforeAnyArchiveCanBeAdopted[jvm]" classname="com.latenighthack.lockers.connector.ArchiveMigrationSafetyTest" time="0.788"/>
+  <testcase name="sameEpochConflictCannotExposePartiallyMigratedKeysAndPreservesEveryV1Byte[jvm]" classname="com.latenighthack.lockers.connector.ArchiveMigrationSafetyTest" time="0.052"/>
+  <testcase name="cancellationPreservesCommittedCursorAndReopenFinishesWithoutLegacyRescan[jvm]" classname="com.latenighthack.lockers.connector.ArchiveMigrationSafetyTest" time="0.05"/>
+  <testcase name="mutableOperationArgumentsAreFrozenBeforeMigrationSuspends[jvm]" classname="com.latenighthack.lockers.connector.ArchiveMigrationSafetyTest" time="0.12"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

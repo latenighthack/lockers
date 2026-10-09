@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="iosSimulatorArm64Test.com.latenighthack.lockers.connector.LockerStoreIsolationTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:12:48.292Z" hostname="Mikes-MacBook-Pro.local" time="0.034">
+  <properties/>
+  <testcase name="savedAndAcceptedRowsDoNotRetainCallerArrays[iosSimulatorArm64]" classname="iosSimulatorArm64Test.com.latenighthack.lockers.connector.LockerStoreIsolationTest" time="0.021"/>
+  <testcase name="everyPublicReadDetachesStoredRows[iosSimulatorArm64]" classname="iosSimulatorArm64Test.com.latenighthack.lockers.connector.LockerStoreIsolationTest" time="0.013"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

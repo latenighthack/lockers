@@ -3,20 +3,14 @@ package com.latenighthack.lockers.server.claim
 import com.latenighthack.lockers.common.v1.SessionId
 import com.latenighthack.lockers.server.services.session.v1.SessionRegistry
 import com.latenighthack.lockers.server.storage.v1.ServerSessionId
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Claim-mode [SessionRegistry]: mirrors this node's live WebSocket sessions into the
- * `session_gateway` table so peers can discover the gateway for directed fan-out.
- *
- * The local set is the source of truth and is updated synchronously; row writes are launched on
- * [scope] so the WebSocket open/close path never blocks on the database. Failed upserts self-heal:
- * every renew round re-upserts any locally-attached session whose row the batched renew did not
- * confirm (and rows for detached sessions expire by TTL even if the async delete was lost).
- */
+/** Routes live sessions with a distinct identity for every attachment, including same-node opens. */
 class ClaimSessionRegistry(
     private val store: SessionGatewayStore,
     private val nodeId: String,
@@ -25,49 +19,57 @@ class ClaimSessionRegistry(
     private val scope: CoroutineScope,
 ) : SessionRegistry {
     private val logger = LoggerFactory.getLogger(ClaimSessionRegistry::class.java)
-    private val attached = ConcurrentHashMap.newKeySet<SessionId>()
+    private val attached = ConcurrentHashMap<SessionId, String>()
+    private val writes = Mutex()
 
     override suspend fun attachBeforeSnapshot(sessionId: ServerSessionId) {
         val id = SessionId(sessionId.rawValue)
-        store.upsert(id, nodeId, advertiseAddr, ttlMs)
-        attached.add(id)
+        val incarnation = UUID.randomUUID().toString()
+        writes.withLock {
+            attached[id] = incarnation
+            try { store.upsert(id, nodeId, advertiseAddr, ttlMs, incarnation) }
+            catch (failure: Throwable) { attached.remove(id, incarnation); throw failure }
+        }
     }
 
     override suspend fun remoteSessions(sessionIds: List<SessionId>): Set<SessionId> =
         store.lookupMany(sessionIds).filterValues { it.nodeId != nodeId }.keys
 
     override fun attach(sessionId: ServerSessionId) {
-        val id = SessionId(rawValue = sessionId.rawValue)
-        attached.add(id)
+        val id = SessionId(sessionId.rawValue)
+        val incarnation = UUID.randomUUID().toString()
+        attached[id] = incarnation
         scope.launch {
-            runCatching { store.upsert(id, nodeId, advertiseAddr, ttlMs) }
-                .onFailure { logger.warn("session_gateway upsert failed (renew round will retry)", it) }
+            try { writes.withLock {
+                if (attached[id] == incarnation) store.upsert(id, nodeId, advertiseAddr, ttlMs, incarnation)
+            } } catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) { logger.warn("session_gateway upsert failed (renew round will retry)", failure) }
         }
     }
 
     override fun detach(sessionId: ServerSessionId) {
-        val id = SessionId(rawValue = sessionId.rawValue)
-        attached.remove(id)
+        val id = SessionId(sessionId.rawValue)
+        val incarnation = attached.remove(id) ?: return
         scope.launch {
-            runCatching { store.delete(id, nodeId) }
-                .onFailure { logger.warn("session_gateway delete failed (row will expire by TTL)", it) }
+            try { writes.withLock { store.delete(id, nodeId, incarnation) } }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) { logger.warn("session_gateway delete failed (row will expire by TTL)", failure) }
         }
     }
 
-    /** Batched renew + re-upsert of any local session the renew did not confirm. */
-    suspend fun renewRound() {
+    suspend fun renewRound() = writes.withLock {
         val renewed = store.renewAll(nodeId, ttlMs)
-        val missing = attached.filter { it !in renewed }
-        val rows = store.lookupMany(missing)
-        for (id in missing) {
-            // A migrated session belongs to its new gateway; never steal it back on renewal.
-            if (rows[id]?.nodeId?.let { it != nodeId } == true) attached.remove(id)
-            else store.upsert(id, nodeId, advertiseAddr, ttlMs)
+        val missing = attached.entries.filter { it.key !in renewed }.map { it.key to it.value }
+        val rows = store.lookupMany(missing.map { it.first })
+        for ((id, incarnation) in missing) {
+            if (attached[id] != incarnation) continue
+            val row = rows[id]
+            if (row != null && (row.nodeId != nodeId || row.attachmentId != incarnation)) attached.remove(id, incarnation)
+            else store.upsert(id, nodeId, advertiseAddr, ttlMs, incarnation)
         }
     }
 
-    /** Graceful drain: drop all of this node's rows so peers fail fast to the push-queue path. */
-    suspend fun releaseAll() {
+    suspend fun releaseAll() = writes.withLock {
         attached.clear()
         store.releaseAll(nodeId)
     }

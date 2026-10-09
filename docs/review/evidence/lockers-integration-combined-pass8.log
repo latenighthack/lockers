@@ -1,0 +1,151 @@
+Type-safe project accessors is an incubating feature.
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto
+> Task :api:generateCodegenFixtures UP-TO-DATE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmTestProcessResources NO-SOURCE
+> Task :api:processJvmTestResources SKIPPED
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:compileKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :observability-api:jvmMainClasses UP-TO-DATE
+> Task :observability-api:jvmJar UP-TO-DATE
+> Task :connector:jvmProcessResources NO-SOURCE
+> Task :connector:processJvmMainResources SKIPPED
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:compileKotlin UP-TO-DATE
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:processResources NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :sharding-core:jar UP-TO-DATE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:processResources NO-SOURCE
+> Task :connector:jvmTestProcessResources NO-SOURCE
+> Task :connector:processJvmTestResources SKIPPED
+> Task :sharding-core:compileTestKotlin UP-TO-DATE
+> Task :sharding-core:compileTestJava NO-SOURCE
+> Task :sharding-core:processTestResources NO-SOURCE
+> Task :sharding-core:testClasses UP-TO-DATE
+> Task :sharding-core:test UP-TO-DATE
+> Task :keymaster:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :keymaster:processResources NO-SOURCE
+> Task :keymaster:processTestResources NO-SOURCE
+> Task :observability-api:compileTestKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmTestJava NO-SOURCE
+> Task :observability-api:jvmTestProcessResources NO-SOURCE
+> Task :observability-api:processJvmTestResources SKIPPED
+> Task :observability-api:jvmTestClasses UP-TO-DATE
+> Task :observability-api:jvmTest UP-TO-DATE
+> Task :observability-connector:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-connector:compileKotlinJvm UP-TO-DATE
+> Task :observability-connector:compileJvmMainJava NO-SOURCE
+> Task :observability-connector:jvmProcessResources NO-SOURCE
+> Task :observability-connector:processJvmMainResources SKIPPED
+> Task :observability-connector:jvmMainClasses UP-TO-DATE
+> Task :observability-connector:jvmJar UP-TO-DATE
+> Task :observability-connector:compileTestKotlinJvm UP-TO-DATE
+> Task :observability-connector:compileJvmTestJava NO-SOURCE
+> Task :observability-connector:jvmTestProcessResources NO-SOURCE
+> Task :observability-connector:processJvmTestResources SKIPPED
+> Task :observability-connector:jvmTestClasses UP-TO-DATE
+> Task :observability-connector:jvmTest UP-TO-DATE
+> Task :observability-server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-server:processResources NO-SOURCE
+> Task :observability-server:processTestResources NO-SOURCE
+> Task :server:run:checkKotlinGradlePluginConfigurationErrors SKIPPED
+
+> Task :api:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmMainClasses
+> Task :api:jvmJar
+> Task :api:compileTestKotlinJvm
+> Task :api:compileJvmTestJava NO-SOURCE
+> Task :api:jvmTestClasses
+> Task :api:jvmTest
+> Task :keymaster:compileKotlin
+> Task :server:verifyRuntimeSecurity
+> Task :keymaster:compileJava NO-SOURCE
+> Task :keymaster:classes UP-TO-DATE
+> Task :keymaster:jar UP-TO-DATE
+> Task :keymaster:compileTestKotlin
+> Task :keymaster:compileTestJava NO-SOURCE
+> Task :keymaster:testClasses UP-TO-DATE
+> Task :server:kspKotlin
+> Task :keymaster:test
+> Task :server:processResources NO-SOURCE
+
+> Task :connector:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:594:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:783:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1504:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+
+> Task :connector:compileJvmMainJava NO-SOURCE
+> Task :connector:jvmMainClasses
+> Task :connector:jvmJar
+> Task :server:compileKotlin
+> Task :server:compileJava NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar
+> Task :server:test:compileKotlin
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar UP-TO-DATE
+> Task :observability-server:compileKotlin
+> Task :server:kspTestKotlin SKIPPED
+> Task :server:processTestResources NO-SOURCE
+> Task :observability-server:compileJava NO-SOURCE
+> Task :observability-server:classes UP-TO-DATE
+> Task :observability-server:jar UP-TO-DATE
+> Task :observability-server:compileTestKotlin
+> Task :observability-server:compileTestJava NO-SOURCE
+> Task :observability-server:testClasses UP-TO-DATE
+> Task :server:run:compileKotlin
+> Task :observability-server:test
+
+> Task :server:compileTestKotlin
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/server/src/test/kotlin/com/latenighthack/lockers/server/claim/ClaimLoadRunner.kt:136:53 Unnecessary safe call on a non-null receiver of type 'PostLockerChangeResponse.Result'.
+
+> Task :server:compileTestJava NO-SOURCE
+> Task :server:testClasses UP-TO-DATE
+
+> Task :connector:compileTestKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/OwnedTestFixture.kt:30:151 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/OwnedTestFixtureTests.kt:47:31 Unnecessary non-null assertion (!!) on a non-null receiver of type 'LockersClient'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewAuthorityV2Tests.kt:56:107 Unnecessary non-null assertion (!!) on a non-null receiver of type 'UnlockLockerRequest'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewConnectorTests.kt:56:87 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256r1KeyPair'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewConnectorTests.kt:90:129 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256r1KeyPair'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewExpiredRatchetTests.kt:147:42 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangeRequest'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewRatchetAdoptionTests.kt:20:75 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangeRequest'.
+
+> Task :server:test
+> Task :connector:compileJvmTestJava NO-SOURCE
+> Task :connector:jvmTestClasses
+> Task :connector:jvmTest
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 19s
+45 actionable tasks: 27 executed, 18 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

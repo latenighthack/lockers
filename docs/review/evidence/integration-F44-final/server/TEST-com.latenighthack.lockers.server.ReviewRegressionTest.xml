@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.ReviewRegressionTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:36.369Z" hostname="Mikes-MacBook-Pro.local" time="0.024">
+  <properties/>
+  <testcase name="allReadShapesReturnTheSameVersionedTombstone()" classname="com.latenighthack.lockers.server.ReviewRegressionTest" time="0.005"/>
+  <testcase name="newAuthorityIsEnforcedAfterAnotherReplicaReadAnOpenRoom()" classname="com.latenighthack.lockers.server.ReviewRegressionTest" time="0.005"/>
+  <testcase name="oldUnlockProofCannotAuthorizeALaterIncarnation()" classname="com.latenighthack.lockers.server.ReviewRegressionTest" time="0.006"/>
+  <testcase name="reusedAbsentParentCannotCommitASecondInitialWrite()" classname="com.latenighthack.lockers.server.ReviewRegressionTest" time="0.003"/>
+  <testcase name="ambiguousEnvelopeIsRejectedWithoutPersistingUnsignedContent()" classname="com.latenighthack.lockers.server.ReviewRegressionTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

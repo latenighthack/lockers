@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewPushControllerTests[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:11.240Z" hostname="Mikes-MacBook-Pro.local" time="0.324">
+  <properties/>
+  <testcase name="a rotated credential remains desired after an obsolete reply[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewPushControllerTests" time="0.005"/>
+  <testcase name="offline removal persists its revision and retries after controller replacement[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewPushControllerTests" time="0.136"/>
+  <testcase name="push registration retries a transient failure without changing session ID[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewPushControllerTests" time="0.121"/>
+  <testcase name="local push packet limit is observable once and preserves durable intent[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewPushControllerTests" time="0.005"/>
+  <testcase name="late register response cannot restore an unregistered credential[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewPushControllerTests" time="0.057"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

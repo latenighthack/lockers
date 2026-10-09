@@ -29,6 +29,10 @@ import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -92,9 +96,9 @@ private class ClusterRuntime private constructor(
     suspend fun notReadyReason(): String? = wiring?.notReadyReason()
 
     /** Ordered drain: stop routing to peers (evict the pool) then cancel background pollers. */
-    fun close() {
-        wiring?.pool?.close()
-        scope.cancel()
+    suspend fun closeAndJoin() {
+        scope.coroutineContext[Job]!!.cancelAndJoin()
+        wiring?.pool?.closeAndJoin()
     }
 
     companion object {
@@ -198,6 +202,9 @@ fun main() {
         val config = LockersConfig.fromEnv()
         validateDbRequirement(config)
         val ownershipMode = validateOwnershipMode(config)
+        require(ownershipMode == "local" || !config.peerToken.isNullOrBlank()) {
+            "Multi-node ownership requires LOCKERS_PEER_TOKEN and an internal LOCKERS_ADVERTISE_ADDR on LOCKERS_ADMIN_PORT"
+        }
 
         val metricsRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
         bindRuntimeMetrics(metricsRegistry)
@@ -214,22 +221,33 @@ fun main() {
         val factories = ServiceLoader.load(ServerExtensionFactory::class.java).toList()
         val database = database(config, factories.flatMap { it.storeDefinitions }, metricsRegistry, diagnostics)
         val core = ServerCore::class.create(config, database)
+        core.overrideCoroutineContext = coroutineContext
         val monitoring = com.latenighthack.lockers.observability.server.LockersMonitoring.attach(core, metricsRegistry, metricsRegistry, openTelemetry)
         core.setup()
 
         // Background scope for cluster pollers/pool — supervised so one failure doesn't kill the
         // process, and cancelled last on shutdown.
-        val clusterScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val clusterScope = CoroutineScope(coroutineContext + SupervisorJob(coroutineContext[Job]) + Dispatchers.Default)
         val (cluster, claim) = startCoordination(config, ownershipMode, metricsRegistry, clusterScope)
         ShardMetrics(metricsRegistry)
         if (claim == null) ClaimMetrics(metricsRegistry)
 
         // Optional add-ons contributed from the classpath (e.g. remote content).
-        val extensions = factories.map { it.create(metricsRegistry, database) }
-        // The ownership mode swaps in Registry*/Ring* discovery; the default monolith wires
-        // in-process Local*Discovery exactly as before (byte-for-byte).
-        val component = MonolithComponent(core, extensions, cluster.context, claim)
-        component.start()
+        val component = try {
+            val extensions = ServerExtensions.create(factories, metricsRegistry, database)
+            MonolithComponent(core, extensions, cluster.context, claim).also { it.start() }
+        } catch (failure: Throwable) {
+            withContext(NonCancellable) {
+                try { cluster.closeAndJoin() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                try { claim?.closeAndJoin() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                try { core.closeAndJoin() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                try { database.close() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                monitoring.close()
+                telemetrySdk?.close()
+                metricsRegistry.close()
+            }
+            throw failure
+        }
 
         // Public port: client/peer traffic + probes + metrics.
         val server = embeddedServer(CIO, port = config.httpPort) {
@@ -268,29 +286,31 @@ fun main() {
         }
 
         // Internal admin port: management RPCs only. Bind this cluster-internal
-        // (do not expose via the public Service/Ingress); set LOCKERS_ADMIN_TOKEN
-        // for defense in depth.
+        // (do not expose via the public Service/Ingress). Management routes remain
+        // disabled without LOCKERS_ADMIN_TOKEN; configured routes authenticate before dispatch.
         val adminServer = embeddedServer(CIO, port = config.adminPort) {
             install(WebSockets)
             routing {
                 monolithAdmin(component)
+                config.peerToken?.let { monolithPeer(component, it) }
             }
         }
 
         Runtime.getRuntime().addShutdownHook(
             Thread {
-                runBlocking {
-                    // Ordered drain: leave the ring first (peers stop routing to us), then stop
-                    // services (claim mode's stop releases its rows), then the coordination pool
-                    // and the listeners.
-                    cluster.close()
-                    component.stop()
-                    claim?.close()
-                    monitoring.close()
-                    telemetrySdk?.close()
-                }
+                // Stop admission and await/cancel existing transport handlers before releasing
+                // service dispatchers, ownership, providers, or database coordination resources.
                 adminServer.stop(gracePeriodMillis = 1_000, timeoutMillis = 5_000)
                 server.stop(gracePeriodMillis = 1_000, timeoutMillis = 5_000)
+                runBlocking {
+                    component.closeAndJoin()
+                    cluster.closeAndJoin()
+                    claim?.closeAndJoin()
+                    database.close()
+                    monitoring.close()
+                    telemetrySdk?.close()
+                    metricsRegistry.close()
+                }
             }
         )
 

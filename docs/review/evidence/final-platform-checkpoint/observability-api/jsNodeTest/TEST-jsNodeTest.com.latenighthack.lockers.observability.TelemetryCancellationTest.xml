@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="jsNodeTest.com.latenighthack.lockers.observability.TelemetryCancellationTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:12:59.208Z" hostname="Mikes-MacBook-Pro.local" time="0.017">
+  <properties/>
+  <testcase name="spanContextCannotReplaceTheOperationLifetime[js, node]" classname="jsNodeTest.com.latenighthack.lockers.observability.TelemetryCancellationTest" time="0.013"/>
+  <testcase name="cancelledSpanStartupDoesNotExecuteTheOperation[js, node]" classname="jsNodeTest.com.latenighthack.lockers.observability.TelemetryCancellationTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

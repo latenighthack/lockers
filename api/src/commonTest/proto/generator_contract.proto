@@ -1,0 +1,9 @@
+syntax = "proto3";
+package com.latenighthack.lockers.review.fixture;
+option java_package = "com.latenighthack.lockers.review.fixture";
+
+message PackedEnumFixture {
+  enum Selection { FIRST = 0; SECOND = 1; THIRD = 2; }
+  repeated Selection selections = 1 [packed = true];
+  int32 marker = 2;
+}

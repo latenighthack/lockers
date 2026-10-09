@@ -1,0 +1,152 @@
+Type-safe project accessors is an incubating feature.
+
+> Configure project :android
+w: [33m[1m⚠️ Usage of Internal Kotlin Gradle Plugin Properties Detected[0m[0m
+ATTENTION! This build uses the following Kotlin Gradle Plugin properties:
+
+kotlin.internal.suppressGradlePluginErrors
+
+Internal properties are not recommended for production use.
+Stability and future compatibility of the build is not guaranteed.
+[32m[1mSolution:[0m[0m
+[32m[3mPlease consider using the public API instead of internal properties.[0m[0m
+
+
+> Configure project :server
+w: [33m[1m⚠️ Unsupported API dependency types in test source sets[0m[0m
+API dependency types are used in test source sets
+Dependencies:
+    - fullhouse:api:unspecified (source sets: jvmTest)
+
+Adding API dependency types to test source sets is not supported and will removed in a future version of Kotlin.
+
+API dependencies are transitively exposed to consumers, but test source sets should not be consumable.
+[32m[1mSolutions:[0m[0m
+[32m • [3mReplace API dependency types in test source sets with implementation dependencies.[0m[0m
+[32m • [3mFor Kotlin/JVM projects, consider using Test Fixtures https://docs.gradle.org/current/userguide/java_testing.html#sec:java_test_fixtures[0m[0m
+[32m • [3mFor Test Fixtures support in non-Kotlin/JVM projects, please add your use-case to https://youtrack.jetbrains.com/issue/KT-63142[0m[0m
+
+
+> Configure project :core:test
+w: [33m[1m⚠️ Unsupported API dependency types in test source sets[0m[0m
+API dependency types are used in test source sets
+Dependencies:
+    - fullhouse.server:test:unspecified (source sets: jvmTest)
+    - fullhouse:server:unspecified (source sets: jvmTest)
+
+Adding API dependency types to test source sets is not supported and will removed in a future version of Kotlin.
+
+API dependencies are transitively exposed to consumers, but test source sets should not be consumable.
+[32m[1mSolutions:[0m[0m
+[32m • [3mReplace API dependency types in test source sets with implementation dependencies.[0m[0m
+[32m • [3mFor Kotlin/JVM projects, consider using Test Fixtures https://docs.gradle.org/current/userguide/java_testing.html#sec:java_test_fixtures[0m[0m
+[32m • [3mFor Test Fixtures support in non-Kotlin/JVM projects, please add your use-case to https://youtrack.jetbrains.com/issue/KT-63142[0m[0m
+
+Configuration 'kotlinCompilerPluginClasspathAndroidDebug' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'debugCompileClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'debugRuntimeClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kotlinCompilerClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+Configuration 'debugProtobuf' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'protobuf' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'androidApis' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kspCommonMainKotlinMetadataProcessorClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'commonMainResolvableDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'allSourceSetsCompileDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'iosX64CompilationDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'iosSimulatorArm64CompilationDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'iosArm64CompilationDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kspDebugKotlinAndroidProcessorClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+
+> Task :core:kmpPartiallyResolvedDependenciesChecker
+> Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:extractDebugProto UP-TO-DATE
+> Task :core:extractIncludeDebugProto UP-TO-DATE
+> Task :core:extractProto UP-TO-DATE
+
+> Task :core:generateDebugProto
+protoc plugin 'kt' not defined. Trying to use 'protoc-gen-kt' from system path
+
+> Task :core:preBuild UP-TO-DATE
+> Task :core:preDebugBuild UP-TO-DATE
+> Task :core:generateDebugResValues
+> Task :core:generateDebugResources
+> Task :core:packageDebugResources
+> Task :core:processDebugNavigationResources
+> Task :core:transformCommonMainDependenciesMetadata UP-TO-DATE
+> Task :core:kspCommonMainKotlinMetadata UP-TO-DATE
+> Task :core:parseDebugLocalResources
+> Task :core:generateDebugRFile
+> Task :core:kspDebugKotlinAndroid
+
+> Task :core:compileDebugKotlinAndroid
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/build/generated/source/proto/debug/kotlin/gg/roll/core/storage/v1/stored_property.data.kt:299:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/build/generated/source/proto/debug/kotlin/gg/roll/core/storage/v1/stored_property.data.kt:301:75 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/androidMain/kotlin/gg/roll/viewmodel/tools/GlobalDispatcher.kt:6:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IContactsViewModel.kt:166:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/ILibraryViewModel.kt:85:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:379:73 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:385:92 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:405:57 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256R1Key.PublicKey'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:446:14 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:639:28 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/ISelectFriendsViewModel.kt:211:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ChatRepository.kt:146:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ChatRepository.kt:203:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ProfileRepository.kt:133:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/usecases/WatchRecentMessagesUseCase.kt:29:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/tools/GlobalDispatcher.kt:5:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 5s
+15 actionable tasks: 10 executed, 5 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

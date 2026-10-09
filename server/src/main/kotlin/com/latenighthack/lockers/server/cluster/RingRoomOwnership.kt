@@ -7,7 +7,7 @@ import com.latenighthack.lockers.sharding.Keyspace
 import com.latenighthack.lockers.sharding.ShardRouter
 
 /**
- * Ring-backed [RoomOwnership]: resolves the room ring for `(keyspace, roomId)` and reports whether
+ * Ring-backed [RoomOwnership]: resolves one authority shard for the entire room and reports whether
  * this node owns the shard. When it doesn't, it carries the owning node's address + epoch so the
  * write can be answered with `NOT_OWNER` + `ShardRedirect`.
  *
@@ -23,8 +23,19 @@ class RingRoomOwnership(
     private val router: ShardRouter,
     private val lifecycle: OwnerLifecycle? = null,
 ) : RoomOwnership {
+    override suspend fun mutationFence(keyspace: Long, roomId: RoomId): com.latenighthack.lockers.server.services.room.v1.RoomMutationFence {
+        val ks = Keyspace(0)
+        val map = router.roomMap()
+        val route = router.routeRoom(ks, roomId.rawValue)
+        val lease = lifecycle?.leaseFor(ks, map.shard(ks, roomId.rawValue))
+        if (!route.isLocal || (lifecycle != null && lease == null)) throw com.latenighthack.lockers.server.services.room.v1.RoomOwnershipLost()
+        return com.latenighthack.lockers.server.services.room.v1.LeaseMutationFence(lease?.fencingKey, lease?.fencingToken ?: 0) {
+            router.roomMap().epoch == map.epoch && router.routeRoom(ks, roomId.rawValue).isLocal && (lease?.isValid ?: true)
+        }
+    }
     override suspend fun resolve(keyspace: Long, roomId: RoomId): RoomOwner {
-        val ks = Keyspace(keyspace)
+        // Room/keyspace/locker authority and cross-keyspace agent effects share one coordinator.
+        val ks = Keyspace(0)
         val route = router.routeRoom(ks, roomId.rawValue)
         val holdsLease = lifecycle == null ||
             lifecycle.leaseFor(ks, router.roomMap().shard(ks, roomId.rawValue)) != null

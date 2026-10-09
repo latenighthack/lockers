@@ -1,0 +1,31 @@
+
+> Configure project :browser-tests
+w: ⚠️ Deprecated Gradle Property 'kotlin.js.compiler' Used
+The `kotlin.js.compiler` deprecated property is used in your build.
+Solution: It is unsupported, please stop using it.
+
+
+> Task :migration-gradle-plugin:compileJava UP-TO-DATE
+> Task :migration-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :migration-gradle-plugin:processResources UP-TO-DATE
+> Task :migration-gradle-plugin:classes UP-TO-DATE
+> Task :migration-gradle-plugin:jar UP-TO-DATE
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :library:kmpPartiallyResolvedDependenciesChecker
+> Task :library:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :library:compileKotlinJs FROM-CACHE
+> Task :library:preBuild UP-TO-DATE
+> Task :library:preDebugBuild UP-TO-DATE
+> Task :library:generateDebugResValues FROM-CACHE
+> Task :library:generateDebugResources UP-TO-DATE
+> Task :library:packageDebugResources FROM-CACHE
+> Task :library:parseDebugLocalResources FROM-CACHE
+> Task :library:processDebugManifest FROM-CACHE
+> Task :library:generateDebugRFile FROM-CACHE
+> Task :library:compileDebugKotlinAndroid FROM-CACHE
+> Task :library:cinteropSqlite3IosSimulatorArm64
+> Task :library:downloadKotlinNativeDistribution FROM-CACHE
+> Task :library:compileKotlinIosSimulatorArm64 FROM-CACHE
+
+BUILD SUCCESSFUL in 5s
+15 actionable tasks: 2 executed, 9 from cache, 4 up-to-date

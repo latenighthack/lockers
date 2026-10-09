@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewAuthorityV2Tests[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:52:14.052Z" hostname="Mikes-MacBook-Pro.local" time="0.255">
+  <properties/>
+  <testcase name="ambiguous response reuses its transformed and encoded request without recomputing[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityV2Tests" time="0.109"/>
+  <testcase name="grant discovers scope and parent incarnations and unlock binds its expected version[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityV2Tests" time="0.004"/>
+  <testcase name="V2 signed ratchet write binds authority incarnation and final notification[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityV2Tests" time="0.028"/>
+  <testcase name="ambiguous retries freeze caller-owned payload arrays[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityV2Tests" time="0.114"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

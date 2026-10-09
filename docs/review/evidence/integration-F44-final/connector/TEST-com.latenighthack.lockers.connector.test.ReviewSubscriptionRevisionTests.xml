@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewSubscriptionRevisionTests[jvm]" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:13.227Z" hostname="Mikes-MacBook-Pro.local" time="0.083">
+  <properties/>
+  <testcase name="subscription removal revision survives same session controller replacement[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionRevisionTests" time="0.004"/>
+  <testcase name="unsupported ordering fails observably before subscription RPC and retains desired intent[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionRevisionTests" time="0.003"/>
+  <testcase name="obsolete stale response never advances a newer desired intent[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionRevisionTests" time="0.069"/>
+  <testcase name="bounded removal history rejects admission atomically without resetting old revisions[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionRevisionTests" time="0.001"/>
+  <testcase name="current stale intent advances durable floor and retries with the same desired kind[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionRevisionTests" time="0.003"/>
+  <testcase name="persistent floor conflicts terminate after bounded guarded repair[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionRevisionTests" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

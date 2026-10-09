@@ -1,0 +1,117 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Type-safe project accessors is an incubating feature.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://github.com/yarnpkg/yarn/releases/download' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+> Task :api:detekt
+> Task :connector:detekt UP-TO-DATE
+> Task :keymaster:detekt UP-TO-DATE
+> Task :observability-api:detekt UP-TO-DATE
+> Task :observability-connector:detekt UP-TO-DATE
+> Task :observability-server:detekt UP-TO-DATE
+> Task :server:detekt UP-TO-DATE
+> Task :sharding-core:detekt UP-TO-DATE
+> Task :server:run:detekt UP-TO-DATE
+> Task :server:test:detekt UP-TO-DATE
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :api:compileTestKotlinJvm UP-TO-DATE
+> Task :api:compileJvmTestJava NO-SOURCE
+> Task :api:jvmTestProcessResources NO-SOURCE
+> Task :api:processJvmTestResources SKIPPED
+> Task :api:jvmTestClasses UP-TO-DATE
+> Task :api:jvmTest UP-TO-DATE
+> Task :kotlinKotlinNpmCachesSetup
+> Task :kotlinNodeJsSetup UP-TO-DATE
+> Task :kotlinRestoreYarnLock UP-TO-DATE
+> Task :kotlinYarnSetup UP-TO-DATE
+> Task :api:jsPackageJson UP-TO-DATE
+> Task :api:jsTestPackageJson UP-TO-DATE
+> Task :observability-api:jsPackageJson UP-TO-DATE
+> Task :connector:jsPackageJson UP-TO-DATE
+> Task :connector:jsTestPackageJson UP-TO-DATE
+> Task :observability-api:jsTestPackageJson UP-TO-DATE
+> Task :observability-connector:jsPackageJson UP-TO-DATE
+> Task :observability-connector:jsTestPackageJson UP-TO-DATE
+> Task :api:jsPublicPackageJson UP-TO-DATE
+> Task :api:jsTestPublicPackageJson UP-TO-DATE
+> Task :connector:jsPublicPackageJson UP-TO-DATE
+> Task :connector:jsTestPublicPackageJson UP-TO-DATE
+> Task :observability-api:jsPublicPackageJson UP-TO-DATE
+> Task :observability-api:jsTestPublicPackageJson UP-TO-DATE
+> Task :observability-connector:jsPublicPackageJson UP-TO-DATE
+> Task :observability-connector:jsTestPublicPackageJson UP-TO-DATE
+> Task :kotlinPackageJsonUmbrella UP-TO-DATE
+> Task :rootPackageJson UP-TO-DATE
+> Task :kotlinNpmInstall UP-TO-DATE
+> Task :kotlinStoreYarnLock UP-TO-DATE
+> Task :api:compileKotlinJs UP-TO-DATE
+> Task :api:jsProcessResources NO-SOURCE
+> Task :api:jsMainClasses UP-TO-DATE
+> Task :api:compileTestKotlinJs UP-TO-DATE
+> Task :api:jsTestProcessResources NO-SOURCE
+> Task :api:jsTestClasses UP-TO-DATE
+> Task :api:compileTestDevelopmentExecutableKotlinJs UP-TO-DATE
+> Task :api:jsTestTestDevelopmentExecutableCompileSync UP-TO-DATE
+> Task :api:kotlinNodeJsSetup UP-TO-DATE
+> Task :api:jsNodeTest UP-TO-DATE
+> Task :api:downloadKotlinNativeDistribution UP-TO-DATE
+> Task :api:compileKotlinIosSimulatorArm64 UP-TO-DATE
+> Task :api:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :api:iosSimulatorArm64MainKlibrary UP-TO-DATE
+> Task :api:compileTestKotlinIosSimulatorArm64 UP-TO-DATE
+> Task :api:linkDebugTestIosSimulatorArm64 UP-TO-DATE
+> Task :api:iosSimulatorArm64Test UP-TO-DATE
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-quality/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 15s
+51 actionable tasks: 3 executed, 48 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

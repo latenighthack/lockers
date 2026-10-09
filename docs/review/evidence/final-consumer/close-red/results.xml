@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="OnboardingViewModelTests[jvm]" tests="1" skipped="0" failures="1" errors="0" timestamp="2026-10-09T05:07:43.392Z" hostname="Mikes-MacBook-Pro.local" time="2.107">
+  <properties/>
+  <testcase name="onboarding splash - displayname - skip photo - skip username - home[jvm]" classname="gg.roll.viewmodel.core.OnboardingViewModelTests" time="2.106">
+    <failure message="com.latenighthack.lockers.connector.StreamClosedException: Client stream is closed" type="com.latenighthack.lockers.connector.StreamClosedException">com.latenighthack.lockers.connector.StreamClosedException: Client stream is closed
+	at com.latenighthack.lockers.connector.SubscriptionController$awaitSubscription$2.invokeSuspend(Stream.kt:559)
+	at com.latenighthack.lockers.connector.SubscriptionController$awaitSubscription$2.invoke(Stream.kt)
+	at com.latenighthack.lockers.connector.SubscriptionController$awaitSubscription$2.invoke(Stream.kt)
+	at kotlinx.coroutines.flow.FlowKt__ZipKt$combine$$inlined$combineUnsafe$FlowKt__ZipKt$3$2.invokeSuspend(Zip.kt:329)
+	at kotlinx.coroutines.flow.FlowKt__ZipKt$combine$$inlined$combineUnsafe$FlowKt__ZipKt$3$2.invoke(Zip.kt)
+	at kotlinx.coroutines.flow.FlowKt__ZipKt$combine$$inlined$combineUnsafe$FlowKt__ZipKt$3$2.invoke(Zip.kt)
+	at kotlinx.coroutines.flow.internal.CombineKt$combineInternal$2.invokeSuspend(Combine.kt:73)
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at kotlinx.coroutines.flow.FlowKt__ReduceKt.first(Reduce.kt:179)
+	at com.latenighthack.lockers.connector.Stream.subscribe(Stream.kt:989)
+	at com.latenighthack.social.profiles.domain.ProfilesManagerImpl$observe$2.invokeSuspend(ProfilesManagerImpl.kt:85)
+	at com.latenighthack.social.observability.SocialTelemetryKt.measure(SocialTelemetry.kt:63)
+	at gg.roll.viewmodel.core.repositories.ProfileRepositoryImpl$buildWatchProfile$5.invokeSuspend(ProfileRepository.kt:168)
+	at kotlinx.coroutines.flow.FlowKt__EmittersKt$onStart$$inlined$unsafeFlow$1.collect(Emitters.kt:115)
+	at kotlinx.coroutines.flow.FlowKt__TransformKt$runningFold$$inlined$unsafeFlow$1.collect(Transform.kt:114)
+	at kotlinx.coroutines.flow.FlowKt__EmittersKt$onStart$$inlined$unsafeFlow$1.collect(Emitters.kt:119)
+	at kotlinx.coroutines.flow.FlowKt__EmittersKt$onCompletion$$inlined$unsafeFlow$1.collect(Emitters.kt:113)
+	at kotlinx.coroutines.flow.FlowKt__ShareKt$launchSharing$1.invokeSuspend(Share.kt:215)
+Caused by: com.latenighthack.lockers.connector.StreamClosedException: Client stream is closed
+	at com.latenighthack.lockers.connector.SubscriptionController$awaitSubscription$2.invokeSuspend(Stream.kt:559)
+	at com.latenighthack.lockers.connector.SubscriptionController$awaitSubscription$2.invoke(Stream.kt)
+	at com.latenighthack.lockers.connector.SubscriptionController$awaitSubscription$2.invoke(Stream.kt)
+	at kotlinx.coroutines.flow.FlowKt__ZipKt$combine$$inlined$combineUnsafe$FlowKt__ZipKt$3$2.invokeSuspend(Zip.kt:329)
+	at kotlinx.coroutines.flow.FlowKt__ZipKt$combine$$inlined$combineUnsafe$FlowKt__ZipKt$3$2.invoke(Zip.kt)
+	at kotlinx.coroutines.flow.FlowKt__ZipKt$combine$$inlined$combineUnsafe$FlowKt__ZipKt$3$2.invoke(Zip.kt)
+	at kotlinx.coroutines.flow.internal.CombineKt$combineInternal$2.invokeSuspend(Combine.kt:73)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:807)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

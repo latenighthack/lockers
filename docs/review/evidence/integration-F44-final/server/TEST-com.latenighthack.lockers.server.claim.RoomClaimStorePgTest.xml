@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:54.650Z" hostname="Mikes-MacBook-Pro.local" time="4.406">
+  <properties/>
+  <testcase name="release after a steal is a no-op()" classname="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" time="0.469"/>
+  <testcase name="renewAll returns exactly the still-owned set()" classname="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" time="0.011"/>
+  <testcase name="concurrent claims on one expired room elect exactly one winner()" classname="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" time="0.472"/>
+  <testcase name="releaseAll expires owned claims and retains monotonically increasing epochs()" classname="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" time="0.013"/>
+  <testcase name="epochs are strictly monotonic across successive takeovers()" classname="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" time="1.829"/>
+  <testcase name="renew after a steal excludes the stolen room()" classname="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" time="0.465"/>
+  <testcase name="self reclaim extends expiry without bumping the epoch()" classname="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" time="0.319"/>
+  <testcase name="claim while owner is valid does not steal()" classname="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" time="0.011"/>
+  <testcase name="renew keeps a short-TTL claim alive across its original expiry()" classname="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" time="0.32"/>
+  <testcase name="release expires only the caller's own claim and preserves its epoch()" classname="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" time="0.013"/>
+  <testcase name="fresh claim inserts epoch 1 and returns self()" classname="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" time="0.011"/>
+  <testcase name="claim after expiry steals with a strictly higher epoch()" classname="com.latenighthack.lockers.server.claim.RoomClaimStorePgTest" time="0.471"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

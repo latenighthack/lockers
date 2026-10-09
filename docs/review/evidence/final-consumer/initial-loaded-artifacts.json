@@ -1,0 +1,14 @@
+{
+  "clientOrigin": {
+    "path": "/Users/mikeroberts/.gradle/caches/modules-2/files-2.1/com.latenighthack.lockers/lockers-connector-jvm/0.1.16-fh.250e8fd9b9e2e684a72c/93671d95e00d6f00a55d0e55f006843d21f4b00e/connector-jvm-0.1.16-fh.250e8fd9b9e2e684a72c.jar",
+    "receiptArtifact": "com/latenighthack/lockers/lockers-connector-jvm/0.1.16-fh.250e8fd9b9e2e684a72c/lockers-connector-jvm-0.1.16-fh.250e8fd9b9e2e684a72c.jar",
+    "sha256": "c152b98068de1d18b55669c0a50497b302b8066b67b98633c1d29b603bd91031",
+    "matchesImmutableReceipt": true
+  },
+  "serverOrigin": {
+    "path": "/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/maven/com/latenighthack/lockers/lockers-server/0.1.16-fh.250e8fd9b9e2e684a72c/lockers-server-0.1.16-fh.250e8fd9b9e2e684a72c.jar",
+    "receiptArtifact": "com/latenighthack/lockers/lockers-server/0.1.16-fh.250e8fd9b9e2e684a72c/lockers-server-0.1.16-fh.250e8fd9b9e2e684a72c.jar",
+    "sha256": "7cbe101e360b23c0927f569bdf92ede4a66c27fc877ebc4dc2e7fdb11f85071e",
+    "matchesImmutableReceipt": true
+  }
+}

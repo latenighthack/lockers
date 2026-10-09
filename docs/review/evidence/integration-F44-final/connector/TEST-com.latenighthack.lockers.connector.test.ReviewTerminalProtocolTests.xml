@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewTerminalProtocolTests[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:13.327Z" hostname="Mikes-MacBook-Pro.local" time="0.123">
+  <properties/>
+  <testcase name="malformed stream protobuf is permanent while temporary RPC quota reconnects[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewTerminalProtocolTests" time="0.113"/>
+  <testcase name="local output ceiling fails one write attempt before network submission[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewTerminalProtocolTests" time="0.003"/>
+  <testcase name="permanent stream protocol failures fail promptly without reconnecting[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewTerminalProtocolTests" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

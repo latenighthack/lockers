@@ -7,7 +7,7 @@ import kotlinx.coroutines.sync.withLock
 
 /**
  * In-memory [RoomClaimStore] with the exact conditional semantics of [JdbcRoomClaimStore] (steal
- * only if expired; epoch bumps only on takeover; release guarded by owner). Lives in the main
+ * only if expired; epochs advance after expiry and survive release; release guarded by owner). Lives in the main
  * source set — like [com.latenighthack.lockers.server.services.room.v1.LocalRoomOwnership] — so
  * both the server tests and embedders can wire claim mode without a database. The injectable
  * [clock] stands in for the DB's `now()` as the single clock authority.
@@ -15,6 +15,11 @@ import kotlinx.coroutines.sync.withLock
 class InMemoryRoomClaimStore(
     private val clock: () -> Long = System::currentTimeMillis,
 ) : RoomClaimStore {
+    private var maxRoomClaims: Long = 1_000_000
+    constructor(maxRoomClaims: Long, clock: () -> Long = System::currentTimeMillis) : this(clock) {
+        require(maxRoomClaims > 0)
+        this.maxRoomClaims = maxRoomClaims
+    }
     private data class Entry(val nodeId: String, val nodeAddr: String, val epoch: Long, val expiresAt: Long)
 
     private val mutex = Mutex()
@@ -22,15 +27,28 @@ class InMemoryRoomClaimStore(
 
     override suspend fun prepare() {}
 
+    override fun mutationFence(roomId: RoomId, nodeId: String, epoch: Long) = object : com.latenighthack.lockers.server.services.room.v1.RoomMutationFence() {
+        override suspend fun <T> guard(driver: com.latenighthack.ktstore.SqlDriver?, block: suspend () -> T): T = mutex.withLock {
+            fun valid() = rows[roomId]?.let { it.nodeId == nodeId && it.epoch == epoch && it.expiresAt >= clock() } == true
+            if (!valid()) throw com.latenighthack.lockers.server.services.room.v1.RoomOwnershipLost()
+            val result = block()
+            if (!valid()) throw com.latenighthack.lockers.server.services.room.v1.RoomOwnershipLost()
+            result
+        }
+    }
+
     override suspend fun claim(roomId: RoomId, nodeId: String, nodeAddr: String, ttlMs: Long): RoomClaimRow =
         mutex.withLock {
             val now = clock()
+            require(roomId.rawValue.size in 1..128 && nodeId.isNotBlank() && nodeAddr.isNotBlank() && ttlMs > 0)
             val existing = rows[roomId]
+            if (existing == null && rows.size.toLong() >= maxRoomClaims) throw RoomClaimCapacityExceeded()
+            if (existing != null && existing.expiresAt < now) check(existing.epoch < Long.MAX_VALUE) { "Room claim epoch exhausted" }
             val next = when {
                 existing == null -> Entry(nodeId, nodeAddr, epoch = 1, expiresAt = now + ttlMs)
-                existing.nodeId == nodeId -> existing.copy(nodeAddr = nodeAddr, expiresAt = now + ttlMs)
                 existing.expiresAt < now ->
                     Entry(nodeId, nodeAddr, epoch = existing.epoch + 1, expiresAt = now + ttlMs)
+                existing.nodeId == nodeId -> existing.copy(nodeAddr = nodeAddr, expiresAt = now + ttlMs)
                 else -> existing // valid foreign owner: no steal, return their row
             }
             rows[roomId] = next
@@ -51,12 +69,12 @@ class InMemoryRoomClaimStore(
 
     override suspend fun release(roomId: RoomId, nodeId: String) {
         mutex.withLock {
-            if (rows[roomId]?.nodeId == nodeId) rows.remove(roomId)
+            rows[roomId]?.takeIf { it.nodeId == nodeId }?.let { rows[roomId] = it.copy(expiresAt = Long.MIN_VALUE) }
         }
     }
 
     override suspend fun releaseAll(nodeId: String) {
-        mutex.withLock { rows.entries.removeIf { it.value.nodeId == nodeId } }
+        mutex.withLock { rows.replaceAll { _, entry -> if (entry.nodeId == nodeId) entry.copy(expiresAt = Long.MIN_VALUE) else entry } }
     }
 
     override suspend fun lookup(roomId: RoomId): RoomClaimRow? = mutex.withLock {
@@ -70,7 +88,7 @@ class InMemoryRoomClaimStore(
 class InMemorySessionGatewayStore(
     private val clock: () -> Long = System::currentTimeMillis,
 ) : SessionGatewayStore {
-    private data class Entry(val nodeId: String, val nodeAddr: String, val expiresAt: Long)
+    private data class Entry(val nodeId: String, val nodeAddr: String, val expiresAt: Long, val attachmentId: String = "")
 
     private val mutex = Mutex()
     private val rows = HashMap<SessionId, Entry>()
@@ -78,7 +96,17 @@ class InMemorySessionGatewayStore(
     override suspend fun prepare() {}
 
     override suspend fun upsert(sessionId: SessionId, nodeId: String, nodeAddr: String, ttlMs: Long) {
-        mutex.withLock { rows[sessionId] = Entry(nodeId, nodeAddr, clock() + ttlMs) }
+        upsert(sessionId, nodeId, nodeAddr, ttlMs, "")
+    }
+
+    override suspend fun upsert(sessionId: SessionId, nodeId: String, nodeAddr: String, ttlMs: Long, attachmentId: String) {
+        mutex.withLock { rows[sessionId] = Entry(nodeId, nodeAddr, clock() + ttlMs, attachmentId) }
+    }
+
+    override suspend fun delete(sessionId: SessionId, nodeId: String, attachmentId: String) {
+        mutex.withLock {
+            rows[sessionId]?.takeIf { it.nodeId == nodeId && it.attachmentId == attachmentId }?.let { rows.remove(sessionId) }
+        }
     }
 
     override suspend fun renewAll(nodeId: String, ttlMs: Long): Set<SessionId> = mutex.withLock {
@@ -104,6 +132,6 @@ class InMemorySessionGatewayStore(
     }
 
     override suspend fun lookup(sessionId: SessionId): SessionGatewayRow? = mutex.withLock {
-        rows[sessionId]?.takeIf { it.expiresAt >= clock() }?.let { SessionGatewayRow(it.nodeId, it.nodeAddr) }
+        rows[sessionId]?.takeIf { it.expiresAt >= clock() }?.let { SessionGatewayRow(it.nodeId, it.nodeAddr, it.attachmentId) }
     }
 }

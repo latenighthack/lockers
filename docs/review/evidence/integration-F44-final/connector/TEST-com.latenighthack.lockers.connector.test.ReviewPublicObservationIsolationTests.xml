@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewPublicObservationIsolationTests[jvm]" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:11.200Z" hostname="Mikes-MacBook-Pro.local" time="0.04">
+  <properties/>
+  <testcase name="push status observations detach session identities from subsequent RPC effects[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewPublicObservationIsolationTests" time="0.004"/>
+  <testcase name="session sequence and pending ACK observations detach all persisted arrays[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewPublicObservationIsolationTests" time="0.002"/>
+  <testcase name="subscription input and output arrays preserve stored identity and unknown body bytes[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewPublicObservationIsolationTests" time="0.002"/>
+  <testcase name="push store registration and revision intent arrays cannot mutate persisted credentials[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewPublicObservationIsolationTests" time="0.004"/>
+  <testcase name="public connection and session observations cannot change signed HTTP authority[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewPublicObservationIsolationTests" time="0.019"/>
+  <testcase name="subscription room events are detached per collector and cannot mutate reducer identity[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewPublicObservationIsolationTests" time="0.008"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

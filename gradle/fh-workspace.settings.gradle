@@ -35,7 +35,8 @@ if (manifestPath) {
                     if (!localProject && overrides[d.requested.group]) d.useVersion(overrides[d.requested.group])
                 }
                 c.dependencies.all { d ->
-                    if (d instanceof org.gradle.api.artifacts.ExternalModuleDependency && overrides[d.group]) {
+                    if (d instanceof org.gradle.api.artifacts.ExternalModuleDependency && overrides[d.group] &&
+                        !p.rootProject.allprojects.any { it.group.toString() == d.group && it.name == d.name }) {
                         d.version { strictly(overrides[d.group]) }
                     }
                 }

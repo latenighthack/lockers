@@ -27,9 +27,12 @@ subprojects {
     apply(plugin = "io.gitlab.arturbosch.detekt")
     configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
         buildUponDefaultConfig = true
-        // Advisory for now: detekt reports issues but does not fail the build.
-        // Curate a baseline (./gradlew detektBaseline) then flip this to false to enforce.
-        ignoreFailures = true
+        ignoreFailures = false
+        config.setFrom(rootProject.files("config/detekt/config.yml"))
+        baseline = rootProject.file("config/detekt/${project.path.trimStart(':').replace(':', '-')}.xml")
+        // Include handwritten Kotlin from every platform; generated build bindings
+        // and migration fixtures are compiler outputs, not handwritten source.
+        source.setFrom(fileTree("src") { include("**/*.kt"); exclude("**/generated/**") })
         basePath = rootProject.projectDir.path
     }
 }

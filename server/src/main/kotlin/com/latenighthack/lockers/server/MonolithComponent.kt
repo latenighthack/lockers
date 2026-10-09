@@ -17,6 +17,10 @@ import com.latenighthack.lockers.server.services.push.v1.*
 import com.latenighthack.lockers.server.services.room.v1.*
 import com.latenighthack.lockers.server.services.session.v1.*
 import com.latenighthack.lockers.server.tools.GrpcRouteProvider
+import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import com.latenighthack.lockers.server.tools.ServiceLifecycle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -34,13 +38,17 @@ import kotlinx.coroutines.runBlocking
  * contribute their own gRPC services and HTTP routes on top of the built-ins.
  */
 class MonolithComponent(
-    serverCore: ServerCore,
+    private val serverCore: ServerCore,
     val extensions: List<ServerExtension> = emptyList(),
     private val cluster: ClusterContext? = null,
     private val claim: ClaimContext? = null,
 ) {
+    internal val adminToken: String? get() = serverCore.config.adminToken
     init {
         require(cluster == null || claim == null) { "ring and claim ownership are mutually exclusive" }
+        require(cluster == null || serverCore.config.peerToken == null || cluster.sessionPublicAddresses != null) {
+            "Authenticated ring hosts require explicit public session endpoints"
+        }
     }
 
     /**
@@ -49,7 +57,11 @@ class MonolithComponent(
      * capture it during construction.
      */
     private val telemetry = serverCore.telemetry
-    private val clusterScope = CoroutineScope(SupervisorJob())
+    private val clusterScope = CoroutineScope(serverCore.coroutineContext + SupervisorJob(serverCore.coroutineContext[Job]) + Dispatchers.IO)
+    private val extensionScope = CoroutineScope(serverCore.coroutineContext + SupervisorJob(serverCore.coroutineContext[Job]) + Dispatchers.IO + ServiceLifecycle.context)
+    private val closing = Mutex()
+    private var started = false
+    private var closed = false
 
     val pushServiceModule: PushServiceModule =
         PushServiceModule::class.create(serverCore)
@@ -65,7 +77,7 @@ class MonolithComponent(
     // Claim mode keeps session ownership Local: a session lives wherever its WebSocket is, and a
     // reconnect legitimately moves it (the registry's unconditional upsert follows the socket).
     private val sessionOwnership: SessionOwnership =
-        cluster?.let { RingSessionOwnership(it.router) } ?: LocalSessionOwnership()
+        cluster?.let { RingSessionOwnership(it.router, it.sessionPublicAddresses) } ?: LocalSessionOwnership()
 
     /** Claim-mode registry publishing live sessions to `session_gateway`; Noop otherwise. */
     private val sessionRegistry: SessionRegistry =
@@ -135,18 +147,14 @@ class MonolithComponent(
         }
 
     /**
-     * Client- and peer-facing services, mounted on the public port. The gateways
-     * are internal cross-service RPCs but are called in-process here (via local
-     * discovery); they remain in this set to preserve the future split-service
-     * topology.
+     * Public client services. Privileged gateways are available only through local discovery
+     * or the authenticated internal peer router.
      */
     val clientServices: List<GrpcRouteProvider<*>>
         get() = listOf(
             sessionServiceModule,
-            sessionGatewayServiceModule,
             roomServiceModule,
             pushServiceModule,
-            pushGatewayServiceModule,
         ) + extensions.flatMap { it.services }
 
     /**
@@ -164,39 +172,64 @@ class MonolithComponent(
             clusterServiceModule,
         )
 
-    /** Every service (public + admin) — used by the in-process test harness. */
+    /** Internal peer services; never mount these on the public listener. */
+    val peerServices: List<GrpcRouteProvider<*>>
+        get() = listOf(sessionGatewayServiceModule, pushGatewayServiceModule, roomServiceModule)
+
+    /** Every service — used by the in-process test harness. */
     val allServices: List<GrpcRouteProvider<*>>
-        get() = clientServices + adminServices
+        get() = (clientServices + adminServices + peerServices).distinct()
 
     suspend fun start() {
-        pushServiceModule.start()
-        // In a cluster, begin maintaining shard leases: acquire for owned shards and react to
-        // every reassignment. Reconcile once synchronously against the current map so the node is
-        // ready (owns its leases) before it starts serving; the watch keeps it in step thereafter.
-        ownerLifecycle?.let { lifecycle ->
-            cluster?.router?.let { router ->
-                lifecycle.reconcile(router.roomMap())
-                lifecycle.start(clusterScope, router.roomMapWatch())
+        synchronized(this) { check(!started && !closed) { "Component already started or closed" }; started = true }
+        try {
+            roomServiceModule.serverImpl.start()
+            sessionServiceModule.serverImpl.start()
+            pushServiceModule.start()
+            ownerLifecycle?.let { lifecycle ->
+                cluster?.router?.let { router ->
+                    lifecycle.reconcile(router.roomMap())
+                    lifecycle.start(clusterScope, router.roomMapWatch())
+                }
             }
+            claimRenewal?.start(clusterScope)
+            extensions.forEach { it.start(extensionScope) }
+        } catch (failure: Throwable) {
+            withContext(NonCancellable) {
+                try { closeAndJoin() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+            }
+            throw failure
         }
-        claimRenewal?.start(clusterScope)
-        extensions.forEach { it.start() }
     }
 
-    /**
-     * Releases background scopes and sharded thread pools for a clean shutdown. In a cluster this
-     * first drains shard leases (`releaseAll`) so peers stop being redirected here and a successor
-     * can acquire at the next epoch, then cancels the lifecycle's map watch.
-     */
-    fun stop() {
-        ownerLifecycle?.let { runBlocking { it.releaseAll() } }
-        // Claim drain mirrors the lease drain: delete this node's claim/registry rows so peers
-        // stop redirecting here and successors claim without waiting out a TTL.
-        claimRenewal?.let { runBlocking { it.stopAndRelease() } }
-        clusterScope.cancel()
-        pushServiceModule.stop()
-        sessionServiceModule.serverImpl.close()
-        roomServiceModule.serverImpl.close()
-        extensions.forEach { it.stop() }
+    /** Drains service work before releasing ownership or closing providers and coordination. */
+    suspend fun closeAndJoin() {
+        ServiceLifecycle.requireExternalClose()
+        closing.withLock {
+            if (closed) return
+            closed = true
+            // Complete every cleanup even if one extension/provider reports a failure.
+            var failed: Throwable? = null
+            suspend fun cleanup(block: suspend () -> Unit) {
+                try { block() } catch (failure: Throwable) {
+                    if (failed == null) failed = failure else failed.addSuppressed(failure)
+                }
+            }
+            withContext(NonCancellable) {
+                cleanup { extensionScope.coroutineContext[Job]!!.cancelAndJoin() }
+                extensions.asReversed().forEach { cleanup { it.closeAndJoin() } }
+                cleanup { roomServiceModule.serverImpl.closeAndJoin() }
+                cleanup { sessionServiceModule.serverImpl.closeAndJoin() }
+                cleanup { pushServiceModule.serverImpl.stopAndJoin() }
+                cleanup { ownerLifecycle?.stopAndRelease() }
+                cleanup { claimRenewal?.stopAndRelease() }
+                cleanup { clusterScope.coroutineContext[Job]!!.cancelAndJoin() }
+                cleanup { serverCore.closeAndJoin() }
+            }
+            failed?.let { throw it }
+        }
     }
+
+    /** Compatibility adapter; external owners can use closeAndJoin without blocking a thread. */
+    fun stop() = ServiceLifecycle.blockingClose(serverCore.coroutineContext) { closeAndJoin() }
 }

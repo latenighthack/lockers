@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.DeliveryFrameBoundsTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:20.983Z" hostname="Mikes-MacBook-Pro.local" time="2.759">
+  <properties/>
+  <testcase name="claimed room prefixes obey a byte bound as well as an item count()" classname="com.latenighthack.lockers.server.DeliveryFrameBoundsTest" time="0.028"/>
+  <testcase name="gateway batches bound durable recipient expansion as well as wire bytes()" classname="com.latenighthack.lockers.server.DeliveryFrameBoundsTest" time="0.054"/>
+  <testcase name="one large event splits its recipients into complete protocol sized frames()" classname="com.latenighthack.lockers.server.DeliveryFrameBoundsTest" time="2.676"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

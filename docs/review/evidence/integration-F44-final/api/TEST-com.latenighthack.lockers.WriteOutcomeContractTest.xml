@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="WriteOutcomeContractTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:15.048Z" hostname="Mikes-MacBook-Pro.local" time="0.026">
+  <properties/>
+  <testcase name="write outcome exposes immutable metadata and preserves indeterminate state[jvm]" classname="com.latenighthack.lockers.WriteOutcomeContractTest" time="0.026"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

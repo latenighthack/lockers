@@ -1,0 +1,126 @@
+{
+  "checkpoint": "6c41d57",
+  "rawLog": "/tmp/lockers-static-pass3-initial.log",
+  "modules": {
+    "connector": {
+      "addedCount": 71,
+      "removedCount": 10,
+      "addedByRule": {
+        "EmptyFunctionBlock": 2,
+        "MaxLineLength": 42,
+        "WildcardImport": 27
+      },
+      "removedByRule": {
+        "MaxLineLength": 10
+      },
+      "addedIds": [
+        "EmptyFunctionBlock:ReviewSubscriptionConfirmationCasTests.kt$ReviewSubscriptionConfirmationCasTests.<no name provided>${}",
+        "EmptyFunctionBlock:ReviewSubscriptionEchoTests.kt$ReviewSubscriptionEchoTests.<no name provided>${}",
+        "MaxLineLength:LockerClient.kt$LockerClient$accept(LockerUpdate(roomId, lockerId, version, body.plaintextPayload(), deleted = false, roomSequence = event.roomSequence))",
+        "MaxLineLength:LockerClient.kt$LockerClient$require(response.currentRevision == revision) { \"Snapshot success did not echo the requested intent revision\" }",
+        "MaxLineLength:LockerClient.kt$LockerClient$require(response.currentRevision == revision) { \"Subscription success did not echo the requested intent revision\" }",
+        "MaxLineLength:ReviewAuthorityV2Tests.kt$ReviewAuthorityV2Tests$assertTrue(child.publicKey.verify(LockerSigning.unlockContextV2(room, scope, 4), unlockRequest.signature!!.signature))",
+        "MaxLineLength:ReviewConnectorTests.kt$ReviewConnectorTests$assertContentEquals(PostLockerChangeRequest.fromByteArray(requestBytes!!).ratchet!!.newPublicKey!!.rawValue, adopted.publicKey.encode())",
+        "MaxLineLength:ReviewJournalCancellationTests.kt$ReviewJournalCancellationTests$@Test",
+        "MaxLineLength:ReviewPublicObservationIsolationTests.kt$ReviewPublicObservationIsolationTests$val",
+        "MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$\"GetLocker\" -> GetLockerResponse(locker = IdentifiedLocker(id, version = 5, lockState = state)).toByteArray()",
+        "MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$lockState = legacy.copy(scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM), lockVersion = 2)",
+        "MaxLineLength:ReviewRatchetAdoptionTests.kt$ReviewRatchetAdoptionTests$ratchet = PostLockerChangeRequest.Ratchet(newPublicKey = Secp256R1Key.PublicKey(rotated.publicKey.encode()))",
+        "MaxLineLength:ReviewSubscriptionConfirmationCasTests.kt$ReviewSubscriptionConfirmationCasTests$@Test fun `late HTTP subscribe confirmation cannot recreate another controller removal`()",
+        "MaxLineLength:ReviewSubscriptionConfirmationCasTests.kt$ReviewSubscriptionConfirmationCasTests$@Test fun `late HTTP unsubscribe confirmation cannot delete another controller resubscription`()",
+        "MaxLineLength:ReviewSubscriptionConfirmationCasTests.kt$ReviewSubscriptionConfirmationCasTests$else",
+        "MaxLineLength:ReviewSubscriptionConfirmationCasTests.kt$ReviewSubscriptionConfirmationCasTests$if",
+        "MaxLineLength:ReviewSubscriptionConfirmationCasTests.kt$ReviewSubscriptionConfirmationCasTests$private",
+        "MaxLineLength:ReviewSubscriptionConfirmationCasTests.kt$ReviewSubscriptionConfirmationCasTests$return",
+        "MaxLineLength:ReviewSubscriptionConfirmationCasTests.kt$ReviewSubscriptionConfirmationCasTests$signature = key.privateKey.sign(SessionSigning.context(operation, sid, SHA256.digest(unsigned), issued, nonce))",
+        "MaxLineLength:ReviewSubscriptionConfirmationCasTests.kt$ReviewSubscriptionConfirmationCasTests$val first = SubscriptionController(gate, store, sessions, MutableStateFlow(sid), signRequest = ::proof).also { a = it }",
+        "MaxLineLength:ReviewSubscriptionConfirmationCasTests.kt$ReviewSubscriptionConfirmationCasTests$val held = CompletableDeferred<Unit>()",
+        "MaxLineLength:ReviewSubscriptionConfirmationCasTests.kt$ReviewSubscriptionConfirmationCasTests$val second = SubscriptionController(server.ownedRpcClient, store, sessions, MutableStateFlow(sid), signRequest = ::proof).also { b = it }",
+        "MaxLineLength:ReviewSubscriptionConfirmationCasTests.kt$ReviewSubscriptionConfirmationCasTests.<no name provided>$override suspend",
+        "MaxLineLength:ReviewSubscriptionEchoTests.kt$ReviewSubscriptionEchoTests$@Test",
+        "MaxLineLength:ReviewSubscriptionEchoTests.kt$ReviewSubscriptionEchoTests$assertFailsWith<IllegalArgumentException> { withTimeout(2_000) { controller.awaitSubscription(RoomId(byteArrayOf(2))) } }",
+        "MaxLineLength:ReviewSubscriptionEchoTests.kt$ReviewSubscriptionEchoTests$val client = createOwnedTestClient(malformed, db, KeyValueStore(InMemoryKeyValueStoreDelegate()), auth, Version()).also { receiver = it }",
+        "MaxLineLength:ReviewSubscriptionEchoTests.kt$ReviewSubscriptionEchoTests.<no name provided>$calls++",
+        "MaxLineLength:ReviewSubscriptionEchoTests.kt$ReviewSubscriptionEchoTests.<no name provided>$override suspend",
+        "MaxLineLength:ReviewSubscriptionFailureTests.kt$ReviewSubscriptionFailureTests$val rpc = ReviewRpc { _, bytes -> SubscriptionResponse(currentRevision = SubscriptionRequest.fromByteArray(bytes).intentRevision).toByteArray() }",
+        "MaxLineLength:ReviewSubscriptionRevisionTests.kt$ReviewSubscriptionRevisionTests$\"Subscription\" -> { val request = SubscriptionRequest.fromByteArray(bytes); requests += request; SubscriptionResponse(currentRevision = request.intentRevision).toByteArray() }",
+        "MaxLineLength:ReviewSubscriptionStartupCasTests.kt$ReviewSubscriptionStartupCasTests$@Test",
+        "MaxLineLength:ReviewSubscriptionStartupCasTests.kt$ReviewSubscriptionStartupCasTests$SubscriptionIntentRevision(byteArrayOf(1), 0, true)",
+        "MaxLineLength:ReviewSubscriptionStartupCasTests.kt$ReviewSubscriptionStartupCasTests$assertContentEquals(valid.room, decoded.room)",
+        "MaxLineLength:ReviewSubscriptionStartupCasTests.kt$ReviewSubscriptionStartupCasTests$assertEquals(2L, actual.intentRevision(room)!!.revision)",
+        "MaxLineLength:ReviewSubscriptionStartupCasTests.kt$ReviewSubscriptionStartupCasTests$for",
+        "MaxLineLength:ReviewSubscriptionStartupCasTests.kt$ReviewSubscriptionStartupCasTests$val decoded = SubscriptionIntentRevisionDefinitionV1.decode(SubscriptionIntentRevisionDefinitionV1.encodePayload(valid))",
+        "MaxLineLength:Stream.kt$SubscriptionController$require(response.currentRevision == revision) { \"Subscription success did not echo the requested intent revision\" }",
+        "MaxLineLength:Stream.kt$SubscriptionController$throw SubscriptionRevisionConflictException(subscriptionStore.intentRevision(change.roomId)?.revision ?: 0)",
+        "MaxLineLength:Stream.kt$SubscriptionStore$suspend fun confirmIntent(room: RoomId, revision: Long, subscribed: Boolean): Boolean",
+        "MaxLineLength:Stream.kt$SubscriptionStore$suspend fun restoreIntent(room: RoomId): SubscriptionIntentRevision?",
+        "MaxLineLength:Stream.kt$SubscriptionStoreImpl$if (current == null || current.revision != revision || current.subscribed != subscribed) return@transaction false",
+        "MaxLineLength:Stream.kt$SubscriptionStoreImpl$revisions.find(room.rawValue) ?: SubscriptionIntentRevision(room.rawValue, 1, !row.isPendingRemove).also { revisions.put(it) }",
+        "MaxLineLength:Stream.kt$SubscriptionStoreImpl$updateSubscription(row?.copy(isPendingAdd = false, isPendingRemove = false) ?: StoredSubscription(roomIdRawValue = room.rawValue))",
+        "MaxLineLength:SubscriptionRecoveryTests.kt$SubscriptionRecoveryTests.GatedClient$return RpcResponse(SubscriptionResponse(currentRevision = SubscriptionRequest.fromByteArray(request).intentRevision).toByteArray(), emptyMap())",
+        "WildcardImport:ReviewJournalCancellationTests.kt$import kotlin.test.*",
+        "WildcardImport:ReviewJournalCancellationTests.kt$import kotlinx.coroutines.*",
+        "WildcardImport:ReviewSubscriptionConfirmationCasTests.kt$import com.latenighthack.ktbuf.net.*",
+        "WildcardImport:ReviewSubscriptionConfirmationCasTests.kt$import com.latenighthack.ktcrypto.*",
+        "WildcardImport:ReviewSubscriptionConfirmationCasTests.kt$import com.latenighthack.ktstore.*",
+        "WildcardImport:ReviewSubscriptionConfirmationCasTests.kt$import com.latenighthack.lockers.common.v1.*",
+        "WildcardImport:ReviewSubscriptionConfirmationCasTests.kt$import com.latenighthack.lockers.connector.*",
+        "WildcardImport:ReviewSubscriptionConfirmationCasTests.kt$import com.latenighthack.lockers.room.v1.*",
+        "WildcardImport:ReviewSubscriptionConfirmationCasTests.kt$import kotlin.test.*",
+        "WildcardImport:ReviewSubscriptionConfirmationCasTests.kt$import kotlinx.coroutines.*",
+        "WildcardImport:ReviewSubscriptionConfirmationCasTests.kt$import kotlinx.coroutines.flow.*",
+        "WildcardImport:ReviewSubscriptionEchoTests.kt$import com.latenighthack.ktbuf.net.*",
+        "WildcardImport:ReviewSubscriptionEchoTests.kt$import com.latenighthack.ktcrypto.*",
+        "WildcardImport:ReviewSubscriptionEchoTests.kt$import com.latenighthack.ktstore.*",
+        "WildcardImport:ReviewSubscriptionEchoTests.kt$import com.latenighthack.lockers.common.v1.*",
+        "WildcardImport:ReviewSubscriptionEchoTests.kt$import com.latenighthack.lockers.connector.*",
+        "WildcardImport:ReviewSubscriptionEchoTests.kt$import com.latenighthack.lockers.room.v1.*",
+        "WildcardImport:ReviewSubscriptionEchoTests.kt$import kotlin.test.*",
+        "WildcardImport:ReviewSubscriptionEchoTests.kt$import kotlinx.coroutines.*",
+        "WildcardImport:ReviewSubscriptionEchoTests.kt$import kotlinx.coroutines.flow.*",
+        "WildcardImport:ReviewSubscriptionStartupCasTests.kt$import com.latenighthack.ktstore.*",
+        "WildcardImport:ReviewSubscriptionStartupCasTests.kt$import com.latenighthack.lockers.common.v1.*",
+        "WildcardImport:ReviewSubscriptionStartupCasTests.kt$import com.latenighthack.lockers.connector.*",
+        "WildcardImport:ReviewSubscriptionStartupCasTests.kt$import com.latenighthack.lockers.room.v1.*",
+        "WildcardImport:ReviewSubscriptionStartupCasTests.kt$import kotlin.test.*",
+        "WildcardImport:ReviewSubscriptionStartupCasTests.kt$import kotlinx.coroutines.*",
+        "WildcardImport:ReviewSubscriptionStartupCasTests.kt$import kotlinx.coroutines.flow.*"
+      ],
+      "removedIds": [
+        "MaxLineLength:LockerClient.kt$LockerClient$accept(LockerUpdate(roomId, lockerId, version, body!!.plaintextPayload(), deleted = false, roomSequence = event.roomSequence))",
+        "MaxLineLength:LockerClient.kt$LockerClient$if (caps.authorityV2 && current != null && current.lockVersion >= (archive.state?.lockVersion ?: 0)) lockerStore.forgetArchivedRatchet(archive)",
+        "MaxLineLength:LockerClient.kt$LockerClient$sync.network { roomService.getLocker(GetLockerRequest(archive.room, target.canonical())) }.locker?.lockState",
+        "MaxLineLength:ReviewAuthorityV2Tests.kt$ReviewAuthorityV2Tests$assertTrue(child.publicKey.verify(LockerSigning.unlockContextV2(room, scope, 4), unlockRequest!!.signature!!.signature))",
+        "MaxLineLength:ReviewConnectorTests.kt$ReviewConnectorTests$assertContentEquals(PostLockerChangeRequest.fromByteArray(requestBytes!!).ratchet!!.newPublicKey!!.rawValue, adopted!!.publicKey.encode())",
+        "MaxLineLength:ReviewSubscriptionRevisionTests.kt$ReviewSubscriptionRevisionTests$\"Subscription\" -> { requests += SubscriptionRequest.fromByteArray(bytes); SubscriptionResponse().toByteArray() }",
+        "MaxLineLength:Stream.kt$SubscriptionController$desired.mapValues { (room, subscribed) -> subscriptionStore.ensureIntentRevision(room, subscribed) }.toMutableMap()",
+        "MaxLineLength:Stream.kt$SubscriptionController$subscriptionStore",
+        "MaxLineLength:Stream.kt$SubscriptionController$}",
+        "MaxLineLength:SubscriptionIntentRevisions.kt$private fun encodeRevision(value: SubscriptionIntentRevision)"
+      ]
+    },
+    "server": {
+      "addedCount": 1,
+      "removedCount": 2,
+      "addedByRule": {
+        "MaxLineLength": 1
+      },
+      "removedByRule": {
+        "MaxLineLength": 2
+      },
+      "addedIds": [
+        "MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$meterRegistry.counter(\"lockers.room.subscriptions\", \"operation\", \"unknown\", \"result\", \"ERROR\").increment()"
+      ],
+      "removedIds": [
+        "MaxLineLength:RemoteGateway.kt$PeerConnectionPool$resources.forEach { try { dispose(it) } catch (failure: Throwable) { if (failed == null) failed = failure else failed!!.addSuppressed(failure) } }",
+        "MaxLineLength:WriteTrace.kt$MeasuredStoreDelegate$val tags = arrayOf(\"store\", table!!, \"operation\", if (name == \"db_read\") \"read\" else \"write\", \"outcome\", outcome)"
+      ]
+    }
+  },
+  "findingOccurrences": 75,
+  "occurrencesByRule": {
+    "EmptyFunctionBlock": 4,
+    "WildcardImport": 27,
+    "MaxLineLength": 44
+  }
+}

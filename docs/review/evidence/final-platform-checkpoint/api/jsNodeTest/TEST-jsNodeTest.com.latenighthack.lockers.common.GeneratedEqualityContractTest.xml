@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="jsNodeTest.com.latenighthack.lockers.common.GeneratedEqualityContractTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:12:55.162Z" hostname="Mikes-MacBook-Pro.local" time="0.001">
+  <properties/>
+  <testcase name="unknownFieldsHaveSymmetricEqualityAndConsistentHashing[js, node]" classname="jsNodeTest.com.latenighthack.lockers.common.GeneratedEqualityContractTest" time="0.001"/>
+  <testcase name="enumEqualityIsBoundToItsDeclaredFamily[js, node]" classname="jsNodeTest.com.latenighthack.lockers.common.GeneratedEqualityContractTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

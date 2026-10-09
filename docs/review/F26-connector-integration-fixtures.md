@@ -1,0 +1,11 @@
+# F26 / F34 / F39 — integrated connector verification and failure-safe fixtures
+
+The first whole integrated connector JVM run executed 131 tests and exposed three failures (`/tmp/connector-integration-suite.log`). Routing's fake node returned a write packet for Capabilities; strict parsing rejected the malformed response. Two subscription actor tests fabricated unsigned sessions against public proof-authorized routes and timed out. The routing fixture now returns a real capability message; the actor fixture uses an explicit gated transport contract to test generation/session reconciliation, with separate signed-public-operation coverage retained.
+
+New context-authenticated notification integration proves actual SDK encode → transport → server inbox → SDK decode for live and offline/reconnected delivery, including body-only/title-only push metadata normalized to empty protobuf strings. The recovered receiver retains its session and resumes its accepted notification cursor.
+
+Legacy test infrastructure omitted server.stop on runner failure and allocated a fresh unowned HTTP client on each server.rpcClient property read. Connector fixtures now own one HTTP transport, track SDK facades/streams and databases, cancel/join runner children, and close clients, transport and server in NonCancellable cleanup. Original exceptions preserve cleanup failures as suppressed errors. Two regressions intentionally omit cleanup after success/failure; they prove SDK Closed state, joined forgotten Flow collection, and rejection of HTTP use after disposal.
+
+A new admission regression verifies malformed session-open requests become typed terminal failures while temporary capacity rejection reconnects successfully. Final whole connector JVM suite: **135 tests, zero failures** (`/tmp/connector-integration-final-jvm.log`). The preceding combined run also passed all 12 peer/claim ownership/forwarding regressions (`/tmp/connector-and-peer-final.log`).
+
+Final common-platform validation also passed Android debug compilation, connector Node tests and iOS simulator tests with the same frozen upstream manifest (`/tmp/connector-integration-platforms.log`). No original checkout or external repository was changed by these local validations.

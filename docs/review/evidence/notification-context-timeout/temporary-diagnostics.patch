@@ -1,0 +1,80 @@
+diff --git a/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewNotificationContextTests.kt b/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewNotificationContextTests.kt
+index c8e1b7f..3072030 100644
+--- a/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewNotificationContextTests.kt
++++ b/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewNotificationContextTests.kt
+@@ -15,9 +15,29 @@ import java.util.concurrent.CopyOnWriteArrayList
+ import kotlin.test.*
+ 
+ class ReviewNotificationContextTests {
++    @Volatile private var phase = "start"
++    private fun stage(value: String) { phase = value; println("notification context: $value") }
+     @Test(timeout = 20_000)
+-    fun `context authenticated partial push metadata survives live and offline replay`() = runTestWithServer({
+-        capturedCore = null
++    fun `repeat notification context diagnostic`() { repeat(20) { index ->
++        println("notification context attempt $index")
++        `context authenticated partial push metadata survives live and offline replay`()
++    } }
++
++    @Test(timeout = 20_000)
++    fun `context authenticated partial push metadata survives live and offline replay`() {
++        val watchdog = Thread {
++            try {
++                Thread.sleep(8_000)
++                println("notification context STALLED at $phase")
++                Thread.getAllStackTraces().forEach { (thread, stack) ->
++                    println("thread ${thread.name} ${thread.state}\n${stack.joinToString("\n")}")
++                }
++            } catch (_: InterruptedException) { }
++        }.apply { isDaemon = true; start() }
++        try { exercise() } finally { watchdog.interrupt() }
++    }
++    private fun exercise() = runTestWithServer({
++        stage("server setup"); capturedCore = null
+         attachTestServicesWith { capturedCore = it }
+     }) { server, _ -> withContext(Dispatchers.Default) {
+         val encodedContexts = CopyOnWriteArrayList<NotificationContext>()
+@@ -46,31 +66,39 @@ class ReviewNotificationContextTests {
+                 override suspend fun generateSessionKeyPair() {}
+                 override suspend fun revokeKeys() {}
+             }, Version(), codecs = codecs, coroutineContext = currentCoroutineContext())
+-            try { client.awaitConnected(); return client } catch (failure: Throwable) { client.closeAndJoin(); throw failure }
++            try { stage("awaitConnected after $phase"); client.awaitConnected(); stage("client connected"); return client } catch (failure: Throwable) { client.closeAndJoin(); throw failure }
+         }
+         var receiver: LockersClient? = null
+         var sender: LockersClient? = null
+         try {
+             val room = RoomId(byteArrayOf(1)); val id = LockerId(byteArrayOf(2), LockerKeyspace(7))
++            stage("create receiver")
+             val receiving = client(server.rpcClient, receiveDatabase, receiveValues, receiveKey).also { receiver = it }
++            stage("create sender")
+             val sending = client(server.rpcClient).also { sender = it }
+-            receiving.lockers.subscribeToRoom(room)
++            stage("subscribe receiver"); receiving.lockers.subscribeToRoom(room)
++            stage("write live")
+             sending.lockers.updateLocker(room, id, { push { body = "body only" }; payload { rawValue = "live".encodeToByteArray() } }) { byteArrayOf(1) }
++            stage("await live notification")
+             val live = withTimeout(5_000) { receiving.notificationsAfter(0).first() }
+             assertEquals("live", live.notification.payload.decodeToString())
+             val session = requireNotNull(receiving.sessionId.value)
+-            receiving.closeAndJoin(); receiver = null
++            stage("close live receiver"); receiving.closeAndJoin(); receiver = null; stage("live receiver closed")
++            stage("write offline")
+             sending.lockers.updateLocker(room, id, { push { title = "title only" }; payload { rawValue = "offline".encodeToByteArray() } }) { byteArrayOf(2) }
++            stage("await offline inbox")
+             withTimeout(5_000) {
+                 while (requireNotNull(capturedCore).sessionInboxStore.getAllEvents(ServerSessionId(session.rawValue)).isEmpty()) delay(10)
+             }
++            stage("create replacement")
+             val replacement = client(server.rpcClient, receiveDatabase, receiveValues, receiveKey).also { receiver = it }
+             assertContentEquals(session.rawValue, replacement.sessionId.value!!.rawValue)
++            stage("await replay")
+             val replay = withTimeout(5_000) { replacement.notificationsAfter(live.cursor).first() }
+             assertEquals("offline", replay.notification.payload.decodeToString())
+             assertEquals(listOf("" to "body only", "title only" to ""), encodedContexts.map { it.title to it.body })
+             assertEquals(encodedContexts.map { it.title to it.body }, decodedContexts.map { it.title to it.body })
+-        } finally { receiver?.closeAndJoin(); sender?.closeAndJoin(); receiveDatabase.close() }
++        } finally { stage("cleanup receiver"); receiver?.closeAndJoin(); stage("cleanup sender"); sender?.closeAndJoin(); stage("cleanup database"); receiveDatabase.close(); stage("body complete awaiting fixture cleanup") }
+     } }
+ 
+     private var capturedCore: ServerCore? = null

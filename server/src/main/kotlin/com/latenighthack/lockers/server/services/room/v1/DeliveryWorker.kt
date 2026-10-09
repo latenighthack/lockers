@@ -1,6 +1,8 @@
 package com.latenighthack.lockers.server.services.room.v1
 
 import com.latenighthack.lockers.common.v1.*
+import com.latenighthack.lockers.common.InboxAdmission
+import com.latenighthack.lockers.server.storage.v1.ServerDeliveryIntent
 import com.latenighthack.lockers.server.services.session.v1.SessionGatewayDiscovery
 import com.latenighthack.lockers.session.v1.*
 import kotlinx.coroutines.*
@@ -13,19 +15,21 @@ import com.latenighthack.lockers.observability.*
 import com.latenighthack.lockers.server.tools.safeMeters
 import java.util.concurrent.TimeUnit
 
+private data class RoutedDelivery(val intent: ServerDeliveryIntent, val request: PostEventRequest, val expansionBytes: Long)
+
 /** Leases recover after process death; stable event ids make retries safe at the gateway. */
-class DeliveryWorker(private val store: DeliveryOutboxStore, private val discovery: SessionGatewayDiscovery, private val meters: MeterRegistry? = null, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, private val queue: String = "room") {
+class DeliveryWorker(private val store: DeliveryOutboxStore, private val discovery: SessionGatewayDiscovery, private val meters: MeterRegistry? = null, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, private val queue: String = "room", private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext) {
     init { meters?.counter("lockers.delivery.accepted", "queue", queue); meters?.counter("lockers.delivery.attempts", "queue", queue); meters?.counter("lockers.delivery.failures", "queue", queue) }
     private val active = java.util.concurrent.atomic.AtomicInteger(0)
     init { meters?.gauge("lockers.delivery.worker.active", listOf(io.micrometer.core.instrument.Tag.of("queue", queue)), active) { it.get().toDouble() } }
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(coroutineContext + SupervisorJob(coroutineContext[Job]) + Dispatchers.IO + com.latenighthack.lockers.server.tools.ServiceLifecycle.context)
     private val permits = Semaphore(4)
     private val owner = UUID.randomUUID().toString()
     private val logger = LoggerFactory.getLogger(DeliveryWorker::class.java)
     private var job: Job? = null
     @Volatile private var stopping = false
     fun start() {
-        check(job == null)
+        check(job == null && !stopping && scope.isActive) { "Delivery worker already started or closed" }
         active.set(1)
         job = scope.launch {
             // Independent room lanes keep a slow gateway from imposing a batch barrier on
@@ -58,36 +62,53 @@ class DeliveryWorker(private val store: DeliveryOutboxStore, private val discove
             coroutineScope {
                 groups.map { group -> async {
                     permits.withPermit {
-                        val routed = intents.mapNotNull { intent ->
+                        val routed = intents.flatMap { intent ->
                             val pending = intent.pendingSessions.map { SessionId(it.rawValue) }.toSet()
                             val recipients = group.sessionIds.filter { it in pending }
-                            if (recipients.isEmpty()) null else intent to PostEventRequest(recipients, Event.fromByteArray(intent.encodedEvent))
+                            val event = Event.fromByteArray(intent.encodedEvent)
+                            val budget = com.latenighthack.lockers.server.ProtocolValidation.MAX_ENVELOPE_BYTES.toLong()
+                            // Account for nested message tags/lengths without repeatedly encoding a large event per SID.
+                            val baseBytes = PostEventRequest(emptyList(), event).toByteArray().size.toLong() + 16
+                            val requests = mutableListOf<RoutedDelivery>()
+                            var chunk = mutableListOf<SessionId>(); var bytes = baseBytes; var expansion = 0L
+                            for (session in recipients) {
+                                val encodedSessionSize = session.toByteArray().size
+                                val sessionBytes = encodedSessionSize.toLong() + 8
+                                val recipientExpansion = InboxAdmission.recipientExpansionBytes(intent.encodedEvent.size, encodedSessionSize)
+                                check(baseBytes + sessionBytes <= budget && recipientExpansion <= InboxAdmission.MAX_BATCH_EXPANSION_BYTES) { "Delivery recipient cannot fit the gateway protocol frame" }
+                                if (chunk.isNotEmpty() && (chunk.size == com.latenighthack.lockers.server.ProtocolValidation.MAX_RECIPIENTS || bytes + sessionBytes > budget || expansion + recipientExpansion > InboxAdmission.MAX_BATCH_EXPANSION_BYTES)) {
+                                    requests.add(RoutedDelivery(intent, PostEventRequest(chunk.toList(), event), expansion)); chunk = mutableListOf(); bytes = baseBytes; expansion = 0
+                                }
+                                chunk.add(session); bytes += sessionBytes; expansion += recipientExpansion
+                            }
+                            if (chunk.isNotEmpty()) requests.add(RoutedDelivery(intent, PostEventRequest(chunk.toList(), event), expansion))
+                            requests
                         }
                         try {
                             // Each claimed room prefix is ordered. One gateway RPC can carry
                             // source and derived events without serial network round trips.
-                            val batches = mutableListOf<MutableList<Pair<com.latenighthack.lockers.server.storage.v1.ServerDeliveryIntent, PostEventRequest>>>()
-                            var bytes = 0
+                            val batches = mutableListOf<MutableList<RoutedDelivery>>()
+                            var bytes = 0; var expansion = 0L
                             for (item in routed) {
-                                val size = item.second.toByteArray().size + 16
-                                if (batches.isEmpty() || batches.last().size == 64 || bytes + size > 8 * 1024 * 1024) {
-                                    batches.add(mutableListOf()); bytes = 0
+                                val size = item.request.toByteArray().size + 16
+                                if (batches.isEmpty() || batches.last().size == 64 || bytes + size > 8 * 1024 * 1024 || expansion + item.expansionBytes > InboxAdmission.MAX_BATCH_EXPANSION_BYTES) {
+                                    batches.add(mutableListOf()); bytes = 0; expansion = 0
                                 }
-                                batches.last().add(item); bytes += size
+                                batches.last().add(item); bytes += size; expansion += item.expansionBytes
                             }
                             for (batch in batches) {
                                 val results = telemetry.observe(TelemetryOperation.DELIVERY_GATEWAY) { withTimeout(10_000) {
-                                    try { group.service.postEvents(com.latenighthack.lockers.session.v1.PostEventsRequest(batch.map { it.second })).results }
+                                    try { group.service.postEvents(com.latenighthack.lockers.session.v1.PostEventsRequest(batch.map { it.request })).results }
                                     catch (e: com.latenighthack.ktbuf.net.RpcResponseException) {
                                         if (e.code != com.latenighthack.ktbuf.proto.Codes.UNIMPLEMENTED && e.code != com.latenighthack.ktbuf.proto.Codes.NOT_FOUND) throw e
                                         // An unsupported method cannot have committed any of its groups.
-                                        batch.map { group.service.postEvent(it.second) }
+                                        batch.map { group.service.postEvent(it.request) }
                                     }
                                 }
                                 }
                                 batch.zip(results).forEach { (item, result) ->
                                     if (result.result.isOk()) {
-                                        store.accepted(item.first, item.second.sessionIds)
+                                        store.accepted(item.intent, item.request.sessionIds)
                                         meters?.safeMeters { counter("lockers.delivery.accepted", "queue", queue).increment() }
                                     } else meters?.safeMeters { counter("lockers.delivery.failures", "queue", queue).increment() }
                                 }
@@ -116,5 +137,11 @@ class DeliveryWorker(private val store: DeliveryOutboxStore, private val discove
         job?.join()
         while (store.pendingCount() > 0) { if (!drainOnce()) store.awaitWork() }
     }
-    fun close() { active.set(0); scope.cancel() }
+    suspend fun closeAndJoin() {
+        com.latenighthack.lockers.server.tools.ServiceLifecycle.requireExternalClose()
+        stopping = true
+        scope.coroutineContext[Job]!!.cancelAndJoin()
+        active.set(0)
+    }
+    fun close() = com.latenighthack.lockers.server.tools.ServiceLifecycle.blockingClose(coroutineContext) { closeAndJoin() }
 }

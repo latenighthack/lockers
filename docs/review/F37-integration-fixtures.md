@@ -1,0 +1,5 @@
+# F37/F38 integration fixture contracts
+
+The combined suite at93acbe6 ran314 server tests and exposed three integration failures after introducing owned asynchronous agent recovery and configured derived-output budgets. `PersistedEnvelopeValidationTest` now starts its service and observes the final durable outcome: arbitrary extensions returning invalid output are indeterminate because their external effects cannot be inferred. The source remains committed and the derived row remains absent. `DeliveryLatencyTest` explicitly configures2MiB to cover the fixture's1,145,000-byte derived body; the previous default1MiB correctly rejects it. Both legacy capability mode and default delivery mode remain measured. `RequestPreflightTest` asserts INVALID_ARGUMENT for malformed authority shapes while preserving the zero-room-admission assertion.
+
+Focused integration rerun passed11 tests with no skips: persisted envelope2, latency1, preflight2, shared CPU4 and session frame2. Broader final combined/platform verification remains pending.

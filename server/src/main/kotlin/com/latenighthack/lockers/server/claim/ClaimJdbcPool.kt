@@ -3,8 +3,9 @@ package com.latenighthack.lockers.server.claim
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.coroutineContext
 import java.sql.Connection
-import java.sql.DriverManager
 
 /**
  * A tiny bounded JDBC connection pool for the claim stores. The whole coordination workload is one
@@ -20,33 +21,38 @@ import java.sql.DriverManager
  * closes the connection and propagates. Resilience (demote-on-renew-failure) lives in
  * [ClaimRenewalService], which must see DB unreachability rather than have it hidden here.
  */
-class ClaimJdbcPool(
+class ClaimJdbcPool @JvmOverloads constructor(
     private val jdbcUrl: String,
     size: Int = 2,
+    private val limits: com.latenighthack.ktstore.PostgresJdbcLimits = com.latenighthack.ktstore.PostgresJdbcLimits(),
 ) : AutoCloseable {
     // Each slot holds a connection or null (not yet created / discarded after a failure).
-    private val slots = Channel<Connection?>(size)
+    private val slots = Channel<Connection?>(size.also { require(it > 0) { "ClaimJdbcPool size must be positive" } })
+    private val closed = java.util.concurrent.atomic.AtomicBoolean(false)
 
     init {
         repeat(size) { check(slots.trySend(null).isSuccess) }
     }
 
     suspend fun <T> withConnection(block: (Connection) -> T): T {
+        check(!closed.get()) { "ClaimJdbcPool is closed" }
         var conn = slots.receive()
         try {
             val result = withContext(Dispatchers.IO) {
-                if (conn == null || !isUsable(conn!!)) {
+                check(!closed.get()) { "ClaimJdbcPool is closed" }
+                if (conn == null || !isUsable(conn)) {
                     runCatching { conn?.close() }
-                    conn = DriverManager.getConnection(jdbcUrl)
+                    conn = com.latenighthack.lockers.server.tools.openPostgresConnection(jdbcUrl, limits)
                 }
-                block(conn!!)
+                block(conn)
             }
             // A slot send only fails after close(); don't leak the borrowed connection then.
-            if (slots.trySend(conn).isFailure) runCatching { conn?.close() }
+            if (closed.get() || slots.trySend(conn).isFailure) runCatching { conn?.close() }
             return result
         } catch (t: Throwable) {
             runCatching { withContext(kotlinx.coroutines.NonCancellable) { conn?.close() } }
             slots.trySend(null)
+            coroutineContext.ensureActive()
             throw t
         }
     }
@@ -55,10 +61,12 @@ class ClaimJdbcPool(
         runCatching { !conn.isClosed && conn.isValid(1) }.getOrDefault(false)
 
     override fun close() {
-        while (true) {
-            val slot = slots.tryReceive().getOrNull() ?: break
-            runCatching { slot?.close() }
-        }
+        if (!closed.compareAndSet(false, true)) return
         slots.close()
+        while (true) {
+            val received = slots.tryReceive()
+            if (received.isFailure) break
+            runCatching { received.getOrNull()?.close() }
+        }
     }
 }

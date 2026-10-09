@@ -1,0 +1,26 @@
+{
+  "connector/build/test-results/jvmTest": {
+    "tests": 23,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "connector/build/test-results/jsBrowserTest": {
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "connector/build/test-results/iosSimulatorArm64Test": {
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "connector/build/outputs/androidTest-results/connected/debug": {
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+}

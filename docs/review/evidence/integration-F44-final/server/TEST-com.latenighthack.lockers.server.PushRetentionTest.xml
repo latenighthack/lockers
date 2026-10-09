@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.PushRetentionTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:30.986Z" hostname="Mikes-MacBook-Pro.local" time="0.005">
+  <properties/>
+  <testcase name="completion expires after retry horizon and parked work remains durable()" classname="com.latenighthack.lockers.server.PushRetentionTest" time="0.003"/>
+  <testcase name="global retained capacity includes parked and completion records()" classname="com.latenighthack.lockers.server.PushRetentionTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

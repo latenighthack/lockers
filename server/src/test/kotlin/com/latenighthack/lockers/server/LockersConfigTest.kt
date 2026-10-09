@@ -11,12 +11,18 @@ class LockersConfigTest {
     @Test
     fun appliesSafeDefaultsWhenUnset() {
         val c = LockersConfig.fromEnv { null }
+        assertThat(c.deliveryOutboxEnabled).isTrue()
+        assertThat(c.deliveryWorkerEnabled).isTrue()
         assertThat(c.httpPort).isEqualTo(8080)
         assertThat(c.databaseUrl).isNull()
         assertThat(c.maxLockerPayloadBytes).isEqualTo(1024 * 1024)
         assertThat(c.roomWritesPerSecond).isEqualTo(50)
         assertThat(c.apns.isConfigured).isFalse()
         assertThat(c.apns.topic).isEqualTo("com.latenighthack.lockers")
+    }
+
+    @Test fun legacyFeatureOptOutIsExplicit() {
+        assertThat(LockersConfig.fromEnv { if (it == "LOCKERS_DELIVERY_OUTBOX_ENABLED") "false" else null }.deliveryOutboxEnabled).isFalse()
     }
 
     @Test

@@ -22,8 +22,14 @@ interface ServerExtension {
     /** Starts background work, if any. Mirrors the monolith's own start/stop. */
     suspend fun start() {}
 
+    /** New extensions launch work in this owned scope; legacy start overrides remain supported. */
+    suspend fun start(scope: kotlinx.coroutines.CoroutineScope) { start() }
+
     /** Releases resources for a clean shutdown. */
     fun stop() {}
+
+    /** Suspends until extension-owned work and resources finish; legacy extensions retain stop. */
+    suspend fun closeAndJoin() { stop() }
 }
 
 /**
@@ -37,4 +43,22 @@ interface ServerExtensionFactory {
     fun create(meterRegistry: MeterRegistry, database: com.latenighthack.ktstore.Database): ServerExtension = create(meterRegistry)
 
     fun create(meterRegistry: MeterRegistry): ServerExtension
+}
+
+/** Unwinds earlier factory results if a later factory fails before a component can own them. */
+object ServerExtensions {
+    suspend fun create(factories: List<ServerExtensionFactory>, meters: MeterRegistry, database: com.latenighthack.ktstore.Database): List<ServerExtension> {
+        val created = mutableListOf<ServerExtension>()
+        try {
+            factories.forEach { created.add(it.create(meters, database)) }
+            return created
+        } catch (failure: Throwable) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                created.asReversed().forEach {
+                    try { it.closeAndJoin() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                }
+            }
+            throw failure
+        }
+    }
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="SelectFriendsViewModelTests[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:21:54.554Z" hostname="Mikes-MacBook-Pro.local" time="5.574">
+  <properties/>
+  <testcase name="search filters contacts case-insensitive[jvm]" classname="gg.roll.viewmodel.core.SelectFriendsViewModelTests" time="1.868"/>
+  <testcase name="start room - empty selection navigates straight to room[jvm]" classname="gg.roll.viewmodel.core.SelectFriendsViewModelTests" time="1.343"/>
+  <testcase name="selecting item toggles pills and writes invite locker on next[jvm]" classname="gg.roll.viewmodel.core.SelectFriendsViewModelTests" time="1.277"/>
+  <testcase name="removing a pill clears selection[jvm]" classname="gg.roll.viewmodel.core.SelectFriendsViewModelTests" time="1.084"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

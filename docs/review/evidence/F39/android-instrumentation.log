@@ -1,0 +1,149 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Type-safe project accessors is an incubating feature.
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:preBuild UP-TO-DATE
+> Task :api:preDebugBuild UP-TO-DATE
+> Task :api:generateDebugResValues UP-TO-DATE
+> Task :api:generateDebugResources UP-TO-DATE
+> Task :api:packageDebugResources UP-TO-DATE
+> Task :api:processDebugNavigationResources UP-TO-DATE
+> Task :api:parseDebugLocalResources UP-TO-DATE
+> Task :api:generateDebugRFile UP-TO-DATE
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileDebugKotlinAndroid UP-TO-DATE
+> Task :api:javaPreCompileDebug UP-TO-DATE
+> Task :api:compileDebugJavaWithJavac NO-SOURCE
+> Task :api:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :connector:preBuild UP-TO-DATE
+> Task :connector:preDebugBuild UP-TO-DATE
+> Task :connector:generateDebugResValues UP-TO-DATE
+> Task :connector:generateDebugResources UP-TO-DATE
+> Task :connector:packageDebugResources
+> Task :connector:processDebugNavigationResources UP-TO-DATE
+> Task :connector:parseDebugLocalResources UP-TO-DATE
+> Task :connector:generateDebugRFile UP-TO-DATE
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:preBuild UP-TO-DATE
+> Task :observability-api:preDebugBuild UP-TO-DATE
+> Task :observability-api:generateDebugResValues UP-TO-DATE
+> Task :observability-api:generateDebugResources UP-TO-DATE
+> Task :observability-api:packageDebugResources UP-TO-DATE
+> Task :observability-api:processDebugNavigationResources UP-TO-DATE
+> Task :observability-api:parseDebugLocalResources UP-TO-DATE
+> Task :observability-api:generateDebugRFile UP-TO-DATE
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:compileDebugKotlinAndroid UP-TO-DATE
+> Task :observability-api:javaPreCompileDebug UP-TO-DATE
+> Task :observability-api:compileDebugJavaWithJavac NO-SOURCE
+> Task :observability-api:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :connector:compileDebugKotlinAndroid UP-TO-DATE
+> Task :connector:javaPreCompileDebug UP-TO-DATE
+> Task :connector:compileDebugJavaWithJavac NO-SOURCE
+> Task :api:compileDebugLibraryResources UP-TO-DATE
+> Task :api:writeDebugAarMetadata UP-TO-DATE
+> Task :connector:preDebugAndroidTestBuild UP-TO-DATE
+> Task :connector:writeDebugAarMetadata UP-TO-DATE
+> Task :observability-api:writeDebugAarMetadata UP-TO-DATE
+> Task :connector:checkDebugAndroidTestAarMetadata UP-TO-DATE
+> Task :connector:processDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :connector:compileDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :connector:compileDebugLibraryResources UP-TO-DATE
+> Task :connector:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :connector:mapDebugAndroidTestSourceSetPaths UP-TO-DATE
+> Task :connector:generateDebugAndroidTestResources UP-TO-DATE
+> Task :connector:bundleLibCompileToJarDebug
+> Task :connector:mergeDebugAndroidTestResources
+> Task :api:extractDeepLinksDebug UP-TO-DATE
+> Task :api:processDebugManifest UP-TO-DATE
+> Task :connector:extractDeepLinksDebug UP-TO-DATE
+> Task :observability-api:extractDeepLinksDebug UP-TO-DATE
+> Task :observability-api:processDebugManifest UP-TO-DATE
+> Task :observability-api:compileDebugLibraryResources UP-TO-DATE
+> Task :connector:javaPreCompileDebugAndroidTest UP-TO-DATE
+> Task :api:mergeDebugShaders
+> Task :api:compileDebugShaders NO-SOURCE
+> Task :api:debugAssetsCopyForAGP NO-SOURCE
+> Task :api:generateDebugAssets UP-TO-DATE
+> Task :api:mergeDebugAssets
+> Task :connector:mergeDebugAndroidTestShaders
+> Task :connector:compileDebugAndroidTestShaders NO-SOURCE
+> Task :connector:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :connector:mergeDebugShaders
+> Task :connector:compileDebugShaders NO-SOURCE
+> Task :connector:debugAssetsCopyForAGP NO-SOURCE
+> Task :connector:generateDebugAssets UP-TO-DATE
+> Task :connector:mergeDebugAssets
+> Task :observability-api:mergeDebugShaders
+> Task :observability-api:compileDebugShaders NO-SOURCE
+> Task :observability-api:debugAssetsCopyForAGP NO-SOURCE
+> Task :observability-api:generateDebugAssets UP-TO-DATE
+> Task :connector:processDebugManifest
+> Task :observability-api:mergeDebugAssets
+
+> Task :connector:processDebugAndroidTestManifest
+[com.latenighthack.ktbuf:ktbuf-rpc-android:1.1.10] /Users/mikeroberts/.gradle/caches/9.5.1/transforms/1814c22388e2212db71d0419ecb8f6d8/transformed/rpc-release/AndroidManifest.xml Warning:
+	Namespace 'com.latenighthack.ktbuf' is used in multiple modules and/or libraries: com.latenighthack.ktbuf:ktbuf-rpc-android:1.1.10, com.latenighthack.ktbuf:ktbuf-library-android:1.1.10. Please ensure that all modules and libraries have a unique namespace. For more information, See https://developer.android.com/studio/build/configure-app-module#set-namespace
+
+> Task :connector:mergeDebugAndroidTestAssets
+> Task :connector:compressDebugAndroidTestAssets
+> Task :connector:desugarDebugAndroidTestFileDependencies
+> Task :observability-api:bundleLibRuntimeToJarDebug
+> Task :connector:bundleLibRuntimeToJarDebug
+> Task :api:processDebugJavaRes
+> Task :connector:processDebugJavaRes
+> Task :observability-api:processDebugJavaRes
+> Task :connector:checkDebugAndroidTestDuplicateClasses
+> Task :observability-api:bundleLibRuntimeToDirDebug
+> Task :connector:bundleLibRuntimeToDirDebug
+> Task :api:bundleLibRuntimeToJarDebug
+> Task :connector:processDebugAndroidTestResources
+> Task :api:bundleLibRuntimeToDirDebug
+> Task :api:mergeDebugJniLibFolders
+> Task :api:mergeDebugNativeLibs NO-SOURCE
+> Task :api:copyDebugJniLibsProjectOnly
+> Task :connector:mergeDebugJniLibFolders
+> Task :connector:mergeDebugNativeLibs NO-SOURCE
+> Task :connector:copyDebugJniLibsProjectOnly
+> Task :connector:mergeDebugAndroidTestJniLibFolders
+> Task :observability-api:mergeDebugJniLibFolders
+> Task :observability-api:mergeDebugNativeLibs NO-SOURCE
+> Task :observability-api:copyDebugJniLibsProjectOnly
+> Task :connector:validateSigningDebugAndroidTest
+> Task :connector:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :connector:stripDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :connector:writeDebugAndroidTestSigningConfigVersions
+> Task :connector:mergeLibDexDebugAndroidTest
+> Task :connector:compileDebugAndroidTestKotlinAndroid
+> Task :connector:compileDebugAndroidTestJavaWithJavac NO-SOURCE
+> Task :connector:mergeExtDexDebugAndroidTest
+> Task :connector:dexBuilderDebugAndroidTest
+> Task :connector:mergeDebugAndroidTestGlobalSynthetics
+> Task :connector:processDebugAndroidTestJavaRes
+> Task :connector:mergeProjectDexDebugAndroidTest
+> Task :connector:mergeDebugAndroidTestJavaResource
+> Task :connector:packageDebugAndroidTest
+> Task :connector:createDebugAndroidTestApkListingFileRedirect
+
+> Task :connector:connectedDebugAndroidTest
+Starting 3 tests on LockersReview(AVD) - 14
+
+Finished 3 tests on LockersReview(AVD) - 14
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-build/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 41s
+95 actionable tasks: 49 executed, 46 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

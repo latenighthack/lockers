@@ -13,6 +13,8 @@ service PushGateway {
 message SendPushRequest {
   common.v1.SessionId session_id = 1;
   common.v1.Push push = 2;
+  // Stable upstream event identity. An empty value preserves trusted legacy callers.
+  bytes delivery_id = 3;
 }
 
 message SendPushResponse {

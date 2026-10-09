@@ -1,0 +1,41 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Type-safe project accessors is an incubating feature.
+
+> Task :api:detekt
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-quality/api/src/commonMain/kotlin/com/latenighthack/lockers/common/quality_probe.kt:3:7: The file name 'quality_probe' does not match the name of the single top-level declaration 'bad_quality_probe'. [MatchingDeclarationName]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-quality/api/src/commonMain/kotlin/com/latenighthack/lockers/common/quality_probe.kt:3:7: Class and Object names should match the pattern: [A-Z][a-zA-Z0-9]* [ClassNaming]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-quality/api/src/commonMain/kotlin/Dummy.kt:2:14: lockersApiModule can be a `const val`. [MayBeConst]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-quality/api/src/commonMain/kotlin/com/latenighthack/lockers/common/LockerSigning.kt:62:43: This expression contains a magic number. Consider defining it to a well named constant. [MagicNumber]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-quality/api/src/commonMain/kotlin/com/latenighthack/lockers/common/LockerSigning.kt:76:33: This expression contains a magic number. Consider defining it to a well named constant. [MagicNumber]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-quality/api/src/commonMain/kotlin/com/latenighthack/lockers/common/LockerSigning.kt:77:23: This expression contains a magic number. Consider defining it to a well named constant. [MagicNumber]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-quality/api/src/commonMain/kotlin/com/latenighthack/lockers/common/LockerSigning.kt:78:33: This expression contains a magic number. Consider defining it to a well named constant. [MagicNumber]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-quality/api/src/commonMain/kotlin/com/latenighthack/lockers/common/LockerSigning.kt:79:28: This expression contains a magic number. Consider defining it to a well named constant. [MagicNumber]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-quality/api/src/commonMain/kotlin/com/latenighthack/lockers/common/RoomKeying.kt:30:9: Function authorityKey has 3 return statements which exceeds the limit of 2. [ReturnCount]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-quality/api/src/commonTest/kotlin/com/latenighthack/lockers/common/ProtocolPortabilityTest.kt:3:1: com.latenighthack.lockers.common.v1.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+
+
+> Task :api:detekt FAILED
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-quality/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':api:detekt' (registered by plugin 'io.gitlab.arturbosch.detekt').
+> Analysis failed with 10 weighted issues.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 37s
+1 actionable task: 1 executed

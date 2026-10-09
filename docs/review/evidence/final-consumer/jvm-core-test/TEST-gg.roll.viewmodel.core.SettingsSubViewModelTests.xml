@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="SettingsSubViewModelTests[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:22:00.381Z" hostname="Mikes-MacBook-Pro.local" time="6.431">
+  <properties/>
+  <testcase name="edit display name persists and appears in account info[jvm]" classname="gg.roll.viewmodel.core.SettingsSubViewModelTests" time="2.058"/>
+  <testcase name="notification toggles persist across re-open[jvm]" classname="gg.roll.viewmodel.core.SettingsSubViewModelTests" time="1.025"/>
+  <testcase name="debug verbose logging persists across re-open[jvm]" classname="gg.roll.viewmodel.core.SettingsSubViewModelTests" time="1.02"/>
+  <testcase name="edit username persists and appears in account info[jvm]" classname="gg.roll.viewmodel.core.SettingsSubViewModelTests" time="1.295"/>
+  <testcase name="privacy analytics toggle persists across re-open[jvm]" classname="gg.roll.viewmodel.core.SettingsSubViewModelTests" time="1.032"/>
+  <system-out><![CDATA[>>> EditDisplayName onSaveTapped entered
+>>> EditDisplayName onSaveTapped state isSaveEnabled=true displayName='Display Name' currentValue=''
+>>> EditDisplayName calling updateProfile newName='Display Name'
+>>> EditDisplayName updateProfile returned, calling navigator.close()
+>>> EditDisplayName navigator.close returned
+>>> EditUsername onSaveTapped entered
+>>> EditUsername onSaveTapped state isSaveEnabled=true username='newhandle' currentValue=''
+>>> EditUsername calling updateProfile newName='newhandle'
+>>> EditUsername updateProfile returned, calling navigator.close()
+>>> EditUsername navigator.close returned
+]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

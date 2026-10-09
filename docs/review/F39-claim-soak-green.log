@@ -1,0 +1,96 @@
+Starting a Gradle Daemon, 6 busy and 1 incompatible and 25 stopped Daemons could not be reused, use --status for details
+Type-safe project accessors is an incubating feature.
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+
+> Task :api:installProtocGenKt
+go: downloading github.com/lyft/protoc-gen-star v0.6.2
+go: downloading golang.org/x/text v0.3.7
+go: downloading github.com/Masterminds/sprig v2.22.0+incompatible
+go: downloading github.com/Masterminds/goutils v1.1.1
+go: downloading github.com/Masterminds/semver v1.5.0
+go: downloading github.com/google/uuid v1.6.0
+go: downloading github.com/huandu/xstrings v1.5.0
+go: downloading github.com/imdario/mergo v0.3.16
+go: downloading github.com/mitchellh/copystructure v1.2.0
+go: downloading golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+go: downloading github.com/golang/protobuf v1.5.2
+go: downloading github.com/spf13/afero v1.3.3
+go: downloading google.golang.org/protobuf v1.26.0
+go: downloading github.com/mitchellh/reflectwalk v1.0.2
+
+> Task :api:generateProto
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:processResources NO-SOURCE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:processResources NO-SOURCE
+> Task :sharding-core:compileKotlin
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :observability-api:compileKotlinJvm
+> Task :sharding-core:jar
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmMainClasses
+> Task :observability-api:jvmJar
+
+> Task :api:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmMainClasses
+> Task :api:jvmJar
+> Task :server:kspKotlin
+> Task :server:processResources NO-SOURCE
+
+> Task :server:compileKotlin
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/server/src/main/kotlin/com/latenighthack/lockers/server/MonolithComponent.kt:212:69 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:43:51 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Connection'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:47:27 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Connection'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/RemoteGateway.kt:149:130 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:213:98 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/providers/ApnsPushProvider.kt:103:90 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:184:44 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:435:94 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangesResponse'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:437:93 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangesResponse'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:1011:110 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/server/src/main/kotlin/com/latenighthack/lockers/server/tools/WriteTrace.kt:67:46 Unnecessary non-null assertion (!!) on a non-null receiver of type 'String'.
+
+> Task :server:compileJava NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar
+> Task :server:test:compileKotlin
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar
+> Task :server:kspTestKotlin SKIPPED
+> Task :server:processTestResources NO-SOURCE
+
+> Task :server:compileTestKotlin
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/server/src/test/kotlin/com/latenighthack/lockers/server/claim/ClaimLoadRunner.kt:136:53 Unnecessary safe call on a non-null receiver of type 'PostLockerChangeResponse.Result'.
+
+> Task :server:compileTestJava NO-SOURCE
+> Task :server:testClasses UP-TO-DATE
+> Task :server:test
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-load-validation/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 2m 2s
+18 actionable tasks: 18 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

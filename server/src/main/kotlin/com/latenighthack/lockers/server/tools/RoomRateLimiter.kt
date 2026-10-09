@@ -31,7 +31,10 @@ class RoomRateLimiter(
         if (permitsPerSecond <= 0) return true
 
         val now = nanoTime()
-        val bucket = buckets.get(roomId) ?: Bucket(burst.toDouble(), now).also { buckets.put(roomId, it) }
+        val canonical = RoomId(roomId.rawValue.copyOf())
+        val bucket = synchronized(buckets) {
+            buckets.get(canonical) ?: Bucket(burst.toDouble(), now).also { buckets.put(canonical, it) }
+        }
 
         return synchronized(bucket) {
             val elapsedSeconds = (now - bucket.lastRefillNanos).coerceAtLeast(0) / 1_000_000_000.0

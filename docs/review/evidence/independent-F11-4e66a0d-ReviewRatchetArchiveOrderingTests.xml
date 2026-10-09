@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewRatchetArchiveOrderingTests[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T03:03:08.850Z" hostname="Mikes-MacBook-Pro.local" time="0.005">
+  <properties/>
+  <testcase name="stale obsolete archive cleanup cannot delete its newer scope replacement[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRatchetArchiveOrderingTests" time="0.003"/>
+  <testcase name="late older receipt cannot replace a newer private archive in a shared scope[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRatchetArchiveOrderingTests" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

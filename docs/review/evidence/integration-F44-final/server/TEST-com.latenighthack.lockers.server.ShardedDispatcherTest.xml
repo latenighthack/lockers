@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.ShardedDispatcherTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:41.310Z" hostname="Mikes-MacBook-Pro.local" time="0.013">
+  <properties/>
+  <testcase name="returnsBlockResult()" classname="com.latenighthack.lockers.server.ShardedDispatcherTest" time="0.002"/>
+  <testcase name="transactionSerializedEffectsBypassKeyMutexButRemainOwnedUntilCompletion()" classname="com.latenighthack.lockers.server.ShardedDispatcherTest" time="0.003"/>
+  <testcase name="holdsSameRoomAcrossSuspensionButAllowsOtherRooms()" classname="com.latenighthack.lockers.server.ShardedDispatcherTest" time="0.002"/>
+  <testcase name="serializesWorkForTheSameId()" classname="com.latenighthack.lockers.server.ShardedDispatcherTest" time="0.006"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

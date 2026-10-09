@@ -11,6 +11,8 @@ import com.google.firebase.messaging.Notification
 import com.latenighthack.lockers.common.v1.Push
 import com.latenighthack.lockers.push.v1.PushRegistration
 import com.latenighthack.lockers.server.FcmConfig
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
@@ -27,6 +29,8 @@ class FcmPushProvider(private val config: FcmConfig) : PushProvider {
     override val backend = PushBackendKind.FCM
     override val isConfigured: Boolean get() = config.isConfigured
 
+    private val appName = "lockers-push-${java.util.UUID.randomUUID()}"
+    private val ownedApp = java.util.concurrent.atomic.AtomicReference<FirebaseApp?>()
     private val messaging: FirebaseMessaging? by lazy { initMessaging() }
 
     private fun initMessaging(): FirebaseMessaging? {
@@ -35,15 +39,20 @@ class FcmPushProvider(private val config: FcmConfig) : PushProvider {
             return null
         }
         return try {
-            val existing = FirebaseApp.getApps().firstOrNull { it.name == APP_NAME }
-            val app = existing ?: FileInputStream(config.credentialsPath!!).use { stream ->
+            val app = FileInputStream(config.credentialsPath!!).use { stream ->
                 val options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(stream))
+                    .setConnectTimeout(10_000)
+                    .setReadTimeout(30_000)
+                    .setWriteTimeout(30_000)
                     .build()
-                FirebaseApp.initializeApp(options, APP_NAME)
+                FirebaseApp.initializeApp(options, appName)
             }
-            FirebaseMessaging.getInstance(app).also { logger.info("FCM messaging initialized") }
-        } catch (e: Exception) {
+            ownedApp.set(app)
+            try { FirebaseMessaging.getInstance(app).also { logger.info("FCM messaging initialized") } }
+            catch (failure: Throwable) { ownedApp.compareAndSet(app, null); try { app.delete() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }; throw failure }
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
             logger.error("Failed to initialize FCM", e)
             null
         }
@@ -69,13 +78,14 @@ class FcmPushProvider(private val config: FcmConfig) : PushProvider {
             )
             .build()
 
-        return withContext(Dispatchers.IO) {
+        return runInterruptible(Dispatchers.IO) {
             try {
                 client.send(message)
                 PushResult.Accepted
             } catch (e: FirebaseMessagingException) {
                 mapError(e)
-            } catch (e: Exception) {
+            } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
                 PushResult.Retryable(e.message ?: "FCM send failed")
             }
         }
@@ -98,7 +108,5 @@ class FcmPushProvider(private val config: FcmConfig) : PushProvider {
         null -> PushResult.Retryable(e.message ?: "FCM error")
     }
 
-    companion object {
-        private const val APP_NAME = "lockers-push"
-    }
+    override fun close() { ownedApp.getAndSet(null)?.delete() }
 }

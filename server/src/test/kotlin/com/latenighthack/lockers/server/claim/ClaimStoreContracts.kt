@@ -13,7 +13,7 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 
 /**
- * Semantic contract for [RoomClaimStore]: steal only after expiry, epoch bumps only on takeover,
+ * Semantic contract for [RoomClaimStore]: steal only after expiry, epochs survive release and advance after expiry,
  * owner-guarded release, exact renew sets. Run against [InMemoryRoomClaimStore] everywhere (keeps
  * the test double honest) and against [JdbcRoomClaimStore] on a real Postgres (the ON CONFLICT
  * semantics are the product). Expiry is exercised with short real TTLs — the store's own clock
@@ -85,12 +85,14 @@ abstract class RoomClaimStoreContract {
     }
 
     @Test
-    fun `release deletes only the caller's own row`() = runBlocking {
+    fun `release expires only the caller's own claim and preserves its epoch`() = runBlocking {
         store.claim(room("r1"), "n1", "addr1:1", ttlMs = 5_000)
         store.release(room("r1"), "n2")
         assertThat(store.lookup(room("r1"))).isEqualTo(RoomClaimRow("n1", "addr1:1", 1))
         store.release(room("r1"), "n1")
-        assertThat(store.lookup(room("r1"))).isNull()
+        assertThat(store.lookup(room("r1"))).isEqualTo(RoomClaimRow("n1", "addr1:1", 1))
+        assertThat(store.renewAll("n1", 5_000)).isEqualTo(emptySet<RoomId>())
+        assertThat(store.claim(room("r1"), "n2", "addr2:2", 5_000)).isEqualTo(RoomClaimRow("n2", "addr2:2", 2))
     }
 
     @Test
@@ -103,14 +105,17 @@ abstract class RoomClaimStoreContract {
     }
 
     @Test
-    fun `releaseAll drops every row of the node and nothing else`() = runBlocking {
+    fun `releaseAll expires owned claims and retains monotonically increasing epochs`() = runBlocking {
         store.claim(room("r1"), "n1", "addr1:1", ttlMs = 5_000)
         store.claim(room("r2"), "n1", "addr1:1", ttlMs = 5_000)
         store.claim(room("r3"), "n2", "addr2:2", ttlMs = 5_000)
         store.releaseAll("n1")
-        assertThat(store.lookup(room("r1"))).isNull()
-        assertThat(store.lookup(room("r2"))).isNull()
+        assertThat(store.lookup(room("r1"))).isEqualTo(RoomClaimRow("n1", "addr1:1", 1))
+        assertThat(store.lookup(room("r2"))).isEqualTo(RoomClaimRow("n1", "addr1:1", 1))
         assertThat(store.lookup(room("r3"))).isEqualTo(RoomClaimRow("n2", "addr2:2", 1))
+        assertThat(store.renewAll("n1", 5_000)).isEqualTo(emptySet<RoomId>())
+        assertThat(store.claim(room("r1"), "n2", "addr2:2", 5_000)).isEqualTo(RoomClaimRow("n2", "addr2:2", 2))
+        assertThat(store.claim(room("r2"), "n2", "addr2:2", 5_000)).isEqualTo(RoomClaimRow("n2", "addr2:2", 2))
     }
 
     @Test

@@ -1,0 +1,21 @@
+{
+  "server": {
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "skipped_cases": []
+  },
+  "core/test": {
+    "tests": 59,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "skipped_cases": [
+      {
+        "class": "gg.roll.viewmodel.core.AccountSettingsViewModelTests",
+        "name": "edit display name updates profile[jvm]"
+      }
+    ]
+  }
+}

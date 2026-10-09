@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.PushQuotaPgTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:30.703Z" hostname="Mikes-MacBook-Pro.local" time="0.283">
+  <properties/>
+  <testcase name="two independent handles cannot exceed retained queue capacity()" classname="com.latenighthack.lockers.server.PushQuotaPgTest" time="0.282"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

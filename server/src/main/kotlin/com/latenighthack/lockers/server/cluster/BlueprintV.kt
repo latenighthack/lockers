@@ -10,7 +10,6 @@ import com.latenighthack.lockers.sharding.spi.Membership
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.sql.DriverManager
 
 /**
  * Room + session shard counts folded into one [ShardCounts]. The session ring routes under the
@@ -20,6 +19,9 @@ import java.sql.DriverManager
  */
 private fun ShardingConfig.shardCounts(): ShardCounts {
     val base = ShardCounts.parse(shardCountDefault, keyspaceShardCounts)
+    require(base.perKeyspace.keys.all { it == Keyspace(0) || it == Keyspace.SESSION }) {
+        "Room authority spans all locker keyspaces; configure its shard count under keyspace 0"
+    }
     return ShardCounts(base.default, base.perKeyspace + (Keyspace.SESSION to sessionShardCount))
 }
 
@@ -55,6 +57,7 @@ object BlueprintV {
          * Returns `null` when ready, else a short human reason.
          */
         suspend fun notReadyReason(): String? {
+            shardSource.notReadyReason()?.let { return it }
             if (databaseUrl != null && !pingDb(databaseUrl)) return "database unreachable"
             return null
         }
@@ -68,6 +71,11 @@ object BlueprintV {
         val sharding = config.sharding
         val topology = ClusterTopology.fromEnv(sharding.peers, sharding.nodeId, sharding.advertiseAddr)
             ?: return null
+        // Production ring boot validates the complete public address book before starting jobs,
+        // allocating peer transports, or opening database resources. Legacy trusted hosts opt out
+        // only by using their explicit no-peer-credential/direct-address embedding contract.
+        val publicAddresses = if (config.peerToken != null || sharding.publicSessionAddresses != null)
+            PublicSessionAddresses.parse(sharding.publicSessionAddresses, topology.nodes) else null
         val databaseUrl = config.databaseUrl
 
         val membership = StaticMembership(topology)
@@ -85,11 +93,12 @@ object BlueprintV {
 
         val router = ShardRouter.coLocated(membership, source, locator, scope)
 
-        val pool = PeerConnectionPool()
+        val pool = PeerConnectionPool(peerToken = config.peerToken)
         val context = ClusterContext(
             router = router,
             sessionGateways = HttpSessionGateways(pool),
             pushGateways = HttpPushGateways(pool),
+            sessionPublicAddresses = publicAddresses,
             // Enable M5 fenced ownership when a DB is present (advisory locks need a Postgres
             // session); without a DB the cluster degrades to route-local gating.
             ownerCoordinator = ownershipCoordinator(config),
@@ -121,6 +130,6 @@ object BlueprintV {
 
     /** Cheap DB liveness probe for `/readyz` (a valid session within 1s). */
     private suspend fun pingDb(jdbcUrl: String): Boolean = withContext(Dispatchers.IO) {
-        runCatching { DriverManager.getConnection(jdbcUrl).use { it.isValid(1) } }.getOrDefault(false)
+        runCatching { com.latenighthack.lockers.server.tools.openPostgresConnection(jdbcUrl).use { it.isValid(1) } }.getOrDefault(false)
     }
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.SessionHeartbeatTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:40.468Z" hostname="Mikes-MacBook-Pro.local" time="0.007">
+  <properties/>
+  <testcase name="ping emits pong after initial open snapshot()" classname="com.latenighthack.lockers.server.SessionHeartbeatTest" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

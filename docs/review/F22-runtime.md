@@ -1,0 +1,7 @@
+# F22 — Server credential revisions
+
+Two failing reproductions showed older requests overwrote/unregistered newer credentials and repeated revisions could reuse different payloads. An unregister had no retained revision, so delayed registration resurrected it.
+
+Fix: registration and revision history commit in the shared session-authority transaction. Additive per-session/backend metadata persists revision, operation digest, unregister tombstone, and provider invalidation. Lower revisions are rejected; matching revisions are idempotent only for the same operation and payload. Trusted legacy revision zero is accepted only before any positive revision history. Invalid-token cleanup compares the exact credential used for that send, preserving a rotated credential; an invalidated revision requires a later revision to repair. Credential CAS runs separately before queue completion, preserving the authority-before-queue lock order. Permanent session destruction may erase the sidecar after reserving the session ID.
+
+Validation: :server:test PushServiceTest and PushQueueClaimsTest: 25 discovered tests passed, including stale register/unregister, duplicate/conflicting operation replay, tombstone resurrection prevention, legacy downgrade rejection, invalidation of only the matching credential, and revision-based repair. Root's authenticated public wrapper rejects nonpositive revisions before proof consumption; connector owns revision persistence/replay.

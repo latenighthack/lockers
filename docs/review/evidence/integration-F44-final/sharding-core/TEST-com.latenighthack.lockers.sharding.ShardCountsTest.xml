@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.sharding.ShardCountsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:15.994Z" hostname="Mikes-MacBook-Pro.local" time="0.007">
+  <properties/>
+  <testcase name="parse applies overrides with default fallback()" classname="com.latenighthack.lockers.sharding.ShardCountsTest" time="0.0"/>
+  <testcase name="non-positive default is rejected()" classname="com.latenighthack.lockers.sharding.ShardCountsTest" time="0.001"/>
+  <testcase name="malformed spec fails fast()" classname="com.latenighthack.lockers.sharding.ShardCountsTest" time="0.003"/>
+  <testcase name="blank or null spec yields default only()" classname="com.latenighthack.lockers.sharding.ShardCountsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

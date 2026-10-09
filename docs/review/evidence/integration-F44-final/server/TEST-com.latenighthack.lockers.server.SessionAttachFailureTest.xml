@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.SessionAttachFailureTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:39.383Z" hostname="Mikes-MacBook-Pro.local" time="1.06">
+  <properties/>
+  <testcase name="failed routing attachment releases stream registration and permits reconnect()" classname="com.latenighthack.lockers.server.SessionAttachFailureTest" time="0.01"/>
+  <testcase name="ending a watch collection joins upstream producer cleanup()" classname="com.latenighthack.lockers.server.SessionAttachFailureTest" time="0.037"/>
+  <testcase name="shared store revocation closes a stream on another service instance()" classname="com.latenighthack.lockers.server.SessionAttachFailureTest" time="1.013"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

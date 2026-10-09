@@ -1,0 +1,271 @@
+Type-safe project accessors is an incubating feature.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://github.com/yarnpkg/yarn/releases/download' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:compileKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :observability-api:jvmMainClasses UP-TO-DATE
+> Task :observability-api:jvmJar UP-TO-DATE
+> Task :connector:jvmProcessResources NO-SOURCE
+> Task :connector:processJvmMainResources SKIPPED
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:compileKotlin UP-TO-DATE
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:processResources NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :sharding-core:jar UP-TO-DATE
+> Task :server:kspKotlin UP-TO-DATE
+> Task :server:compileKotlin UP-TO-DATE
+> Task :server:compileJava NO-SOURCE
+> Task :server:processResources NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar UP-TO-DATE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:compileKotlin UP-TO-DATE
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:processResources NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar UP-TO-DATE
+> Task :connector:jvmTestProcessResources NO-SOURCE
+> Task :connector:processJvmTestResources SKIPPED
+> Task :kotlinKotlinNpmCachesSetup
+> Task :kotlinNodeJsSetup UP-TO-DATE
+> Task :kotlinRestoreYarnLock UP-TO-DATE
+> Task :kotlinYarnSetup UP-TO-DATE
+> Task :api:jsPackageJson UP-TO-DATE
+> Task :api:jsTestPackageJson UP-TO-DATE
+> Task :observability-api:jsPackageJson UP-TO-DATE
+> Task :connector:jsPackageJson UP-TO-DATE
+> Task :connector:jsTestPackageJson UP-TO-DATE
+> Task :observability-api:jsTestPackageJson UP-TO-DATE
+> Task :observability-connector:jsPackageJson UP-TO-DATE
+> Task :observability-connector:jsTestPackageJson UP-TO-DATE
+> Task :api:jsPublicPackageJson UP-TO-DATE
+> Task :api:jsTestPublicPackageJson UP-TO-DATE
+> Task :connector:jsPublicPackageJson UP-TO-DATE
+> Task :connector:jsTestPublicPackageJson
+> Task :observability-api:jsPublicPackageJson UP-TO-DATE
+> Task :observability-api:jsTestPublicPackageJson UP-TO-DATE
+> Task :observability-connector:jsPublicPackageJson UP-TO-DATE
+> Task :observability-connector:jsTestPublicPackageJson UP-TO-DATE
+> Task :kotlinPackageJsonUmbrella
+> Task :rootPackageJson UP-TO-DATE
+> Task :kotlinNpmInstall UP-TO-DATE
+> Task :kotlinStoreYarnLock UP-TO-DATE
+> Task :api:compileKotlinJs UP-TO-DATE
+> Task :observability-api:compileKotlinJs UP-TO-DATE
+> Task :connector:compileKotlinJs UP-TO-DATE
+> Task :connector:jsProcessResources NO-SOURCE
+> Task :connector:jsMainClasses UP-TO-DATE
+> Task :connector:compileTestKotlinJs UP-TO-DATE
+> Task :connector:jsTestProcessResources NO-SOURCE
+> Task :connector:jsTestClasses UP-TO-DATE
+> Task :connector:compileTestDevelopmentExecutableKotlinJs UP-TO-DATE
+> Task :connector:jsTestTestDevelopmentExecutableCompileSync UP-TO-DATE
+> Task :connector:kotlinNodeJsSetup UP-TO-DATE
+
+> Task :connector:compileKotlinJvm
+> Task :connector:jsBrowserTest
+> Task :connector:compileJvmMainJava NO-SOURCE
+> Task :connector:jvmMainClasses
+> Task :connector:jvmJar
+> Task :api:preBuild UP-TO-DATE
+> Task :api:preDebugBuild UP-TO-DATE
+> Task :api:generateDebugResValues UP-TO-DATE
+> Task :api:generateDebugResources UP-TO-DATE
+> Task :api:packageDebugResources UP-TO-DATE
+> Task :api:processDebugNavigationResources UP-TO-DATE
+> Task :api:parseDebugLocalResources UP-TO-DATE
+> Task :api:generateDebugRFile UP-TO-DATE
+> Task :api:compileDebugKotlinAndroid UP-TO-DATE
+> Task :api:javaPreCompileDebug UP-TO-DATE
+> Task :api:compileDebugJavaWithJavac NO-SOURCE
+> Task :api:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :connector:preBuild UP-TO-DATE
+> Task :connector:preDebugBuild UP-TO-DATE
+> Task :connector:generateDebugResValues UP-TO-DATE
+> Task :connector:generateDebugResources UP-TO-DATE
+> Task :connector:packageDebugResources UP-TO-DATE
+> Task :connector:processDebugNavigationResources UP-TO-DATE
+> Task :connector:parseDebugLocalResources UP-TO-DATE
+> Task :connector:generateDebugRFile UP-TO-DATE
+> Task :observability-api:preBuild UP-TO-DATE
+> Task :observability-api:preDebugBuild UP-TO-DATE
+> Task :observability-api:generateDebugResValues UP-TO-DATE
+> Task :observability-api:generateDebugResources UP-TO-DATE
+> Task :observability-api:packageDebugResources UP-TO-DATE
+> Task :observability-api:processDebugNavigationResources UP-TO-DATE
+> Task :observability-api:parseDebugLocalResources UP-TO-DATE
+> Task :observability-api:generateDebugRFile UP-TO-DATE
+> Task :observability-api:compileDebugKotlinAndroid UP-TO-DATE
+> Task :observability-api:javaPreCompileDebug UP-TO-DATE
+> Task :observability-api:compileDebugJavaWithJavac NO-SOURCE
+> Task :observability-api:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :connector:compileDebugKotlinAndroid UP-TO-DATE
+> Task :connector:javaPreCompileDebug
+> Task :connector:compileDebugJavaWithJavac NO-SOURCE
+> Task :api:compileDebugLibraryResources
+> Task :connector:preDebugAndroidTestBuild UP-TO-DATE
+> Task :api:writeDebugAarMetadata
+> Task :connector:writeDebugAarMetadata
+> Task :observability-api:writeDebugAarMetadata
+> Task :connector:processDebugAndroidTestNavigationResources
+> Task :connector:checkDebugAndroidTestAarMetadata
+> Task :connector:compileDebugAndroidTestNavigationResources
+> Task :connector:compileDebugLibraryResources
+> Task :connector:generateDebugAndroidTestResValues
+> Task :connector:mapDebugAndroidTestSourceSetPaths
+> Task :connector:generateDebugAndroidTestResources
+> Task :connector:mergeDebugAndroidTestResources
+> Task :api:extractDeepLinksDebug
+> Task :connector:extractDeepLinksDebug
+> Task :observability-api:extractDeepLinksDebug
+> Task :connector:bundleLibCompileToJarDebug
+> Task :observability-api:compileDebugLibraryResources
+> Task :connector:javaPreCompileDebugAndroidTest
+> Task :api:mergeDebugShaders
+> Task :api:compileDebugShaders NO-SOURCE
+> Task :api:debugAssetsCopyForAGP NO-SOURCE
+> Task :api:generateDebugAssets UP-TO-DATE
+> Task :api:mergeDebugAssets
+> Task :connector:mergeDebugAndroidTestShaders
+> Task :connector:compileDebugAndroidTestShaders NO-SOURCE
+> Task :connector:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :connector:mergeDebugShaders
+> Task :connector:compileDebugShaders NO-SOURCE
+> Task :connector:debugAssetsCopyForAGP NO-SOURCE
+> Task :connector:generateDebugAssets UP-TO-DATE
+> Task :connector:mergeDebugAssets
+> Task :observability-api:mergeDebugShaders
+> Task :observability-api:compileDebugShaders NO-SOURCE
+> Task :observability-api:debugAssetsCopyForAGP NO-SOURCE
+> Task :observability-api:generateDebugAssets UP-TO-DATE
+> Task :observability-api:mergeDebugAssets
+> Task :api:processDebugManifest
+> Task :connector:processDebugManifest
+> Task :observability-api:processDebugManifest
+> Task :connector:mergeDebugAndroidTestAssets
+
+> Task :connector:processDebugAndroidTestManifest
+[com.latenighthack.ktbuf:ktbuf-rpc-android:1.1.10-fh.9c3962ea021c76107b84] /Users/mikeroberts/.gradle/caches/9.5.1/transforms/d35761be0e69b0cfc47707e1de2dd92c/transformed/rpc-release/AndroidManifest.xml Warning:
+	Namespace 'com.latenighthack.ktbuf' is used in multiple modules and/or libraries: com.latenighthack.ktbuf:ktbuf-rpc-android:1.1.10-fh.9c3962ea021c76107b84, com.latenighthack.ktbuf:ktbuf-library-android:1.1.10-fh.9c3962ea021c76107b84. Please ensure that all modules and libraries have a unique namespace. For more information, See https://developer.android.com/studio/build/configure-app-module#set-namespace
+
+> Task :connector:compressDebugAndroidTestAssets
+> Task :observability-api:bundleLibRuntimeToJarDebug
+> Task :connector:desugarDebugAndroidTestFileDependencies
+> Task :api:processDebugJavaRes
+> Task :connector:bundleLibRuntimeToJarDebug
+> Task :connector:processDebugJavaRes
+> Task :observability-api:processDebugJavaRes
+> Task :api:mergeDebugJniLibFolders
+> Task :connector:checkDebugAndroidTestDuplicateClasses
+> Task :api:mergeDebugNativeLibs NO-SOURCE
+> Task :observability-api:bundleLibRuntimeToDirDebug
+> Task :api:copyDebugJniLibsProjectOnly
+> Task :connector:mergeDebugJniLibFolders
+> Task :connector:mergeDebugNativeLibs NO-SOURCE
+> Task :connector:copyDebugJniLibsProjectOnly
+> Task :connector:mergeDebugAndroidTestJniLibFolders
+> Task :observability-api:mergeDebugJniLibFolders
+> Task :observability-api:mergeDebugNativeLibs NO-SOURCE
+> Task :observability-api:copyDebugJniLibsProjectOnly
+> Task :connector:validateSigningDebugAndroidTest
+> Task :connector:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :connector:stripDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :connector:processDebugAndroidTestResources
+> Task :connector:writeDebugAndroidTestSigningConfigVersions
+> Task :api:bundleLibRuntimeToJarDebug
+> Task :connector:bundleLibRuntimeToDirDebug
+> Task :connector:compileDebugAndroidTestKotlinAndroid
+> Task :connector:compileDebugAndroidTestJavaWithJavac NO-SOURCE
+> Task :api:bundleLibRuntimeToDirDebug
+> Task :connector:dexBuilderDebugAndroidTest
+> Task :connector:processDebugAndroidTestJavaRes
+> Task :connector:mergeProjectDexDebugAndroidTest
+> Task :connector:mergeDebugAndroidTestJavaResource
+
+> Task :connector:compileTestKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-final/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/OwnedTestFixture.kt:30:151 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-final/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/OwnedTestFixtureTests.kt:47:31 Unnecessary non-null assertion (!!) on a non-null receiver of type 'LockersClient'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-final/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewAuthorityV2Tests.kt:56:107 Unnecessary non-null assertion (!!) on a non-null receiver of type 'UnlockLockerRequest'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-final/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewConnectorTests.kt:56:87 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256r1KeyPair'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-final/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewConnectorTests.kt:90:129 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256r1KeyPair'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-final/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewExpiredRatchetTests.kt:147:42 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangeRequest'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-final/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewRatchetAdoptionTests.kt:60:75 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangeRequest'.
+
+> Task :connector:compileJvmTestJava NO-SOURCE
+> Task :connector:jvmTestClasses
+> Task :connector:mergeExtDexDebugAndroidTest
+> Task :connector:jvmTest
+> Task :connector:mergeDebugAndroidTestGlobalSynthetics
+> Task :connector:mergeLibDexDebugAndroidTest
+> Task :connector:packageDebugAndroidTest
+> Task :connector:createDebugAndroidTestApkListingFileRedirect
+
+> Task :connector:connectedDebugAndroidTest
+Starting 7 tests on LockersReview(AVD) - 14
+
+Finished 7 tests on LockersReview(AVD) - 14
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-final/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 36s
+141 actionable tasks: 74 executed, 67 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

@@ -14,6 +14,9 @@ service Push {
 }
 
 message RegisterSessionRequest {
+  // Monotonic desired credential generation; signed by the session proof.
+  int64 credential_revision = 3;
+  common.v1.SessionProof proof = 20;
   common.v1.SessionId session_id = 1;
   PushRegistration registration = 2;
 }
@@ -27,6 +30,9 @@ message RegisterSessionResponse {
 }
 
 message UnregisterSessionRequest {
+  // Monotonic desired credential generation; signed by the session proof.
+  int64 credential_revision = 3;
+  common.v1.SessionProof proof = 20;
   common.v1.SessionId session_id = 1;
   PushBackend backend = 2;
 }

@@ -33,6 +33,11 @@ class ClaimRoomOwnership(
     private val nonOwnerCacheTtlMs: Long = NON_OWNER_CACHE_TTL_MS,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : RoomOwnership {
+    override suspend fun mutationFence(keyspace: Long, roomId: RoomId): com.latenighthack.lockers.server.services.room.v1.RoomMutationFence {
+        val owner = resolve(keyspace, roomId) as? RoomOwner.Local ?: throw com.latenighthack.lockers.server.services.room.v1.RoomOwnershipLost()
+        return store.mutationFence(roomId, selfNodeId, owner.epoch)
+    }
+    override fun invalidate(roomId: RoomId) { demote(roomId); redirects.invalidate(roomId) }
     private data class Owned(val epoch: Long, val freshUntil: Long, val claimedAt: Long)
 
     private val logger = LoggerFactory.getLogger(ClaimRoomOwnership::class.java)

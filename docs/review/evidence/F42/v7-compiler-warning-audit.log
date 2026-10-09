@@ -1,0 +1,85 @@
+Type-safe project accessors is an incubating feature.
+
+> Configure project :
+The ReportingExtension.file(String) method has been deprecated. This is scheduled to be removed in Gradle 10. Please use the getBaseDirectory().file(String) or getBaseDirectory().dir(String) method instead. Consult the upgrading guide for further information: https://docs.gradle.org/9.5.1/userguide/upgrading_version_9.html#reporting_extension_file
+	at Build_gradle$2.execute(build.gradle.kts:27)
+	(Run with --stacktrace to get the full stack trace of this deprecation warning.)
+
+> Configure project :api
+Declaring dependencies using multi-string notation has been deprecated. This will fail with an error in Gradle 10. Please use single-string notation instead: "com.android.tools.lint:lint-gradle:31.13.2". Consult the upgrading guide for further information: https://docs.gradle.org/9.5.1/userguide/upgrading_version_9.html#dependency_multi_string_notation
+Declaring dependencies using multi-string notation has been deprecated. This will fail with an error in Gradle 10. Please use single-string notation instead: "com.android.tools.build:aapt2:8.13.2-14304508:osx". Consult the upgrading guide for further information: https://docs.gradle.org/9.5.1/userguide/upgrading_version_9.html#dependency_multi_string_notation
+The archives configuration has been deprecated for artifact declaration. This will fail with an error in Gradle 10. Add artifacts as direct task dependencies of the 'assemble' task instead of declaring them in the archives configuration. Consult the upgrading guide for further information: https://docs.gradle.org/9.5.1/userguide/upgrading_version_9.html#sec:archives-configuration
+	at Build_gradle$3.execute(build.gradle.kts:125)
+	(Run with --stacktrace to get the full stack trace of this deprecation warning.)
+
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+
+> Task :api:installProtocGenKt
+go: downloading github.com/lyft/protoc-gen-star v0.6.2
+go: downloading golang.org/x/text v0.3.7
+go: downloading github.com/Masterminds/sprig v2.22.0+incompatible
+go: downloading github.com/Masterminds/goutils v1.1.1
+go: downloading github.com/Masterminds/semver v1.5.0
+go: downloading github.com/google/uuid v1.6.0
+go: downloading github.com/huandu/xstrings v1.5.0
+go: downloading github.com/imdario/mergo v0.3.16
+go: downloading github.com/mitchellh/copystructure v1.2.0
+go: downloading golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+go: downloading github.com/golang/protobuf v1.5.2
+go: downloading github.com/spf13/afero v1.3.3
+go: downloading github.com/mitchellh/reflectwalk v1.0.2
+go: downloading google.golang.org/protobuf v1.26.0
+
+> Task :api:generateProto
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:processResources NO-SOURCE
+> Task :sharding-core:compileKotlin
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :observability-api:compileKotlinJvm
+> Task :sharding-core:jar
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmMainClasses
+> Task :observability-api:jvmJar
+
+> Task :api:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmMainClasses
+> Task :api:jvmJar
+> Task :server:kspKotlin
+
+> Task :connector:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:602:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:791:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1513:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+
+> Task :server:compileKotlin
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/server/src/main/kotlin/com/latenighthack/lockers/server/MonolithComponent.kt:215:69 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:43:51 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Connection'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:47:27 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Connection'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/RemoteGateway.kt:149:130 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:213:98 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/providers/ApnsPushProvider.kt:103:90 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/server/src/main/kotlin/com/latenighthack/lockers/server/tools/WriteTrace.kt:67:46 Unnecessary non-null assertion (!!) on a non-null receiver of type 'String'.
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass2/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 18s
+15 actionable tasks: 15 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

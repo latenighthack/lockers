@@ -1,7 +1,7 @@
 package com.latenighthack.lockers.connector.test
 
 import com.latenighthack.ktbuf.net.RpcClient
-import com.latenighthack.ktbuf.test.server.runTestWithServer
+import com.latenighthack.lockers.connector.test.runOwnedTestWithServer as runTestWithServer
 import com.latenighthack.ktcrypto.Secp256r1KeyPair
 import com.latenighthack.ktcrypto.generate
 import com.latenighthack.ktstore.InMemoryKeyValueStoreDelegate
@@ -17,7 +17,7 @@ import com.latenighthack.lockers.connector.AuthenticationKeySource
 import com.latenighthack.lockers.connector.LockKeySource
 import com.latenighthack.lockers.connector.LockersClient
 import com.latenighthack.lockers.server.attachTestServices
-import com.latenighthack.lockers.server.rpcClient
+import com.latenighthack.lockers.connector.test.ownedRpcClient as rpcClient
 import io.ktor.server.application.Application
 import kotlin.random.Random
 import kotlin.test.Test
@@ -44,7 +44,7 @@ class LargePayloadTests {
             override suspend fun generateSessionKeyPair() {}
             override suspend fun revokeKeys() {}
         }
-        return LockersClient.create(
+        return createOwnedTestClient(
             rpcClient = rpcClient,
             database = com.latenighthack.lockers.connector.ConnectorStorage.inMemory(),
             keyValueStore = KeyValueStore(InMemoryKeyValueStoreDelegate()),

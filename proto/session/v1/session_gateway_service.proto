@@ -21,6 +21,9 @@ message PostEventResponse {
     enum Result {
         OK = 0;
         RETRY_ROUTING = 1;
+        INVALID = 2;
+        UNKNOWN_SESSION = 3;
+        RESOURCE_EXHAUSTED = 4;
         UNKNOWN_ERROR = 10;
     }
 }

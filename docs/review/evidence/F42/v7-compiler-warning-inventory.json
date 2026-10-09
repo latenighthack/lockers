@@ -1,0 +1,20 @@
+{
+  "checkpoint": "4bb5ea4",
+  "warnings": [
+    "w: api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.",
+    "w: api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.",
+    "w: api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.",
+    "w: api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.",
+    "w: connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1513:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.",
+    "w: connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:602:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.",
+    "w: connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:791:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.",
+    "w: server/src/main/kotlin/com/latenighthack/lockers/server/MonolithComponent.kt:215:69 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.",
+    "w: server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:43:51 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Connection'.",
+    "w: server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:47:27 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Connection'.",
+    "w: server/src/main/kotlin/com/latenighthack/lockers/server/cluster/RemoteGateway.kt:149:130 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.",
+    "w: server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:213:98 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.",
+    "w: server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/providers/ApnsPushProvider.kt:103:90 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.",
+    "w: server/src/main/kotlin/com/latenighthack/lockers/server/tools/WriteTrace.kt:67:46 Unnecessary non-null assertion (!!) on a non-null receiver of type 'String'."
+  ],
+  "status": "compile succeeded"
+}

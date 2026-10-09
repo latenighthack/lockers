@@ -127,7 +127,7 @@ class ClaimRenewalServiceTest {
         awaitUntil { ownership.ownedRooms().isEmpty() }
         assertThat(demotions.get()).isGreaterThan(0)
         assertThat(meters.lost.count()).isEqualTo(1.0)
-        assertThat(ownership.resolve(0, room("r1"))).isEqualTo(RoomOwner.Remote("thief:9", 1))
+        assertThat(ownership.resolve(0, room("r1"))).isEqualTo(RoomOwner.Remote("thief:9", 2))
         renewal.stopAndRelease()
     }
 
@@ -164,16 +164,16 @@ class ClaimRenewalServiceTest {
     }
 
     @Test
-    fun `stopAndRelease deletes the node's rows for zero-wait handoff`() = runBlocking {
+    fun `stopAndRelease expires claims for zero-wait handoff without resetting epochs`() = runBlocking {
         val store = InMemoryRoomClaimStore()
         val (ownership, renewal) = harness(store)
         ownership.resolve(0, room("r1"))
         renewal.start(scope)
         renewal.stopAndRelease()
-        assertThat(store.lookup(room("r1"))).isNull()
-        // A successor claims immediately at the next epoch-1 (fresh insert after delete).
+        assertThat(store.lookup(room("r1"))).isEqualTo(RoomClaimRow("n1", "addr1:1", 1))
+        // A successor claims immediately at the next epoch; the old proof remains stale.
         assertThat(store.claim(room("r1"), "n2", "addr2:2", ttlMs = 5_000))
-            .isEqualTo(RoomClaimRow("n2", "addr2:2", 1))
+            .isEqualTo(RoomClaimRow("n2", "addr2:2", 2))
     }
 
     @Test

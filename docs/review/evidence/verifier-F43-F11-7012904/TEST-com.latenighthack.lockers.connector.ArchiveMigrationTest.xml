@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ArchiveMigrationTest[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T03:53:47.441Z" hostname="Mikes-MacBook-Pro.local" time="0.172">
+  <properties/>
+  <testcase name="sdkMutationsCommitRollbackAndReopenSqlite[jvm]" classname="com.latenighthack.lockers.connector.ArchiveMigrationTest" time="0.051"/>
+  <testcase name="historicalSqliteSchemasPreservePrivateBytesAndNormalizeAliases[jvm]" classname="com.latenighthack.lockers.connector.ArchiveMigrationTest" time="0.121"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

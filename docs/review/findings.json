@@ -1,0 +1,1363 @@
+[
+  {
+    "id": "F01",
+    "priority": "P1",
+    "title": "An unsigned child lock can override an existing parent authority",
+    "locations": [
+      "[LockVerifier.kt:90](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:90)",
+      "[LockVerifier.kt:104](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:104)",
+      "[LockVerifier.kt:49](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:49)"
+    ],
+    "problem": "In an opaque room, applyLock resolves the parent key but the unsigned TOFU branch checks only whether the room ID embeds a public key. It does not reject an existing room or keyspace parent. Anyone who knows the room and locker IDs can establish their own more-specific key; resolveEffective then selects that key ahead of the legitimate parent. A room lock therefore does not secure its descendants.",
+    "evidence": [
+      "docs/review/F01.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Permit unsigned establishment only when the relevant authority hierarchy is genuinely unclaimed. Require a valid parent grant whenever an ancestor governs the scope, and perform establishment atomically with that ancestor state. Cover room-to-keyspace, room-to-locker, and keyspace-to-locker delegation in both TOFU and public-keyed rooms.",
+    "status": "complete",
+    "commits": [
+      "0ea9f0cc47de5df6d54a43b13eae83385bf994b8"
+    ],
+    "reproduction": "LockVerifierTest: unsigned descendants cannot replace room or keyspace authority (baseline assertion failure)",
+    "regression": "LockVerifierTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F02",
+    "priority": "P1",
+    "title": "A valid sealed signature can carry an unauthenticated open payload",
+    "locations": [
+      "[model.proto:128](/Users/mikeroberts/workspace/latenighthack/kitkit/proto/common/v1/model.proto:128)",
+      "[RoomServiceImpl.kt:548](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:548)",
+      "[LockerClient.kt:32](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:32)"
+    ],
+    "problem": "Locker.open and Locker.sealed are independent protobuf fields. The server hashes and verifies only sealed.payload.enclosure.innerPayload, then stores the entire Locker. The client extracts open.encodedPayload first. Appending or replacing an open field does not change the signed context, yet it changes the bytes applications consume. The same ambiguity reaches agents that read open.",
+    "evidence": [
+      "docs/review/F02.md",
+      "docs/review/F02-stored-envelope.md",
+      "docs/review/F02-conflict-envelope.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Reject every invalid or ambiguous envelope before signature verification and persistence; require exactly one supported representation. Share that validator across single writes, batches, reads, and extension outputs. Define which metadata is authenticated: notifications and ratchet.newSharedKeys are also outside the current signing contexts. Introduce any changed signing preimage through an explicit protocol version, while retaining the existing wire compatibility path.",
+    "status": "complete",
+    "commits": [
+      "13a6d1fa151e24ba43fe011ed48022c0936c5ea7",
+      "8e0d9d86e0ae4e9a3dfa6df65e28d2ce1ae926d1",
+      "9e7fa716b5e6535eaadd4d341031e0faab2aca02",
+      "c967d1d4971dbbb4d40fb41524b24f3281dc4ac4"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F02-stored-envelope.md, docs/review/F02.md",
+    "regression": "ConflictEnvelopeBoundaryTest; ReviewRegressionTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F03",
+    "priority": "P1",
+    "title": "Old unlock and delegation signatures remain reusable",
+    "locations": [
+      "[LockerSigning.kt:47](/Users/mikeroberts/workspace/latenighthack/kitkit/api/src/commonMain/kotlin/com/latenighthack/lockers/common/LockerSigning.kt:47)",
+      "[LockerSigning.kt:56](/Users/mikeroberts/workspace/latenighthack/kitkit/api/src/commonMain/kotlin/com/latenighthack/lockers/common/LockerSigning.kt:56)",
+      "[LockVerifier.kt:110](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:110)",
+      "[LockVerifier.kt:143](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:143)"
+    ],
+    "problem": "unlockContext contains no lock version or incarnation. Unlock deletes the row, and re-establishment resets its version to 1. An old unlock signed by a key reused for a later lock therefore removes that later lock as well. Changing the unsigned parentLockVersion to the current version also allows reuse after a key returns. Grant contexts likewise lack parent epoch/version, and applyLock ignores parentLockVersion.",
+    "evidence": [
+      "docs/review/F03-connector.md",
+      "docs/review/F03.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Retain a monotonic authority incarnation even when a scope becomes unlocked. Bind that incarnation and the expected authority version into grants, unlocks, and ratchets, and compare them atomically. Decide explicitly whether ancestor revocation invalidates existing descendants. Migrate the signing domain rather than silently changing V1 bytes.",
+    "status": "complete",
+    "commits": [
+      "189eee14055eb625317cd2dfcae93681c19de371",
+      "4ca4d43baa02a98015fd7d4697d631a4c698664e",
+      "c1d6f2151b683da18f7bbdcfe5c62879dec758a9",
+      "333ab38bfb62e7947c997ba3b1e9ba3de3e74bba"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F03-connector.md, docs/review/F03.md",
+    "regression": "LockVerifierTest; ReviewAuthorityV2Tests; ReviewRegressionTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F04",
+    "priority": "P1",
+    "title": "Internal event and push gateways are exposed without peer authentication",
+    "locations": [
+      "[MonolithComponent.kt:135](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/MonolithComponent.kt:135)",
+      "[Server.kt:19](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/Server.kt:19)",
+      "[SessionServiceImpl.kt:380](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:380)",
+      "[PushServiceImpl.kt:374](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:374)"
+    ],
+    "problem": "clientServices deliberately mounts SessionGateway and PushGateway on the public listener. Their implementations accept caller-selected session IDs and events or pushes without authenticating a peer or checking room write authority or subscriptions. A caller with a target session ID can inject locker bodies and arbitrary versions directly into its inbox, bypassing RoomService signature checks; the client trusts those events. Arbitrary push traffic and durable queue growth are also possible.",
+    "evidence": [
+      "docs/review/F04-runtime.md",
+      "docs/review/F04-admin-boundary.md",
+      "docs/review/F04-public-convenience.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Give trusted peer RPCs their own transport boundary and authenticate peer identity. Keep in-process discovery usable without exposing equivalent public endpoints. Validate sender authority and event identity at that boundary; an internal port alone is insufficient if callers can reach it. Preserve the extension API while requiring an explicit decision about which of its routes are public.",
+    "status": "complete",
+    "commits": [
+      "670ecd591ee19bb93612502b4d267b237f9c6090",
+      "e2cdeafde6e2426cc922171b37cf3ec2547e0999",
+      "4a49f969ce715b7b872d945efc739f45a18b09ba",
+      "dab26ea7686d80cf93134facd7ce4bf3282c71f3"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F04-admin-boundary.md, docs/review/F04-public-convenience.md, docs/review/F04-runtime.md",
+    "regression": "GatewayBoundaryTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F05",
+    "priority": "P1",
+    "title": "Web Push endpoints allow server requests to private HTTP destinations",
+    "locations": [
+      "[PushServiceImpl.kt:301](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:301)",
+      "[WebPushProvider.kt:48](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/providers/WebPushProvider.kt:48)"
+    ],
+    "problem": "A Web Push registration accepts an arbitrary endpoint. The provider checks only that it is nonempty before handing it to an HTTP client. With Web Push configured, the public registration and send gateway can be combined to make the server POST to loopback, private network, or other unintended destinations. The encryption of the request body does not prevent the outbound connection.",
+    "evidence": [
+      "docs/review/F05-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Validate endpoints at registration and at send time. Require HTTPS, validate host and port against the supported push-service policy, reject private and special IP destinations after DNS resolution, and constrain redirects and outbound network access. Authenticate registration ownership independently. Apply length and public-key/auth-secret validation before persisting credentials.",
+    "status": "complete",
+    "commits": [
+      "cf38a3d9556ea5c50f645f63abfffe855a6626f8"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F05-runtime.md",
+    "regression": "WebPushEndpointTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F06",
+    "priority": "P1",
+    "title": "Session proof does not protect subscription or push credential mutations",
+    "locations": [
+      "[RoomServiceImpl.kt:360](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:360)",
+      "[RoomServiceImpl.kt:225](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:225)",
+      "[PushServiceImpl.kt:301](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:301)",
+      "[PushServiceImpl.kt:339](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:339)",
+      "[SessionServiceImpl.kt:147](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:147)"
+    ],
+    "problem": "Session opening verifies a private-key signature, but the unary subscription and push registration RPCs use a bare caller-supplied sessionId. Knowing an ID is sufficient to add or remove its subscriptions, replace its push destination, or unregister a backend. This can suppress delivery or redirect push information to another device. destroySession additionally returns OK without revoking anything.",
+    "evidence": [
+      "docs/review/F06-connector.md",
+      "docs/review/F06.md",
+      "docs/review/F06-revocation.md",
+      "docs/review/F06-destroy-reconnect.md",
+      "docs/review/F06-snapshot-revocation.md",
+      "docs/review/F06-destroy-outcome.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Bind unary mutations to an authenticated session context or a signed, scoped session capability with expiry and replay protection. Define whether identifiers are public names or secret capabilities; the current API mixes those models. Implement authenticated revocation that closes live sockets and removes or expires session routing, subscription, inbox, and push state, with a documented deletion policy.",
+    "status": "complete",
+    "commits": [
+      "01c53db97726118f96991163981c9d247bd0d98e",
+      "77c07c693d075eb6fc19ed16ea8720a4c2043125",
+      "c0593e7863dd5518396a8999ff3a1e078a633848",
+      "9c1d34e385e96ef2c6a37f5cf45e08b0acf4febe",
+      "4d02049ddccd1c901c69571ab7447e0a2a2eb5ea",
+      "3f0bb0fb50071eff27742b24900c1c7b78174b11",
+      "f8b18ae1f2bcb20e20e593b0084587ea4e182ea9",
+      "274e7deb5fab944b7b59c5cc8d1a2732f55bedd6"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F06-connector.md, docs/review/F06-revocation.md, docs/review/F06.md",
+    "regression": "ReviewDestroyReconnectTests; ReviewSessionProofTests; SessionProofBoundaryTest; SessionRevocationTest; actual red/green evidence in linked issue notes; SessionRevocationTest actual two PostgreSQL handles and SQLite reopen confirmation",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F07",
+    "priority": "P1",
+    "title": "A stale negative lock cache can disable signature enforcement",
+    "locations": [
+      "[RoomServiceImpl.kt:75](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:75)",
+      "[RoomServiceImpl.kt:408](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:408)",
+      "[RoomServiceImpl.kt:790](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:790)",
+      "[ClaimRoomOwnership.kt:46](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimRoomOwnership.kt:46)"
+    ],
+    "problem": "roomHasLocksCache stores false without an expiry or authority epoch. Reads on a non-owner can populate it. A different owner may subsequently establish a lock, after which the reader can acquire the room with its old negative cache intact. effectiveLockOrNull then skips all lock resolution. This affects the default legacy write/delete path and paths that choose cached resolution rather than batch lock prefetch. Reads can also report incorrect lock state.",
+    "evidence": [
+      "docs/review/F07.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Make authorization reads authoritative inside the mutation transaction. If caching is retained, key it by a proven ownership/authority epoch and invalidate before acquiring or resuming authority, with distributed lock-change invalidation. A TTL alone cannot establish the security invariant.",
+    "status": "complete",
+    "commits": [
+      "4c0b7dcdd50bd16052cc4724ad19cf84835b9d03"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F07.md",
+    "regression": "ReviewRegressionTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F08",
+    "priority": "P1",
+    "title": "The default mutation path has no database version CAS or commit fence",
+    "locations": [
+      "[RoomServiceImpl.kt:485](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:485)",
+      "[RoomServiceImpl.kt:534](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:534)",
+      "[LockerStore.kt:50](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockerStore.kt:50)",
+      "[RoomServiceImpl.kt:710](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:710)",
+      "[AdvisoryLockCoordinator.kt:28](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/AdvisoryLockCoordinator.kt:28)"
+    ],
+    "problem": "Legacy writes compare a fetched version and then perform an unconditional save under a process-local room mutex. Two coordinators can both read version N and both commit N+1. Ownership is checked before queueing and database work, with no owner epoch checked at commit, so a paused or draining former owner can continue after takeover. Deletes validate before their outbox transaction; standalone lock operations also lack a shared mutation transaction. The advisory lease's so-called fencing token is the stable shard hash, not a monotonically increasing token enforced by storage.",
+    "evidence": [
+      "Reproduced by twoCoordinatorsAcceptTheSameVersionWithoutStorageCAS: two services read version 3 and both return successful version 4. The fast batch source path does serialize its read/validation/write transaction, which improves version races, but still lacks a commit-time ownership fence.",
+      "docs/review/F08.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Require the storage mutation to atomically compare both expected locker/authority version and the current owner incarnation. Include content, lock changes, receipts, and delivery intents in the same transaction. Apply that invariant to writes, deletes, lock/unlock, and derived writes. Remove comments and metrics claiming that an ordinary read-and-save is a database CAS.",
+    "status": "complete",
+    "commits": [
+      "ca6e060c3fc699ccb37cd221cfda98f589588e46",
+      "56ba70473bfa745922f5dc55d7d6f3559b81fc0d"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F08.md",
+    "regression": "RoomMutationFencePgTest (four actual PostgreSQL regressions); ReviewRegressionTest; RatchetAtomicityRegressionTest",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F09",
+    "priority": "P1",
+    "title": "The default example agent can overwrite an independently locked keyspace",
+    "locations": [
+      "[ServerCore.kt:87](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/ServerCore.kt:87)",
+      "[ExampleLockerAgent.kt:26](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/agents/ExampleLockerAgent.kt:26)",
+      "[RoomServiceImpl.kt:633](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:633)"
+    ],
+    "problem": "ServerCore installs ExampleLockerAgent whenever the embedder supplies no override. That agent mirrors a write in keyspace 31 into keyspace 30, and derived writes bypass the target's lock verification. An unsigned write to an open input keyspace can therefore overwrite a locked output keyspace. Shipping this demo as the default also assigns implicit meaning to otherwise opaque keyspaces.",
+    "evidence": [
+      "docs/review/F09-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Use a no-op registry by default and require explicit installation of trusted authoritative agents. Preserve their ability to produce privileged derived state, but declare and enforce their permitted input/output scopes and validation policy. Put the demonstration behind an explicit sample configuration.",
+    "status": "complete",
+    "commits": [
+      "f28f0afce95ffdbf04b5ccb0461c77ac9812cb19"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F09-runtime.md",
+    "regression": "DefaultAgentAuthorityTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F10",
+    "priority": "P1",
+    "title": "A legacy ratchet can commit before its associated content write fails",
+    "locations": [
+      "[RoomServiceImpl.kt:578](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:578)",
+      "[LockVerifier.kt:171](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:171)",
+      "[RoomServiceImpl.kt:618](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:618)"
+    ],
+    "problem": "In the legacy path, applyRatchet saves the new lock key before the locker is saved or delivery is accepted. A storage exception or cancellation between those operations leaves the new authority committed with no successful content write. A client retry using the old key then fails verification, despite never receiving a successful ratchet response.",
+    "evidence": [
+      "Reproduced by legacyRatchetCommitsEvenWhenLockerPersistenceFails: inject a locker-save failure, submit a correctly signed ratchet write, and observe the new public key persisted while the locker remains absent. Fast batch source transactions avoid this particular partial commit.",
+      "docs/review/F10.md",
+      "docs/review/F10-delete-receipts.md",
+      "docs/review/F10-connector-delete.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Commit ratchet, locker, receipt, and delivery intent in one transaction on every supported path. Make success and ambiguous-response recovery refer to the complete transaction outcome. Do not advertise atomic ratcheting on a path that can persist only its authority half.",
+    "status": "complete",
+    "commits": [
+      "984e2f03819a4eacc837004181cff37caa5299c0",
+      "238cc852ca30e4bfae78553c7a7a8b008edfdf1d",
+      "55f8733eba598eec6340945c2466836082f9163e",
+      "50f5a42f72c2b093f0beead0ddb886d944ed8c94",
+      "a6d2156694a1f5c4c6a0edadb2b4eb3c93d6fc0b",
+      "abe4311fd6eec23e4f744016acb9c616735e1c6d"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F10-delete-receipts.md, docs/review/F10.md",
+    "regression": "RatchetAtomicityRegressionTest; ReviewDeleteReceiptTests; ReviewRatchetAdoptionTests",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F11",
+    "priority": "P1",
+    "title": "The client can discard a successfully committed ratchet key",
+    "locations": [
+      "[LockerClient.kt:754](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:754)",
+      "[LockerClient.kt:788](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:788)",
+      "[LockerClient.kt:836](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:836)",
+      "[LockerClient.kt:436](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:436)"
+    ],
+    "problem": "A new ratchet private key lives only in a local variable until onRatcheted runs. The client throws on agentFailed or agentPending before adopting that key or accepting the committed source. The server may already have committed both source and ratchet. A response lost across process death has the same problem: a write receipt preserves the server outcome, but it cannot reconstruct the client's discarded private key. Subsequent writes may be permanently locked out.",
+    "evidence": [
+      "docs/review/F11-connector.md",
+      "docs/review/evidence/connector-ratchet-adversarial-isolation-red.log",
+      "docs/review/evidence/lockers-integration-ratchet-archive-green.log",
+      "docs/review/F11-archive-source-metadata.md",
+      "docs/review/F26-archive-migration.md",
+      "docs/review/F11-legacy-archive-authority.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Persist a pending ratchet key and immutable request identity before submission. Resolve a committed outcome and adopt that key even when derived agent work is pending or failed. Return a typed outcome separating source commit from agent completion; reserve an ordinary write-failed exception for a source mutation that did not commit. Recover pending key transitions on startup.",
+    "status": "complete",
+    "commits": [
+      "f41db2c4cc217fb283e4ec9688042f84955386d2",
+      "f1fe0fe1af8c0265984da6492ad3889c0e46ac85",
+      "813720475c8bd109703436b6ba0edfc421ac25a7",
+      "076f5a14473594103fbc79894a0e65ac9a86f5fe",
+      "d0a45c1503693f5f575d6169376f5be44cb69206",
+      "8bdf808e4bfe96888fc90bae0d258cfeadd26208",
+      "4e66a0d0d68de7cc89399a640f5351941a5e9bd9",
+      "0dd7a49efbcdb68f8b71c0090a98c452f1145001",
+      "119cfb316377cb867d68d395dfb33bd966cc51d6",
+      "1011735cdcc48c04731c108a23993ad303f70046",
+      "24c8d8b6f1df79aadcb9448e61d54a1840d2f5b7"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F11-connector.md",
+    "regression": "ReviewConnectorTests; ReviewExpiredRatchetTests; ReviewRatchetArchiveOrderingTests; exact receipt/key adoption, source uncertainty, isolated recovery and epoch ordering regressions",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F12",
+    "priority": "P2",
+    "title": "Session creation and challenge rotation are not atomic",
+    "locations": [
+      "[SessionServiceImpl.kt:597](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:597)",
+      "[SessionServiceImpl.kt:611](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:611)",
+      "[SessionServiceImpl.kt:521](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:521)",
+      "[SessionServiceImpl.kt:559](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:559)",
+      "[SessionStore.kt:23](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionStore.kt:23)"
+    ],
+    "problem": "Create checks for absence and then unconditionally saves the session. Concurrent creates for the same identifier can both succeed with different authorization keys, leaving one persisted authority. Open similarly reads a challenge, verifies it, and unconditionally rotates it; concurrent uses of the same valid challenge can both succeed. The create path does not use the session owner gate or a database put-if-absent.",
+    "evidence": [
+      "docs/review/F12-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Add atomic create-if-absent and challenge compare-and-rotate operations. Tie the winning socket/registry attachment to the committed session incarnation, and reject competing admissions before publishing live state. Test both same-node and cross-node races; serialization of event ACKs does not serialize session admission.",
+    "status": "complete",
+    "commits": [
+      "b7768ab3338f8324d45bb611b4c6b1023ce565de"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F12-runtime.md",
+    "regression": "SessionAtomicityTest; SessionOwnershipTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F13",
+    "priority": "P2",
+    "title": "Creating a locker does not advance its version",
+    "locations": [
+      "[RoomServiceImpl.kt:534](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:534)",
+      "[RoomServiceImpl.kt:719](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:719)"
+    ],
+    "problem": "When no stored locker exists, the server assigns request.parentVersion as the new version. With the usual parent 0, creation returns 0; a second stale parent-0 request is then accepted and returns 1. The first existence transition does not invalidate optimistic concurrency. The same initial rule applies to deletion of an absent locker.",
+    "evidence": [
+      "docs/review/F13.md",
+      "docs/review/F13-batch-creation.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Define one initial parent sentinel, reject inappropriate parents for absence, and advance the version on every committed state transition. Include first-create races and deletion/recreation in the protocol's version tests. Guard negative values and overflow, and plan how legacy version-0 rows are interpreted during migration.",
+    "status": "complete",
+    "commits": [
+      "987e85bc7ebcde69be0250d0add16564ab1d1125",
+      "1b749f20266804b92ac81083c97113426ff8d8a0"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F13.md",
+    "regression": "ReviewBatchCreationTests; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F14",
+    "priority": "P2",
+    "title": "Null and zero keyspace aliases bypass duplicate and serialization checks",
+    "locations": [
+      "[RoomServiceImpl.kt:255](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:255)",
+      "[RoomServiceImpl.kt:294](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:294)",
+      "[LockerClient.kt:386](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:386)",
+      "[LockerClient.kt:740](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:740)"
+    ],
+    "problem": "Duplicate detection uses the raw LockerId, while storage and signing canonicalize a missing keyspace to zero. A batch can contain both representations of the same locker. Both changes validate against the same prefetched version, two conflicting events are created, and one row wins persistence. Client mutation locks likewise use unnormalized IDs, allowing nominally serialized writes to the same stored locker to take different locks.",
+    "evidence": [
+      "docs/review/F14-connector.md",
+      "docs/review/F14.md",
+      "docs/review/F14-connector-aliases.md",
+      "docs/review/F14-unknown-identities.md",
+      "docs/review/F14-locker-store-isolation.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Define a canonical identity type for room, keyspace, and locker bytes. Normalize at API entry before distinctness checks, mutation-lock acquisition, receipt construction, storage lookup, and routing. Keep the existing signed equivalence of omitted and zero keyspace; enforce it consistently rather than changing its meaning.",
+    "status": "complete",
+    "commits": [
+      "a15c0ac4129157b029799df1a8d9d8523da3640f",
+      "14b4a3238b66b49d53bde6e400e425b57bec228a",
+      "c268b2a711a5b6e46962b9daf4bf76f831b1842a",
+      "3aa145b41709a020e0642afd0dc92db1f06dbe39",
+      "1cc3f671632d4fe6d1ed386324a5210b5c250e40",
+      "40026b5164736e941c7a24afe925320a94228319",
+      "f9af60db42319d1dff810c9a50b1bd057ed4ce8e"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F14-connector.md, docs/review/F14.md",
+    "regression": "CanonicalBatchRegressionTest; ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F15",
+    "priority": "P2",
+    "title": "Bulk reads represent a tombstone as a live empty locker",
+    "locations": [
+      "[RoomServiceImpl.kt:212](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:212)",
+      "[RoomServiceImpl.kt:235](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:235)",
+      "[RoomServiceImpl.kt:449](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:449)",
+      "[LockerClient.kt:645](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:645)"
+    ],
+    "problem": "getLockers decodes stored.locker regardless of stored.deleted. Deleted rows contain an empty byte array, which decodes to a non-null empty Locker and is returned as OK. getLocker hides the deleted row, getAllLockers filters it out, and subscribeAndSnapshot correctly returns a versioned identified tombstone. The client bulk-read path treats any non-null locker body as present.",
+    "evidence": [
+      "docs/review/F15.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Use one versioned tombstone representation across every read, snapshot, event, and write-conflict response. Teach clients to preserve the tombstone version while removing the visible value. Add parity tests for all read APIs, including an empty but genuinely present payload.",
+    "status": "complete",
+    "commits": [
+      "99379f6c0a7092cef994a81b564812239e6d5479"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F15.md",
+    "regression": "ReviewRegressionTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F16",
+    "priority": "P2",
+    "title": "Legacy revalidation cannot remove cached deletions",
+    "locations": [
+      "[LockerClient.kt:349](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:349)",
+      "[LockerClient.kt:363](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:363)",
+      "[LockerClient.kt:651](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:651)",
+      "[RoomServiceImpl.kt:449](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:449)"
+    ],
+    "problem": "Legacy hydration merges only lockers returned by getAllLockers, which omits deleted rows. fetchLocker accepts only a non-null response. Neither operation removes a previously cached locker when the server reports absence. A disconnected client that misses a delete, or creates a replacement session after an inbox gap, can keep the deleted value indefinitely despite repeated successful revalidation.",
+    "evidence": [
+      "Confirmed by the absence-only branches and the default capabilities path. The fast subscribeAndSnapshot path includes tombstones and can repair this specific gap; its behavior is not available when deliveryOutboxEnabled is false.",
+      "docs/review/F16-connector.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Return versioned tombstones on legacy-compatible reads, or reconcile a complete authoritative snapshot with its boundary/watermark. Do not infer an unversioned delete from absence while a newer live event may race hydration. Make reconciliation repair deletions as well as additions.",
+    "status": "complete",
+    "commits": [
+      "9b77ef23b59287c2fdd9faf5a2bd9f2188bb9c47"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F16-connector.md",
+    "regression": "ReviewSnapshotRepairTests; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F17",
+    "priority": "P2",
+    "title": "Subscription changes on one node do not refresh another node's fanout cache",
+    "locations": [
+      "[RoomServiceImpl.kt:188](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:188)",
+      "[RoomServiceImpl.kt:360](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:360)",
+      "[RoomServiceImpl.kt:388](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:388)",
+      "[RoomServiceImpl.kt:96](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:96)"
+    ],
+    "problem": "Subscriptions are deliberately allowed on non-owner nodes, but each RoomService caches its own room-to-session set without expiry or distributed invalidation. A writing owner that has already cached recipients does not learn a subscription added elsewhere, and can continue delivering to a session removed elsewhere. The legacy path can therefore miss live and offline inbox delivery until eviction or takeover.",
+    "evidence": [
+      "Confirmed by the shared subscription store, process-local cache, and local-only cache updates. Fast outbox commits query durable recipients and avoid this cached-recipient path.",
+      "docs/review/F17-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Resolve recipients from authoritative storage at the event's commit boundary, or maintain an observed subscription revision tied to a coherent distributed cache. Keep subscribe-and-snapshot atomicity and unsubscribe semantics explicit. Do not rely on requests happening to land on the writer.",
+    "status": "complete",
+    "commits": [
+      "70e6bfc5dc5e28523026bc25d6189091d5daa15e"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F17-runtime.md",
+    "regression": "SubscriptionFreshnessTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F18",
+    "priority": "P2",
+    "title": "The default delivery mode can acknowledge a write whose event has no recovery path",
+    "locations": [
+      "[LockersConfig.kt:125](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/LockersConfig.kt:125)",
+      "[RoomServiceImpl.kt:615](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:615)",
+      "[RoomServiceImpl.kt:666](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:666)"
+    ],
+    "problem": "deliveryOutboxEnabled defaults to false. The legacy path persists a locker and then sends events directly to gateways. Gateway lookup, RPC failure, or a crash between persistence and inbox acceptance can leave no durable delivery intent. deliver records failures and the write still returns OK. A durable session inbox helps only after the gateway has accepted an event.",
+    "evidence": [
+      "Confirmed by the default configuration and post-persistence direct delivery. The optional outbox path provides the missing durable intent, so the reliability contract currently changes materially with configuration.",
+      "docs/review/F18-runtime.md",
+      "docs/review/F18-default-construction.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Make durable delivery the supported invariant for production writes, deletes, and derived state, after resolving its scaling issues in F33. If a weaker legacy mode remains, expose its guarantee explicitly and provide snapshot repair that includes deletions. Treat local Flow wakeups as hints to recoverable work.",
+    "status": "complete",
+    "commits": [
+      "d103c0c77467e6920d0943498a60ed7e86e1ee5a",
+      "fab169a501323c5de2c03edaaf962ea3b55d04a4",
+      "83650fb02c621b7340883c17a221f40e979fa984"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F18-default-construction.md, docs/review/F18-runtime.md",
+    "regression": "LegacyDeliveryModeTest; LockersConfigTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F19",
+    "priority": "P2",
+    "title": "Persisted push work can become invisible to a running worker",
+    "locations": [
+      "[PushServiceImpl.kt:107](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:107)",
+      "[PushServiceImpl.kt:139](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:139)",
+      "[PushServiceImpl.kt:150](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:150)",
+      "[PushServiceImpl.kt:401](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:401)"
+    ],
+    "problem": "The push worker reads the durable queue once in onStart, then consumes only this instance's replay-zero SharedFlow. Work enqueued by an API-only replica emits into a different instance and is never discovered by the running worker. An enqueue between the startup query and actual subscription can also be missed. A startup storage failure terminates the collector with no recovery loop.",
+    "evidence": [
+      "Reproduced by APIReplicaEnqueueIsInvisibleToRunningWorkerReplica: the worker sends its startup row, another instance enqueues a new row into the same store, and the row remains pending with no second send. Structurally, there is no polling or distributed observation that can discover it later.",
+      "docs/review/F19-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Use durable queue claims with a bounded worker pool and a store-driven observation or notification seam, plus periodic recovery scanning. Subscribe to wakeups before scanning, and rescan after errors or restarts. The queue row must determine whether work exists; an in-process emission cannot be its only discovery mechanism.",
+    "status": "complete",
+    "commits": [
+      "8786ba85eaa99d555fe34d87727459f6eb629370"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F19-runtime.md",
+    "regression": "PushServiceTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F20",
+    "priority": "P2",
+    "title": "Push drain can duplicate in-flight sends and does not bound queued coroutines",
+    "locations": [
+      "[PushServiceImpl.kt:157](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:157)",
+      "[PushServiceImpl.kt:208](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:208)",
+      "[PushServiceImpl.kt:446](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:446)"
+    ],
+    "problem": "Each emitted queue row creates another coroutine. drainQueue re-emits all rows, including those already being sent, without a row lease or in-flight guard. A semaphore bounds vendor calls but not the number of jobs waiting behind it. Multiple worker replicas have the same duplicate-send risk, while a large backlog can create an arbitrarily large coroutine set.",
+    "evidence": [
+      "Reproduced by drainingQueueDuplicatesAnInFlightSend: hold the first provider send open, invoke drainQueue, and observe a second concurrent send for the same row.",
+      "docs/review/F20-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Claim rows atomically with lease identity, expected state, and a persisted next-attempt time. Use a fixed number of consumers over bounded claims. Make drain a request to accelerate discovery rather than a second delivery stream. Preserve at-least-once semantics for ambiguous provider acceptance and make duplicates observable.",
+    "status": "complete",
+    "commits": [
+      "ca1cfd5e1f7676905bfeb8716f581c203bc16208",
+      "b425873853f1a217478c0a2f1de865efffe068f4"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F20-runtime.md",
+    "regression": "PushQueueClaimsTest; PushServiceTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F21",
+    "priority": "P2",
+    "title": "Push registration failures are not retried on ordinary reconnects",
+    "locations": [
+      "[PushRegistration.kt:103](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:103)",
+      "[PushRegistration.kt:108](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:108)",
+      "[PushRegistration.kt:165](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:165)",
+      "[Stream.kt:273](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:273)"
+    ],
+    "problem": "sendRegister catches transport failures and returns while leaving the row pending. Reconciliation is triggered by a distinct session ID, not a successful connection epoch. Stream keeps the same session ID through an ordinary reconnect, so no retry occurs. This contradicts the controller and facade documentation, and awaitRegistered can wait forever after a transient outage.",
+    "evidence": [
+      "Reproduced by registrationTransportFailureIsNotRetriedForSameSession: one failed registration remains pending; publishing an equal session ID makes no second RPC. The source has no independent retry loop.",
+      "docs/review/F21-connector.md",
+      "docs/review/F21-session-admission.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Reconcile persisted desired registrations against a session state containing connection incarnation and readiness. Retry recoverable failures with bounded backoff while that desired state remains current. Represent terminal failure and closed state explicitly so callers can await a real outcome.",
+    "status": "complete",
+    "commits": [
+      "7dc75fbcd35b18c14d0f2856440d4f618b750fc6",
+      "7c880d082e61db567929d7805efc165e72fa4107",
+      "47ef085203c70c8692b286234d76002c9872d182",
+      "7f7bfff6cd99840f842aefc12648f1219a9d3acd"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F21-connector.md, docs/review/F21-session-admission.md",
+    "regression": "ReviewPushControllerTests; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F22",
+    "priority": "P2",
+    "title": "Late push acknowledgements can restore obsolete or removed credentials",
+    "locations": [
+      "[PushRegistration.kt:118](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:118)",
+      "[PushRegistration.kt:141](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:141)",
+      "[PushRegistration.kt:173](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:173)"
+    ],
+    "problem": "Two controller jobs and direct unregister calls mutate the same registration state without a serialized generation check. An older register response can overwrite a newer credential or recreate a row after unregister. It can also confirm a backend for a superseded session. Read-modify-write updates of reconciled.value can lose concurrent changes. Unregister removes local intent even if the server call failed, leaving no durable revoke to retry.",
+    "evidence": [
+      "Reproduced by lateRegistrationResponseResurrectsUnregisteredCredential: block register, complete unregister and local deletion, then release the register response; the credential is recreated and reported registered.",
+      "docs/review/F22-connector.md",
+      "docs/review/F22-public-boundary.md",
+      "docs/review/F22-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Use a serialized reducer with desired credential revision, session incarnation, and durable pending removal. Apply acknowledgements only when all three still match. SubscriptionController's generation-checked confirmations provide a useful local pattern, with bounded commands and explicit lifecycle outcomes.",
+    "status": "complete",
+    "commits": [
+      "4374c3c0dfec508614f51f48b317a3a1badd8e16",
+      "9c8c7741e09ba741103c16932267f706b953fab9",
+      "6d041947a94153f5cab571a12e8f705a01f8e794",
+      "f8f4442ed406594df54febf188362226c78223ed"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F22-connector.md, docs/review/F22-public-boundary.md, docs/review/F22-runtime.md",
+    "regression": "PushQueueClaimsTest; PushServiceTest; ReviewPushControllerTests; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F23",
+    "priority": "P2",
+    "title": "A watcher publishes partial history as its initial snapshot",
+    "locations": [
+      "[LockerClient.kt:469](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:469)",
+      "[LockerClient.kt:479](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:479)",
+      "[LockerClient.kt:489](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:489)"
+    ],
+    "problem": "watchSnapshot calls merge for each cached locker, and merge emits immediately. Its first value therefore represents only the first historical item rather than the room/keyspace snapshot. Live events may interleave those partial histories. SharingStarted.WhileSubscribed also retains replay across idle periods while a restarted producer rebuilds its local map. The state.isEmpty check reads the mutable map outside stateMutex.",
+    "evidence": [
+      "docs/review/F23-connector.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Load and reduce a complete snapshot before one initial emission, buffering and version-ordering live events around a snapshot boundary. Expose an immutable state with loading/freshness metadata when cached state is intentionally emitted early. Keep all state access serialized, and define replay reset and watcher eviction.",
+    "status": "complete",
+    "commits": [
+      "fe7b93a8695ce45f605039fadc3bdf0e6893da0d",
+      "1e2ff0c934e45cdc16b279a64ef1c75b66369d8f"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F23-connector.md",
+    "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F24",
+    "priority": "P2",
+    "title": "Application Flow collectors can block acceptance and ACKs for unrelated rooms",
+    "locations": [
+      "[LockerClient.kt:318](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:318)",
+      "[LockerClient.kt:459](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:459)",
+      "[LockerClient.kt:531](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:531)",
+      "[Stream.kt:522](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:522)"
+    ],
+    "problem": "accept holds a client-wide mutex while saving and emitting to internalChanges. Once its 64-item buffer fills, one slow collector blocks every room's acceptance and writers waiting on that mutex. Notification emission and raw stream-event emission also happen before ACK persistence. Cancellation after save but before emission can leave an active watcher behind the store; a replay of equal content is suppressed by the stored-version guard. With no collectors, replay-zero change and notification emissions are instead ephemeral.",
+    "evidence": [
+      "docs/review/F24-connector.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Commit accepted state and dedup/ACK intent independently of application multicast. Observe committed state through a transaction-aware storage Flow or a reducer that reloads from storage after conflated wakeups. Give state snapshots conflation and give events requiring delivery a persisted cursor or inbox. Move emission outside correctness mutexes; blindly dropping changes would introduce another delivery gap.",
+    "status": "complete",
+    "commits": [
+      "a321be6b160d281dc9df355a4e77ec785880677d",
+      "1e2ff0c934e45cdc16b279a64ef1c75b66369d8f"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F24-connector.md",
+    "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F25",
+    "priority": "P2",
+    "title": "Cancellation is retried or converted into application failure",
+    "locations": [
+      "[LockerClient.kt:255](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:255)",
+      "[LockerClient.kt:832](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:832)",
+      "[PushRegistration.kt:166](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:166)",
+      "[PushServiceImpl.kt:210](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:210)",
+      "[LockVerifier.kt:205](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:205)"
+    ],
+    "problem": "WRITE_EXCEPTION_HANDLER treats CancellationException as retryable through its catch-all branch. The retry helper eventually produces RetryLimitExceeded, which the client wraps as LockerWriteException. Push registration runCatching and several provider/server catch(Exception) branches also catch coroutine cancellation and classify it as an ordinary failure or retry. This weakens cancellation propagation and can run failure-side persistence while a component is stopping.",
+    "evidence": [
+      "docs/review/F25-connector.md",
+      "docs/review/F25-advisory-cancellation.md",
+      "docs/review/F25-coordination-sql-limits.md",
+      "docs/review/F25-runtime.md",
+      "docs/review/F25-telemetry-cancellation.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Rethrow CancellationException before transient-error classification. Use narrowly scoped NonCancellable cleanup only for necessary resource release or completion of an already-defined transaction boundary. Review the pinned retry helper's exception contract, including its use of CancellationException for retry exhaustion, and distinguish exhaustion from actual caller cancellation.",
+    "status": "complete",
+    "commits": [
+      "ea56134dbfdd7851fba5020c092f9caf04f31290",
+      "3555f92acdd4f82d35551944febc08f929bc4bb7",
+      "565a39feaac026486b167ae08df8122801928406",
+      "2f59f54c123b71fae7b14117b34ac793799a8d10",
+      "c862e868dafbc24893963043cc8c477567feed80",
+      "845fbfd7264f80eaf7d4d7316aae5df8ca3ae9e9",
+      "f9af60db42319d1dff810c9a50b1bd057ed4ce8e",
+      "e718c345daecd3ccc4b176c78c0c590dd1f046d7"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F25-advisory-cancellation.md, docs/review/F25-connector.md, docs/review/F25-coordination-sql-limits.md, docs/review/F25-runtime.md, docs/review/F25-telemetry-cancellation.md",
+    "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F26",
+    "priority": "P2",
+    "title": "Background ownership and shutdown are detached from the caller's lifecycle",
+    "locations": [
+      "[LockerClient.kt:282](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:282)",
+      "[Stream.kt:106](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:106)",
+      "[Stream.kt:271](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:271)",
+      "[PushRegistration.kt:96](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/PushRegistration.kt:96)",
+      "[LockersClient.kt:81](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockersClient.kt:81)",
+      "[ServerExtension.kt:22](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/ServerExtension.kt:22)"
+    ],
+    "problem": "The connector components construct separate root SupervisorJobs; LockerClient uses GlobalScope plus such a job. Server workers also own independent root scopes. Parent cancellation cannot propagate into them, dispatchers are fixed, and most stop/close methods cancel without joining. Several start methods can create duplicate loops, and partial factory startup has no rollback. A supervisor isolates a failed child but does not restart a failed collector or expose its failure to callers.",
+    "evidence": [
+      "Confirmed by constructors and lifecycle methods. SupervisorJob supports a parent job, and its failure isolation requires an explicit child-failure policy. [Kotlin SupervisorJob API](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-supervisor-job.html)",
+      "docs/review/F26-connector.md",
+      "docs/review/F26-host-lifetime.md",
+      "docs/review/F26-runtime.md",
+      "docs/review/F26-connector-integration-fixtures.md",
+      "docs/review/F26-watch-producer-lifetime.md",
+      "docs/review/F26-archive-migration.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Give each client/server component one explicit lifecycle scope with a supplied parent, owned child jobs, and injected execution contexts. Keep deliberately shared reads owned by that client scope so one waiter cannot cancel everyone. Make start idempotent or reject duplicate starts, clean up partial initialization, and provide suspending close/stop that cancels and joins. Add an equivalent awaitable lifecycle seam for extensions.",
+    "status": "complete",
+    "commits": [
+      "0d339e5a8fddb3c16f11441985a584fd34b68d2b",
+      "b87f34b2a1f706a6fb39edf986bfe9b5071bf419",
+      "1f3593f4a2f69ccca0cdf36d138061922f4a814a",
+      "70351cf4c2218b3a30409a7dcedaeda63bfb9575",
+      "5cb73ce349c5a5e51a61376546c874854d8f5dfb",
+      "c6cca713f78a2e9649056b09c9de558db0c2395c",
+      "eb14e47bfd2e6f68ee9a95e30f3621cf6fa6d058",
+      "40b705ddf6556af90d8ec0df0b4b03b92e7d0256",
+      "7f7bfff6cd99840f842aefc12648f1219a9d3acd",
+      "467755990837fecdfeb79e49219ac5b5286881d4",
+      "845fbfd7264f80eaf7d4d7316aae5df8ca3ae9e9",
+      "82a262a4844bacbe7ff9e1a33c29725c45c23f19",
+      "f9af60db42319d1dff810c9a50b1bd057ed4ce8e",
+      "0dd7a49efbcdb68f8b71c0090a98c452f1145001",
+      "119cfb316377cb867d68d395dfb33bd966cc51d6"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F26-connector.md, docs/review/F26-host-lifetime.md, docs/review/F26-runtime.md",
+    "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F27",
+    "priority": "P2",
+    "title": "Connection state can remain true during failure and awaiters can hang after closure",
+    "locations": [
+      "[Stream.kt:293](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:293)",
+      "[Stream.kt:315](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:315)",
+      "[Stream.kt:343](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:343)",
+      "[Stream.kt:553](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:553)",
+      "[LockersClient.kt:43](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockersClient.kt:43)"
+    ],
+    "problem": "onConnected is cleared around the outer connection loop and normal completion, but an exception retried inside repeatWithBackoff can leave it true throughout retries. Fatal failure and stop do not consistently clear it. sessionIdSource also remains populated through disconnection or abandoned sessions. awaitConnected waits only for true and never observes fatal or closed state; subscription and push waiters have similar missing lifecycle outcomes.",
+    "evidence": [
+      "Confirmed by the distinct updates to isConnected, fatalError, sessionId, and stop. A previously connected client can report a stale true value, while a never-connected terminal client can leave awaitConnected suspended indefinitely unless its caller supplies cancellation.",
+      "docs/review/F27-connector.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Publish one StateFlow describing Connecting, Connected(session, connectionEpoch), Retrying, Failed, and Closed. Derive compatibility properties from it. Transition in connection-level try/finally and make await APIs complete with a typed terminal outcome. Use its connection epoch for registration/subscription reconciliation.",
+    "status": "complete",
+    "commits": [
+      "0750a2961893538593474d9aadad4d992cb7bc68",
+      "7f7bfff6cd99840f842aefc12648f1219a9d3acd",
+      "845fbfd7264f80eaf7d4d7316aae5df8ca3ae9e9",
+      "82a262a4844bacbe7ff9e1a33c29725c45c23f19"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F27-connector.md",
+    "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F28",
+    "priority": "P2",
+    "title": "The session ping branch never emits its pong and there is no heartbeat deadline",
+    "locations": [
+      "[SessionServiceImpl.kt:219](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:219)",
+      "[Stream.kt:513](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:513)"
+    ],
+    "problem": "The server constructs StreamControlEvent.Message(Pong) in the ping branch but never emits it. The client ignores pong responses and has no matching receive deadline. Sending periodic pings alone therefore cannot detect an unresponsive application session or provide a working ping/pong contract.",
+    "evidence": [
+      "Reproduced by sessionPingDoesNotEmitPong: open a valid test stream, send ping, and receive no response. The stream remains otherwise active. This probe also showed that an empty session public key is accepted, covered in F38.",
+      "docs/review/F28-connector.md",
+      "docs/review/F28-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Emit the pong, track heartbeat identity or a monotonic deadline, and reconnect when the expected response does not arrive. Distinguish transport liveness from slow application processing so an observer cannot monopolize the heartbeat path. Test half-open connections, clean closes, and cancellation of heartbeat jobs.",
+    "status": "complete",
+    "commits": [
+      "d2eea55ee789baa6792e3110aa7da54e116e47b4",
+      "b11e9f2cc589955251f52e22c5452823a5bf384e",
+      "811d2cf43dbfffd7293ca799cb5f695b486d6415"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F28-connector.md, docs/review/F28-runtime.md",
+    "regression": "ReviewConnectorTests; SessionAtomicityTest; SessionHeartbeatTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F29",
+    "priority": "P2",
+    "title": "Failure during session publication leaks local state and can block the next open",
+    "locations": [
+      "[SessionServiceImpl.kt:204](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:204)",
+      "[SessionServiceImpl.kt:212](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:212)",
+      "[SessionServiceImpl.kt:356](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:356)",
+      "[ClaimSessionRegistry.kt:48](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimSessionRegistry.kt:48)"
+    ],
+    "problem": "A new socket is placed in openStreamCancellationChannels and activeStreamsCount is incremented before attachBeforeSnapshot completes. If that database operation fails, openState is never completed, so onCompletion skips cleanup. The next open can replace the stale channel and then suspend forever sending cancellation to a channel whose collector has already disappeared. Separately, ClaimSessionRegistry's asynchronous node-only delete can remove a newer attachment on the same node if it runs after reattach.",
+    "evidence": [
+      "Confirmed by publication and cleanup ordering. The registration failure case needs a deterministic fault-injection regression test; the resulting map/count leak and unmatched channel send follow directly from the current branches.",
+      "docs/review/F29-runtime.md",
+      "docs/review/F29-terminal-watch-close.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Use explicit registration ownership and try/finally from the first local mutation. Cancel the prior socket by job or a nonblocking close signal. Attach and detach registry rows using a socket/attachment incarnation so cleanup cannot erase a successor; monitor and await required publication before announcing connection success.",
+    "status": "complete",
+    "commits": [
+      "8865d82d8a5c1ca25a9297130dbc08ed7eb08720",
+      "4c85efc8b54b2cb677540f42f20ae57f51af46a1"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F29-runtime.md",
+    "regression": "InMemorySessionGatewayStoreTest; RegistryIncarnationTest; RegistrySessionGatewayDiscoveryTest; SessionAtomicityTest; SessionAttachFailureTest; SessionHeartbeatTest; SessionOwnershipTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F30",
+    "priority": "P2",
+    "title": "A denied ring lease is never retried while the shard map stays unchanged",
+    "locations": [
+      "[OwnerLifecycle.kt:71](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/OwnerLifecycle.kt:71)",
+      "[OwnerLifecycle.kt:83](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/OwnerLifecycle.kt:83)",
+      "[OwnerLifecycle.kt:108](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/OwnerLifecycle.kt:108)",
+      "[AdvisoryLockCoordinator.kt:28](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/AdvisoryLockCoordinator.kt:28)"
+    ],
+    "problem": "OwnerLifecycle acquires only initially or for shards whose map owner changed, then records the map even when acquire returned null. Reconciliation of the same map cannot acquire a missing lease, and a failed/expired lease is not restored independently. PostgreSQL advisory locks cannot preempt a live old holder merely because the desired epoch is higher, so a normal handoff race can leave the new owner unavailable indefinitely.",
+    "evidence": [
+      "Reproduced by deniedLeaseIsNeverRetriedAtTheSameMap: deny the first acquire, later allow it, reconcile the same map, and observe one attempt and zero held leases.",
+      "docs/review/F30-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Continuously reconcile desired shards against actual valid leases, with bounded retry and cancellation on topology change. Make ownership state and retry failures observable. Test the real advisory-lock handoff protocol rather than relying only on the in-memory coordinator's stronger preemption behavior.",
+    "status": "complete",
+    "commits": [
+      "2e3a03dbc4a9ca35f3f42f6ceafae9c56b29671b"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F30-runtime.md",
+    "regression": "OwnerLifecycleTest; OwnerRecoveryTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F31",
+    "priority": "P2",
+    "title": "Ring mode does not maintain authority for nonzero keyspaces",
+    "locations": [
+      "[ClusterContext.kt:28](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/ClusterContext.kt:28)",
+      "[BlueprintV.kt:88](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/BlueprintV.kt:88)",
+      "[RoomServiceImpl.kt:779](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:779)"
+    ],
+    "problem": "ClusterContext defaults roomKeyspaces to only zero, and BlueprintV does not override that list. With a real ownership coordinator, writes to nonzero keyspaces have no maintained lease and can be redirected back toward the same node indefinitely. Even if more leases are configured, room-wide locks and agents span keyspaces while ring ownership splits them; room-wide authority changes and atomic batches can require coordination across different owners.",
+    "evidence": [
+      "Confirmed by production wiring and RingRoomOwnership's leaseFor(keyspace, shard) gate. This applies to the retained ring mode; claim mode intentionally owns an entire room and avoids the keyspace split.",
+      "docs/review/F31-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Make the supported ownership unit match the authority unit. Prefer whole-room claim ownership for room locks, batches, and agents. If ring mode remains supported, wire its actual keyspace set and define how room-wide operations are serialized across those shards, or reject unsupported combinations explicitly.",
+    "status": "complete",
+    "commits": [
+      "bb99a0c3428b028c5c0ac1aa14772d321d6ef819"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F31-runtime.md",
+    "regression": "OwnerLifecycleTest; RoomOwnershipTest; ShardCountReshardTest; WholeRoomOwnershipTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F32",
+    "priority": "P2",
+    "title": "Shutdown releases authority before requests and workers have drained",
+    "locations": [
+      "[Main.kt:256](/Users/mikeroberts/workspace/latenighthack/kitkit/server/run/src/main/kotlin/com/latenighthack/lockers/server/Main.kt:256)",
+      "[MonolithComponent.kt:189](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/MonolithComponent.kt:189)",
+      "[ClaimRenewalService.kt:98](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimRenewalService.kt:98)",
+      "[DeliveryWorker.kt:102](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/DeliveryWorker.kt:102)",
+      "[ClaimJdbcPool.kt:57](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:57)"
+    ],
+    "problem": "The shutdown hook closes coordination and calls component.stop before stopping the public listener. component.stop releases shard leases or claim rows first, then cancels workers and closes dispatchers without awaiting all work. A successor can acquire authority while an existing handler continues on this node; the listener can still admit requests during part of that interval. This amplifies the missing commit fence in F08. ClaimJdbcPool.close also treats a successfully received null slot as an empty channel and stops draining: a normal partially initialized queue such as [null, openConnection] leaves the connection unclosed.",
+    "evidence": [
+      "Confirmed by the shutdown order. stopAndRelease also cancels its renewal job without joining before deleting rows, permitting an in-flight renewal or publication to overlap release.",
+      "docs/review/F32-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "First reject new traffic and mark the component draining; then stop claiming work, cancel or finish handlers and join worker/renewal jobs. Release ownership only after authoritative work has stopped, then close providers, dispatchers, stores, and transports. Use one suspending shutdown path with bounded grace and preserve commit fencing as the final defense. Drain nullable pool slots by checking ChannelResult success separately from its nullable value, and await or close borrowed connections under a defined policy.",
+    "status": "complete",
+    "commits": [
+      "5c2755b153db42588524e4f2e3a4bd59cd315d42"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F32-runtime.md",
+    "regression": "ClaimRenewalServiceTest; ClaimResourceDrainTest; InMemorySessionGatewayStoreTest; RegistryIncarnationTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F33",
+    "priority": "P2",
+    "title": "Retention and queue discovery grow without a bound",
+    "locations": [
+      "[Stream.kt:60](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:60)",
+      "[Stream.kt:69](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:69)",
+      "[LockerSyncCoordinator.kt:11](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerSyncCoordinator.kt:11)",
+      "[LockerClient.kt:286](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:286)",
+      "[DeliveryOutboxStore.kt:45](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/DeliveryOutboxStore.kt:45)",
+      "[DeliveryOutboxStore.kt:90](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/DeliveryOutboxStore.kt:90)"
+    ],
+    "problem": "Confirmed ACK rows are retained forever, while getPendingAcks scans all rows before filtering. Write receipts, locker tombstones, and sessions have no defined reclamation policy. Watcher and mutation-lock maps retain every key encountered. SubscriptionController's command channel is unlimited. DeliveryOutbox.claim reads and groups the entire backlog inside one database lock shared with all room commits; four lanes repeat that scan, so independent room lanes still contend at storage.",
+    "evidence": [
+      "Confirmed by storage queries, map insertion without removal, and the single outbox transaction key. This is a workload-dependent scaling risk rather than a measured performance claim.",
+      "docs/review/F33-connector.md",
+      "docs/review/F33-runtime.md",
+      "docs/review/F33-inbox-receipts.md",
+      "docs/review/F33-pending-stream-deliveries.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Define deduplication and idempotency horizons before pruning ACKs, receipts, or tombstones. Add indexed due-work/head-of-room queries with bounded results and safe row claims instead of full scans under a global lock. Use observer reference counts and lock entry lifetimes, bound or coalesce persisted-intent wakeups, and measure backlog age, query size, lock wait, active jobs, and storage growth.",
+    "status": "complete",
+    "commits": [
+      "0457e0d8179884b696e435af1cedac5871303ced",
+      "abc27633d1e135088ebbb731ad39a41485b3f46d",
+      "1ea959e8698b2fc0621e3c7a20faf798e06c9d90",
+      "d0b6412511cf64b5efc6b72ef8a8a7f82ea0b886",
+      "8b895ba05109fe394cbce62d88a449f8358f4f3f",
+      "26434f439e6aea269827e6078c57ca34dd929548"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F33-connector.md, docs/review/F33-runtime.md",
+    "regression": "DeliveryFrameBoundsTest; GatewayAdmissionTest; InboxDeliveryReceiptTest; InboxReceiptPersistenceTest; PushQuotaPgTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F34",
+    "priority": "P2",
+    "title": "Notification codec context does not survive delivery",
+    "locations": [
+      "[NotificationCodec.kt:11](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/NotificationCodec.kt:11)",
+      "[SessionServiceImpl.kt:453](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:453)",
+      "[SessionServiceImpl.kt:340](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:340)",
+      "[LockerClient.kt:523](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:523)"
+    ],
+    "problem": "Encoding supplies notification title/body to NotificationContext, but the session inbox serializes only notification.payload and the locker. Both live responses and replay reconstruct the notification without push title/body, so decoding sees null values. A consumer codec that binds its payload to those context fields cannot reliably round-trip.",
+    "evidence": [
+      "Confirmed by the inbox event shape and reconstruction. Existing simple codec tests do not exercise a context-dependent codec through persistence and session replay.",
+      "docs/review/F34-notification-metadata.md",
+      "docs/review/F34-inbox-in-memory-isolation.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Persist and replay the metadata that is part of the codec contract, or explicitly narrow encode/decode context to values guaranteed on both sides. Version storage/wire changes as needed. Test context-dependent authentication and transformation through both live and offline delivery.",
+    "status": "complete",
+    "commits": [
+      "85533853052cd3b8af29b88780bb315afcbca52d",
+      "4b36827678e3ef542f3c9d824b6305fb074d4068"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F34-notification-metadata.md",
+    "regression": "BroadcastServiceTest; SessionAtomicityTest; SessionInboxMetadataPersistenceTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes; InboxByteAdmissionTest mutable result/lookup isolation",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F35",
+    "priority": "P2",
+    "title": "The high-level client ACKs broadcasts without surfacing their payload",
+    "locations": [
+      "[SessionServiceImpl.kt:428](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:428)",
+      "[LockerClient.kt:518](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:518)",
+      "[LockersClient.kt:58](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockersClient.kt:58)"
+    ],
+    "problem": "Broadcast creates an event with an empty room ID and no locker ID. LockerClient emits notifications only when lockerId is non-null, so broadcast payloads never reach its notification Flow. Stream still accepts and ACKs the event. The facade does not expose raw Stream.events as an alternative broadcast channel.",
+    "evidence": [
+      "Confirmed by the broadcast event shape and the notification branch. A caller using Stream directly can observe raw events; the standard LockersClient API cannot consume these broadcast notifications.",
+      "docs/review/F35-connector.md",
+      "docs/review/F35-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Expose a session-level event/notification Flow with explicit room notification and broadcast variants. Decode and acknowledge each variant under a documented delivery policy. Keep locker-scoped codecs scoped, and provide a separate broadcast codec context rather than inventing a locker identity.",
+    "status": "complete",
+    "commits": [
+      "60533196ea820486f02ce0d8f70ad5bea89943c4",
+      "a5131b73f45951adf448b93ff054581bce01f95f"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F35-connector.md",
+    "regression": "BroadcastShapeTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F36",
+    "priority": "P2",
+    "title": "The documented JVM routing factory receives incompatible addresses",
+    "locations": [
+      "[RoutingRpcClient.kt:28](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/RoutingRpcClient.kt:28)",
+      "[RoutingRpcClient.kt:115](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/RoutingRpcClient.kt:115)",
+      "[RoutingRpcClient.kt:82](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/RoutingRpcClient.kt:82)",
+      "[RoutingRpcClient.kt:109](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/RoutingRpcClient.kt:109)"
+    ],
+    "problem": "RoutingRpcClient's default normalizer prefixes bare owners with http://, while the pinned ktbuf JVM HttpRpcClient prepends http:// itself for non-HTTPS input. The documented factory therefore builds a double-scheme HTTP URL after a normal redirect. The server peer pool explicitly works around this same transport requirement. The owner cache also conflates room and session key namespaces, and concurrent client creation can allocate a losing transport that is never closed.",
+    "evidence": [
+      "Confirmed by routing code and inspection of the pinned JVM transport; server RemoteGateway.kt documents and avoids the double-prefix issue. Fake routing tests do not exercise a real HttpRpcClient destination.",
+      "docs/review/F36-connector.md",
+      "docs/review/F36-server-peer-ownership.md",
+      "docs/review/F36-forwarding-runtime.md",
+      "docs/review/F36-ring-public-session.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Make address adaptation an explicit platform transport contract and add real transport tests for bare, HTTP, HTTPS, and redirected endpoints. Namespace room/session routing keys, including keyspace if ring mode requires it. Serialize client creation or close losing instances, and provide bounded cache/resource disposal.",
+    "status": "complete",
+    "commits": [
+      "d771d62f3dabfc1785604651d63a8d1b74956b74",
+      "8c4b7c52feedde67150f48a50698098486641b74",
+      "93804aba126762de22bdf6255c3ea5ce4c189b35",
+      "21ce1b8e1291e258c8279f3bc3e74c958a78b838",
+      "bcde47b36c76b4456596fce6f247c3f9ede42f0c",
+      "dab26ea7686d80cf93134facd7ce4bf3282c71f3"
+    ],
+    "reproduction": "ReviewRoutingOwnershipTests: real bare/full HTTP destination failed before address normalization; PublicForwardingRecoveryTest: private forward failure/NOT_OWNER poisoned public route before fix. Red/green linked in issue notes.",
+    "regression": "ReviewRoutingOwnershipTests; PeerConnectionOwnershipTest; PublicForwardingRecoveryTest (six actual HTTP tests); ReviewTerminalProtocolTests; RingPublicSessionRecoveryTest; PublicSessionAddressContractTest",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F37",
+    "priority": "P2",
+    "title": "An agentPending receipt can remain pending permanently",
+    "locations": [
+      "[RoomServiceImpl.kt:310](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:310)",
+      "[RoomServiceImpl.kt:321](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:321)",
+      "[RoomServiceImpl.kt:348](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:348)",
+      "[LockerClient.kt:436](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:436)"
+    ],
+    "problem": "The batch source transaction saves an agentPending receipt, then runs the agent outside that transaction. A crash or cancellation in between leaves that receipt pending. Retries correctly avoid executing the agent again, but there is no recovery worker or completion protocol to resume or resolve the pending task. Applications receive a committed source with indefinitely missing derived state.",
+    "evidence": [
+      "Confirmed by the source receipt, replay branch, and synchronous post-commit hook. Avoiding blind replay is intentional and protects an at-most-once extension; the unresolved gap is how pending work reaches a final state.",
+      "docs/review/F37-connector.md",
+      "docs/review/F37-integration-fixtures.md",
+      "docs/review/F37-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Define agent completion as a first-class durable workflow with a completion/status Flow. Give recoverable agents immutable request identity and an idempotent effect/derived-write contract before permitting replay. For arbitrary non-idempotent extensions, expose an explicit indeterminate outcome and reconciliation hook. Always preserve the committed source result, as required by F11.",
+    "status": "complete",
+    "commits": [
+      "4f437d68e0f515574b0b50f99c72c03ec3e04131",
+      "45a96a6d4cf35b968658cf3d9918bd715b2db1b0",
+      "9f854ad6e137ae1676deb5d963d11aa70f85c913"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F37-connector.md",
+    "regression": "AgentRecoveryTest; DeliveryLatencyTest; PersistedEnvelopeValidationTest; RequestPreflightTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F38",
+    "priority": "P2",
+    "title": "Malformed identity and authority data are persisted and resource limits are incomplete",
+    "locations": [
+      "[SessionServiceImpl.kt:581](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:581)",
+      "[SessionServiceImpl.kt:546](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:546)",
+      "[LockVerifier.kt:76](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:76)",
+      "[LockVerifier.kt:196](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/LockVerifier.kt:196)",
+      "[RoomServiceImpl.kt:501](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:501)",
+      "[SessionServiceImpl.kt:401](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionServiceImpl.kt:401)"
+    ],
+    "problem": "Session create checks only null key/ID values and accepts empty or undecodable public keys; open decodes the stored key outside its verification try block. Lock establishment does not validate the new key or scope enum. A structurally public-keyed room with invalid key bytes falls back to TOFU rather than rejection. Initial versions accept arbitrary signed values and later increments can overflow. Legacy writes cap the locker body but not the complete request/notification; single gateway posts, aggregate room snapshots, and inbox-open responses lack a consistently bounded or paged envelope.",
+    "evidence": [
+      "The ping diagnostic created a session with an empty public key and received OK. The other malformed-input and unbounded aggregate paths were established by inspection. No particular transport frame ceiling or dependency CVE is assumed here.",
+      "docs/review/F38-boundaries.md",
+      "docs/review/F38-claim-capacity.md",
+      "docs/review/F38-cpu-admission.md",
+      "docs/review/F38-failure-contract.md",
+      "docs/review/F38-generated-decode-allocation.md",
+      "docs/review/F38-inbox-byte-admission.md",
+      "docs/review/F38-inbox-paging.md",
+      "docs/review/F38-namespace-admission.md",
+      "docs/review/F38-response-boundaries.md",
+      "docs/review/F38-session-frame-boundaries.md",
+      "docs/review/F38-snapshot-paging.md",
+      "docs/review/F38-write-preflight.md",
+      "docs/review/F38-bulk-read-memory.md",
+      "docs/review/F38-storage-fetch-budget.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Validate canonical IDs, key encodings, known scopes, supported envelopes, versions, and complete encoded sizes at the trust boundary. Reject invalid public-keyed room encodings explicitly. Bound recipients, sessions, notification bytes, and global admission/storage consumption, and paginate snapshots/inbox replay with stable cursor semantics. Return precise protocol errors rather than poisoning persisted state or throwing decoder exceptions.",
+    "status": "complete",
+    "commits": [
+      "4cc7cea70ee450959500c181363baf79e500d3cf",
+      "c8e89e10346b773481efd8c43b1b14f569cd8d1c",
+      "cf64d9323546fd5cf68ea79bee3bac3bc8503009",
+      "1510d954b75e6dc0ec80c987aee404da781dd4e4",
+      "43a239b69b2366e33274a3619ffc7d6b20e9dba6",
+      "2ef40806b9bbcd2b86ea334889b3fed189a09cd6",
+      "3b6e8db2e9c9cb543e6bfcbec2654e105141322d",
+      "6fd246a7fdd51afde7450153842ff98893e2f058",
+      "1c3efeb67a75489251b9a9e26e438b5a5ffbc588",
+      "f70aa723a663b54b5661ca50750fdb42d0fd4cf8",
+      "c1bf97a45afcd23dc1bed8c8a6c1c1674691bc57",
+      "93acbe6e92bd6c1d6c7f249fc285779f638c74cc",
+      "1fc5e4a9e98bb5da7728857e59bf6d209cd23f11",
+      "08c2d66579eed631f4776df5dd4a9c7129568879",
+      "eb5f1c4432a1bba947b5f2c37409a01b4f70419c",
+      "5fa731a291281382c931a763c24893be3e7a1552",
+      "03b11b55c48e8d97e4740665a1318351a2297793",
+      "6628762c36bcaec95e56dba84ba0cc02b7e137d9",
+      "b37de9364fe59edd64f31e5d11246c6c50e8bb1b",
+      "7f7bfff6cd99840f842aefc12648f1219a9d3acd",
+      "82a262a4844bacbe7ff9e1a33c29725c45c23f19",
+      "119cfb316377cb867d68d395dfb33bd966cc51d6",
+      "079a32be55623069b316ae30ae5e87a2d1bb0b8f"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F38-boundaries.md, docs/review/F38-claim-capacity.md",
+    "regression": "BoundaryAuthorityTest; CpuAdmissionBoundaryTest; GatewayAdmissionTest; GeneratedDecodeAllocationTest; InboxReplayPagingTest; LockVerifierTest; NamespaceAdmissionPgTest; NamespaceAdmissionTest; ResourceAdmissionTest; ResponseBoundaryTest; RoomIdentityAdmissionTest; SessionAdmissionFailureContractTest; SessionFrameBoundaryTest; SnapshotPagingTest; StorageAdoptionTest; actual red/green evidence in linked issue notes; StorageFetchBudgetTest",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F39",
+    "priority": "P2",
+    "title": "Build reproducibility and target tests do not cover the published contract",
+    "locations": [
+      "[libs.versions.toml:1](/Users/mikeroberts/workspace/latenighthack/kitkit/gradle/libs.versions.toml:1)",
+      "[build.gradle.kts:30](/Users/mikeroberts/workspace/latenighthack/kitkit/api/build.gradle.kts:30)",
+      "[fh-workspace.settings.gradle:17](/Users/mikeroberts/workspace/latenighthack/kitkit/gradle/fh-workspace.settings.gradle:17)",
+      "[Dockerfile:6](/Users/mikeroberts/workspace/latenighthack/kitkit/Dockerfile:6)",
+      "[build.gradle.kts:55](/Users/mikeroberts/workspace/latenighthack/kitkit/connector/build.gradle.kts:55)",
+      "[ci.yml:50](/Users/mikeroberts/workspace/latenighthack/kitkit/.github/workflows/ci.yml:50)"
+    ],
+    "problem": "The reviewed working tree cannot resolve ktstore-library:0.2.0 from its configured released repositories. Explicit Fullhouse workspace substitution made validation possible, but is a different dependency coordinate. In workspace mode, PREFER_SETTINGS suppresses Kotlin's Node distribution Ivy repository and jsNodeTest cannot resolve org.nodejs:node:24.9.0. The Docker build installs neither Go nor protoc-gen-kt even though a clean build needs that generator. Local generation uses whichever executable is on PATH, whereas CI pins a version. Connector test dependencies and cases live only in jvmTest; the Apple test task has no sources, and fake transport/storage tests do not validate every published platform.",
+    "evidence": [
+      "Recorded dependency and Node resolution failures, followed by successful JVM/PostgreSQL tests and JS/Android/Apple compilation using the explicit pinned ktstore workspace dependency. Docker generator absence and platform test coverage were established by inspection.",
+      "docs/review/F39-build.md",
+      "docs/review/F39-historical-schema.md",
+      "docs/review/F39-source-project-pins.md",
+      "docs/review/F39-integration-fixtures.md",
+      "docs/review/F39-load-validation.md",
+      "docs/review/F39-required-postgres-gate.md",
+      "docs/review/F39-release-transition.md",
+      "docs/review/integration-checkpoint.md",
+      "docs/review/F39-released-mode-gate.md",
+      "docs/review/F26-archive-migration.md",
+      "docs/review/F43-storage-platforms.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Complete the dependency publication/version transition and verify released-mode resolution before release. Preserve isolated workspace repositories while allowing toolchain distribution resolution. Pin and provision the same generator in local, CI, and container builds; include all generator/compiler inputs in caching. Move portable protocol/reducer tests to commonTest and add real platform storage/transport tests plus Fullhouse consumer checks for affected variants.",
+    "status": "partial",
+    "commits": [
+      "608fb37718867f15d428428be1cef8ba21b17a28",
+      "69941b4e2a8b0fdc6b8f77144f10907a112123f4",
+      "d6ef56d182113752b34ed144e9c4f9aab094f4ea",
+      "e5664adb60dfc2d696bf6f4afb2e191ab01cba7c",
+      "3b5f8cb1e417ea124590ebfa135f74e7b24a9ade",
+      "f6a533ee8261f945a3efbfacabb84209d09e9f05",
+      "58d72268da3ed3d4bff7c3a472b1e04a6902a6e0",
+      "95c839d1bdb43f39de1ee7465eeff910aa3cdbda",
+      "9a82beea4582f1b96e41f7212a96aaa9f580d1b1",
+      "0dd7a49efbcdb68f8b71c0090a98c452f1145001",
+      "119cfb316377cb867d68d395dfb33bd966cc51d6",
+      "e3f5be9f07bf911eaeabc4f5d9d0f1ecbb9e9789",
+      "83aa6370f3d98095dd3f5d377a47df2658b136fe",
+      "7f32cb74048ecaa96cda7738f59e1ec15e1603bf",
+      "ef528af5a67e12144ab61ef850566d0b1cecc72d",
+      "4bb5ea4ad2bca00fc67078aef9cceeeffb7e7db2",
+      "fe7ec2425b806efb3331453ea9ccc0e9fd73dfcf",
+      "4441ef9dc05b2afc023caedc45759b0182125353",
+      "93fde6d80ba6dac1d162cfd61efa059e848656a0",
+      "4bec125d70d2b7b4e78b23bf4afac71cfe4bef60"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F39-build.md, docs/review/F39-historical-schema.md, docs/review/F39-source-project-pins.md",
+    "regression": "NamespaceAdmissionPgTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit. Released-mode connector/server was rechecked atfe7ec24 and still cannot resolve public ktstore-library0.2.0. Complete the separate coordinated public release/generator transition and rerun without workspace pins before closing F39."
+  },
+  {
+    "id": "F40",
+    "priority": "P2",
+    "title": "A topology priming error terminates polling while readiness can later report success",
+    "locations": [
+      "[PostgresShardMapSource.kt:120](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/PostgresShardMapSource.kt:120)",
+      "[BlueprintV.kt:57](/Users/mikeroberts/workspace/latenighthack/kitkit/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/BlueprintV.kt:57)"
+    ],
+    "problem": "PostgresShardMapSource.bind calls its first refresh outside the retrying loop. A transient database or table-read failure on that call ends the job permanently. Later database recovery cannot restart polling. BlueprintV readiness checks only database connectivity, so it can return ready while the router stays on its synthetic bootstrap map and never adopts control-plane updates.",
+    "evidence": [
+      "Confirmed by the unguarded first refresh, subsequent loop, and database-only readiness predicate. This concerns ring mode; claim ownership has a different coordination source.",
+      "docs/review/F40-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Put initial loading and later refreshes in the same cancellation-aware recovery pipeline. Publish Loaded, Retrying, and Failed/stale source state alongside the map, and derive readiness from the required initial load and its freshness policy. Test an initial read failure followed by recovery without a membership change.",
+    "status": "complete",
+    "commits": [
+      "1ff4c46b94993d7c438e5ea55a16184dd987fc54"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F40-runtime.md",
+    "regression": "PostgresShardMapSourceTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F41",
+    "priority": "P2",
+    "title": "Resolved JDBC and network dependencies need security patching and version alignment",
+    "locations": [
+      "[libs.versions.toml:19](/Users/mikeroberts/workspace/latenighthack/kitkit/gradle/libs.versions.toml:19)",
+      "[Library runtime dependencies](/Users/mikeroberts/workspace/latenighthack/kitkit-review-2026-10-08/evidence/server-runtime-dependencies.log)",
+      "[Application runtime dependencies](/Users/mikeroberts/workspace/latenighthack/kitkit-review-2026-10-08/evidence/server-app-runtime-dependencies.log)"
+    ],
+    "problem": "The server application resolves PostgreSQL JDBC 42.7.3, while the library graph alone resolves 42.3.1 through the workspace ktstore dependency. Both are in the affected range for the SCRAM authentication CPU-exhaustion advisory fixed in 42.7.11. Exploitation requires SCRAM and a malicious or impersonated database endpoint; loginTimeout does not necessarily stop the worker's CPU work. [Maintainer SCRAM advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-98qh-xjc8-98pq)\n\nThe library's 42.3.1 also predates the fix for CVE-2024-1597. That SQL injection requires non-default simple query mode and a specific user-controlled negated numeric/string query pattern. The application override to 42.7.3 contains that fix, and this review does not establish an exploitable default SQL path. [Maintainer SQL injection advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-24rp-q3w6-vc56)\n\nNetty resolves a mix of 4.1.104.Final modules, including HTTP/2, and 4.1.116.Final core/handler modules. The HTTP/2 version falls in the range for a maintained server frame-flood advisory; this service uses CIO for its public listener and Netty for outgoing dependencies, so the server-side advisory is not evidence of an exposed Netty HTTP/2 listener here. [Maintainer HTTP/2 advisory](https://github.com/netty/netty/security/advisories/GHSA-w9fj-cfpg-grvv)",
+    "evidence": [
+      "Established from both resolved Gradle runtime graphs and the maintainers' affected-version/condition statements. The graph also resolves coroutines core 1.10.1 despite the catalog's 1.9.0 request; review and test the resolved versions rather than assuming catalog pins win.",
+      "docs/review/F41-build.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Update the JDBC dependency at its owning library boundary and retain an appropriate application constraint, using a currently patched supported release that covers applicable advisories. Align related Netty modules and update their parent dependencies with protocol tests. Add resolved-artifact advisory checks with documented reachability conditions; do not treat every transitive advisory as an exploitable application defect.",
+    "status": "complete",
+    "commits": [
+      "c22369681e1a64b90823b216710676379b8c52b0",
+      "a9d78e30cbf9bfa7c2a61a6028ead02812543d9d"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F41-build.md",
+    "regression": "NetworkDependencyContractTest; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F42",
+    "priority": "P3",
+    "title": "Documentation and quality gates disagree with the implementation",
+    "locations": [
+      "[README.md:137](/Users/mikeroberts/workspace/latenighthack/kitkit/README.md:137)",
+      "[README.md:148](/Users/mikeroberts/workspace/latenighthack/kitkit/README.md:148)",
+      "[gradle.properties:15](/Users/mikeroberts/workspace/latenighthack/kitkit/gradle.properties:15)",
+      "[build.gradle.kts:26](/Users/mikeroberts/workspace/latenighthack/kitkit/build.gradle.kts:26)",
+      "[LockerSigning.kt:10](/Users/mikeroberts/workspace/latenighthack/kitkit/api/src/commonMain/kotlin/com/latenighthack/lockers/common/LockerSigning.kt:10)"
+    ],
+    "problem": "README describes room/locker authorization as entirely pending and the connector/API as currently JVM-only, despite lock authority and additional targets being implemented. The repository license is MIT, while publication metadata says Apache 2.0 and retains a comment claiming no LICENSE file exists. Detekt is explicitly advisory and can never fail the build. These inconsistencies make the real supported/security contract difficult for consumers to determine. LockerSigning's documentation specifies four-byte length prefixes, while Writer.bytes actually uses an eight-byte long, which can mislead external protocol implementations.",
+    "evidence": [
+      "Confirmed against current build configuration, LICENSE, README, and POM properties. The licensing discrepancy is a factual metadata inconsistency; this review does not choose a license on the owner's behalf.",
+      "docs/review/F42-build.md",
+      "docs/review/F42-connector.md",
+      "docs/review/F42-generated-model-contracts.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Align README and publication metadata with the intended current contract, including lock semantics, read access, delivery modes, supported targets, and extension trust. Adopt a reviewed static-analysis baseline and enforce important checks over actual KMP source sets. Document transform purity/retry behavior; the single-write retry path currently reevaluates transform and codecs even when reusing a frozen submitted request. Publish exact canonical signing vectors and correct the length-prefix specification.",
+    "status": "complete",
+    "commits": [
+      "008d5d309ff2b151e87edd1ac8095b6669985800",
+      "91e672c27fca3b01c63fc34e9a834472d8990a80",
+      "fce2801154ede39a28feff9973f3f2e406947898",
+      "7a370dd18415cd14abdf17d89e36f416ff78ccdf",
+      "467755990837fecdfeb79e49219ac5b5286881d4",
+      "2765fbded599cd8f0f2fe9d788dc8d6f7daf39c4",
+      "3c7de14940fc36ae33e7dda98d408a7d294df1c5",
+      "701290492c41ce9a16d29c5650394d188e793dcb",
+      "91376a7d6cc9ed669ada482f829dca77eab0dd46",
+      "90614744e8fd6a787216b5b5c2d73490c246c813",
+      "5ffd86e0a50a4fe3ce90601747cb89fb67c26a74",
+      "31aba202a57cb00f3c0237c0730e870e04560a69",
+      "5c3e9012c2b20dcca1807e5c7da82c6020b0ea41",
+      "22266765b6de13fe742347ca6675a2a43d66e708",
+      "6c41d579897ed73f324fbf9df200c38e0d7c727e",
+      "00a0990f61a6f655b26cc02913bed90a04dc789b",
+      "0cf5393376b9cf5e2fc96141cf44ff5b409a07dd",
+      "3db7fefd45686d80607ecd689e1545d21cfb283f"
+    ],
+    "reproduction": "Issue-specific failing reproduction recorded in docs/review/F42-build.md, docs/review/F42-connector.md",
+    "regression": "GeneratedEqualityContractTest; PackedEnumGeneratorContractTest; ReviewAuthorityV2Tests; actual red/green evidence in linked issue notes",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F43",
+    "priority": "P2",
+    "title": "An older signed subscription can commit after a newer unsubscribe",
+    "locations": [
+      "server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:669",
+      "connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt"
+    ],
+    "problem": "Canceled RPC completion and local generation checks do not order remote commits. A held old authenticated subscribe can restore a durable subscription after a newer unsubscribe succeeds.",
+    "evidence": [
+      "docs/review/F43-subscription-order.md",
+      "docs/review/evidence/runtime-subscription-http-order.log",
+      "docs/review/evidence/F43-subscription-order-red.xml",
+      "docs/review/F43-runtime.md",
+      "docs/review/F43-connector.md",
+      "docs/review/F43-storage-platforms.md",
+      "docs/review/evidence/F43-lock-order/test-counts.json",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Add signed durable intent revisions, atomic server monotonic comparison and retained unsubscribe tombstones, binding ordinary and snapshot paths. Preserve legacy wire and frozen schemas through additive negotiated support.",
+    "status": "complete",
+    "commits": [
+      "4da978d549d5637ac24e72982a0f070c8296234f",
+      "e202cc91ef5d1e3b161a7ee547365331ecd250a7",
+      "f4fc55c0762a40867c3716abfe7985876247cf5d",
+      "8e86d3ed61c0069c12ce616d57371913f632825d",
+      "d770eb3dbe25881ecd7bfcc00ad6541165d98b6d",
+      "079a32be55623069b316ae30ae5e87a2d1bb0b8f",
+      "4bb5ea4ad2bca00fc67078aef9cceeeffb7e7db2",
+      "701290492c41ce9a16d29c5650394d188e793dcb",
+      "4e91ca4f06b11d419d2e704232cd7ed0b9c665d1",
+      "4a93a9e2fb4ed0daaef853b690a44a3bf72a823b"
+    ],
+    "reproduction": "SubscriptionHttpOrderingTest: actual HTTP late old subscribe restored the revoked subscription, baseline assertion failure",
+    "regression": "SubscriptionHttpOrderingTest; SubscriptionIntentBoundaryTest; SubscriptionIntentStoreTest; SubscriptionIntentPgTest; ReviewSubscriptionRevisionTests; ReviewSubscriptionRevisionPersistenceTests; shared persistent V7 contracts",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  },
+  {
+    "id": "F44",
+    "priority": "P2",
+    "title": "A concurrent authority establishment permanently rejects an otherwise valid SDK write",
+    "locations": [
+      "connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1111",
+      "connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1172"
+    ],
+    "problem": "Actual Fullhouse onboarding observes no effective authority for a new account profile-source locker, signs at epoch0, then account setup establishes ROOM epoch1 before its write arrives. The same owned key remains authorized. Server rejection is correct, but the SDK treats SIGNATURE_INVALID as permanent rather than resolving this authority-only conflict safely. Offline-first account readiness makes this a real Flow/coroutine startup interleaving.",
+    "evidence": [
+      "docs/review/F44-authority-establishment.md",
+      "docs/review/evidence/F44-consumer-red/TEST-gg.roll.viewmodel.core.OnboardingViewModelTests.xml",
+      "docs/review/evidence/F44-consumer-red/gradle.log",
+      "docs/review/F44-sdk-authority-repair.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
+    ],
+    "fix": "Bound authority-only reconciliation for a definitive first rejection when current authority still uses the original owned key. Preserve encoded payload/notification and transform purity; use a fresh write identity for changed signed bytes. Never re-sign or rebase an outcome-uncertain request, weaken epoch checks, silently adopt another key, or discard a pending ratchet key. Retain finite retry budgets.",
+    "status": "complete",
+    "commits": [
+      "0ec6f150a87f554e37d7ef89a3dc3bc6d22798a3",
+      "95ede873e41e699de57a92e51bb34c248b49f7a3",
+      "4441ef9dc05b2afc023caedc45759b0182125353",
+      "4bec125d70d2b7b4e78b23bf4afac71cfe4bef60"
+    ],
+    "reproduction": "Actual Fullhouse onboarding epoch-zero discovery races same-key ROOM establishment; minimal consumer1/1 fails. Valid SDK baseline8 executions/3 failures: ROOM and KEYSPACE races plus missing repair budget.",
+    "regression": "ReviewAuthorityDriftTests8; ReviewConsumerSignedWritesTests2; AuthorityRepairPortabilityTest2. Frozen payload/notification, one transform/codec, fresh IDs, scope-local counters, ambiguous/ratchet guards, finite repair budget.",
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
+  }
+]

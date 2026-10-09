@@ -14,21 +14,18 @@ concurrency. Clients subscribe to a room and receive live events as lockers chan
 
 | Module | What it is |
 | --- | --- |
-| `api` | All protobuf definitions and the generated Kotlin (one codegen tree). KMP, JVM target. |
-| `connector` | Client SDK: `LockerClient` / `TypedLockerClient` and the `Stream` reconnect loop. KMP, JVM target. |
+| `api` | All protobuf definitions and the generated Kotlin (one codegen tree). KMP: JVM, Android, JavaScript, iOS. |
+| `connector` | Client SDK: `LockerClient` / `TypedLockerClient` and the `Stream` reconnect loop. KMP: JVM, Android, JavaScript, iOS. |
 | `server` | JVM service host: session, session-gateway, room, and push services wired via kotlin-inject. |
 | `server:test` | Test fixtures (`attachTestServices`) that boot the real monolith over an in-memory store. |
 | `server:run` | Application entrypoint (`Main.kt`): config, persistence selection, HTTP endpoints, graceful shutdown. |
 
 ## Build & test
 
-Proto codegen shells out to `protoc-gen-kt` (the Kotlin protoc plugin, a Go binary)
-which must be on your `PATH`. Install the pinned version (matching CI):
-
-```bash
-go install latenighthack.com/protoc-gen-kt@v0.0.0-20251214023608-0fa742406fbf
-# ensure "$(go env GOPATH)/bin" is on your PATH
-```
+Proto generation installs the pinned `protoc-gen-kt` into `api/build/tools`.
+Install Go 1.21 or later; the build selects the exact Go toolchain and plugin
+versions from `gradle.properties` using `GOTOOLCHAIN`. It never selects an
+unversioned generator from your PATH. CI and Docker provide Go 1.26.1.
 
 Then:
 
@@ -36,7 +33,7 @@ Then:
 ./gradlew build                 # compile everything + run all tests
 ./gradlew :connector:jvmTest    # acceptance gate: integration tests vs. an in-process server
 ./gradlew :server:test          # server-side unit tests (persistence, config, rate limiter)
-./gradlew detekt                # static analysis (advisory)
+./gradlew detekt                # static analysis
 ```
 
 ## Running the server
@@ -126,26 +123,72 @@ The `Stream` reconnect loop retries transient session-open failures with backoff
 surfaces terminal failures (rejected key, rejected session id, upgrade required) via
 `Stream.fatalError` instead of crashing.
 
-## Publishing
+## Local dependency verification
 
-`api` and `connector` publish via `maven-publish`:
+Released builds resolve published artifacts only and never use global Maven Local.
+The definition-backed ktstore 0.2.0 transition must be published and verified before
+releasing this library; a workspace verification does not establish released resolution.
+For paired development, configure explicit library paths in Fullhouse's ignored
+`.fh/workspace.json`, then run `./fh deps resolve` and
+`./fh deps publish --library lockers`. Use its generated `-PfhWorkspace` manifest
+and isolated Maven repository for library tests and consumer verification.
+
+Portable protocol, codec and storage contracts run in `commonTest`. JVM and Apple
+SQLite, browser IndexedDB and Android instrumentation exercise persistent drivers:
 
 ```bash
-./gradlew :api:publishToMavenLocal :connector:publishToMavenLocal
+./gradlew :api:jvmTest :api:jsNodeTest :api:iosSimulatorArm64Test
+./gradlew :connector:jvmTest :connector:jsNodeTest :connector:jsBrowserTest
+./gradlew :connector:iosSimulatorArm64Test :connector:connectedDebugAndroidTest
 ```
 
-## Roadmap / not yet done
+Node intentionally excludes the browser IndexedDB test. Android requires an app-owned
+test emulator; Apple tests require macOS and an installed simulator runtime.
 
-- **Authorization & tenant isolation** — session open is signature-verified, but room
-  and locker operations are not yet authorized per-identity. Design pending.
-- **iOS/JS targets** — `api` and `connector` are structured for Kotlin Multiplatform
-  but currently build the JVM target only. Upstream libraries have iOS/JS variants, so
-  adding targets is a follow-up, not a rewrite.
-- **Distributed tracing** — structured logs and Prometheus metrics are in place;
-  OpenTelemetry span instrumentation (or attaching the OTel Java agent) is the next
-  step for end-to-end traces.
+## Published contract
+
+`api` and `connector` publish JVM, Android, JavaScript (browser and Node) and iOS
+(arm64, x64 and Simulator arm64) variants. Connector Android consumers require
+API 26 because its crypto dependency requires that floor. The server runs on JVM.
+Local validation uses the explicit Fullhouse workspace procedure above; Maven
+Central publication and application/service releases are separate operations.
+
+Session streams authenticate their session key. Room writes are authorized by
+room, keyspace and locker locks; public-key room IDs establish room authority,
+while opaque unclaimed rooms use first-writer establishment. Locks authorize
+mutation, not reads: subscribe/read access is open unless an application supplies
+a separate read-access policy. Session capabilities are identifiers, not secrets.
+Signed `sealed` envelopes provide integrity; their contents remain readable.
+Encrypt sensitive payloads before writing them and keep decryption keys outside
+those records, or enforce an application read-access policy on every read and
+subscription route. A room described as private by an application needs that
+additional confidentiality protection.
+Server agents and private peer gateways are trusted extensions; applications must
+install intentional agents rather than treating untrusted callbacks as sandboxed.
+
+Optimistic update transforms, notification builders and codecs must be pure and
+repeatable. A conflict may run them again against a newer source value. Ambiguous
+transport retries reuse the exact frozen request, including encoded notification,
+request identity and signature; retrying does not create a new logical mutation.
+A committed source and agent completion are separate outcomes. Consumers must
+retain the committed result when reporting an agent failure or indeterminate work.
+
+Collect state and notification Flows in an owned CoroutineScope and close clients
+when that scope ends. Locker snapshot streams represent current state and may
+conflate superseded values; notification/event streams have separate delivery
+semantics. Durable outbox and inbox records bridge temporary disconnection; replay
+may duplicate an event, so stable identities and durable acceptance precede ACKs.
+
+Canonical V1 signing preimages use eight-byte big-endian byte-array lengths and
+signed eight-byte big-endian scalar values. Protocol-domain changes require a new
+version rather than changing V1 bytes. Exact cross-language vectors are published
+in [signing-v1.json](docs/protocol/signing-v1.json) and run in portable API tests.
+
+Detekt enforces handwritten Kotlin across all source sets with the reviewed
+baseline in `config/detekt`. Newly introduced findings fail `build`/CI. Baselines
+capture existing complexity/style debt and do not replace correctness tests;
+coroutine cancellation and transport behavior require the runtime regressions.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). (Chosen as a permissive default; change if your project
-requires otherwise.)
+MIT — see [LICENSE](LICENSE). Published POM metadata uses the same license.

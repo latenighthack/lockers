@@ -46,6 +46,9 @@ import kotlinx.coroutines.runBlocking
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
+import kotlin.test.AfterTest
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.withTimeout
 
 /**
  * M5 — elastic reshard over the in-process [SimCluster] and one shared [Database].
@@ -56,8 +59,24 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class OwnerLifecycleTest {
+    private val fixtureNodes = mutableListOf<Node>()
+    private val fixtureScopes = mutableSetOf<CoroutineScope>()
+    private val fixtureDatabases = mutableListOf<Database>()
+    @AfterTest fun closeFixtures() = runBlocking {
+        try {
+            for (node in fixtureNodes) { node.impl.closeAndJoin(); node.lifecycle.stopAndRelease() }
+        } finally {
+            for (scope in fixtureScopes) scope.coroutineContext[Job]?.cancelAndJoin()
+            fixtureDatabases.forEach { it.close() }
+        }
+    }
+    private fun fixtureStorage() = ServerStorage.inMemory().also { fixtureDatabases.add(it) }
+    private suspend fun awaitDelivery(node: Node, session: String) = withTimeout(5000) {
+        while (node.deliveries.none { it.second == session }) delay(5)
+    }
 
-    private val roomKeyspace = Keyspace(1L)
+
+    private val roomKeyspace = Keyspace(0L)
     private val shardCount = 32
 
     /** Records every gateway fan-out (which node originated it, for which session). */
@@ -110,6 +129,7 @@ class OwnerLifecycleTest {
         val subs = store.subs
         val lockers = store.lockers
         val locks = store.locks
+        fixtureScopes.add(scope)
         val router = sim.routerFor(id, scope)
 
         // Break the impl<->lifecycle cycle: the eviction hook reads a holder set after impl exists.
@@ -129,11 +149,12 @@ class OwnerLifecycleTest {
             subs, lockers, locks,
             RecordingGatewayDiscovery(id, deliveries),
             RingRoomOwnership(router, lifecycle),
-            ExampleLockerAgent(), SimpleMeterRegistry(), LockersConfig.defaults(),
+            ExampleLockerAgent(), SimpleMeterRegistry(), LockersConfig.defaults(), coroutineContext = scope.coroutineContext,
         )
         implHolder[0] = impl
+        impl.start()
         lifecycle.reconcile(router.roomMap()) // acquire initially-owned shards
-        return Node(id, router, lifecycle, impl, evictions, deliveries)
+        return Node(id, router, lifecycle, impl, evictions, deliveries).also { fixtureNodes.add(it) }
     }
 
     private fun post(room: ByteArray, locker: ByteArray, version: Long = 0L) = PostLockerChangeRequest {
@@ -142,7 +163,7 @@ class OwnerLifecycleTest {
             rawValue = locker
             keyspace = LockerKeyspace { value = roomKeyspace.value }
         }
-        this.locker = Locker { }
+        this.locker = Locker { open { encodedPayload = byteArrayOf(1) } }
         parentVersion = version
     }
 
@@ -182,7 +203,7 @@ class OwnerLifecycleTest {
     fun `node add moves ownership only for affected shards`() = runBlocking {
         val scope = CoroutineScope(Job())
         val sim = SimCluster(listOf(NodeId("a"), NodeId("b")), ShardCounts(shardCount))
-        val a = node(NodeId("a"), sim, sharedStore(com.latenighthack.lockers.server.ServerStorage.inMemory()), scope)
+        val a = node(NodeId("a"), sim, sharedStore(fixtureStorage()), scope)
 
         val before = a.router.roomMap()
         sim.addNode(NodeId("c"))
@@ -206,7 +227,7 @@ class OwnerLifecycleTest {
     fun `at most one node holds a live lease per shard across a handoff`() = runBlocking {
         val scope = CoroutineScope(Job())
         val sim = SimCluster(listOf(NodeId("a"), NodeId("b")), ShardCounts(shardCount))
-        val store = sharedStore(com.latenighthack.lockers.server.ServerStorage.inMemory())
+        val store = sharedStore(fixtureStorage())
         val a = node(NodeId("a"), sim, store, scope)
         val b = node(NodeId("b"), sim, store, scope)
 
@@ -226,7 +247,7 @@ class OwnerLifecycleTest {
     fun `write on a node that lost its lease is rejected NOT_OWNER`() = runBlocking {
         val scope = CoroutineScope(Job())
         val sim = SimCluster(listOf(NodeId("a"), NodeId("b")), ShardCounts(shardCount))
-        val store = sharedStore(com.latenighthack.lockers.server.ServerStorage.inMemory())
+        val store = sharedStore(fixtureStorage())
         val a = node(NodeId("a"), sim, store, scope)
         val b = node(NodeId("b"), sim, store, scope)
 
@@ -253,7 +274,7 @@ class OwnerLifecycleTest {
     fun `after handoff the new owner rebuilds routing from the store and delivery continues`() = runBlocking {
         val scope = CoroutineScope(Job())
         val sim = SimCluster(listOf(NodeId("a"), NodeId("b")), ShardCounts(shardCount))
-        val store = sharedStore(com.latenighthack.lockers.server.ServerStorage.inMemory())
+        val store = sharedStore(fixtureStorage())
         val a = node(NodeId("a"), sim, store, scope)
         val b = node(NodeId("b"), sim, store, scope)
 
@@ -261,6 +282,7 @@ class OwnerLifecycleTest {
         // Subscribe on the current owner; the subscription is durable in the shared store.
         assertThat(doSubscribe(a, room, "sess-1").result is SubscriptionResponse.Result.OK).isTrue()
         a.rpc.postLockerChange(post(room, byteArrayOf(7)))
+        awaitDelivery(a, "sess-1")
         assertThat(a.deliveries.map { it.second }).contains("sess-1")
 
         // Reshard so b owns the room; a releases (and evicts), b acquires.
@@ -272,9 +294,10 @@ class OwnerLifecycleTest {
 
         // b never cached this room; it rebuilds room→session routing from SubscriptionStore on the
         // fan-out path, and the event is delivered for the same durable subscription. a's first write
-        // persisted the locker at version 0, so parentVersion=0 makes the CAS pass on the new owner.
-        val delivered = b.rpc.postLockerChange(post(room, byteArrayOf(7), version = 0L))
+        // persisted the locker at version 1, so parentVersion=1 makes the CAS pass on the new owner.
+        val delivered = b.rpc.postLockerChange(post(room, byteArrayOf(7), version = 1L))
         assertThat(delivered.result is PostLockerChangeResponse.Result.OK).isTrue()
+        awaitDelivery(b, "sess-1")
         assertThat(b.deliveries.map { it.second }).contains("sess-1")
         scope.cancel()
     }

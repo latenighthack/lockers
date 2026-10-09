@@ -31,6 +31,8 @@ message Secp256r1Key {
 message Signature {
     Secp256r1Key.PublicKey public_key = 1;
     bytes signature = 2;
+    // 0/1 preserves V1; 2 selects an explicit epoch-bound signing domain.
+    int32 signing_version = 3;
 }
 
 // Points a client at the node that currently owns a shard, returned alongside a
@@ -99,6 +101,9 @@ message LockGrant {
     LockScope scope = 1;
     Secp256r1Key.PublicKey public_key = 2;
     Signature parent_signature = 3;
+    // V2 expected governing authority and target incarnation, both signed.
+    int64 authority_version = 4;
+    int64 scope_version = 5;
 }
 
 // The lock status returned on every get and event (present even when unlocked,
@@ -219,4 +224,12 @@ message BroadcastTarget {
     message SessionList {
         repeated SessionId session_ids = 1;
     }
+}
+
+// Proof of possession for a unary operation on a session. The operation and
+// normalized request digest, including all parameters, are signed together.
+message SessionProof {
+    int64 issued_at_ms = 1;
+    bytes nonce = 2;
+    Signature signature = 3;
 }

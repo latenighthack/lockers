@@ -1,0 +1,136 @@
+Type-safe project accessors is an incubating feature.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://github.com/yarnpkg/yarn/releases/download' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:generateCodegenFixtures
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :api:jvmTestProcessResources NO-SOURCE
+> Task :api:processJvmTestResources SKIPPED
+> Task :kotlinKotlinNpmCachesSetup
+> Task :api:compileTestKotlinJvm
+> Task :kotlinNodeJsSetup
+> Task :api:compileJvmTestJava NO-SOURCE
+> Task :api:jvmTestClasses
+> Task :api:jvmTest
+> Task :kotlinRestoreYarnLock
+> Task :kotlinYarnSetup
+> Task :api:jsPackageJson
+> Task :api:jsTestPackageJson
+> Task :observability-api:jsPackageJson
+> Task :connector:jsPackageJson
+> Task :connector:jsTestPackageJson
+> Task :observability-api:jsTestPackageJson
+> Task :observability-connector:jsPackageJson
+> Task :observability-connector:jsTestPackageJson
+> Task :api:jsPublicPackageJson
+> Task :api:jsTestPublicPackageJson
+> Task :connector:jsPublicPackageJson
+> Task :connector:jsTestPublicPackageJson
+> Task :observability-api:jsPublicPackageJson
+> Task :observability-api:jsTestPublicPackageJson
+> Task :observability-connector:jsPublicPackageJson
+> Task :observability-connector:jsTestPublicPackageJson
+> Task :kotlinPackageJsonUmbrella
+> Task :rootPackageJson
+
+> Task :kotlinNpmInstall
+(node:47038) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+warning Ignored scripts due to flag.
+
+> Task :kotlinStoreYarnLock
+> Task :api:jsProcessResources NO-SOURCE
+> Task :api:jsTestProcessResources NO-SOURCE
+> Task :api:kotlinNodeJsSetup
+> Task :api:downloadKotlinNativeDistribution
+
+> Task :api:compileKotlinJs
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileKotlinIosSimulatorArm64
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:jsMainClasses
+> Task :api:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :api:iosSimulatorArm64MainKlibrary
+> Task :api:compileTestKotlinJs
+> Task :api:compileTestKotlinIosSimulatorArm64
+> Task :api:jsTestClasses
+> Task :api:linkDebugTestIosSimulatorArm64
+> Task :api:compileTestDevelopmentExecutableKotlinJs
+> Task :api:iosSimulatorArm64Test
+> Task :api:jsTestTestDevelopmentExecutableCompileSync
+> Task :api:jsNodeTest
+> Task :api:preBuild UP-TO-DATE
+> Task :api:preDebugBuild UP-TO-DATE
+> Task :api:generateDebugResValues
+> Task :api:generateDebugResources
+> Task :api:packageDebugResources
+> Task :api:processDebugNavigationResources
+> Task :api:parseDebugLocalResources
+> Task :api:generateDebugRFile
+
+> Task :api:compileDebugKotlinAndroid
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-codegen-correctness/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 33s
+49 actionable tasks: 45 executed, 4 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

@@ -136,6 +136,7 @@ class ClaimClusterTest {
     fun `cross-node fan-out - events reach a subscriber homed on the other node`() = runBlocking {
         startTwoNodeClaimCluster().use { cluster ->
             val subscriber = SessionId("subscriber-1".encodeToByteArray())
+            admitFixtureSession(cluster.delegate, subscriber)
             // The subscriber's WebSocket lives on node2 (what ClaimSessionRegistry.attach records)…
             cluster.sessionGateways.upsert(subscriber, "node2", cluster.node2.addr, ttlMs = 60_000)
             // …and it is durably subscribed to the room (what the subscription RPC records).
@@ -166,6 +167,7 @@ class ClaimClusterTest {
             // pre-login session a signup flow leaves behind). This used to poison every write to
             // the room: UNKNOWN_ERROR after the persist → client version ping-pong → dropped.
             val ghost = SessionId("ghost-1".encodeToByteArray())
+            admitFixtureSession(cluster.delegate, ghost)
             val subs = SubscriptionStoreImpl(cluster.delegate).also { it.prepare() }
             subs.addSubscription(
                 ServerSessionId(ghost.rawValue),
@@ -179,9 +181,9 @@ class ClaimClusterTest {
             // shared inbox store, where the session's reconnect hydrate will find it.
             val inbox = SessionInboxStoreImpl(cluster.delegate).also { it.prepare() }
             awaitUntil { inbox.getAllEvents(ServerSessionId(ghost.rawValue)).size == 1 }
-            assertThat(
-                cluster.node1.meterRegistry.find("lockers.session.events.posted").counter()?.count()
-            ).isEqualTo(1.0)
+            awaitUntil {
+                cluster.node1.meterRegistry.find("lockers.session.events.posted").counter()?.count() == 1.0
+            }
 
             // Deletes take the same fan-out path; they must survive the offline subscriber too.
             val delete = cluster.node1.roomClient().deleteLocker(DeleteLockerRequest {
@@ -202,6 +204,8 @@ class ClaimClusterTest {
             // One subscriber's registry row points at a dead node; another is live on node2.
             val dead = SessionId("dead-1".encodeToByteArray())
             val live = SessionId("live-1".encodeToByteArray())
+            admitFixtureSession(cluster.delegate, dead)
+            admitFixtureSession(cluster.delegate, live)
             cluster.sessionGateways.upsert(dead, "node3", "127.0.0.1:1", ttlMs = 60_000)
             cluster.sessionGateways.upsert(live, "node2", cluster.node2.addr, ttlMs = 60_000)
             val subs = SubscriptionStoreImpl(cluster.delegate).also { it.prepare() }
@@ -219,9 +223,9 @@ class ClaimClusterTest {
             awaitUntil {
                 cluster.node2.meterRegistry.find("lockers.session.events.posted").counter()?.count() == 1.0
             }
-            assertThat(
-                cluster.node1.meterRegistry.find("lockers.room.events.post.failure").counter()?.count() ?: 0.0
-            ).isEqualTo(1.0)
+            awaitUntil {
+                (cluster.node1.meterRegistry.find("lockers.delivery.failures").tag("queue", "room").counter()?.count() ?: 0.0) >= 1.0
+            }
         }
     }
 
@@ -257,12 +261,12 @@ class ClaimClusterTest {
             ).isTrue()
 
             cluster.node1.stopGracefully()
-            assertThat(cluster.roomClaims.lookup(room("drain"))).isNull()
-
-            // First write on node2 claims immediately — fresh insert, no expiry wait, epoch 1.
-            val response = cluster.node2.roomClient().postLockerChange(post("drain"))
-            assertThat(response.result is PostLockerChangeResponse.Result.OK).isTrue()
             assertThat(cluster.roomClaims.lookup(room("drain"))!!.epoch).isEqualTo(1L)
+
+            // First write on node2 claims immediately and advances retained authority history.
+            val response = cluster.node2.roomClient().postLockerChange(post("drain", lockerRaw = 10))
+            assertThat(response.result is PostLockerChangeResponse.Result.OK).isTrue()
+            assertThat(cluster.roomClaims.lookup(room("drain"))!!.epoch).isEqualTo(2L)
         }
     }
 

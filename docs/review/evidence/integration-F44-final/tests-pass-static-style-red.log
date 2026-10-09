@@ -1,0 +1,148 @@
+Type-safe project accessors is an incubating feature.
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:generateCodegenFixtures UP-TO-DATE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :api:compileTestKotlinJvm UP-TO-DATE
+> Task :api:compileJvmTestJava NO-SOURCE
+> Task :api:jvmTestProcessResources NO-SOURCE
+> Task :api:processJvmTestResources SKIPPED
+> Task :api:jvmTestClasses UP-TO-DATE
+> Task :api:jvmTest
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:compileKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :observability-api:jvmMainClasses UP-TO-DATE
+> Task :observability-api:jvmJar UP-TO-DATE
+> Task :connector:compileKotlinJvm UP-TO-DATE
+> Task :connector:compileJvmMainJava NO-SOURCE
+> Task :connector:jvmProcessResources NO-SOURCE
+> Task :connector:processJvmMainResources SKIPPED
+> Task :connector:jvmMainClasses UP-TO-DATE
+> Task :connector:jvmJar UP-TO-DATE
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:compileKotlin UP-TO-DATE
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:processResources NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :sharding-core:jar UP-TO-DATE
+> Task :server:kspKotlin UP-TO-DATE
+> Task :server:compileKotlin UP-TO-DATE
+> Task :server:compileJava NO-SOURCE
+> Task :server:processResources NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar UP-TO-DATE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:compileKotlin UP-TO-DATE
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:processResources NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar UP-TO-DATE
+> Task :connector:jvmTestProcessResources NO-SOURCE
+> Task :connector:processJvmTestResources SKIPPED
+> Task :server:kspTestKotlin SKIPPED
+> Task :server:compileTestKotlin UP-TO-DATE
+> Task :server:compileTestJava NO-SOURCE
+> Task :server:processTestResources NO-SOURCE
+> Task :server:testClasses UP-TO-DATE
+> Task :connector:compileTestKotlinJvm
+> Task :server:test
+> Task :connector:compileJvmTestJava NO-SOURCE
+> Task :connector:jvmTestClasses
+> Task :connector:jvmTest
+> Task :sharding-core:compileTestKotlin UP-TO-DATE
+> Task :sharding-core:compileTestJava NO-SOURCE
+> Task :sharding-core:processTestResources NO-SOURCE
+> Task :sharding-core:testClasses UP-TO-DATE
+> Task :sharding-core:test
+> Task :keymaster:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :keymaster:compileKotlin UP-TO-DATE
+> Task :keymaster:compileJava NO-SOURCE
+> Task :keymaster:processResources NO-SOURCE
+> Task :keymaster:classes UP-TO-DATE
+> Task :keymaster:jar UP-TO-DATE
+> Task :keymaster:compileTestKotlin UP-TO-DATE
+> Task :keymaster:compileTestJava NO-SOURCE
+> Task :keymaster:processTestResources NO-SOURCE
+> Task :keymaster:testClasses UP-TO-DATE
+> Task :keymaster:test
+> Task :observability-api:compileTestKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmTestJava NO-SOURCE
+> Task :observability-api:jvmTestProcessResources NO-SOURCE
+> Task :observability-api:processJvmTestResources SKIPPED
+> Task :observability-api:jvmTestClasses UP-TO-DATE
+> Task :observability-api:jvmTest
+> Task :observability-connector:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-connector:compileKotlinJvm UP-TO-DATE
+> Task :observability-connector:compileJvmMainJava NO-SOURCE
+> Task :observability-connector:jvmProcessResources NO-SOURCE
+> Task :observability-connector:processJvmMainResources SKIPPED
+> Task :observability-connector:jvmMainClasses UP-TO-DATE
+> Task :observability-connector:jvmJar UP-TO-DATE
+> Task :observability-connector:compileTestKotlinJvm UP-TO-DATE
+> Task :observability-connector:compileJvmTestJava NO-SOURCE
+> Task :observability-connector:jvmTestProcessResources NO-SOURCE
+> Task :observability-connector:processJvmTestResources SKIPPED
+> Task :observability-connector:jvmTestClasses UP-TO-DATE
+> Task :observability-connector:jvmTest
+> Task :observability-server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-server:compileKotlin UP-TO-DATE
+> Task :observability-server:compileJava NO-SOURCE
+> Task :observability-server:processResources NO-SOURCE
+> Task :observability-server:classes UP-TO-DATE
+> Task :observability-server:jar UP-TO-DATE
+> Task :observability-server:compileTestKotlin UP-TO-DATE
+> Task :observability-server:compileTestJava NO-SOURCE
+> Task :observability-server:processTestResources NO-SOURCE
+> Task :observability-server:testClasses UP-TO-DATE
+> Task :observability-server:test
+> Task :server:run:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:run:compileKotlin UP-TO-DATE
+> Task :server:verifyRuntimeSecurity
+> Task :api:detekt
+
+> Task :connector:detekt FAILED
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-final-validation/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/LockerClientTests.kt:12:1: com.latenighthack.ktstore.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-final-validation/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/LockerClientTests.kt:40:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-final-validation/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/LockerClientTests.kt:41:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-final-validation/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/LockerClientTests.kt:43:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-final-validation/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/LockerClientTests.kt:46:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-final-validation/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':connector:detekt' (registered by plugin 'io.gitlab.arturbosch.detekt').
+> Analysis failed with 5 weighted issues.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 1m 8s
+47 actionable tasks: 16 executed, 31 up-to-date

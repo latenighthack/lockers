@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ProtocolPortabilityTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-08T23:08:11.485Z" hostname="Mikes-MacBook-Pro.local" time="0.025">
+  <properties/>
+  <testcase name="lockerIdentityRetainsBinaryKeyspaceAcrossProtoSerialization[jvm]" classname="com.latenighthack.lockers.common.ProtocolPortabilityTest" time="0.022"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewExpiredRatchetTests[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:12:46.737Z" hostname="Mikes-MacBook-Pro.local" time="1.846">
+  <properties/>
+  <testcase name="lost committed HTTP reply recovers key after receipt removal without resurrecting old payload[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.966"/>
+  <testcase name="a different source write reaching the exact expected key epoch remains source unknown[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.131"/>
+  <testcase name="unrelated source write and direct public key grant cannot certify the lost ratchet source[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.192"/>
+  <testcase name="an overridden live ancestor recovers committed key and exposes immutable expired receipt metadata[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.136"/>
+  <testcase name="proposed public key in a different scope cannot certify the original authority[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.132"/>
+  <testcase name="rejected ratchet preserves unresolved private intent without rerunning transform[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.146"/>
+  <testcase name="a failing first recovery does not starve later intents or archives and eventually retries[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.141"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

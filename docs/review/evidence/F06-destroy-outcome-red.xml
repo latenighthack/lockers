@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewDestroyReconnectTests[jvm]" tests="1" skipped="0" failures="1" errors="0" timestamp="2026-10-09T02:02:07.257Z" hostname="Mikes-MacBook-Pro.local" time="0.904">
+  <properties/>
+  <testcase name="committedDestroyWithLostReplyCanBeConfirmedByFreshAuthenticatedRetry[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests" time="0.903">
+    <failure message="java.lang.IllegalStateException: Session revocation rejected" type="java.lang.IllegalStateException">java.lang.IllegalStateException: Session revocation rejected
+	at com.latenighthack.lockers.connector.Stream.destroySession(Stream.kt:485)
+	at com.latenighthack.lockers.connector.Stream$destroySession$1.invokeSuspend(Stream.kt)
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests$committedDestroyWithLostReplyCanBeConfirmedByFreshAuthenticatedRetry$2$1.invokeSuspend(ReviewDestroyReconnectTests.kt:106)
+	at com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests$committedDestroyWithLostReplyCanBeConfirmedByFreshAuthenticatedRetry$2.invokeSuspend(ReviewDestroyReconnectTests.kt:83)
+	at com.latenighthack.lockers.connector.test.OwnedTestFixtureKt$runOwnedTestWithServer$2$2.invokeSuspend(OwnedTestFixture.kt:56)
+	at com.latenighthack.lockers.connector.test.OwnedTestFixtureKt$runOwnedTestWithServer$2.invokeSuspend(OwnedTestFixture.kt:53)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:317)
+Caused by: java.lang.IllegalStateException: Session revocation rejected
+	at com.latenighthack.lockers.connector.Stream.destroySession(Stream.kt:485)
+	at com.latenighthack.lockers.connector.Stream$destroySession$1.invokeSuspend(Stream.kt)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.internal.ScopeCoroutine.afterResume(Scopes.kt:35)
+	at kotlinx.coroutines.AbstractCoroutine.resumeWith(AbstractCoroutine.kt:101)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:47)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:829)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

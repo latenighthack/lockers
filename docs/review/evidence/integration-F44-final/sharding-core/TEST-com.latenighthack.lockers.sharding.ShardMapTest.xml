@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.sharding.ShardMapTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:16.012Z" hostname="Mikes-MacBook-Pro.local" time="0.004">
+  <properties/>
+  <testcase name="movedShards reports exactly the shards that changed owner()" classname="com.latenighthack.lockers.sharding.ShardMapTest" time="0.001"/>
+  <testcase name="session axis routes deterministically on the same map()" classname="com.latenighthack.lockers.sharding.ShardMapTest" time="0.001"/>
+  <testcase name="changing one keyspace's shard count does not disturb other keyspaces()" classname="com.latenighthack.lockers.sharding.ShardMapTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

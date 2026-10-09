@@ -9,6 +9,7 @@ import com.eatthepath.pushy.apns.util.TokenUtil
 import com.latenighthack.lockers.common.v1.Push
 import com.latenighthack.lockers.push.v1.PushRegistration
 import com.latenighthack.lockers.server.ApnsConfig
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.future.await
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -24,8 +25,10 @@ class ApnsPushProvider(private val config: ApnsConfig) : PushProvider {
     override val backend = PushBackendKind.APNS
     override val isConfigured: Boolean get() = config.isConfigured
 
-    private val productionClient by lazy { buildClient(production = true) }
-    private val developmentClient by lazy { buildClient(production = false) }
+    private val productionClientHolder = lazy { buildClient(production = true) }
+    private val developmentClientHolder = lazy { buildClient(production = false) }
+    private val productionClient by productionClientHolder
+    private val developmentClient by developmentClientHolder
 
     private fun buildClient(production: Boolean): ApnsClient? {
         if (!config.isConfigured) {
@@ -48,7 +51,8 @@ class ApnsPushProvider(private val config: ApnsConfig) : PushProvider {
                 .setSigningKey(signingKey)
                 .build()
                 .also { logger.info("APNS client initialized (production=$production)") }
-        } catch (e: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
             logger.error("Failed to initialize APNS client (production=$production)", e)
             null
         }
@@ -82,13 +86,22 @@ class ApnsPushProvider(private val config: ApnsConfig) : PushProvider {
                     tokenInvalid = response.tokenInvalidationTimestamp.isPresent,
                 )
             }
-        } catch (e: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) {
             PushResult.Retryable(e.message ?: e::class.simpleName ?: "APNS send failed")
         }
     }
 
     override fun close() {
-        runCatching { if (config.isConfigured) productionClient?.close() }
-        runCatching { if (config.isConfigured) developmentClient?.close() }
+        for (holder in listOf(productionClientHolder, developmentClientHolder)) if (holder.isInitialized()) holder.value?.close()
+    }
+
+    override suspend fun closeAndJoin() {
+        var failed: Throwable? = null
+        for (holder in listOf(productionClientHolder, developmentClientHolder)) if (holder.isInitialized()) {
+            try { holder.value?.close()?.await() }
+            catch (failure: Throwable) { if (failed == null) failed = failure else failed.addSuppressed(failure) }
+        }
+        failed?.let { throw it }
     }
 }

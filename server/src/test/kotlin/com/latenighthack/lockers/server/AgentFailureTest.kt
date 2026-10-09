@@ -4,7 +4,6 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
-import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.Locker
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.LockerKeyspace
@@ -36,6 +35,7 @@ import kotlin.test.Test
  */
 class AgentFailureTest {
 
+
     private val noSessionGateway = object : SessionGatewayDiscovery {
         override suspend fun findServer(sessionId: SessionId): SessionGatewayService? = null
     }
@@ -53,35 +53,39 @@ class AgentFailureTest {
     }
 
     @Test
-    fun `agent exception does not fail the already-persisted write`() = runBlocking {
-        val delegate = com.latenighthack.lockers.server.ServerStorage.inMemory()
+    fun `agent exception does not fail the already-persisted write`(): Unit = runBlocking {
+        val delegate = ServerStorage.inMemory()
         val subs = SubscriptionStoreImpl(delegate).also { it.prepare() }
         val lockers = LockerStoreImpl(delegate).also { it.prepare() }
         val locks = LockStoreImpl(delegate).also { it.prepare() }
         delegate.open()
         val registry = SimpleMeterRegistry()
-        val client = LocalRoomServiceRpc(
-            RoomServiceImpl(
+        val service = RoomServiceImpl(
                 subs, lockers, locks, noSessionGateway, localOwnership,
                 throwingAgent, registry, LockersConfig.defaults(),
             )
-        )
-
+        service.start()
+        val client = LocalRoomServiceRpc(service)
+        try {
         val response = client.postLockerChange(PostLockerChangeRequest {
             roomId = RoomId(byteArrayOf(1, 2, 3))
             lockerId = LockerId {
                 rawValue = byteArrayOf(9)
                 keyspace = LockerKeyspace { value = 31 }
             }
-            locker = Locker { }
+            locker = Locker { open { encodedPayload = byteArrayOf(1) } }
         })
 
         assertThat(response.result is PostLockerChangeResponse.Result.OK).isTrue()
+        kotlinx.coroutines.withTimeout(5000) {
+            while (registry.find("lockers.agent.invocations").tag("outcome", "error").counter()?.count() != 1.0) kotlinx.coroutines.delay(10)
+        }
         assertThat(registry.get("lockers.agent.invocations").tag("outcome", "error").counter().count()).isEqualTo(1.0)
         assertThat(registry.get("lockers.rpc.requests").tags("service", "room", "operation", "write", "outcome", "ok").counter().count()).isEqualTo(1.0)
 
         val stored = lockers.getLocker(ServerRoomId(byteArrayOf(1, 2, 3)), 31L, ServerLockerId(byteArrayOf(9)))
         assertThat(stored).isNotNull()
         assertThat(stored!!.version).isEqualTo(response.version)
+        } finally { service.closeAndJoin(); delegate.close() }
     }
 }

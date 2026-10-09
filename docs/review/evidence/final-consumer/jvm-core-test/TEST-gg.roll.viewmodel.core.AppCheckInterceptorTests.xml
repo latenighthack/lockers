@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AppCheckInterceptorTests[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:20:45.872Z" hostname="Mikes-MacBook-Pro.local" time="0.047">
+  <properties/>
+  <testcase name="stream open carries the header[jvm]" classname="gg.roll.viewmodel.core.AppCheckInterceptorTests" time="0.045"/>
+  <testcase name="adds app check header when provider returns a token[jvm]" classname="gg.roll.viewmodel.core.AppCheckInterceptorTests" time="0.002"/>
+  <testcase name="omits header when provider returns null[jvm]" classname="gg.roll.viewmodel.core.AppCheckInterceptorTests" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

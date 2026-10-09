@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.LockVerifierTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:28.756Z" hostname="Mikes-MacBook-Pro.local" time="0.035">
+  <properties/>
+  <testcase name="unsigned descendants cannot replace room or keyspace authority()" classname="com.latenighthack.lockers.server.LockVerifierTest" time="0.01"/>
+  <testcase name="applyLock TOFU is rejected in a public-keyed room()" classname="com.latenighthack.lockers.server.LockVerifierTest" time="0.003"/>
+  <testcase name="verifyWrite requires a signature when locked()" classname="com.latenighthack.lockers.server.LockVerifierTest" time="0.003"/>
+  <testcase name="V2 delegation and unlock proofs cannot cross a target incarnation()" classname="com.latenighthack.lockers.server.LockVerifierTest" time="0.009"/>
+  <testcase name="applyLock TOFU succeeds in a non-public-keyed room()" classname="com.latenighthack.lockers.server.LockVerifierTest" time="0.003"/>
+  <testcase name="resolveEffective prefers most specific scope()" classname="com.latenighthack.lockers.server.LockVerifierTest" time="0.002"/>
+  <testcase name="V2 content proofs bind notification metadata()" classname="com.latenighthack.lockers.server.LockVerifierTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

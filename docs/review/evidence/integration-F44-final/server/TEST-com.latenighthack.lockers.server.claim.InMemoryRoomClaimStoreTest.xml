@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:49.074Z" hostname="Mikes-MacBook-Pro.local" time="4.246">
+  <properties/>
+  <testcase name="release after a steal is a no-op()" classname="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" time="0.452"/>
+  <testcase name="renewAll returns exactly the still-owned set()" classname="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" time="0.0"/>
+  <testcase name="concurrent claims on one expired room elect exactly one winner()" classname="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" time="0.456"/>
+  <testcase name="releaseAll expires owned claims and retains monotonically increasing epochs()" classname="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" time="0.001"/>
+  <testcase name="epochs are strictly monotonic across successive takeovers()" classname="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" time="1.809"/>
+  <testcase name="renew after a steal excludes the stolen room()" classname="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" time="0.456"/>
+  <testcase name="self reclaim extends expiry without bumping the epoch()" classname="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" time="0.305"/>
+  <testcase name="claim while owner is valid does not steal()" classname="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" time="0.001"/>
+  <testcase name="renew keeps a short-TTL claim alive across its original expiry()" classname="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" time="0.31"/>
+  <testcase name="release expires only the caller's own claim and preserves its epoch()" classname="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" time="0.002"/>
+  <testcase name="fresh claim inserts epoch 1 and returns self()" classname="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" time="0.001"/>
+  <testcase name="claim after expiry steals with a strictly higher epoch()" classname="com.latenighthack.lockers.server.claim.InMemoryRoomClaimStoreTest" time="0.451"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

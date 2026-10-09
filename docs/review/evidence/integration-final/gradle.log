@@ -1,0 +1,128 @@
+Type-safe project accessors is an incubating feature.
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:generateCodegenFixtures UP-TO-DATE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :api:compileTestKotlinJvm UP-TO-DATE
+> Task :api:compileJvmTestJava NO-SOURCE
+> Task :api:jvmTestProcessResources NO-SOURCE
+> Task :api:processJvmTestResources SKIPPED
+> Task :api:jvmTestClasses UP-TO-DATE
+> Task :api:jvmTest UP-TO-DATE
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:compileKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :observability-api:jvmMainClasses UP-TO-DATE
+> Task :observability-api:jvmJar UP-TO-DATE
+> Task :connector:compileKotlinJvm UP-TO-DATE
+> Task :connector:compileJvmMainJava NO-SOURCE
+> Task :connector:jvmProcessResources NO-SOURCE
+> Task :connector:processJvmMainResources SKIPPED
+> Task :connector:jvmMainClasses UP-TO-DATE
+> Task :connector:jvmJar UP-TO-DATE
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:compileKotlin UP-TO-DATE
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:processResources NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :sharding-core:jar UP-TO-DATE
+> Task :server:kspKotlin UP-TO-DATE
+> Task :server:compileKotlin UP-TO-DATE
+> Task :server:compileJava NO-SOURCE
+> Task :server:processResources NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar UP-TO-DATE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:compileKotlin UP-TO-DATE
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:processResources NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar UP-TO-DATE
+> Task :connector:compileTestKotlinJvm UP-TO-DATE
+> Task :connector:compileJvmTestJava NO-SOURCE
+> Task :connector:jvmTestProcessResources NO-SOURCE
+> Task :connector:processJvmTestResources SKIPPED
+> Task :connector:jvmTestClasses UP-TO-DATE
+> Task :connector:jvmTest
+> Task :server:kspTestKotlin SKIPPED
+> Task :server:compileTestKotlin UP-TO-DATE
+> Task :server:compileTestJava NO-SOURCE
+> Task :server:processTestResources NO-SOURCE
+> Task :server:testClasses UP-TO-DATE
+> Task :server:test UP-TO-DATE
+> Task :sharding-core:compileTestKotlin UP-TO-DATE
+> Task :sharding-core:compileTestJava NO-SOURCE
+> Task :sharding-core:processTestResources NO-SOURCE
+> Task :sharding-core:testClasses UP-TO-DATE
+> Task :sharding-core:test UP-TO-DATE
+> Task :keymaster:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :keymaster:compileKotlin UP-TO-DATE
+> Task :keymaster:compileJava NO-SOURCE
+> Task :keymaster:processResources NO-SOURCE
+> Task :keymaster:classes UP-TO-DATE
+> Task :keymaster:jar UP-TO-DATE
+> Task :keymaster:compileTestKotlin UP-TO-DATE
+> Task :keymaster:compileTestJava NO-SOURCE
+> Task :keymaster:processTestResources NO-SOURCE
+> Task :keymaster:testClasses UP-TO-DATE
+> Task :keymaster:test UP-TO-DATE
+> Task :observability-api:compileTestKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmTestJava NO-SOURCE
+> Task :observability-api:jvmTestProcessResources NO-SOURCE
+> Task :observability-api:processJvmTestResources SKIPPED
+> Task :observability-api:jvmTestClasses UP-TO-DATE
+> Task :observability-api:jvmTest UP-TO-DATE
+> Task :observability-connector:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-connector:compileKotlinJvm UP-TO-DATE
+> Task :observability-connector:compileJvmMainJava NO-SOURCE
+> Task :observability-connector:jvmProcessResources NO-SOURCE
+> Task :observability-connector:processJvmMainResources SKIPPED
+> Task :observability-connector:jvmMainClasses UP-TO-DATE
+> Task :observability-connector:jvmJar UP-TO-DATE
+> Task :observability-connector:compileTestKotlinJvm UP-TO-DATE
+> Task :observability-connector:compileJvmTestJava NO-SOURCE
+> Task :observability-connector:jvmTestProcessResources NO-SOURCE
+> Task :observability-connector:processJvmTestResources SKIPPED
+> Task :observability-connector:jvmTestClasses UP-TO-DATE
+> Task :observability-connector:jvmTest UP-TO-DATE
+> Task :observability-server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-server:compileKotlin UP-TO-DATE
+> Task :observability-server:compileJava NO-SOURCE
+> Task :observability-server:processResources NO-SOURCE
+> Task :observability-server:classes UP-TO-DATE
+> Task :observability-server:jar UP-TO-DATE
+> Task :observability-server:processTestResources NO-SOURCE
+> Task :server:run:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:run:compileKotlin UP-TO-DATE
+> Task :server:verifyRuntimeSecurity
+> Task :observability-server:compileTestKotlin
+> Task :observability-server:compileTestJava NO-SOURCE
+> Task :observability-server:testClasses UP-TO-DATE
+> Task :observability-server:test
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-final-validation/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 18s
+45 actionable tasks: 8 executed, 37 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

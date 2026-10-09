@@ -1,0 +1,490 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewNotificationContextTests[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:08.357Z" hostname="Mikes-MacBook-Pro.local" time="0.447">
+  <properties/>
+  <testcase name="context authenticated partial push metadata survives live and offline replay[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewNotificationContextTests" time="0.037"/>
+  <testcase name="repeat notification context diagnostic[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewNotificationContextTests" time="0.41"/>
+  <system-out><![CDATA[notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 0
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 1
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 2
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 3
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 4
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 5
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 6
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 7
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 8
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 9
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 10
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 11
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 12
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 13
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 14
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 15
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 16
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 17
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 18
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+notification context attempt 19
+notification context: server setup
+notification context: create receiver
+notification context: awaitConnected after create receiver
+notification context: client connected
+notification context: create sender
+notification context: awaitConnected after create sender
+notification context: client connected
+notification context: subscribe receiver
+notification context: write live
+notification context: await live notification
+notification context: close live receiver
+notification context: live receiver closed
+notification context: write offline
+notification context: await offline inbox
+notification context: create replacement
+notification context: awaitConnected after create replacement
+notification context: client connected
+notification context: await replay
+notification context: cleanup receiver
+notification context: cleanup sender
+notification context: cleanup database
+notification context: body complete awaiting fixture cleanup
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

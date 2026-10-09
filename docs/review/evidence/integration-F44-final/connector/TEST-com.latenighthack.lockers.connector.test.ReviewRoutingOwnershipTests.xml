@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewRoutingOwnershipTests[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:11.741Z" hostname="Mikes-MacBook-Pro.local" time="0.058">
+  <properties/>
+  <testcase name="closing routing cancels and joins active calls before disposing their transports[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRoutingOwnershipTests" time="0.012"/>
+  <testcase name="the documented HTTP factory reaches real bare and full URL redirects[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRoutingOwnershipTests" time="0.012"/>
+  <testcase name="room and session owners with identical bytes occupy distinct namespaces[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRoutingOwnershipTests" time="0.002"/>
+  <testcase name="concurrent routing creates one owned transport per address[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRoutingOwnershipTests" time="0.029"/>
+  <testcase name="bounded routing never evicts an active transport and disposes idle owners once[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRoutingOwnershipTests" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

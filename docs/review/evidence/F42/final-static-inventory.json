@@ -1,0 +1,46 @@
+{
+  "checkpoint": "4a93a9e",
+  "rawLog": "/tmp/lockers-static-pass4-initial.log",
+  "modules": {
+    "server": {
+      "addedCount": 23,
+      "removedCount": 0,
+      "addedByRule": {
+        "MaxLineLength": 15,
+        "WildcardImport": 8
+      },
+      "removedByRule": {},
+      "addedIds": [
+        "MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$subscriptionStore",
+        "MaxLineLength:ShardedDispatcher.kt$ShardedDispatcher$/** For effects already serialized by a storage transaction: never wait on a key mutex while owning that transaction. */",
+        "MaxLineLength:ShardedDispatcher.kt$ShardedDispatcher$entry = if (serialize) locks.compute(id) { _, existing -> (existing ?: Entry()).also { it.users++ } }!! else null",
+        "MaxLineLength:ShardedDispatcherTest.kt$ShardedDispatcherTest$val effect = launch { dispatcher.runWithoutKeyLock(\"one\") { effectEntered.complete(Unit); effectRelease.await() } }",
+        "MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$@Test",
+        "MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$DriverManager.getConnection(base).use { it.createStatement().use { statement -> statement.execute(\"CREATE SCHEMA $schema\") } }",
+        "MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$DriverManager.getConnection(base).use { it.createStatement().use { statement -> statement.execute(\"DROP SCHEMA $schema CASCADE\") } }",
+        "MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$LocalRoomOwnership()",
+        "MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$SessionSigning.context(SessionSigning.SUBSCRIPTION, sid, SHA256.digest(request.toByteArray()), issued, nonce)",
+        "MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$assertEquals(1L, realSubscriptions.withIntent(ServerSessionId(sid.rawValue), ServerRoomId(room.rawValue), 0, false) { error(\"stale effect\") }.currentRevision)",
+        "MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$assertEquals(listOf(ServerRoomId(room.rawValue)), realSubscriptions.getAllSubscriptions(ServerSessionId(sid.rawValue)))",
+        "MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$grant = LockGrant(LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM), publicKeyOf(roomKey.publicKey.encode()))",
+        "MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$object : SessionGatewayDiscovery { override suspend fun findServer(sessionId: SessionId): SessionGatewayService? = null }",
+        "MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest$sessions.updateSession(ServerSession(sessionId = ServerSessionId(sid.rawValue), authorizedPublicKey = identity.publicKey.encode()))",
+        "MaxLineLength:SubscriptionLockOrderTest.kt$SubscriptionLockOrderTest.<no name provided>$override suspend",
+        "WildcardImport:SubscriptionLockOrderTest.kt$import com.latenighthack.ktcrypto.*",
+        "WildcardImport:SubscriptionLockOrderTest.kt$import com.latenighthack.lockers.common.v1.*",
+        "WildcardImport:SubscriptionLockOrderTest.kt$import com.latenighthack.lockers.room.v1.*",
+        "WildcardImport:SubscriptionLockOrderTest.kt$import com.latenighthack.lockers.server.services.room.v1.*",
+        "WildcardImport:SubscriptionLockOrderTest.kt$import com.latenighthack.lockers.server.services.session.v1.*",
+        "WildcardImport:SubscriptionLockOrderTest.kt$import com.latenighthack.lockers.server.storage.v1.*",
+        "WildcardImport:SubscriptionLockOrderTest.kt$import kotlin.test.*",
+        "WildcardImport:SubscriptionLockOrderTest.kt$import kotlinx.coroutines.*"
+      ],
+      "removedIds": []
+    }
+  },
+  "findingOccurrences": 23,
+  "occurrencesByRule": {
+    "MaxLineLength": 15,
+    "WildcardImport": 8
+  }
+}

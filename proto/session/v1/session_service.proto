@@ -61,6 +61,10 @@ message WatchSessionResponse {
             SERVICE_UNAVAILABLE = 7;
             // This node does not own the session's shard; reconnect to `redirect.owner_address`.
             EPOCH_STALE = 8;
+            RESOURCE_EXHAUSTED = 9;
+            INVALID_REQUEST = 11;
+            // Permanent reserved-ID namespace capacity; retrying cannot admit a new identity.
+            NAMESPACE_EXHAUSTED = 12;
             UNKNOWN_ERROR = 10;
         }
 
@@ -82,6 +86,7 @@ message WatchSessionResponse {
 }
 
 message DestroySessionRequest {
+  common.v1.SessionProof proof = 20;
     common.v1.SessionId session_id = 1;
     common.v1.Signature sequence_key_signature = 2;
 }

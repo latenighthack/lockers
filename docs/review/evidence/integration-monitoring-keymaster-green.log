@@ -1,0 +1,187 @@
+Type-safe project accessors is an incubating feature.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://github.com/yarnpkg/yarn/releases/download' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :keymaster:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :keymaster:processResources NO-SOURCE
+> Task :keymaster:processTestResources NO-SOURCE
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:compileKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :observability-api:jvmMainClasses UP-TO-DATE
+> Task :observability-api:jvmJar UP-TO-DATE
+> Task :observability-api:compileTestKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmTestJava NO-SOURCE
+> Task :observability-api:jvmTestProcessResources NO-SOURCE
+> Task :observability-api:processJvmTestResources SKIPPED
+> Task :observability-api:jvmTestClasses UP-TO-DATE
+> Task :observability-api:jvmTest UP-TO-DATE
+> Task :observability-connector:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-connector:jvmProcessResources NO-SOURCE
+> Task :observability-connector:processJvmMainResources SKIPPED
+> Task :observability-connector:jvmTestProcessResources NO-SOURCE
+> Task :observability-connector:processJvmTestResources SKIPPED
+> Task :observability-server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:compileKotlin UP-TO-DATE
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:processResources NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :sharding-core:jar UP-TO-DATE
+> Task :server:kspKotlin UP-TO-DATE
+> Task :server:compileKotlin UP-TO-DATE
+> Task :server:compileJava NO-SOURCE
+> Task :server:processResources NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar UP-TO-DATE
+> Task :observability-server:compileKotlin UP-TO-DATE
+> Task :observability-server:compileJava NO-SOURCE
+> Task :observability-server:processResources NO-SOURCE
+> Task :observability-server:classes UP-TO-DATE
+> Task :observability-server:jar UP-TO-DATE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:compileKotlin UP-TO-DATE
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:processResources NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar UP-TO-DATE
+> Task :observability-server:processTestResources NO-SOURCE
+> Task :kotlinKotlinNpmCachesSetup
+> Task :observability-connector:compileKotlinJvm
+> Task :keymaster:compileKotlin
+> Task :kotlinNodeJsSetup UP-TO-DATE
+> Task :keymaster:compileJava NO-SOURCE
+> Task :keymaster:classes UP-TO-DATE
+> Task :keymaster:jar
+> Task :observability-connector:compileJvmMainJava NO-SOURCE
+> Task :observability-connector:jvmMainClasses
+> Task :observability-connector:jvmJar
+> Task :kotlinRestoreYarnLock UP-TO-DATE
+> Task :kotlinYarnSetup UP-TO-DATE
+> Task :api:jsPackageJson
+> Task :api:jsTestPackageJson
+> Task :observability-api:jsPackageJson UP-TO-DATE
+> Task :connector:jsPackageJson
+> Task :connector:jsTestPackageJson
+> Task :observability-api:jsTestPackageJson UP-TO-DATE
+> Task :observability-connector:jsPackageJson UP-TO-DATE
+> Task :observability-connector:jsTestPackageJson UP-TO-DATE
+> Task :api:jsPublicPackageJson UP-TO-DATE
+> Task :api:jsTestPublicPackageJson
+> Task :connector:jsPublicPackageJson UP-TO-DATE
+> Task :connector:jsTestPublicPackageJson
+> Task :observability-api:jsPublicPackageJson UP-TO-DATE
+> Task :observability-api:jsTestPublicPackageJson
+> Task :observability-connector:jsPublicPackageJson UP-TO-DATE
+> Task :observability-connector:jsTestPublicPackageJson
+> Task :kotlinPackageJsonUmbrella
+> Task :rootPackageJson UP-TO-DATE
+> Task :kotlinNpmInstall UP-TO-DATE
+> Task :kotlinStoreYarnLock UP-TO-DATE
+> Task :keymaster:compileTestKotlin
+> Task :observability-api:compileKotlinJs UP-TO-DATE
+> Task :keymaster:compileTestJava NO-SOURCE
+> Task :keymaster:testClasses UP-TO-DATE
+> Task :observability-connector:compileTestKotlinJvm
+> Task :observability-server:compileTestKotlin
+> Task :keymaster:test
+> Task :observability-connector:compileJvmTestJava NO-SOURCE
+> Task :observability-connector:jvmTestClasses
+> Task :observability-connector:jvmTest
+> Task :observability-server:compileTestJava NO-SOURCE
+> Task :observability-server:testClasses UP-TO-DATE
+> Task :observability-server:test
+> Task :observability-api:jsProcessResources NO-SOURCE
+> Task :observability-api:jsMainClasses UP-TO-DATE
+> Task :observability-api:compileTestKotlinJs UP-TO-DATE
+> Task :observability-api:jsTestProcessResources NO-SOURCE
+> Task :observability-api:jsTestClasses UP-TO-DATE
+> Task :observability-api:compileTestDevelopmentExecutableKotlinJs UP-TO-DATE
+> Task :observability-api:jsTestTestDevelopmentExecutableCompileSync UP-TO-DATE
+> Task :observability-api:kotlinNodeJsSetup UP-TO-DATE
+> Task :observability-api:jsNodeTest UP-TO-DATE
+> Task :observability-connector:jsProcessResources NO-SOURCE
+> Task :observability-connector:jsTestProcessResources NO-SOURCE
+> Task :observability-connector:compileKotlinJs
+> Task :observability-connector:kotlinNodeJsSetup
+> Task :observability-connector:jsMainClasses
+> Task :observability-api:downloadKotlinNativeDistribution UP-TO-DATE
+> Task :observability-connector:compileTestKotlinJs
+> Task :observability-api:compileKotlinIosSimulatorArm64 UP-TO-DATE
+> Task :observability-connector:jsTestClasses
+> Task :observability-api:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :observability-api:iosSimulatorArm64MainKlibrary UP-TO-DATE
+> Task :observability-api:compileTestKotlinIosSimulatorArm64 UP-TO-DATE
+> Task :observability-api:linkDebugTestIosSimulatorArm64 UP-TO-DATE
+> Task :observability-api:iosSimulatorArm64Test UP-TO-DATE
+> Task :observability-connector:downloadKotlinNativeDistribution
+> Task :observability-connector:compileKotlinIosSimulatorArm64
+> Task :observability-connector:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :observability-connector:iosSimulatorArm64MainKlibrary
+> Task :observability-connector:compileTestKotlinIosSimulatorArm64
+> Task :observability-connector:compileTestDevelopmentExecutableKotlinJs
+> Task :observability-connector:linkDebugTestIosSimulatorArm64
+> Task :observability-connector:jsTestTestDevelopmentExecutableCompileSync
+> Task :observability-connector:jsNodeTest
+> Task :observability-connector:iosSimulatorArm64Test
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-burndown/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 10s
+76 actionable tasks: 33 executed, 43 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

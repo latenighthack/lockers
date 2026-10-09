@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.cluster.ClusterTopologyTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:00.385Z" hostname="Mikes-MacBook-Pro.local" time="0.003">
+  <properties/>
+  <testcase name="bareHostPortUsesHostAsNodeId()" classname="com.latenighthack.lockers.server.cluster.ClusterTopologyTest" time="0.0"/>
+  <testcase name="parsesExplicitNodeEqualsAddressEntries()" classname="com.latenighthack.lockers.server.cluster.ClusterTopologyTest" time="0.0"/>
+  <testcase name="malformedAddressFailsFast()" classname="com.latenighthack.lockers.server.cluster.ClusterTopologyTest" time="0.001"/>
+  <testcase name="duplicateNodeIdFailsFast()" classname="com.latenighthack.lockers.server.cluster.ClusterTopologyTest" time="0.001"/>
+  <testcase name="advertiseAddressDisagreementFailsFast()" classname="com.latenighthack.lockers.server.cluster.ClusterTopologyTest" time="0.0"/>
+  <testcase name="selfMustAppearInPeers()" classname="com.latenighthack.lockers.server.cluster.ClusterTopologyTest" time="0.0"/>
+  <testcase name="advertiseAddressAgreeingWithSelfEntryIsAccepted()" classname="com.latenighthack.lockers.server.cluster.ClusterTopologyTest" time="0.001"/>
+  <testcase name="missingNodeIdWithPeersFailsFast()" classname="com.latenighthack.lockers.server.cluster.ClusterTopologyTest" time="0.0"/>
+  <testcase name="peerEntryConstructorRejectsSelfAbsent()" classname="com.latenighthack.lockers.server.cluster.ClusterTopologyTest" time="0.0"/>
+  <testcase name="ipv6HostWithPortParses()" classname="com.latenighthack.lockers.server.cluster.ClusterTopologyTest" time="0.0"/>
+  <testcase name="nullPeersMeansNoCluster()" classname="com.latenighthack.lockers.server.cluster.ClusterTopologyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

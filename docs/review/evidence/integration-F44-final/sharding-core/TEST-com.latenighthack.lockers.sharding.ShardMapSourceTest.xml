@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.sharding.ShardMapSourceTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:16.002Z" hostname="Mikes-MacBook-Pro.local" time="0.01">
+  <properties/>
+  <testcase name="a node routes its own owned rooms as local()" classname="com.latenighthack.lockers.sharding.ShardMapSourceTest" time="0.003"/>
+  <testcase name="epoch increases monotonically on each membership change()" classname="com.latenighthack.lockers.sharding.ShardMapSourceTest" time="0.003"/>
+  <testcase name="every node resolves the same owner at the same topology()" classname="com.latenighthack.lockers.sharding.ShardMapSourceTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

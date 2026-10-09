@@ -7,6 +7,7 @@ option java_package = "com.latenighthack.lockers.room.v1";
 import "common/v1/model.proto";
 
 service Room {
+  rpc GetLockScope(GetLockScopeRequest) returns (GetLockScopeResponse);
   rpc Capabilities(CapabilitiesRequest) returns (CapabilitiesResponse);
   rpc SubscribeAndSnapshot(SubscribeAndSnapshotRequest) returns (SubscribeAndSnapshotResponse);
   rpc GetLockers(GetLockersRequest) returns (GetLockersResponse);
@@ -18,9 +19,11 @@ service Room {
   rpc DeleteLocker(DeleteLockerRequest) returns (DeleteLockerResponse);
   rpc LockLocker(LockLockerRequest) returns (LockLockerResponse);
   rpc UnlockLocker(UnlockLockerRequest) returns (UnlockLockerResponse);
+  rpc GetWriteOutcome(GetWriteOutcomeRequest) returns (GetWriteOutcomeResponse);
 }
 
 message SubscriptionRequest {
+  common.v1.SessionProof proof = 20;
   common.v1.SessionId session_id = 1;
   common.v1.RoomId room_id = 2;
 
@@ -28,6 +31,9 @@ message SubscriptionRequest {
     Subscribe subscribe = 10;
     Unsubscribe unsubscribe = 11;
   }
+
+  // Monotonic durable intent generation, signed by the session proof.
+  int64 intent_revision = 3;
 
   message Subscribe {
   }
@@ -38,8 +44,13 @@ message SubscriptionRequest {
 
 message SubscriptionResponse {
   Result result = 1;
+  // Durable current generation for this session and room; no mutation on STALE_INTENT.
+  int64 current_revision = 2;
   enum Result {
     OK = 0;
+    // Invalid stored body: metadata identifies the version requiring owner repair.
+    INVALID_DATA = 2;
+    STALE_INTENT = 3;
     UNKNOWN_ERROR = 10;
   }
 }
@@ -88,6 +99,9 @@ message PostLockerChangeResponse {
   int64 version = 3;
   common.v1.LockState lock_state = 4;
   common.v1.ShardRedirect redirect = 5;
+  bytes write_request_id = 8;
+  bool agent_indeterminate = 9;
+  repeated WriteSourceVersion source_versions = 10;
 }
 
 message DeleteLockerRequest {
@@ -98,6 +112,8 @@ message DeleteLockerRequest {
   // Required when the effective scope is locked: signs
   // writeContext(room_id, locker_id, new_version, empty-hash).
   common.v1.Signature write_signature = 5;
+  // Immutable retry identity; empty only for legacy callers.
+  bytes write_request_id = 6;
 
   common.v1.Notification notification = 10;
 }
@@ -112,12 +128,14 @@ message DeleteLockerResponse {
     NOT_AUTHORIZED = 4;
     // This node does not own the room's shard; retry against `redirect.owner_address`.
     NOT_OWNER = 5;
+    REQUEST_ID_REUSED = 6;
     UNKNOWN_ERROR = 10;
   }
   common.v1.Locker existing_locker = 2;
   int64 version = 3;
   common.v1.LockState lock_state = 4;
   common.v1.ShardRedirect redirect = 5;
+  bytes write_request_id = 6;
 }
 
 message LockLockerRequest {
@@ -167,17 +185,25 @@ message UnlockLockerResponse {
 message GetAllLockersRequest {
   common.v1.RoomId room_id = 1;
   common.v1.LockerKeyspace keyspace = 2;
+  // 0 preserves the complete legacy response; oversized legacy reads fail explicitly.
+  // Positive sizes select immutable leased snapshot pages (maximum 64 items).
+  int32 page_size = 10;
+  bytes page_token = 11;
 }
 
 message GetAllLockersResponse {
   Result result = 1;
   enum Result {
     OK = 0;
+    // Invalid stored body: metadata identifies the version requiring owner repair.
+    INVALID_DATA = 2;
     NOT_ALLOWED = 1;
     UNKNOWN_ERROR = 10;
   }
 
   repeated common.v1.IdentifiedLocker lockers = 2;
+  int64 room_sequence = 3;
+  bytes next_page_token = 4;
 }
 
 message GetLockerRequest {
@@ -189,6 +215,8 @@ message GetLockerResponse {
   Result result = 1;
   enum Result {
     OK = 0;
+    // Invalid stored body: metadata identifies the version requiring owner repair.
+    INVALID_DATA = 2;
     NOT_ALLOWED = 1;
     UNKNOWN_ERROR = 10;
   }
@@ -198,22 +226,34 @@ message GetLockerResponse {
 
 message CapabilitiesRequest {}
 message CapabilitiesResponse {
+  bool authority_v2 = 7;
   bool subscribe_and_snapshot = 1;
   bool get_lockers = 2;
   bool post_locker_changes = 3;
   bool write_receipts = 4;
   int32 max_batch_items = 5;
   int32 max_batch_bytes = 6;
+  bool snapshot_paging = 8;
+  bool write_outcomes = 14;
+  bool delete_receipts = 15;
+  bool subscription_revisions = 16;
 }
 message SubscribeAndSnapshotRequest {
+  common.v1.SessionProof proof = 20;
   common.v1.RoomId room_id = 1;
   common.v1.SessionId session_id = 2;
   repeated common.v1.LockerKeyspace keyspaces = 3;
+  int32 page_size = 10;
+  bytes page_token = 11;
+  // The same subscription intent generation is used on every snapshot page.
+  int64 intent_revision = 4;
 }
 message SubscribeAndSnapshotResponse {
   SubscriptionResponse.Result result = 1;
   repeated common.v1.IdentifiedLocker lockers = 2;
   int64 room_sequence = 3;
+  bytes next_page_token = 4;
+  int64 current_revision = 5;
 }
 message GetLockersRequest {
   common.v1.RoomId room_id = 1;
@@ -235,4 +275,41 @@ message PostLockerChangesResponse {
   common.v1.ShardRedirect redirect = 4;
   bool agent_failed = 5;
   bool agent_pending = 6;
+  bytes write_request_id = 7;
+  bool agent_indeterminate = 8;
+  repeated WriteSourceVersion source_versions = 9;
+}
+
+// Public metadata read, following GetLocker's read contract. No payloads or request digests.
+message GetWriteOutcomeRequest {
+  common.v1.RoomId room_id = 1;
+  bytes write_request_id = 2;
+}
+message WriteSourceVersion {
+  common.v1.LockerId locker_id = 1;
+  int64 version = 2;
+}
+message WriteOutcome {
+  enum AgentState { UNKNOWN = 0; PENDING = 1; RUNNING = 2; APPLIED = 3; FAILED = 4; INDETERMINATE = 5; }
+  common.v1.RoomId room_id = 1;
+  bytes write_request_id = 2;
+  repeated WriteSourceVersion source_versions = 3;
+  AgentState agent_state = 4;
+}
+message GetWriteOutcomeResponse {
+  enum Result { OK = 0; NOT_FOUND = 1; INVALID = 2; UNKNOWN_ERROR = 10; }
+  Result result = 1;
+  WriteOutcome outcome = 2;
+}
+
+// Explicit authority-state discovery for optimistic V2 grant/unlock signing.
+message GetLockScopeRequest {
+  common.v1.RoomId room_id = 1;
+  common.v1.LockScope scope = 2;
+}
+message GetLockScopeResponse {
+  enum Result { OK = 0; INVALID = 1; }
+  Result result = 1;
+  common.v1.LockState scope_state = 2;
+  common.v1.LockState parent_state = 3;
 }

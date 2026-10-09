@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.claim.ExternalClaimLoadDriverTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:17:28.463Z" hostname="Mikes-MacBook-Pro.local" time="15.549">
+  <properties/>
+  <testcase name="drive external servers at the target write load()" classname="com.latenighthack.lockers.server.claim.ExternalClaimLoadDriverTest" time="15.542"/>
+  <system-out><![CDATA[== monolith baseline (1 node(s), 100 rooms) ==
+writes=712 errors=0 redirectsFollowed=0
+latency p50=8.54ms p99=237.33ms max=341.03ms
+
+127.0.0.1:18095 renew.max=0.0ms
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

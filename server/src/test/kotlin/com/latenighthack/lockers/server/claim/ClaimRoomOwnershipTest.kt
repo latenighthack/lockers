@@ -127,7 +127,7 @@ class ClaimRoomOwnershipTest {
         store.releaseAll("n1")
         store.claim(room("r1"), "thief", "thief:9", ttlMs = 15_000)
         ownership.demote(room("r1"))
-        assertThat(ownership.resolve(0, room("r1"))).isEqualTo(RoomOwner.Remote("thief:9", 1))
+        assertThat(ownership.resolve(0, room("r1"))).isEqualTo(RoomOwner.Remote("thief:9", 2))
     }
 
     @Test

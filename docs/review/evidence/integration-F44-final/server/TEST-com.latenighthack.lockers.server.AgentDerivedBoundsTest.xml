@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.AgentDerivedBoundsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:17.261Z" hostname="Mikes-MacBook-Pro.local" time="0.486">
+  <properties/>
+  <testcase name="derived event budget includes its protocol framing()" classname="com.latenighthack.lockers.server.AgentDerivedBoundsTest" time="0.167"/>
+  <testcase name="invalid derived identity fails before any output is applied()" classname="com.latenighthack.lockers.server.AgentDerivedBoundsTest" time="0.136"/>
+  <testcase name="derived version exhaustion rolls back all derived lockers and events()" classname="com.latenighthack.lockers.server.AgentDerivedBoundsTest" time="0.066"/>
+  <testcase name="derived batch count cannot bypass admission through a trusted agent()" classname="com.latenighthack.lockers.server.AgentDerivedBoundsTest" time="0.113"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

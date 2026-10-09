@@ -64,10 +64,10 @@ suspend fun <T> LockersTelemetry.observe(
 ): T {
     if (this === LockersTelemetry.NONE) return block()
     val began = TimeSource.Monotonic.markNow()
-    val span = try { startSpan(operation) } catch (_: Exception) { null }
+    val span = try { startSpan(operation) } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) { null }
     var result = TelemetryOutcome.ERROR
     try {
-        return (if (span == null) block() else withContext(span.context + TelemetryContext(span.context.minusKey(Job), span.traceId, span.spanId)) { block() }).also { result = outcome(it) }
+        return (if (span == null) block() else withContext(span.context.minusKey(Job) + TelemetryContext(span.context.minusKey(Job), span.traceId, span.spanId)) { block() }).also { result = outcome(it) }
     } catch (cancelled: CancellationException) { result = TelemetryOutcome.CANCELLED; throw cancelled }
     finally {
         try { record(operation, result, began.elapsedNow().inWholeNanoseconds) } catch (_: Exception) {}

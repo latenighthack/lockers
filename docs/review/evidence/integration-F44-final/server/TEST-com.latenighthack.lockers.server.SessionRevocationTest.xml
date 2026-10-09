@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.SessionRevocationTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:40.538Z" hostname="Mikes-MacBook-Pro.local" time="0.538">
+  <properties/>
+  <testcase name="authenticatedDestroyRemovesAuthorityAndReservesTheId()" classname="com.latenighthack.lockers.server.SessionRevocationTest" time="0.008"/>
+  <testcase name="destroyedAuthorityOnlyConfirmsFreshDestroyAndSurvivesSqliteReopen()" classname="com.latenighthack.lockers.server.SessionRevocationTest" time="0.039"/>
+  <testcase name="independentPostgresHandleCanConfirmCommittedDestruction()" classname="com.latenighthack.lockers.server.SessionRevocationTest" time="0.489"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

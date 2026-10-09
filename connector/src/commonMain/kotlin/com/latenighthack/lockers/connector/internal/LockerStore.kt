@@ -10,6 +10,27 @@ import com.latenighthack.lockers.connector.storage.v1.fromByteArray
 import com.latenighthack.lockers.connector.storage.v1.toByteArray
 
 interface LockerStore {
+    suspend fun archivedRatchets(): List<ArchivedRatchet> = emptyList()
+    suspend fun hasArchivedRatchet(room: RoomId): Boolean = archivedRatchets().any { it.room == room }
+    suspend fun archiveRatchet(value: ArchivedRatchet): Unit = throw UnsupportedOperationException("Durable ratchet archive required")
+    suspend fun matchingRatchet(room: RoomId, publicKey: ByteArray): ArchivedRatchet? = null
+    suspend fun forgetArchivedRatchet(value: ArchivedRatchet): Unit = throw UnsupportedOperationException("Durable ratchet archive required")
+    suspend fun pruneEventsThrough(cursor: Long): Unit = throw UnsupportedOperationException("Application cursor retention required")
+    suspend fun acceptAtomically(action: suspend () -> Unit) = action()
+    suspend fun forgetLocker(expected: StoredLocker) {
+        deleteLocker(RoomId(expected.roomIdRawValue), LockerKeyspace(expected.lockerKeyspace), LockerId(expected.lockerIdRawValue))
+    }
+    suspend fun acceptLocker(locker: StoredLocker) = saveLocker(locker)
+    fun changesAfter(cursor: Long): kotlinx.coroutines.flow.Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable change journal required")
+    fun liveChanges(): kotlinx.coroutines.flow.Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable change journal required")
+
+    suspend fun pendingRatchets(): List<PendingRatchet> = emptyList()
+    fun pendingRatchetsFlow(): kotlinx.coroutines.flow.Flow<PendingRatchet> = kotlinx.coroutines.flow.flow { pendingRatchets().forEach { emit(it) } }
+    fun archivedRatchetsFlow(): kotlinx.coroutines.flow.Flow<ArchivedRatchet> = kotlinx.coroutines.flow.flow { archivedRatchets().forEach { emit(it) } }
+    suspend fun acknowledgeRatchetUncertainty(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest): Unit = throw UnsupportedOperationException("Durable uncertainty acknowledgment required")
+    suspend fun saveRatchet(value: PendingRatchet): Unit = throw UnsupportedOperationException("Durable ratchet journal required")
+    suspend fun clearRatchet(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest): Unit = throw UnsupportedOperationException("Durable ratchet journal required")
+
     suspend fun saveLocker(locker: StoredLocker)
 
     suspend fun getAllLockers(): List<StoredLocker>
@@ -23,33 +44,72 @@ interface LockerStore {
     suspend fun deleteLocker(roomId: RoomId, keyspace: LockerKeyspace, lockerId: LockerId)
 }
 
-class LockerStoreImpl(delegate: Database) : LockerStore, Store<StoredLocker>(delegate, LockerStoreImplDefinitionV1) {
+class LockerStoreImpl(private val database: Database, private val policy: com.latenighthack.lockers.connector.ConnectorRetentionPolicy = com.latenighthack.lockers.connector.ConnectorRetentionPolicy()) : LockerStore, Store<StoredLocker>(database, LockerStoreImplDefinitionV1) {
+    private val archive = RatchetArchive(database)
+    override suspend fun archivedRatchets() = archive.archives()
+    override suspend fun hasArchivedRatchet(room: RoomId) = archive.hasRoom(room)
+    override suspend fun archiveRatchet(value: ArchivedRatchet) = archive.put(value)
+    override suspend fun matchingRatchet(room: RoomId, publicKey: ByteArray) = archive.matching(room, publicKey)
+    override suspend fun forgetArchivedRatchet(value: ArchivedRatchet) = archive.remove(value)
+    private val eventJournal = ConnectorEventJournal(database, policy)
+    override suspend fun acceptAtomically(action: suspend () -> Unit) { prepare(); database.transaction("connector-accept") { action() } }
+    override suspend fun forgetLocker(expected: StoredLocker) {
+        val snapshot = expected.detached()
+        prepare(); database.transaction("connector-accept") {
+            val room = RoomId(snapshot.roomIdRawValue); val id = LockerId(snapshot.lockerIdRawValue, LockerKeyspace(snapshot.lockerKeyspace))
+            val current = getLocker(room, id.keyspace!!, id)
+            if (current != snapshot) return@transaction
+            deleteLocker(room, id.keyspace!!, id)
+            eventJournal.append(1, snapshot.copy(deleted = true, lockerPayload = byteArrayOf()).toByteArray(), kotlin.random.Random.nextBytes(32))
+        }
+    }
+    override suspend fun pruneEventsThrough(cursor: Long) = eventJournal.pruneThrough(cursor)
+    override fun changesAfter(cursor: Long) = eventJournal.after(cursor)
+    override fun liveChanges() = eventJournal.live()
+    override suspend fun acceptLocker(locker: StoredLocker) {
+        val snapshot = locker.detached()
+        prepare(); database.transaction("connector-accept") {
+            if (getLocker(RoomId(snapshot.roomIdRawValue), LockerKeyspace(snapshot.lockerKeyspace), LockerId(snapshot.lockerIdRawValue)) == null && database.count(LockerStoreImplDefinitionV1.storeName, IndexedQuery(LockerStoreImplDefinitionV1.roomIdKey.key, 1)) >= policy.maxCachedLockers)
+                throw com.latenighthack.lockers.connector.ConnectorRetentionExceededException("Locker cache admission limit exceeded")
+            save(snapshot)
+            eventJournal.append(1, snapshot.toByteArray(), kotlin.random.Random.nextBytes(32))
+        }
+    }
+    private val ratchetJournal = RatchetJournal(database)
+    override suspend fun pendingRatchets() = ratchetJournal.pending()
+    override fun pendingRatchetsFlow() = ratchetJournal.entries()
+    override fun archivedRatchetsFlow() = archive.entries()
+    override suspend fun acknowledgeRatchetUncertainty(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest) = ratchetJournal.acknowledge(request)
+    override suspend fun saveRatchet(value: PendingRatchet) = ratchetJournal.put(value)
+    override suspend fun clearRatchet(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest) = ratchetJournal.remove(request)
     private val roomIdKey = LockerStoreImplDefinitionV1.roomIdKey
     private val lockerIdKey = LockerStoreImplDefinitionV1.lockerIdKey
     private val lockerKeyspaceKey = LockerStoreImplDefinitionV1.lockerKeyspaceKey
     private val roomIdLockerKeyspaceKey = LockerStoreImplDefinitionV1.roomIdLockerKeyspaceKey
     private val roomIdLockerIdLockerKeyspaceKey = LockerStoreImplDefinitionV1.roomIdLockerIdLockerKeyspaceKey
 
-    override suspend fun saveLocker(locker: StoredLocker) = save(locker)
+    override suspend fun saveLocker(locker: StoredLocker) = save(locker.detached())
 
-    override suspend fun getAllLockers() = getAll()
+    override suspend fun getAllLockers() = getAll().map { it.detached() }
 
     override suspend fun getAllLockers(roomId: RoomId, keyspace: LockerKeyspace) = getAll(roomIdLockerKeyspaceKey.eq(listOf(
-        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue),
+        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue.copyOf()),
         BoundStoreKey.LongKey(lockerKeyspaceKey.name.value, keyspace.value)
-    )))
+    ))).map { it.detached() }
 
-    override suspend fun getAllLockers(roomId: RoomId) = getAll(roomIdKey.eq(roomId.rawValue))
+    override suspend fun getAllLockers(roomId: RoomId) = getAll(roomIdKey.eq(roomId.rawValue.copyOf())).map { it.detached() }
 
     override suspend fun getLocker(roomId: RoomId, keyspace: LockerKeyspace, lockerId: LockerId) = get(roomIdLockerIdLockerKeyspaceKey.eq(listOf(
-        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue),
-        BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.rawValue),
+        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue.copyOf()),
+        BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.rawValue.copyOf()),
         BoundStoreKey.LongKey(lockerKeyspaceKey.name.value, keyspace.value)
-    )))
+    )))?.detached()
 
     override suspend fun deleteLocker(roomId: RoomId, keyspace: LockerKeyspace, lockerId: LockerId) = delete(roomIdLockerIdLockerKeyspaceKey.eq(listOf(
-        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue),
-        BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.rawValue),
+        BoundStoreKey.SerializedKey(roomIdKey.name.value, roomId.rawValue.copyOf()),
+        BoundStoreKey.SerializedKey(lockerIdKey.name.value, lockerId.rawValue.copyOf()),
         BoundStoreKey.LongKey(lockerKeyspaceKey.name.value, keyspace.value)
     )))
 }
+
+private fun StoredLocker.detached() = StoredLocker.fromByteArray(toByteArray())

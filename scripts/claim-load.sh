@@ -13,12 +13,19 @@
 # Knobs (defaults in parentheses): LOCKERS_LOAD_NODES (2), LOCKERS_LOAD_ROOMS (1000),
 # LOCKERS_LOAD_WPS (50), LOCKERS_LOAD_DURATION_SEC (30; the doc's full soak is 600).
 # Keep wps × duration ≥ rooms so every room is actually exercised.
+# Use a dedicated temporary database: claims retain permanent history. Paired local validation
+# accepts LOCKERS_FH_WORKSPACE and LOCKERS_MAVEN_REPO for explicit isolated Gradle inputs.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 : "${LOCKERS_DB_URL:?set LOCKERS_DB_URL to a Postgres JDBC URL}"
 
 NODES="${LOCKERS_LOAD_NODES:-2}"
+# All replicas share one ephemeral private-peer credential unless the operator supplied one.
+export LOCKERS_PEER_TOKEN="${LOCKERS_PEER_TOKEN:-$(python3 -c 'import secrets; print(secrets.token_hex(32))')}"
+GRADLE_ARGS=()
+if [[ -n "${LOCKERS_FH_WORKSPACE:-}" ]]; then GRADLE_ARGS+=("-PfhWorkspace=$LOCKERS_FH_WORKSPACE"); fi
+if [[ -n "${LOCKERS_MAVEN_REPO:-}" ]]; then GRADLE_ARGS+=("-Dmaven.repo.local=$LOCKERS_MAVEN_REPO"); fi
 BASE_PORT=18091
 PORT_MONO=$((BASE_PORT + 2 * NODES)) ADMIN_MONO=$((BASE_PORT + 2 * NODES + 1))
 LOG_DIR="$(mktemp -d /tmp/claim-load.XXXXXX)"
@@ -31,7 +38,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo "== building server distribution =="
-./gradlew -q :server:run:installDist
+./gradlew -q :server:run:installDist "${GRADLE_ARGS[@]}"
 BIN=server/run/build/install/run/bin/run
 
 wait_ready() {
@@ -49,7 +56,7 @@ start_claim_node() {
   local name=$1 port=$2 admin=$3
   LOCKERS_ROOM_OWNERSHIP=claim \
   LOCKERS_NODE_ID="$name" \
-  LOCKERS_ADVERTISE_ADDR="127.0.0.1:${port}" \
+  LOCKERS_ADVERTISE_ADDR="127.0.0.1:${admin}" \
   LOCKERS_HTTP_PORT="$port" \
   LOCKERS_ADMIN_PORT="$admin" \
   LOCKERS_DB_URL="$LOCKERS_DB_URL" \
@@ -62,7 +69,7 @@ run_driver() {
   LOCKERS_LOAD_TARGETS="$targets" \
   LOCKERS_LOAD_LABEL="$label" \
   LOCKERS_TEST_PG_URL="$pg_url" \
-    ./gradlew :server:test --rerun --tests '*ExternalClaimLoadDriverTest' -q ||
+    ./gradlew :server:test --rerun --tests '*ExternalClaimLoadDriverTest' -q "${GRADLE_ARGS[@]}" ||
     { echo "driver failed for ${label}; server log tails:" >&2; tail -20 "${LOG_DIR}"/*.log >&2; exit 1; }
   # Surface the driver's printed report from the test's stdout capture.
   find server/build/test-results/test -name '*ExternalClaimLoadDriverTest.xml' \

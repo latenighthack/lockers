@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues />
+  <CurrentIssues>
+    <ID>EmptyFunctionBlock:TelemetryCancellationTest.kt$TelemetryCancellationTest.&lt;no name provided&gt;.&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:TelemetryTest.kt$TelemetryTest.&lt;no name provided&gt;.&lt;no name provided&gt;${}</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$.001</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$.005</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$.01</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$.025</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$.05</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$.1</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$.25</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$.5</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$10.0</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$16</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$1_000_000</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$2.5</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$30.0</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$32</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$5.0</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$60.0</ID>
+    <ID>MagicNumber:Telemetry.kt$TelemetryContract$86_400.0</ID>
+    <ID>MaxLineLength:Telemetry.kt$ClientMeasurement$@Serializable data</ID>
+    <ID>MaxLineLength:Telemetry.kt$ClientTelemetryBatch</ID>
+    <ID>MaxLineLength:Telemetry.kt$ClientTelemetrySpan</ID>
+    <ID>MaxLineLength:Telemetry.kt$TelemetryContext$class</ID>
+    <ID>MaxLineLength:Telemetry.kt$TelemetryContract$diagnostic.span?.let { require(it.operation.component == "connector"); validateIds(it.traceId, it.spanId); it.parentSpanId?.let { id -&gt; require(validId(id, 16)) }; require(it.startTimeUnixNano &gt; 0 &amp;&amp; it.endTimeUnixNano &gt;= it.startTimeUnixNano) }</ID>
+    <ID>MaxLineLength:Telemetry.kt$TelemetryContract$private fun validId(id: String, length: Int)</ID>
+    <ID>MaxLineLength:Telemetry.kt$TelemetryContract$private fun validateIds(trace: String?, span: String?)</ID>
+    <ID>MaxLineLength:Telemetry.kt$TelemetryContract$require(it.buckets.size == latencyBucketsSeconds.size + 1 &amp;&amp; it.buckets.all { n -&gt; n in 0..1_000_000 } &amp;&amp; it.buckets.sum() == it.count)</ID>
+    <ID>MaxLineLength:Telemetry.kt$TelemetryContract$require(it.count in 0..1_000_000 &amp;&amp; it.sumSeconds.isFinite() &amp;&amp; it.sumSeconds &gt;= 0 &amp;&amp; it.sumSeconds &lt;= it.count * 86_400.0)</ID>
+    <ID>MaxLineLength:Telemetry.kt$TelemetryEvent</ID>
+    <ID>MaxLineLength:Telemetry.kt$TelemetryOperation$CONNECTOR_DELETE : TelemetryOperation</ID>
+    <ID>MaxLineLength:Telemetry.kt$TelemetryOperation$CONNECTOR_GET_ALL : TelemetryOperation</ID>
+    <ID>MaxLineLength:Telemetry.kt$TelemetryOperation$CONNECTOR_OPEN : TelemetryOperation</ID>
+    <ID>MaxLineLength:Telemetry.kt$TelemetryOperation$PUSH_REGISTER : TelemetryOperation</ID>
+    <ID>MaxLineLength:Telemetry.kt$TelemetryOperation$SESSION_POST : TelemetryOperation</ID>
+    <ID>MaxLineLength:Telemetry.kt$fun LockersTelemetry.safeRecord(operation: TelemetryOperation, outcome: TelemetryOutcome, elapsedNanos: Long = 0)</ID>
+    <ID>MaxLineLength:Telemetry.kt$return (if (span == null) block() else withContext(span.context.minusKey(Job) + TelemetryContext(span.context.minusKey(Job), span.traceId, span.spanId)) { block() }).also { result = outcome(it) }</ID>
+    <ID>MaxLineLength:Telemetry.kt$val span = try { startSpan(operation) } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) { null }</ID>
+    <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$assertFailsWith&lt;CancellationException&gt; { telemetry.observe(TelemetryOperation.CONNECTOR_WRITE) { throw CancellationException() } }</ID>
+    <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$assertFailsWith&lt;IllegalArgumentException&gt; { TelemetryContract.decode("x".repeat(TelemetryContract.MAX_BYTES + 1)) }</ID>
+    <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$assertFailsWith&lt;IllegalArgumentException&gt; { TelemetryContract.decode("{\"platform\":\"IOS\",\"roomId\":\"private\"}") }</ID>
+    <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$assertFailsWith&lt;IllegalArgumentException&gt; { TelemetryContract.validate(valid.copy(measurements = valid.measurements + valid.measurements)) }</ID>
+    <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$assertFailsWith&lt;IllegalArgumentException&gt; { TelemetryContract.validate(valid.copy(measurements = valid.measurements.map { it.copy(count = 2) })) }</ID>
+    <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$assertFailsWith&lt;IllegalArgumentException&gt; { TelemetryContract.validate(valid.copy(measurements = valid.measurements.map { it.copy(operation = TelemetryOperation.ROOM_WRITE) })) }</ID>
+    <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$assertFailsWith&lt;IllegalArgumentException&gt; { TelemetryContract.validate(valid.copy(measurements = valid.measurements.map { it.copy(sumSeconds = Double.NaN) })) }</ID>
+    <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$assertSame(original, assertFailsWith&lt;IllegalStateException&gt; { telemetry.observe(TelemetryOperation.CONNECTOR_WRITE) { throw original } })</ID>
+    <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$val telemetry = object : LockersTelemetry { override fun record(operation: TelemetryOperation, result: TelemetryOutcome, elapsedNanos: Long) { outcome = result } }</ID>
+    <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest$val valid = ClientTelemetryBatch(platform = ClientPlatform.IOS, measurements = listOf(ClientMeasurement(TelemetryOperation.CONNECTOR_WRITE, TelemetryOutcome.OK, 1, .01, List(15) { if(it == 2) 1 else 0 })))</ID>
+    <ID>MaxLineLength:TelemetryTest.kt$TelemetryTest.&lt;no name provided&gt;$override fun record(operation: TelemetryOperation, outcome: TelemetryOutcome, elapsedNanos: Long)</ID>
+    <ID>WildcardImport:Telemetry.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:TelemetryCancellationTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:TelemetryCancellationTest.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:TelemetryTest.kt$import kotlin.test.*</ID>
+    <ID>WildcardImport:TelemetryTest.kt$import kotlinx.coroutines.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

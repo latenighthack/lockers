@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="LockerClientTests[jvm]" tests="48" skipped="0" failures="1" errors="0" timestamp="2026-10-09T05:00:44.710Z" hostname="Mikes-MacBook-Pro.local" time="16.296">
+  <properties/>
+  <testcase name="watch with includeHistory emits current value on start[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.067"/>
+  <testcase name="missing capability route selects legacy before any write[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.026"/>
+  <testcase name="notification delivered on body-less delete event[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.081"/>
+  <testcase name="remote delete removes locker for other client[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.095"/>
+  <testcase name="multiple rooms isolate updates[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.042"/>
+  <testcase name="updateLocker reports failure when retries are exhausted[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.034"/>
+  <testcase name="update existing locker[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.05"/>
+  <testcase name="room-scope lock enforces signatures on its lockers[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.068"/>
+  <testcase name="watch without includeHistory skips current value[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="15.005">
+    <failure message="org.junit.runners.model.TestTimedOutException: test timed out after 15000 milliseconds" type="org.junit.runners.model.TestTimedOutException">org.junit.runners.model.TestTimedOutException: test timed out after 15000 milliseconds
+	at java.base@17.0.17/jdk.internal.misc.Unsafe.park(Native Method)
+	at java.base@17.0.17/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)
+	at app//kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:98)
+	at app//kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at app//kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at app//kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+	at app//kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at app//kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+	at app//kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:309)
+	at app//kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+	at app//kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:167)
+	at app//kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+	at app//kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0$default(TestBuilders.kt:159)
+	at app//kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0$default(Unknown Source)
+	at app//com.latenighthack.lockers.connector.test.OwnedTestFixtureKt.runOwnedTestWithServer(OwnedTestFixture.kt:45)
+	at app//com.latenighthack.lockers.connector.test.LockerClientTests.watch without includeHistory skips current value(LockerClientTests.kt:677)
+	at java.base@17.0.17/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base@17.0.17/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base@17.0.17/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base@17.0.17/java.lang.reflect.Method.invoke(Method.java:569)
+	at app//org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at app//org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at app//org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at app//org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at app//org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:299)
+	at app//org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:293)
+	at java.base@17.0.17/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base@17.0.17/java.lang.Thread.run(Thread.java:840)
+</failure>
+  </testcase>
+  <testcase name="getAllLockers returns all in keyspace[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.019"/>
+  <testcase name="both clients see each other's updates[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.052"/>
+  <testcase name="updateLocker rethrows non-retriable rpc error[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.012"/>
+  <testcase name="signed locker surfaces as a present value not a tombstone[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.027"/>
+  <testcase name="getAllKnownLockers returns every cached locker across rooms and keyspaces[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.023"/>
+  <testcase name="delegation chain room to keyspace to locker[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.021"/>
+  <testcase name="unsigned delete of a locked locker is rejected[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.025"/>
+  <testcase name="multiple keyspaces filter correctly[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.015"/>
+  <testcase name="deleteLocker reports failure when retries are exhausted[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.017"/>
+  <testcase name="watchAll emits cached lockers while offline[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.016"/>
+  <testcase name="watch single locker emits updates[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.018"/>
+  <testcase name="delete locker[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.016"/>
+  <testcase name="locker update and notification equality is content based[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.001"/>
+  <testcase name="updateLocker returns updated value[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.011"/>
+  <testcase name="keyspace-scope lock does not leak into other keyspaces[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.018"/>
+  <testcase name="signed write re-signs on version conflict[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.031"/>
+  <testcase name="updateLocker recovers from transient errors within budget[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.014"/>
+  <testcase name="empty payload locker[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.016"/>
+  <testcase name="getLocker serves repeated reads[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.016"/>
+  <testcase name="create and read locker[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.015"/>
+  <testcase name="fetch reports lock state for locked and open lockers[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.026"/>
+  <testcase name="concurrent updates both succeed[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.029"/>
+  <testcase name="unlock with the wrong key is rejected[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.024"/>
+  <testcase name="both clients update same locker sequentially[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.024"/>
+  <testcase name="mismatched keyspace is rejected[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.009"/>
+  <testcase name="public-keyed room requires room key to lock[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.023"/>
+  <testcase name="ratchet rotates the signing key[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.035"/>
+  <testcase name="unlock with a stale version reports a conflict[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.02"/>
+  <testcase name="signed delete succeeds with the lock key[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.024"/>
+  <testcase name="unsubscribe succeeds[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.017"/>
+  <testcase name="unsigned write to locked locker is rejected[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.028"/>
+  <testcase name="TOFU lock then signed write succeeds[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.028"/>
+  <testcase name="client 2 observes client 1 update[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.025"/>
+  <testcase name="unlock returns locker to open writes[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.037"/>
+  <testcase name="typed getLocker and getAllLockers decode values[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.016"/>
+  <testcase name="wrong key write to locked locker is rejected[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.022"/>
+  <testcase name="notification flow receives payload[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.021"/>
+  <testcase name="watchAll accumulates updates[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.018"/>
+  <testcase name="local delete removes locker from watchAll[jvm]" classname="com.latenighthack.lockers.connector.test.LockerClientTests" time="0.016"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

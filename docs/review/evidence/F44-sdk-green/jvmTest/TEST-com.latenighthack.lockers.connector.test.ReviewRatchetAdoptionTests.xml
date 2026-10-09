@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewRatchetAdoptionTests[jvm]" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:52:15.359Z" hostname="Mikes-MacBook-Pro.local" time="0.086">
+  <properties/>
+  <testcase name="shared scope adoption failure identifies the original committed source[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRatchetAdoptionTests" time="0.005"/>
+  <testcase name="legacy archive restores an active ancestor key after authority protocol upgrade[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRatchetAdoptionTests" time="0.015"/>
+  <testcase name="a volatile source reset restores its committed key from the archive[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRatchetAdoptionTests" time="0.03"/>
+  <testcase name="obsolete archived authority never overwrites a newer source key[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRatchetAdoptionTests" time="0.016"/>
+  <testcase name="archive without previous signing identity cannot replace an unrelated provider key[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRatchetAdoptionTests" time="0.004"/>
+  <testcase name="default no-op adoption retains the committed private key for a replacement source[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRatchetAdoptionTests" time="0.016"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

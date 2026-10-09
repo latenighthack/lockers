@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.OwnerLifecycleTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:29.962Z" hostname="Mikes-MacBook-Pro.local" time="0.262">
+  <properties/>
+  <testcase name="after handoff the new owner rebuilds routing from the store and delivery continues()" classname="com.latenighthack.lockers.server.OwnerLifecycleTest" time="0.131"/>
+  <testcase name="node add moves ownership only for affected shards()" classname="com.latenighthack.lockers.server.OwnerLifecycleTest" time="0.01"/>
+  <testcase name="at most one node holds a live lease per shard across a handoff()" classname="com.latenighthack.lockers.server.OwnerLifecycleTest" time="0.013"/>
+  <testcase name="write on a node that lost its lease is rejected NOT_OWNER()" classname="com.latenighthack.lockers.server.OwnerLifecycleTest" time="0.106"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

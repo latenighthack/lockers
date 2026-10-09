@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.DeliveryOutboxTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:25.821Z" hostname="Mikes-MacBook-Pro.local" time="0.614">
+  <properties/>
+  <testcase name="gatewayCallsScaleWithNodesAndWritesNeverWaitForDelivery()" classname="com.latenighthack.lockers.server.DeliveryOutboxTest" time="0.006"/>
+  <testcase name="commitRollbackLeaseRecoveryAndRecipientProgress()" classname="com.latenighthack.lockers.server.DeliveryOutboxTest" time="0.003"/>
+  <testcase name="slowGatewayDoesNotBlockNewWorkForAnotherRoom()" classname="com.latenighthack.lockers.server.DeliveryOutboxTest" time="0.258"/>
+  <testcase name="lostGatewayAcknowledgementReplaysOneDurableInboxEntry()" classname="com.latenighthack.lockers.server.DeliveryOutboxTest" time="0.229"/>
+  <testcase name="atomicConflictRollsBackAndAcceptedReplayDoesNotRerunAgent()" classname="com.latenighthack.lockers.server.DeliveryOutboxTest" time="0.116"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

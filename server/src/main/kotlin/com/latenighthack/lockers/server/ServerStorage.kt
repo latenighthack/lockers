@@ -7,7 +7,7 @@ import com.latenighthack.ktstore.*
 
 /** Complete schemas must be composed before any shared handle is opened. */
 object ServerStorage {
-    val definitions: List<StoreDefinition<*>> = listOf(
+    val legacyDefinitionsV3: List<StoreDefinition<*>> = listOf(
         com.latenighthack.lockers.server.services.session.v1.SessionStoreImplDefinitionV1,
         com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreImplDefinitionV1,
         com.latenighthack.lockers.server.services.push.v1.PushSessionStoreImplDefinitionV1,
@@ -23,10 +23,57 @@ object ServerStorage {
         com.latenighthack.lockers.server.services.room.v1.LockStoreImplDefinitionV1,
         com.latenighthack.lockers.server.services.room.v1.SubscriptionStoreImplDefinitionV1,
     )
-    fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()) =
-        definitionDatabaseConfiguration(identity, definitions + additional)
+    val additionsV4: List<StoreDefinition<*>> = listOf(
+        com.latenighthack.lockers.server.services.room.v1.AgentWorkDefinitionV2,
+        com.latenighthack.lockers.server.services.room.v1.OutboxEntriesDefinitionV2("delivery"),
+        com.latenighthack.lockers.server.services.room.v1.OutboxHeadsDefinitionV2("delivery"),
+        com.latenighthack.lockers.server.services.room.v1.OutboxEntriesDefinitionV2("push_delivery"),
+        com.latenighthack.lockers.server.services.room.v1.OutboxHeadsDefinitionV2("push_delivery"),
+        com.latenighthack.lockers.server.services.session.v1.InboxByteLedgerDefinitionV2,
+
+        com.latenighthack.lockers.server.services.room.v1.SnapshotDefinitionV2,
+        com.latenighthack.lockers.server.services.push.v1.PushWorkDefinitionV2,
+        com.latenighthack.lockers.server.services.push.v1.PushRetentionDefinitionV3,
+        com.latenighthack.lockers.server.services.push.v1.PushDeadLetterIndexDefinitionV2,
+        com.latenighthack.lockers.server.services.push.v1.PushCredentialDefinitionV2,
+        com.latenighthack.lockers.server.services.session.v1.SessionInboxMetadataDefinitionV2,
+        com.latenighthack.lockers.server.services.session.v1.InboxDeliveryReceiptDefinitionV2,
+        com.latenighthack.lockers.server.services.session.v1.UsedSessionProofDefinitionV2,
+        com.latenighthack.lockers.server.services.session.v1.UsedSessionProofOwnersDefinitionV2,
+        com.latenighthack.lockers.server.services.session.v1.RevokedSessionDefinitionV2,
+        com.latenighthack.lockers.server.services.session.v1.RevokedSessionAuthorityDefinitionV2,
+    )
+    val definitionsV4 = legacyDefinitionsV3.map { definition ->
+        if (definition === com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreImplDefinitionV1)
+            com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreDefinitionV2
+        else if (definition === com.latenighthack.lockers.server.services.room.v1.LockerStoreImplDefinitionV1)
+            com.latenighthack.lockers.server.services.room.v1.LockerStoreDefinitionV2 else definition
+    } + additionsV4
+    val definitions = definitionsV4 + com.latenighthack.lockers.server.services.room.v1.SubscriptionIntentDefinitionV2
+    fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()): DatabaseConfiguration {
+        val historical = definitionDatabaseConfiguration(identity, legacyDefinitionsV3 + additional)
+        val previous = (definitionsV4 + additional).map { it.declaration }
+        val declarations = (definitions + additional).map { it.declaration }
+        return historical.copy(version = 5, stores = declarations, migrations = historical.migrations +
+            DatabaseMigration.configured(3, 4, historical.stores, previous) {
+                for (definition in additionsV4) createStore(definition.declaration)
+                val inbox = com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreDefinitionV2
+                rebuildStore(inbox.storeName, inbox.declaration) { raw ->
+                    StoreRow(raw.copyOf(), inbox.encodeRow(inbox.decode(raw)).keys)
+                }
+                val lockers = com.latenighthack.lockers.server.services.room.v1.LockerStoreDefinitionV2
+                rebuildStore(lockers.storeName, lockers.declaration) { raw ->
+                    StoreRow(raw.copyOf(), lockers.encodeRow(lockers.decode(raw)).keys)
+                }
+            } + DatabaseMigration.configured(4, 5, previous, declarations) {
+                createStore(com.latenighthack.lockers.server.services.room.v1.SubscriptionIntentDefinitionV2.declaration)
+            })
+    }
     fun inMemory(identity: String = "ServerStorage-test", meterRegistry: MeterRegistry? = null, telemetry: LockersTelemetry = LockersTelemetry.NONE) =
-        Database(configuration(identity + "-${kotlin.random.Random.nextLong()}"), com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(InMemoryStoreDelegate(), meterRegistry, telemetry))
-    fun postgres(location: String, additional: List<StoreDefinition<*>> = emptyList(), meterRegistry: MeterRegistry? = null, telemetry: LockersTelemetry = LockersTelemetry.NONE) =
-        createPostgresDatabase(configuration("lockers-server", additional), location, { com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(it, meterRegistry, telemetry) })
+        Database(configuration(identity + "-${kotlin.random.Random.nextLong()}"), com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(com.latenighthack.lockers.server.services.room.v1.FencedMemoryDelegate(InMemoryStoreDelegate()), meterRegistry, telemetry))
+    fun postgres(location: String, additional: List<StoreDefinition<*>> = emptyList(), meterRegistry: MeterRegistry? = null, telemetry: LockersTelemetry = LockersTelemetry.NONE): Database {
+        val configuration = configuration("lockers-server", additional).copy(externalTables = setOf("room_claim", "room_claim_capacity", "session_gateway", "shard_map", "shard_fence"))
+        val driver = com.latenighthack.lockers.server.services.room.v1.FencedSqlDriver(JdbcDriver(location.removePrefix("jdbc:postgresql:"), "postgresql"))
+        return Database(configuration, com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(SqlStoreDelegate(driver, "BYTEA", configuration), meterRegistry, telemetry))
+    }
 }

@@ -1,0 +1,26 @@
+---
+
+**Scoped F11 review passes at `4e66a0d`; no new blockers found in the reviewed semantics.** Source remains clean.
+
+- Recovery restores a key only against the original scope and expected successor epoch. Authority alone produces **source unknown**, retaining the private intent without `SourceCommitted` or a fabricated archive. [LockerClient.kt:1263](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1263)
+- Recovery reloads pending metadata inside the mutation lane. Durable ACK prevents original-request replay, including after provider reset; subsequent caller writes fetch current content and generate a new ID. [LockerClient.kt:1213](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1213)
+- Startup isolates individual failures, pages one row at a time, caps detached diagnostics at 1,024 entries and propagates cancellation. [LockerClient.kt:505](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:505)
+- Archives order by authority epoch and prune only the exact observed row transactionally. [RatchetArchive.kt:46](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/internal/RatchetArchive.kt:46)
+
+**Independent execution: 9 passed, 0 failures/errors/skips**—7 expired-ratchet tests and 2 archive-ordering tests. This includes the strongest actual HTTP adversarial case: a different immutable write installs the proposed key at the exact expected epoch.
+
+```sh
+ANDROID_HOME=/Users/mikeroberts/Library/Android/sdk \
+LOCKERS_TEST_PG_REQUIRED=true \
+LOCKERS_TEST_PG_URL='jdbc:postgresql://127.0.0.1:58594/lockers_fixes?user=review' \
+./gradlew \
+-PfhWorkspace=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/dependencies-status-final.json \
+-Dmaven.repo.local=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/maven \
+--console=plain :connector:jvmTest \
+--tests '*ReviewExpiredRatchetTests*' \
+--tests '*ReviewRatchetArchiveOrderingTests*'
+```
+
+`BUILD SUCCESSFUL in 16s`. Raw output: [Gradle log](/tmp/independent-F11-4e66a0d-gradle.log). Archived XML: [recovery](/tmp/independent-F11-4e66a0d-ReviewExpiredRatchetTests.xml), [ordering](/tmp/independent-F11-4e66a0d-ReviewRatchetArchiveOrderingTests.xml).
+
+**Overall completion remains false.** Normalized V2/V6 migration, F26 retiring-actor bounds/retry-limit subtype gaps, and final integration/platform/consumer gates remain outside this approval.

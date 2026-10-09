@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.GatewayAdmissionTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:26.435Z" hostname="Mikes-MacBook-Pro.local" time="0.021">
+  <properties/>
+  <testcase name="completeGatewayBatchExpansionIsRejectedBeforeAnyGroupPersistsAndRawSidAliasesDoNotFanoutTwice()" classname="com.latenighthack.lockers.server.GatewayAdmissionTest" time="0.009"/>
+  <testcase name="rejectedUnknownAndMalformedRecipientsNeverPersistAndRevokedDeliveryIsAcceptedDiscard()" classname="com.latenighthack.lockers.server.GatewayAdmissionTest" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

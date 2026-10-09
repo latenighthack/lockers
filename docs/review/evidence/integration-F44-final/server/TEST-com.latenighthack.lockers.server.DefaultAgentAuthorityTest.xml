@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.DefaultAgentAuthorityTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:20.958Z" hostname="Mikes-MacBook-Pro.local" time="0.003">
+  <properties/>
+  <testcase name="default graph cannot derive privileged writes from untrusted lobby writes()" classname="com.latenighthack.lockers.server.DefaultAgentAuthorityTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

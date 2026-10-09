@@ -2,16 +2,59 @@ package com.latenighthack.lockers.connector
 
 import com.latenighthack.ktstore.*
 
-/** Complete schemas must be composed before any shared handle is opened. */
+/** Complete schemas must be composed before any shared handle is opened.
+ * Ratchet stores contain private keys: production applications must use trusted confidential storage,
+ * with encryption/access/backup policy appropriate to their key provider. Cache and event APIs do not expose them.
+ */
 object ConnectorStorage {
-    val definitions: List<StoreDefinition<*>> = listOf(
+    /** Frozen configured schema published before the additive recovery stores. */
+    val definitionsV3: List<StoreDefinition<*>> = listOf(
+        PushRegistrationStoreImplDefinitionV1, SubscriptionStoreImplDefinitionV1,
+        SessionStoreImplDefinitionV1, com.latenighthack.lockers.connector.internal.LockerStoreImplDefinitionV1,
+    )
+    val definitionsV4: List<StoreDefinition<*>> = listOf(
         com.latenighthack.lockers.connector.PushRegistrationStoreImplDefinitionV1,
         com.latenighthack.lockers.connector.SubscriptionStoreImplDefinitionV1,
-        com.latenighthack.lockers.connector.SessionStoreImplDefinitionV1,
+        com.latenighthack.lockers.connector.SessionStoreImplDefinitionV2,
         com.latenighthack.lockers.connector.internal.LockerStoreImplDefinitionV1,
+        com.latenighthack.lockers.connector.internal.RatchetJournalDefinitionV1,
+        com.latenighthack.lockers.connector.internal.RatchetArchiveDefinitionV1,
+        com.latenighthack.lockers.connector.internal.ConnectorEventJournalDefinitionV1,
+        PushIntentDefinitionV2,
+        AckConfirmationAgeDefinitionV1,
+        com.latenighthack.lockers.connector.internal.JournalRetentionDefinitionV1,
     )
-    fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()) =
-        definitionDatabaseConfiguration(identity, definitions + additional)
+    val definitionsV5: List<StoreDefinition<*>> = definitionsV4 +
+        com.latenighthack.lockers.connector.internal.RatchetExpectationDefinitionV2
+    val definitionsV6: List<StoreDefinition<*>> = definitionsV5 + listOf(
+        com.latenighthack.lockers.connector.internal.RatchetArchiveDefinitionV2,
+        com.latenighthack.lockers.connector.internal.ArchiveMigrationDefinitionV2,
+    )
+    val definitions: List<StoreDefinition<*>> = definitionsV6 + SubscriptionIntentRevisionDefinitionV1
+    fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()): DatabaseConfiguration {
+        val historical = definitionDatabaseConfiguration(identity, definitionsV3 + additional)
+        val previous = (definitionsV4 + additional).map { it.declaration }
+        val recovery = (definitionsV5 + additional).map { it.declaration }
+        val archives = (definitionsV6 + additional).map { it.declaration }
+        val target = (definitions + additional).map { it.declaration }
+        return historical.copy(version = 7, stores = target, migrations = historical.migrations +
+            DatabaseMigration.configured(3, 4, historical.stores, previous) {
+                rebuildStore(SessionStoreImplDefinitionV1.storeName, SessionStoreImplDefinitionV2.declaration) { bytes ->
+                    val row = SessionStoreImplDefinitionV2.encodeRow(SessionStoreImplDefinitionV1.decode(bytes))
+                    StoreRow(bytes.copyOf(), row.keys)
+                }
+                for (definition in definitionsV4.filter { it.storeName !in definitionsV3.map { old -> old.storeName } }) {
+                    createStore(definition.declaration)
+                }
+            } + DatabaseMigration.configured(4, 5, previous, recovery) {
+                createStore(com.latenighthack.lockers.connector.internal.RatchetExpectationDefinitionV2.declaration)
+            } + DatabaseMigration.configured(5, 6, recovery, archives) {
+                createStore(com.latenighthack.lockers.connector.internal.RatchetArchiveDefinitionV2.declaration)
+                createStore(com.latenighthack.lockers.connector.internal.ArchiveMigrationDefinitionV2.declaration)
+            } + DatabaseMigration.configured(6, 7, archives, target) {
+                createStore(SubscriptionIntentRevisionDefinitionV1.declaration)
+            })
+    }
     fun inMemory(identity: String = "ConnectorStorage-test") =
         Database(configuration(identity), InMemoryStoreDelegate())
 }

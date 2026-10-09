@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.SessionRevocationTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T03:53:48.468Z" hostname="Mikes-MacBook-Pro.local" time="2.033">
+  <properties/>
+  <testcase name="authenticatedDestroyRemovesAuthorityAndReservesTheId()" classname="com.latenighthack.lockers.server.SessionRevocationTest" time="0.296"/>
+  <testcase name="destroyedAuthorityOnlyConfirmsFreshDestroyAndSurvivesSqliteReopen()" classname="com.latenighthack.lockers.server.SessionRevocationTest" time="1.373"/>
+  <testcase name="independentPostgresHandleCanConfirmCommittedDestruction()" classname="com.latenighthack.lockers.server.SessionRevocationTest" time="0.357"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

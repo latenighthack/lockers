@@ -1,0 +1,504 @@
+From 2ad795d0406c503530130b43bfd879d24fde30f5 Mon Sep 17 00:00:00 2001
+From: mproberts <mike@roll.gg>
+Date: Fri, 9 Oct 2026 01:24:50 -0400
+Subject: [PATCH 1/3] Adapt Locker public and internal listeners with joined
+ server cleanup
+
+---
+ docs/adr/adr-017-deployment-infrastructure.md |  2 +
+ project/server/build.gradle.kts               |  1 +
+ .../kotlin/gg/roll/fullhouse/server/Main.kt   | 38 ++++++++++++++++---
+ .../server/services/test/GameFlowTests.kt     |  9 ++++-
+ project/server/test/build.gradle.kts          |  1 +
+ .../kotlin/gg/roll/fullhouse/server/Tools.kt  |  9 ++++-
+ 6 files changed, 50 insertions(+), 10 deletions(-)
+
+diff --git a/docs/adr/adr-017-deployment-infrastructure.md b/docs/adr/adr-017-deployment-infrastructure.md
+index 1adfe68..8e16c3a 100644
+--- a/docs/adr/adr-017-deployment-infrastructure.md
++++ b/docs/adr/adr-017-deployment-infrastructure.md
+@@ -2,6 +2,8 @@
+ 
+ ## Changes
+ 
++- **2026-10-08 — lockers review listener separation (local validation, no deployment).** The public8080 listener mounts client and extension routes. Internal8081 mounts credential-protected peer and administrator routes; management remains disabled without `LOCKERS_ADMIN_TOKEN`. Claim mode requires one shared `LOCKERS_PEER_TOKEN` and validates `LOCKERS_ADVERTISE_ADDR` as this node's internal8081 address, which is also used by the library peer pool. Test-only all-service routes use the explicit `lockers-server-test` helper. Authenticated ring mode also requires `LOCKERS_PUBLIC_SESSION_ADDRS`, a complete `node=public HTTP(S) endpoint,...` map, so session redirects use public8080 endpoints rather than private8081 peer addresses; claim mode does not require this ring map. Component shutdown joins owned coroutines before closing shared storage. This supersedes the earlier all-service monolith mount on both listeners.
++
+ - **2026-09-28 — require N-API in hosted driver images.** Build the shadow addon and its generated JS glue from native source in a Debian 12 builder matching the distroless Debian runtime. `CARDBOARD_NAPI_ONLY` excludes graphics/mobile/network/test dependencies from this build. The image sets `CARDBOARD_RUNTIME=napi` so missing addon/glue fails startup, and runs a seeded native-versus-WASM reply smoke test inside the final image. WASM remains packaged for parity checks and an explicit rollback override. Docker and Railway upload contexts include only the required native source closure.
+ 
+ - **2026-09-04 — offline-subscriber fan-out failed locker writes → local-gateway fallback (lockers 0.1.13).** Fresh-account login hit `UNKNOWN_ERROR`↔`UPDATE_LOCAL_VERSION` ping-pong + `dropped after 8 attempts` on account/profile rooms. Root cause: claim-mode `RegistrySessionGatewayDiscovery.findServer` returns null = session offline (no live `session_gateway` row — normal state, e.g. the dead pre-login session ADR-022 signup leaves durably subscribed), but `RoomServiceImpl` fan-out treated null as fatal **after** persisting the write — client blind-retried stale parentVersion → rebase → persist again → fail again until dropped (writes actually landed; the error was a lie). East-west discovery/addressing itself was healthy. **Fix (lockers 0.1.13):** (1) claim discovery null-row → falls back to the in-process gateway (inbox store is shared PG so any node enqueues durably; push routes via `RegistryPushGatewayDiscovery`'s existing local fallback — offline sessions now get inbox events + pushes they previously lost); (2) `postLockerChange`/`deleteLocker` fan-out is best-effort per session after the persist point: null lookup → skip+meter, `postEvent` failure → catch+meter+continue, never a failure RPC result after a durable write (extends the 0.1.5 agent-block principle); (3) `LockerClient` unknown-result retry rebases via `getLocker` first (1 round trip instead of 2 per conflict). Tests: offline-subscriber write→OK+inbox-delivery, unreachable-peer isolation (ClaimClusterTest); discovery local-fallback (also fixed 2 silently-skipped tests: `runBlocking` last-expression gave @Test methods non-void returns — JUnit skips those; `: Unit` them). Pin 0.1.12→0.1.13. Follow-ups (cost, not correctness): prune dead subscriptions; negative caching in `SessionGatewayLookup`.
+diff --git a/project/server/build.gradle.kts b/project/server/build.gradle.kts
+index 50c7311..6d4aa95 100644
+--- a/project/server/build.gradle.kts
++++ b/project/server/build.gradle.kts
+@@ -108,6 +108,7 @@ kotlin {
+                 implementation(libs.ktcrypto.library)
+                 implementation(libs.ktbuf.server)
+                 implementation(libs.ktbuf.test)
++                implementation(libs.lockers.server.test)
+                 implementation(libs.ktbuf.library)
+                 implementation(libs.ktbuf.rpc)
+                 implementation(libs.coroutines.core)
+diff --git a/project/server/run/src/main/kotlin/gg/roll/fullhouse/server/Main.kt b/project/server/run/src/main/kotlin/gg/roll/fullhouse/server/Main.kt
+index 8e4a5a8..bf48866 100644
+--- a/project/server/run/src/main/kotlin/gg/roll/fullhouse/server/Main.kt
++++ b/project/server/run/src/main/kotlin/gg/roll/fullhouse/server/Main.kt
+@@ -10,6 +10,8 @@ import com.latenighthack.ktstore.InMemoryStoreDelegate
+ import com.latenighthack.ktstore.Database
+ import com.latenighthack.lockers.server.create as createLockersComponent
+ import com.latenighthack.lockers.server.monolith
++import com.latenighthack.lockers.server.monolithAdmin
++import com.latenighthack.lockers.server.monolithPeer
+ import com.latenighthack.lockers.server.claim.ClaimContext
+ import io.micrometer.prometheus.PrometheusConfig
+ import io.ktor.http.*
+@@ -30,6 +32,8 @@ import io.micrometer.core.instrument.binder.system.ProcessorMetrics
+ import io.micrometer.core.instrument.binder.system.UptimeMetrics
+ import io.micrometer.core.instrument.distribution.DistributionStatisticConfig
+ import io.micrometer.prometheus.PrometheusMeterRegistry
++import kotlinx.coroutines.NonCancellable
++import kotlinx.coroutines.withContext
+ import kotlinx.coroutines.CompletableDeferred
+ import kotlinx.coroutines.runBlocking
+ import java.time.Duration
+@@ -99,6 +103,14 @@ class Main {
+                 val serverCore = ServerCore::class.create(database)
+                 serverCore.openTelemetry = openTelemetry
+                 val lockersConfig = com.latenighthack.lockers.server.LockersConfig.fromEnv()
++                if (lockersConfig.roomOwnership == "claim") {
++                    require(!lockersConfig.peerToken.isNullOrBlank()) { "Claim ownership requires LOCKERS_PEER_TOKEN on all nodes" }
++                    val address = requireNotNull(lockersConfig.sharding.advertiseAddr) { "Claim ownership requires internal LOCKERS_ADVERTISE_ADDR" }
++                    val internal = java.net.URI(if (address.contains("://")) address else "http://$address")
++                    require(!internal.host.isNullOrBlank() && internal.port == 8081) {
++                        "LOCKERS_ADVERTISE_ADDR must identify this node's authenticated internal listener on port8081"
++                    }
++                }
+                 val lockersCore = com.latenighthack.lockers.server.ServerCore::class.createLockersComponent(
+                     lockersConfig,
+                     database
+@@ -211,6 +223,7 @@ class Main {
+                         allowHeader("traceparent")
+                         allowHeader("tracestate")
+                         exposeHeader("X-Trace-Id")
++                        exposeHeader(com.latenighthack.ktbuf.proto.RPC_STATUS_HEADER)
+                     }
+ 
+                     // App Check runs before routing; monitor-first unless APP_CHECK_ENFORCED=true
+@@ -279,7 +292,8 @@ class Main {
+                 }, extensions = {
+                     installRequestTelemetry(openTelemetry)
+                     routing {
+-                        monolith(monolithComponent)
++                        monolithAdmin(monolithComponent)
++                        lockersConfig.peerToken?.let { monolithPeer(monolithComponent, it) }
+ 
+                         get("/metrics") {
+                             call.respond(appMicrometerRegistry.scrape())
+@@ -299,11 +313,23 @@ class Main {
+                 server.addShutdownHook {
+                     // Drain claim/registry rows (claim mode) so peers re-claim without a TTL wait,
+                     // then release the claim JDBC + east-west pools.
+-                    monolithComponent.stop()
+-                    lockersMonitoring.close()
+-                    claimContext?.close()
+-                    serverFinished.complete(true)
+-                    internalServer.stop()
++                    runBlocking { withContext(NonCancellable) {
++                        var failed: Throwable? = null
++                        suspend fun cleanup(action: suspend () -> Unit) {
++                            try { action() } catch (failure: Throwable) {
++                                val primary = failed
++                                if (primary == null) failed = failure else primary.addSuppressed(failure)
++                            }
++                        }
++                        cleanup { monolithComponent.closeAndJoin() }
++                        cleanup { lockersMonitoring.close() }
++                        cleanup { claimContext?.close() }
++                        cleanup { database.close() }
++                        cleanup { internalServer.stop() }
++                        val failure = failed
++                        if (failure == null) serverFinished.complete(true)
++                        else serverFinished.completeExceptionally(failure)
++                    } }
+                 }
+ 
+                 internalServer.addShutdownHook {
+diff --git a/project/server/src/commonTest/kotlin/gg/roll/fullhouse/server/services/test/GameFlowTests.kt b/project/server/src/commonTest/kotlin/gg/roll/fullhouse/server/services/test/GameFlowTests.kt
+index ad53931..9ecc082 100644
+--- a/project/server/src/commonTest/kotlin/gg/roll/fullhouse/server/services/test/GameFlowTests.kt
++++ b/project/server/src/commonTest/kotlin/gg/roll/fullhouse/server/services/test/GameFlowTests.kt
+@@ -1,7 +1,8 @@
+ package gg.roll.fullhouse.server.services.test
+ 
+ import com.latenighthack.lockers.server.create
+-import com.latenighthack.lockers.server.monolith
++import com.latenighthack.lockers.server.trustedTestMonolith
++import kotlinx.coroutines.*
+ import com.latenighthack.ktbuf.test.server.runTestWithServer
+ import com.latenighthack.ktcrypto.SHA256
+ import com.latenighthack.ktcrypto.digest
+@@ -131,9 +132,13 @@ private suspend fun Application.attachGameTestServices(): File {
+ 
+     val component = com.latenighthack.lockers.server.MonolithComponent(lockersCore)
+     component.start()
++    launch(start = CoroutineStart.UNDISPATCHED) {
++        try { awaitCancellation() }
++        finally { withContext(NonCancellable) { try { component.closeAndJoin() } finally { database.close() } } }
++    }
+ 
+     routing {
+-        monolith(component)
++        trustedTestMonolith(component)
+     }
+ 
+     return tempDir
+diff --git a/project/server/test/build.gradle.kts b/project/server/test/build.gradle.kts
+index b387d4e..e5cf262 100644
+--- a/project/server/test/build.gradle.kts
++++ b/project/server/test/build.gradle.kts
+@@ -11,6 +11,7 @@ kotlin {
+         val main by getting {
+             dependencies {
+                 implementation(projects.server)
++                implementation(libs.lockers.server.test)
+                 implementation(libs.ktstore.library)
+                 implementation(libs.coroutines.test)
+                 implementation(libs.kotlin.test)
+diff --git a/project/server/test/src/main/kotlin/gg/roll/fullhouse/server/Tools.kt b/project/server/test/src/main/kotlin/gg/roll/fullhouse/server/Tools.kt
+index 0415fba..46de083 100644
+--- a/project/server/test/src/main/kotlin/gg/roll/fullhouse/server/Tools.kt
++++ b/project/server/test/src/main/kotlin/gg/roll/fullhouse/server/Tools.kt
+@@ -5,7 +5,8 @@ import com.latenighthack.ktbuf.rpc.HttpRpcClient
+ import com.latenighthack.ktbuf.test.server.TestServer
+ import com.latenighthack.ktstore.Database
+ import com.latenighthack.lockers.server.create as createLockersComponent
+-import com.latenighthack.lockers.server.monolith
++import com.latenighthack.lockers.server.trustedTestMonolith
++import kotlinx.coroutines.*
+ import gg.roll.cardboard.v1.*
+ import gg.roll.driver.DriveRequest
+ import gg.roll.driver.DrivePresetRequest
+@@ -187,9 +188,13 @@ suspend fun Application.attachTestServices(): Unit {
+     )
+     val component = com.latenighthack.lockers.server.MonolithComponent(lockersCore, extensions = listOf(extension, roomsExtension, remoteContentExtension, loginExtension))
+     component.start()
++    launch(start = CoroutineStart.UNDISPATCHED) {
++        try { awaitCancellation() }
++        finally { withContext(NonCancellable) { try { component.closeAndJoin() } finally { storageDelegate.close() } } }
++    }
+ 
+     routing {
+-        monolith(component)
++        trustedTestMonolith(component)
+     }
+ 
+     return Unit
+-- 
+2.50.1 (Apple Git-155)
+
+
+From b4c64a0bc0390ceab2e647ed8a10d43ecbcabb9b Mon Sep 17 00:00:00 2001
+From: mproberts <mike@roll.gg>
+Date: Fri, 9 Oct 2026 01:24:56 -0400
+Subject: [PATCH 2/3] Join Core producers before SDK and owned transport
+ shutdown
+
+---
+ .../kotlin/gg/roll/viewmodel/core/Core.kt     | 89 +++++++++++++++----
+ .../roll/viewmodel/core/tools/RunCoreTest.kt  | 12 ++-
+ .../roll/viewmodel/core/CoreShutdownTests.kt  | 49 ++++++++++
+ 3 files changed, 132 insertions(+), 18 deletions(-)
+ create mode 100644 project/core/test/src/jvmTest/kotlin/gg/roll/viewmodel/core/CoreShutdownTests.kt
+
+diff --git a/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/Core.kt b/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/Core.kt
+index 166e774..1d345d6 100644
+--- a/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/Core.kt
++++ b/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/Core.kt
+@@ -29,10 +29,21 @@ import gg.roll.viewmodel.core.tools.isDebugBuild
+ import gg.roll.viewmodel.core.tools.FlowTrace
+ import gg.roll.viewmodel.core.tools.Time
+ import gg.roll.viewmodel.core.tools.WriteableTime
+-import kotlinx.coroutines.DelicateCoroutinesApi
+-import kotlinx.coroutines.GlobalScope
+ import kotlinx.coroutines.flow.collect
+ import kotlinx.coroutines.SupervisorJob
++import kotlinx.coroutines.CoroutineScope
++import kotlinx.coroutines.CoroutineStart
++import kotlinx.coroutines.Deferred
++import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.Job
++import kotlinx.coroutines.NonCancellable
++import kotlinx.coroutines.async
++import kotlinx.coroutines.cancelAndJoin
++import kotlinx.coroutines.currentCoroutineContext
++import kotlinx.coroutines.flow.MutableStateFlow
++import kotlinx.coroutines.withContext
++import kotlin.coroutines.AbstractCoroutineContextElement
++import kotlin.coroutines.CoroutineContext
+ import kotlinx.coroutines.launch
+ import kotlinx.coroutines.plus
+ import me.tatarka.inject.annotations.Component
+@@ -99,6 +110,7 @@ interface Core {
+     suspend fun prepare()
+     suspend fun start()
+     fun stop()
++    suspend fun closeAndJoin() { stop() }
+     @get:Provides
+     val time: Time
+ }
+@@ -112,7 +124,11 @@ abstract class ConcreteCore(
+     appCheckTokenProvider: AppCheckTokenProvider,
+     appleSignInClient: com.latenighthack.social.login.apple.domain.AppleSignInClient,
+     googleSignInClient: com.latenighthack.social.login.google.domain.GoogleSignInClient,
+-): BaseCore(database, PersistentKeyValueStoreDelegate("fh"), HttpRpcClient(serverPath), serverPath, buildVersion, appCheckTokenProvider, appleSignInClient, googleSignInClient) {
++): BaseCore(database, PersistentKeyValueStoreDelegate("fh"), HttpRpcClient(serverPath), serverPath, buildVersion, appCheckTokenProvider, appleSignInClient, googleSignInClient, ownsRpcClient = true) {
++}
++
++private class CoreWorkOwnership(val owner: Job) : AbstractCoroutineContextElement(Key) {
++    companion object Key : CoroutineContext.Key<CoreWorkOwnership>
+ }
+ 
+ abstract class BaseCore(
+@@ -125,10 +141,13 @@ abstract class BaseCore(
+     // native social sign-in seams (ADR-022); tests/JS default to unavailable stubs
+     private val appleSignInClient: com.latenighthack.social.login.apple.domain.AppleSignInClient = UnavailableAppleSignIn,
+     private val googleSignInClient: com.latenighthack.social.login.google.domain.GoogleSignInClient = UnavailableGoogleSignIn,
++    private val ownsRpcClient: Boolean = false,
+ ): Core {
+     private val job = SupervisorJob()
+-    @OptIn(DelicateCoroutinesApi::class)
+-    private val coreScope = GlobalScope + job
++    private val coreScope = CoroutineScope(Dispatchers.Default + job + CoreWorkOwnership(job))
++    private val cleanupJob = SupervisorJob()
++    private val cleanupScope = CoroutineScope(Dispatchers.Default + cleanupJob + CoreWorkOwnership(job))
++    private val closeTask = MutableStateFlow<Deferred<Unit>?>(null)
+ 
+     private val clientSpanExporter = com.latenighthack.social.observability.client.SocialClientTelemetry(
+         serverPath, com.latenighthack.social.observability.client.socialPlatform(),
+@@ -168,7 +187,10 @@ abstract class BaseCore(
+         })
+     }
+ 
+-    init { clientSpanExporter.instrumentHttpClient(contentHttpClient) }
++    init {
++        require(!ownsRpcClient || rpcClient is HttpRpcClient)
++        clientSpanExporter.instrumentHttpClient(contentHttpClient)
++    }
+ 
+     // social account slice owns identity now (docs/migration/social.md 4a); its manager KV store
+     // is a distinct KeyValueStore instance over the same database (key names don't collide)
+@@ -267,20 +289,53 @@ abstract class BaseCore(
+         rendezvousContactSync.start(coreScope)
+     }
+ 
+-    override fun stop() {
+-        pushRegistrar?.stop()
+-        pushRegistrar = null
+-        social.lifecycles.forEach { it.stop() }
+-        if (this::lockersClient.isInitialized) {
+-            lockersClient.close()
++    /** Cancel and join this component from an external owner, retaining cleanup failures. */
++    override suspend fun closeAndJoin() {
++        check(currentCoroutineContext()[CoreWorkOwnership]?.owner !== job) {
++            "Core cannot join its own producer or cleanup task"
+         }
++        val task = requestClose()
++        withContext(NonCancellable) {
++            try { task.await() } finally { cleanupJob.join() }
++        }
++    }
++
++    /** Compatibility adapter: begins one owned cleanup; use closeAndJoin to await its outcome. */
++    override fun stop() { requestClose() }
++
++    private fun requestClose(): Deferred<Unit> {
++        closeTask.value?.let { return it }
+         job.cancel()
+-        clientSpanExporter.close()
+-        lockersTelemetry.close()
+-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch {
+-            lockersTelemetry.awaitClosed()
+-            lockersTelemetryTransport.close()
++        val candidate = cleanupScope.async(start = CoroutineStart.LAZY) { closeResources() }
++        if (closeTask.compareAndSet(null, candidate)) {
++            candidate.invokeOnCompletion { cleanupJob.complete() }
++            candidate.start()
++            return candidate
++        }
++        candidate.cancel()
++        return requireNotNull(closeTask.value)
++    }
++
++    private suspend fun closeResources(): Unit = withContext(NonCancellable) {
++        var failed: Throwable? = null
++        suspend fun cleanup(action: suspend () -> Unit) {
++            try { action() } catch (failure: Throwable) {
++                val primary = failed
++                if (primary == null) failed = failure else primary.addSuppressed(failure)
++            }
+         }
++        cleanup { pushRegistrar?.stop(); pushRegistrar = null }
++        social.lifecycles.forEach { lifecycle -> cleanup { lifecycle.stop() } }
++        cleanup { job.cancelAndJoin() }
++        if (this@BaseCore::lockersClient.isInitialized) cleanup { lockersClient.closeAndJoin() }
++        cleanup { clientSpanExporter.close() }
++        cleanup { lockersTelemetry.close() }
++        cleanup { clientSpanExporter.awaitClosed() }
++        cleanup { lockersTelemetry.awaitClosed() }
++        cleanup { lockersTelemetryTransport.close() }
++        if (ownsRpcClient) cleanup { (rpcClient as HttpRpcClient).closeAndJoin() }
++        cleanup { contentHttpClient.close() }
++        failed?.let { throw it }
+     }
+ 
+ }
+diff --git a/project/core/test/src/commonTest/kotlin/gg/roll/viewmodel/core/tools/RunCoreTest.kt b/project/core/test/src/commonTest/kotlin/gg/roll/viewmodel/core/tools/RunCoreTest.kt
+index 489c704..9d08bc5 100644
+--- a/project/core/test/src/commonTest/kotlin/gg/roll/viewmodel/core/tools/RunCoreTest.kt
++++ b/project/core/test/src/commonTest/kotlin/gg/roll/viewmodel/core/tools/RunCoreTest.kt
+@@ -84,10 +84,14 @@ fun <RpcClientType : RpcClient> runCoreTest(
+ 
+     context.block()
+ 
++    var testFailure: Throwable? = null
+     try {
+         runTest {
+             context.start(this, core, navigator, rpcClient)
+         }
++    } catch (failure: Throwable) {
++        testFailure = failure
++        throw failure
+     } finally {
+         // teardown OUTSIDE runTest so it can't interfere with in-test coroutines; a
+         // leaked core's retry loops otherwise pile up against torn-down servers.
+@@ -95,7 +99,13 @@ fun <RpcClientType : RpcClient> runCoreTest(
+         // leak the core entirely — watchMessages rides the social managers now, so any
+         // teardown here would kill those watchers; forkEvery=1 cleans up the JVM.
+         if (!keepAlive) {
+-            runCatching { core.stop() }
++            try {
++                kotlinx.coroutines.runBlocking { core.closeAndJoin() }
++            } catch (cleanupFailure: Throwable) {
++                val primary = testFailure
++                if (primary == null) throw cleanupFailure
++                if (primary !== cleanupFailure) primary.addSuppressed(cleanupFailure)
++            }
+         }
+     }
+ }
+diff --git a/project/core/test/src/jvmTest/kotlin/gg/roll/viewmodel/core/CoreShutdownTests.kt b/project/core/test/src/jvmTest/kotlin/gg/roll/viewmodel/core/CoreShutdownTests.kt
+new file mode 100644
+index 0000000..7565c37
+--- /dev/null
++++ b/project/core/test/src/jvmTest/kotlin/gg/roll/viewmodel/core/CoreShutdownTests.kt
+@@ -0,0 +1,49 @@
++package gg.roll.viewmodel.core
++
++import com.latenighthack.ktbuf.test.server.runTestWithServer
++import gg.roll.fullhouse.server.attachTestServices
++import gg.roll.viewmodel.core.tools.runCoreTest
++import io.ktor.server.application.Application
++import kotlinx.coroutines.CompletableDeferred
++import kotlinx.coroutines.CoroutineScope
++import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.withContext
++import kotlinx.coroutines.Job
++import kotlinx.coroutines.async
++import kotlinx.coroutines.launch
++import kotlinx.coroutines.withTimeout
++import kotlin.test.Test
++import kotlin.test.assertTrue
++
++class CoreShutdownTests {
++    @Test(timeout = 15_000)
++    fun `owned callbacks reject self join and external callers share ordered shutdown`() =
++        runTestWithServer(Application::attachTestServices) { server, _ ->
++            runCoreTest(server.rpcClient()) {
++                run { core, _, _ -> withContext(Dispatchers.Default) {
++                    // Select the real producer context to reproduce the otherwise inaccessible
++                    // self-join boundary; no production seam exists solely for this test.
++                    val scopeField = BaseCore::class.java.getDeclaredField("coreScope")
++                    scopeField.isAccessible = true
++                    val producers = scopeField.get(core) as CoroutineScope
++                    val rejected = CompletableDeferred<Boolean>()
++                    producers.launch {
++                        rejected.complete(try {
++                            core.closeAndJoin()
++                            false
++                        } catch (_: IllegalStateException) {
++                            true
++                        })
++                    }
++                    assertTrue(withTimeout(2_000) { rejected.await() })
++                    assertTrue(requireNotNull(producers.coroutineContext[Job]).isActive)
++                    core.stop()
++                    val first = async { core.closeAndJoin() }
++                    val second = async { core.closeAndJoin() }
++                    withTimeout(5_000) { first.await(); second.await() }
++                    assertTrue(requireNotNull(producers.coroutineContext[Job]).isCompleted)
++                    core.closeAndJoin()
++                } }
++            }
++        }
++}
+-- 
+2.50.1 (Apple Git-155)
+
+
+From cb1060d17ffeb007cbe4dfe4d08129cd035797ae Mon Sep 17 00:00:00 2001
+From: mproberts <mike@roll.gg>
+Date: Fri, 9 Oct 2026 01:24:56 -0400
+Subject: [PATCH 3/3] Document immutable Locker consumer gates and public read
+ policy debt
+
+---
+ docs/review/lockers-consumer-validation.md | 38 ++++++++++++++++++++++
+ 1 file changed, 38 insertions(+)
+ create mode 100644 docs/review/lockers-consumer-validation.md
+
+diff --git a/docs/review/lockers-consumer-validation.md b/docs/review/lockers-consumer-validation.md
+new file mode 100644
+index 0000000..dbece06
+--- /dev/null
++++ b/docs/review/lockers-consumer-validation.md
+@@ -0,0 +1,38 @@
++# Locker remediation consumer validation
++
++This isolated checkout validates the reviewed Locker library and minimal consumer compatibility changes. It does not deploy a service or externally release any dependency. The original Fullhouse and Social checkouts were not edited or built by this task.
++
++## Immutable inputs
++
++Fullhouse base: `1d5a23f`, branch `fix/lockers-review-consumer`. All resolution uses the explicitly configured ignored `.fh/workspace.json`, an immutable frozen `.fh/dependencies-lockers-recovery-consumer-final.json`, and this checkout's isolated `.fh/maven`. Global Maven Local is not consulted.
++
++| Library | Source | Local immutable version | Receipt artifacts |
++| --- | --- | --- | ---: |
++| ktstore | f5e9eaa801ff90c7c81538025a9d545a6c75056a | 0.2.0-fh.d53a47cbc15434b3ce1e | 67 |
++| ktbuf | 780bcc0bad28f59be37edc7d9ddb4c3c72bd8705 | 1.1.10-fh.9c3962ea021c76107b84 | 178 |
++| Locker | 00a0990f61a6f655b26cc02913bed90a04dc789b | 0.1.16-fh.4e06269cd00da3235cb0 | 176 |
++| Social | 3f51e905cf16f30b1da8f47b28dcff16c9a38934 | 0.1.11-fh.4b1be6049821d9db7f78 | 1561 |
++
++Social's local source snapshot preserves existing dirty and untracked user work, without a Social source fix. It was needed because the consumer's Social observability coordinate was not publicly available. Its source file hashes were stable during the copy and recorded before committing the isolated preservation snapshot. Successful local publication does not qualify this Social snapshot for external release. Earlier Locker31/Social31 artifact versions remain immutable.
++
++The build uses the privately installed pinned `protoc-gen-kt` and its reviewed deterministic source patches. Generated bindings were not edited.
++
++## Consumer changes and evidence
++
++Public port8080 mounts client Locker routes. Internal port8081 mounts admin routes and peer routes authenticated with the configured shared peer token. Claim ownership requires an internal advertised address and peer credential. Test services use the explicit test-only all-services helper. CORS exposes the exact RPC status header.
++
++Server shutdown awaits the Locker component before closing its database and transport resources. The consumer's earlier synchronous shutdown failed compilation once Database.close became suspend; the isolated adapter now awaits cleanup and aggregates failures.
++
++Core shutdown previously closed the SDK while application-owned profile watchers were still awaiting subscription. Actual onboarding completed its signed write, then failed with StreamClosedException during teardown. The corrected order cancels and joins application producers before SDK shutdown. A single retained owned cleanup Deferred is shared by stop and closeAndJoin; stop initiates cleanup and cannot synchronously await its result. External owners use closeAndJoin. Calls from Core-owned descendants reject before cancellation or NonCancellable replacement. Every lifecycle cleanup is attempted; repeated close retains the same failure; telemetry drains before transports close; ConcreteCore closes its owned raw HTTP RPC client, while injected clients are borrowed. The fixture preserves an original test failure and suppresses cleanup failure onto it.
++
++The actual onboarding regression and an owned-callback/concurrent/repeated-close regression pass. Final consumer gates pass: server11 tests and core59 tests (58 executed, one pre-existing ignore), production server compilation, Android core compilation, JS production distribution and Apple Simulator framework link. Full receipts are captured separately in the Locker review evidence.
++
++## Existing application confidentiality debt
++
++Locker read/subscribe routes provide no account read ACL or confidentiality by design. Its locks authenticate mutations. In this preserved Social snapshot, createProfile stores ProfileSource.privateKey in an ordinary plaintext locker under the account room. A separate actual HTTP fixture probe created a real profile, then used a fresh RoomServiceRpc without any session credentials to GetLocker. Reconstructing a P256 key from the returned plaintext produced the profile's public key. The deliberately negative assertion failed with a generic boolean-only message; no private key or plaintext bytes were logged.
++
++This proves an application confidentiality gap in the fixture's public read boundary. Production App Check is independently configurable and defaults off; attestation alone does not establish account authorization for a private room. This probe does not claim to bypass an enabled production attestation verifier or other deployment controls. Account secrets require application encryption or an account-authorized read boundary. Neither Social encryption nor Locker read policy was changed by this consumer verification. The probe is retained as evidence outside the normal test source set, not reported as a passing gate or a new Locker finding.
++
++## Validation limits
++
++The Fullhouse core explicitly removes JS and Apple test source sets. Its JS distribution and Apple framework gates are compile/link verification, not tests. Actual Locker IndexedDB, Apple and Android storage tests are recorded in the library review. One pre-existing ignored JVM account-settings test and the existing keepAlive fixture's process-isolated leaked cores remain consumer test debt. Public dependency resolution still requires a separate external release; local publication is not evidence that released coordinates resolve.
+-- 
+2.50.1 (Apple Git-155)
+

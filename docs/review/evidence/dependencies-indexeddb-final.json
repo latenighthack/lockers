@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "mode": "workspace",
+  "repository": "/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/maven",
+  "groups": {
+    "com.latenighthack.ktstore": {
+      "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners",
+      "revision": "f5e9eaa801ff90c7c81538025a9d545a6c75056a",
+      "sourceHash": "d1cd270704ab9c7d550cf14a44e0e1179f5d293981b39f4e6697b04e61d4c2d1",
+      "inputsHash": "d53a47cbc15434b3ce1e3bfc9de5b89ec81236975676ce356e417688b4b4878c",
+      "version": "0.2.0-fh.d53a47cbc15434b3ce1e",
+      "group": "com.latenighthack.ktstore"
+    },
+    "com.latenighthack.ktbuf": {
+      "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktbuf-review-publish",
+      "revision": "780bcc0bad28f59be37edc7d9ddb4c3c72bd8705",
+      "sourceHash": "3cd9dcf82328783b156d18c2399ea4b16ec49b4d789ce25f4a12c1e4eb40b07d",
+      "inputsHash": "9c3962ea021c76107b844f286dbc672b5718083875ac7832e66f51fd357d76f4",
+      "version": "1.1.10-fh.9c3962ea021c76107b84",
+      "group": "com.latenighthack.ktbuf"
+    }
+  },
+  "libraries": {
+    "ktstore": {
+      "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners",
+      "revision": "f5e9eaa801ff90c7c81538025a9d545a6c75056a",
+      "sourceHash": "d1cd270704ab9c7d550cf14a44e0e1179f5d293981b39f4e6697b04e61d4c2d1",
+      "inputsHash": "d53a47cbc15434b3ce1e3bfc9de5b89ec81236975676ce356e417688b4b4878c",
+      "version": "0.2.0-fh.d53a47cbc15434b3ce1e",
+      "group": "com.latenighthack.ktstore"
+    },
+    "ktbuf": {
+      "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktbuf-review-publish",
+      "revision": "780bcc0bad28f59be37edc7d9ddb4c3c72bd8705",
+      "sourceHash": "3cd9dcf82328783b156d18c2399ea4b16ec49b4d789ce25f4a12c1e4eb40b07d",
+      "inputsHash": "9c3962ea021c76107b844f286dbc672b5718083875ac7832e66f51fd357d76f4",
+      "version": "1.1.10-fh.9c3962ea021c76107b84",
+      "group": "com.latenighthack.ktbuf"
+    }
+  },
+  "snapshotExceptions": [
+    {
+      "group": "dev.tamboui",
+      "reason": "basekit TUI currently requires snapshot toolkit; resolved checksums are captured in verification evidence"
+    }
+  ]
+}

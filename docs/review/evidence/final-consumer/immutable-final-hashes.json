@@ -1,0 +1,16 @@
+{
+  "sha256": {
+    "/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/dependencies-lockers-recovery-consumer-final.json": "10cc903697148e64bf15169751c262af95b317221364ea5888ad8b42eb8cf157",
+    "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktbuf-review-publish/conformance/build/tools/protoc-gen-kt": "8b9c37449b4e527325961538721721fdc8e499d6630651e10d0620fcecf6285b",
+    "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktbuf-review-publish/build-tools/install-protoc-gen-kt.go": "82bf69f392bddfec93246c22dfa0ca3a32ffdb3abd8e883d0e5c8157c127b98c",
+    "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktbuf-review-publish/build-tools/protoc-gen-kt-patches.json": "eff7dc409f76aaa2bec961e48182e6f2a33433bf96225ea4b6aaf40b03d5bb06",
+    "/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-consumer-evidence/docs/review/evidence/final-consumer/dependencies-check-final.json": "10cc903697148e64bf15169751c262af95b317221364ea5888ad8b42eb8cf157"
+  },
+  "consumer_head": "cb1060d17ffeb007cbe4dfe4d08129cd035797ae",
+  "consumer_status": "",
+  "publisher_source": "00a0990f61a6f655b26cc02913bed90a04dc789b",
+  "ktbuf_source": "780bcc0bad28f59be37edc7d9ddb4c3c72bd8705",
+  "generator_released_pin": "0fa742406fbf",
+  "generator_reviewed_source": "0c3f8ee",
+  "old_coordinate_policy": "Prior Locker31/Social31 immutable versions retained; no byte overwrites; no external publication."
+}

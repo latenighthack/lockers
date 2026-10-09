@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues />
+  <CurrentIssues>
+    <ID>MaxLineLength:Tools.kt$private suspend</ID>
+    <ID>MaxLineLength:Tools.kt$suspend</ID>
+    <ID>MaxLineLength:Tools.kt$suspend fun Application.attachFastpathTestServices()</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -11,6 +11,7 @@ import com.latenighthack.lockers.common.v1.Version
 import com.latenighthack.lockers.connector.internal.LockerStoreImpl
 import com.latenighthack.lockers.push.v1.PushConfig
 import com.latenighthack.lockers.push.v1.PushRegistration
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filter
@@ -32,9 +33,11 @@ class LockersClient private constructor(
     private val stream: Stream,
     val lockers: LockerClient,
     private val pushRegistrations: PushRegistrationController,
+    private val clientJob: Job,
 ) {
     /** Emits `true` while the session stream is connected. */
     val isConnected: Flow<Boolean> get() = stream.isConnected
+    val connection: StateFlow<StreamConnectionState> get() = stream.connection
 
     /** Emits a non-null value when the stream hits a terminal, non-retryable error. */
     val fatalError: Flow<StreamFatalError?> get() = stream.fatalError
@@ -42,9 +45,18 @@ class LockersClient private constructor(
     /** The current session id once the session has opened, else null. */
     val sessionId: StateFlow<SessionId?> get() = stream.sessionId
 
+    val subscriptionWork: StateFlow<SubscriptionWorkState> get() = stream.subscriptionWork
+    val subscriptionFailures: StateFlow<Map<com.latenighthack.lockers.common.v1.RoomId, Throwable>> get() = stream.subscriptionFailures
+    val subscriptionFailure: StateFlow<Throwable?> get() = stream.subscriptionFailure
+
+    val ratchetRecoveryFailures: StateFlow<List<RatchetRecoveryFailure>> get() = lockers.ratchetRecoveryFailures
+    suspend fun acknowledgeRatchetSourceUncertainty(roomId: com.latenighthack.lockers.common.v1.RoomId,
+        lockerId: com.latenighthack.lockers.common.v1.LockerId, writeRequestId: ByteArray) =
+        lockers.acknowledgeRatchetSourceUncertainty(roomId, lockerId, writeRequestId)
+
     /** Suspends until the stream connects at least once. */
     suspend fun awaitConnected() {
-        isConnected.filter { it }.first()
+        stream.awaitConnected()
     }
 
     /** Creates a keyspace-scoped, typed view over the shared [LockerClient]. */
@@ -59,6 +71,25 @@ class LockersClient private constructor(
 
     /** The stream of locker changes (adds, updates, deletes) across every keyspace. */
     val lockerChanges: Flow<LockerClient.LockerUpdate> get() = lockers.changes
+
+    /** Recover accepted changes after an application-owned persisted cursor. */
+    fun lockerChangesAfter(cursor: Long): Flow<AcceptedLockerChange> = lockers.changesAfter(cursor)
+    /** Raw accepted session events, including notification metadata, for durable consumption. */
+    fun eventsAfter(cursor: Long): Flow<AcceptedSessionEvent> = stream.eventsAfter(cursor)
+    /** Advance independent consumer cursors through every variant, including events they intentionally ignore. */
+    fun acceptedEventsAfter(cursor: Long): Flow<AcceptedConnectorEvent> = lockers.acceptedEventsAfter(cursor)
+    fun notificationsAfter(cursor: Long): Flow<AcceptedNotification> = lockers.notificationsAfter(cursor)
+    val broadcasts: Flow<IncomingBroadcast> get() = lockers.broadcasts
+    fun broadcastsAfter(cursor: Long): Flow<IncomingBroadcast> = lockers.broadcastsAfter(cursor)
+    /** Advance only through the minimum persisted cursor of every independent application consumer. */
+    suspend fun pruneAcceptedEventsThrough(cursor: Long) = lockers.pruneAcceptedEventsThrough(cursor)
+    /** Cutoff must precede the server's maximum event replay horizon. Legacy confirmations start a conservative age on first maintenance. */
+    suspend fun pruneConfirmedAcksBefore(cutoffMillis: Long) = stream.pruneConfirmedAcksBefore(cutoffMillis)
+
+    fun writeOutcomes(roomId: com.latenighthack.lockers.common.v1.RoomId, writeRequestId: ByteArray, pollIntervalMillis: Long = 1_000, timeoutMillis: Long = 300_000): Flow<WriteOutcomeObservation> =
+        lockers.writeOutcomes(roomId, writeRequestId, pollIntervalMillis, timeoutMillis)
+    suspend fun awaitWriteOutcome(roomId: com.latenighthack.lockers.common.v1.RoomId, writeRequestId: ByteArray, timeoutMillis: Long = 300_000): WriteOutcomeObservation =
+        lockers.awaitWriteOutcome(roomId, writeRequestId, timeoutMillis)
 
     /**
      * Registers (or rotates) this device's push credential for its backend. The
@@ -76,22 +107,37 @@ class LockersClient private constructor(
 
     /** Suspends until [backend]'s credential has been acknowledged for the current session. */
     suspend fun awaitPushRegistered(backend: PushBackendType) = pushRegistrations.awaitRegistered(backend)
+    suspend fun awaitPushUnregistered(backend: PushBackendType) = pushRegistrations.awaitUnregistered(backend)
+    val pushRegistrationStates: StateFlow<Map<PushBackendType, PushRegistrationStatus>> get() = pushRegistrations.registrations
 
     /** Server push capabilities — notably the VAPID public key a web client needs to subscribe. */
     suspend fun getPushConfig(): PushConfig? = pushRegistrations.getPushConfig()
+
+    /** Stops automatic replacement before authenticated revocation; failures stay closed and allow explicit retry. */
+    suspend fun destroySession() {
+        try { stream.destroySession() }
+        finally { withContext(NonCancellable) { closeAndJoin() } }
+    }
 
     /** Tears down the stream and background processing. */
     fun close() {
         pushRegistrations.stop()
         lockers.stop()
         stream.stop()
+        clientJob.cancel()
     }
+
+    /** Suspends until transports, reducers and pending owned work have stopped. */
+    suspend fun closeAndJoin() { close(); clientJob.join() }
 
     companion object {
         /**
          * Builds and starts a client. The result is started but not necessarily
          * connected yet — call [awaitConnected] to wait for the first successful
-         * session open.
+         * session open. When ratchets are enabled, this database retains current authority private keys
+         * for crash recovery. Use an application-trusted encrypted/secure delegate and restrict backups
+         * and access; ordinary locker/watch/broadcast APIs never expose those keys. The latest key per
+         * scope is retained until an authoritative newer epoch proves it obsolete.
          */
         suspend fun create(
             rpcClient: RpcClient,
@@ -102,11 +148,14 @@ class LockersClient private constructor(
             lockKeySource: LockKeySource? = null,
             codecs: NotificationCodecs = NotificationCodecs.identity(),
             telemetry: LockersTelemetry = LockersTelemetry.NONE,
+            coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
+            broadcastCodecs: BroadcastCodecs = BroadcastCodecs.identity(),
+            retentionPolicy: ConnectorRetentionPolicy = ConnectorRetentionPolicy(),
         ): LockersClient {
             database.open()
-            val sessionStore = SessionStoreImpl(keyValueStore, database)
-            val subscriptionStore = SubscriptionStoreImpl(database)
-            val lockerStore = LockerStoreImpl(database)
+            val sessionStore = SessionStoreImpl(keyValueStore, database, retentionPolicy)
+            val subscriptionStore = SubscriptionStoreImpl(database, retentionPolicy)
+            val lockerStore = LockerStoreImpl(database, retentionPolicy)
             val pushRegistrationStore = PushRegistrationStoreImpl(database)
 
             sessionStore.prepare()
@@ -114,15 +163,24 @@ class LockersClient private constructor(
             lockerStore.prepare()
             pushRegistrationStore.prepare()
 
-            val stream = Stream(rpcClient, keySource, sessionStore, subscriptionStore, appVersion, telemetry)
-            val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs, telemetry = telemetry)
-            val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId, telemetry)
-
-            lockerClient.start()
-            stream.start()
-            pushRegistrations.start()
-
-            return LockersClient(stream, lockerClient, pushRegistrations)
+            val parentContext = currentCoroutineContext() + coroutineContext
+            val clientJob = SupervisorJob(parentContext[Job])
+            val ownedContext = parentContext + clientJob
+            val stream = Stream(rpcClient, keySource, sessionStore, subscriptionStore, appVersion, telemetry, ownedContext)
+            val lockerClient = LockerClient(rpcClient, stream, lockerStore, lockKeySource, codecs, telemetry = telemetry, coroutineContext = ownedContext, broadcastCodecs = broadcastCodecs)
+            val pushRegistrations = PushRegistrationController(rpcClient, pushRegistrationStore, stream.sessionId, telemetry, ownedContext, stream.connection, stream::signSessionRequest)
+            try {
+                lockerClient.start()
+                stream.start()
+                pushRegistrations.start()
+                return LockersClient(stream, lockerClient, pushRegistrations, clientJob)
+            } catch (failure: Throwable) {
+                withContext(NonCancellable) {
+                    pushRegistrations.stop(); lockerClient.stop(); stream.stop()
+                    clientJob.cancelAndJoin()
+                }
+                throw failure
+            }
         }
     }
 }

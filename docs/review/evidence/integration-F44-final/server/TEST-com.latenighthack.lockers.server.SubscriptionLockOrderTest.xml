@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.SubscriptionLockOrderTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:42.097Z" hostname="Mikes-MacBook-Pro.local" time="0.434">
+  <properties/>
+  <testcase name="signed monolith subscription does not invert dispatcher and database ownership()" classname="com.latenighthack.lockers.server.SubscriptionLockOrderTest" time="0.008"/>
+  <testcase name="signed PostgreSQL subscription does not invert dispatcher and room transaction across handles()" classname="com.latenighthack.lockers.server.SubscriptionLockOrderTest" time="0.426"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

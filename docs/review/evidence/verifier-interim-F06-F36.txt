@@ -1,0 +1,39 @@
+---
+
+**F06 and F36 survive this interim review at `274e7de`. No unresolved defects found within these two fixes.** Managed worktree verified; source and Git status remain unchanged.
+
+- **F06:** retained public keys authorize fresh DESTROY confirmation only. Live operations still require live authority; consumed nonces remain rejected. Retention copies only SID/public key and shares the permanently reserved identity bound. Reviewed [SessionProofVerifier.kt:53](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionProofVerifier.kt:53) and [SessionStore.kt:88](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/server/src/main/kotlin/com/latenighthack/lockers/server/services/session/v1/SessionStore.kt:88).
+- **F36:** forwarding preserves operation status codes, caller cancellation, immutable retries and public-seed recovery. The bounded owned pool remains integrated and joined during shutdown. Reviewed [RoomServiceImpl.kt:194](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:194).
+
+Independent execution: **18 tests passed, zero failures/errors/skips**.
+
+| Test class | Passed |
+|---|---:|
+| SessionRevocationTest | 3 |
+| SessionProofBoundaryTest | 1 |
+| StorageAdoptionTest | 2 |
+| PublicForwardingRecoveryTest | 9 |
+| ReviewDestroyReconnectTests | 3 |
+
+The PostgreSQL case **actually ran using two independent handles**. SQLite reopen/security and committed-destroy lost-reply cases passed. Generator installation and binding generation executed successfully.
+
+Exact command:
+
+```sh
+ANDROID_HOME=/Users/mikeroberts/Library/Android/sdk \
+LOCKERS_TEST_PG_REQUIRED=true \
+LOCKERS_TEST_PG_URL='jdbc:postgresql://127.0.0.1:58594/lockers_fixes?user=review' \
+./gradlew \
+-PfhWorkspace=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/dependencies-status-final.json \
+-Dmaven.repo.local=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/maven \
+:api:installProtocGenKt :api:generateProto \
+:server:test \
+--tests com.latenighthack.lockers.server.SessionRevocationTest \
+--tests com.latenighthack.lockers.server.SessionProofBoundaryTest \
+--tests com.latenighthack.lockers.server.StorageAdoptionTest \
+--tests com.latenighthack.lockers.server.PublicForwardingRecoveryTest \
+:connector:jvmTest \
+--tests com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests
+```
+
+`BUILD SUCCESSFUL in 1m 3s`; all 23 tasks executed. This adjudicates **F06/F36 only**. Known pending fixes and combined/platform/consumer gates remain open.

@@ -1,0 +1,23 @@
+Type-safe project accessors is an incubating feature.
+> Task :api:detekt UP-TO-DATE
+> Task :connector:detekt UP-TO-DATE
+> Task :keymaster:detekt UP-TO-DATE
+> Task :observability-api:detekt UP-TO-DATE
+> Task :observability-connector:detekt UP-TO-DATE
+> Task :observability-server:detekt UP-TO-DATE
+> Task :server:detekt
+> Task :sharding-core:detekt UP-TO-DATE
+> Task :server:run:detekt UP-TO-DATE
+> Task :server:test:detekt UP-TO-DATE
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass4/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 4s
+10 actionable tasks: 1 executed, 9 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

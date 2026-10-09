@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ClientTelemetryTests[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:20:46.975Z" hostname="Mikes-MacBook-Pro.local" time="0.051">
+  <properties/>
+  <testcase name="ktbuf hooks isolate requests and propagate a client action to unary and streaming calls[jvm]" classname="gg.roll.viewmodel.core.ClientTelemetryTests" time="0.05"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

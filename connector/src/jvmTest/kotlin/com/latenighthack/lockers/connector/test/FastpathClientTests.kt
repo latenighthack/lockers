@@ -2,14 +2,14 @@ package com.latenighthack.lockers.connector.test
 
 import com.latenighthack.ktbuf.net.*
 import com.latenighthack.ktbuf.proto.Codes
-import com.latenighthack.ktbuf.test.server.runTestWithServer
+import com.latenighthack.lockers.connector.test.runOwnedTestWithServer as runTestWithServer
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.common.RoomKeying
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.*
 import com.latenighthack.lockers.server.attachFastpathTestServices
-import com.latenighthack.lockers.server.rpcClient
+import com.latenighthack.lockers.connector.test.ownedRpcClient as rpcClient
 import io.ktor.server.application.Application
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -20,7 +20,7 @@ import kotlin.test.*
 class FastpathClientTests {
     private suspend fun client(rpc: RpcClient, writeKey: Secp256r1KeyPair): LockersClient {
         val key = Secp256r1KeyPair.generate()
-        return LockersClient.create(rpc, com.latenighthack.lockers.connector.ConnectorStorage.inMemory(), KeyValueStore(InMemoryKeyValueStoreDelegate()),
+        return createOwnedTestClient(rpc, com.latenighthack.lockers.connector.ConnectorStorage.inMemory(), KeyValueStore(InMemoryKeyValueStoreDelegate()),
             object : AuthenticationKeySource {
                 override suspend fun getSessionKeyPair() = key
                 override suspend fun hasSessionKeyPair() = true

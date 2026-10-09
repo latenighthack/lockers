@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="StreamTests[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:13.688Z" hostname="Mikes-MacBook-Pro.local" time="1.452">
+  <properties/>
+  <testcase name="initialized → subscribed → event received[jvm]" classname="com.latenighthack.lockers.connector.test.StreamTests" time="0.085"/>
+  <testcase name="desynced sequence bytes recover the same session and its queued events[jvm]" classname="com.latenighthack.lockers.connector.test.StreamTests" time="0.158"/>
+  <testcase name="one room's failing subscription does not head-of-line-block another room[jvm]" classname="com.latenighthack.lockers.connector.test.StreamTests" time="0.014"/>
+  <testcase name="a failing subscription reconcile retries in-session instead of parking until reconnect[jvm]" classname="com.latenighthack.lockers.connector.test.StreamTests" time="0.289"/>
+  <testcase name="pending stored acks do not block the session open[jvm]" classname="com.latenighthack.lockers.connector.test.StreamTests" time="0.271"/>
+  <testcase name="unrecoverable signature mismatch falls back to a fresh session[jvm]" classname="com.latenighthack.lockers.connector.test.StreamTests" time="0.612"/>
+  <testcase name="recreated session restores live room subscriptions[jvm]" classname="com.latenighthack.lockers.connector.test.StreamTests" time="0.023"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

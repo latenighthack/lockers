@@ -3,7 +3,10 @@
 # --- Build stage: compile and stage the server via Gradle's installDist -------
 # Produces server/run/build/install/run/{bin,lib}: a self-contained launcher +
 # every runtime jar, so the runtime image needs no build tooling.
+FROM golang:1.26.1-bookworm AS codegen
 FROM gradle:8-jdk17 AS build
+COPY --from=codegen /usr/local/go/ /usr/local/go/
+ENV PATH="/usr/local/go/bin:${PATH}"
 WORKDIR /workspace
 
 # Copy the whole repo (a .dockerignore keeps build/ and secrets out of context).

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.RelocatedGrpcContractTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-08T23:25:04.894Z" hostname="Mikes-MacBook-Pro.local" time="0.185">
+  <properties/>
+  <testcase name="patchedRelocatedTransportRoundTripsUnaryBytesAndCloses()" classname="com.latenighthack.lockers.server.RelocatedGrpcContractTest" time="0.185"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

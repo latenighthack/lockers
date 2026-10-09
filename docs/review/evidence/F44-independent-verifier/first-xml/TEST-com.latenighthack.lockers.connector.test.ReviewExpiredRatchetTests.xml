@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewExpiredRatchetTests[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:00:35.595Z" hostname="Mikes-MacBook-Pro.local" time="1.136">
+  <properties/>
+  <testcase name="lost committed HTTP reply recovers key after receipt removal without resurrecting old payload[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.264"/>
+  <testcase name="a different source write reaching the exact expected key epoch remains source unknown[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.118"/>
+  <testcase name="unrelated source write and direct public key grant cannot certify the lost ratchet source[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.229"/>
+  <testcase name="an overridden live ancestor recovers committed key and exposes immutable expired receipt metadata[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.13"/>
+  <testcase name="proposed public key in a different scope cannot certify the original authority[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.128"/>
+  <testcase name="rejected ratchet preserves unresolved private intent without rerunning transform[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.134"/>
+  <testcase name="a failing first recovery does not starve later intents or archives and eventually retries[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewExpiredRatchetTests" time="0.132"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -11,6 +11,7 @@ import io.micrometer.core.instrument.MeterRegistry
  * [fromConfig] (production, JDBC stores) or directly by the test harness (in-memory stores).
  */
 class ClaimContext(
+    /** Unique process incarnation; direct embedders must never share this value across live processes. */
     val nodeId: String,
     val advertiseAddr: String,
     val roomClaims: RoomClaimStore,
@@ -24,8 +25,11 @@ class ClaimContext(
 ) : AutoCloseable {
     /** Releases the east-west connection pool and (when [fromConfig]-built) the JDBC pool. */
     override fun close() {
-        pool.close()
-        ownedJdbcPool?.close()
+        com.latenighthack.lockers.server.tools.ServiceLifecycle.blockingClose { closeAndJoin() }
+    }
+
+    suspend fun closeAndJoin() {
+        try { pool.closeAndJoin() } finally { ownedJdbcPool?.close() }
     }
 
     companion object {
@@ -52,8 +56,9 @@ class ClaimContext(
             val jdbcUrl = config.databaseUrl
                 ?: fallbackJdbcUrl?.takeIf { it.isNotBlank() }
                 ?: error("LOCKERS_ROOM_OWNERSHIP=claim requires LOCKERS_DB_URL.")
-            val nodeId = config.sharding.nodeId?.takeIf { it.isNotBlank() }
+            val configuredNodeId = config.sharding.nodeId?.takeIf { it.isNotBlank() }
                 ?: error("LOCKERS_ROOM_OWNERSHIP=claim requires LOCKERS_NODE_ID.")
+            val nodeId = "$configuredNodeId:${java.util.UUID.randomUUID()}"
             val advertiseAddr = config.sharding.advertiseAddr?.takeIf { it.isNotBlank() }
                 ?: error("LOCKERS_ROOM_OWNERSHIP=claim requires LOCKERS_ADVERTISE_ADDR (peer-reachable host:port).")
             check(config.claimRenewMs > 0 && config.claimRenewMs < config.claimTtlMs / 2) {
@@ -61,17 +66,20 @@ class ClaimContext(
                     "LOCKERS_CLAIM_TTL_MS (${config.claimTtlMs})."
             }
             val jdbcPool = ClaimJdbcPool(jdbcUrl)
-            return ClaimContext(
+            try { return ClaimContext(
                 nodeId = nodeId,
                 advertiseAddr = advertiseAddr,
-                roomClaims = JdbcRoomClaimStore(jdbcPool).also { it.prepare() },
+                roomClaims = JdbcRoomClaimStore(jdbcPool, maxRoomClaims = config.resourceLimits.maxRoomClaims.toLong()).also { it.prepare() },
                 sessionGateways = JdbcSessionGatewayStore(jdbcPool).also { it.prepare() },
-                pool = PeerConnectionPool(),
+                pool = PeerConnectionPool(peerToken = config.peerToken),
                 ttlMs = config.claimTtlMs,
                 renewMs = config.claimRenewMs,
                 meters = ClaimMetrics(meterRegistry),
                 ownedJdbcPool = jdbcPool,
-            )
+            ) } catch (failure: Throwable) {
+                try { jdbcPool.close() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                throw failure
+            }
         }
     }
 }

@@ -1,0 +1,226 @@
+Type-safe project accessors is an incubating feature.
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:installProtocGenKt UP-TO-DATE
+> Task :api:generateProto UP-TO-DATE
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion UP-TO-DATE
+> Task :observability-api:compileKotlinJvm UP-TO-DATE
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :observability-api:jvmMainClasses UP-TO-DATE
+> Task :observability-api:jvmJar UP-TO-DATE
+> Task :connector:jvmProcessResources NO-SOURCE
+> Task :connector:processJvmMainResources SKIPPED
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:compileKotlin UP-TO-DATE
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:processResources NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :sharding-core:jar UP-TO-DATE
+> Task :server:kspKotlin UP-TO-DATE
+> Task :server:compileKotlin UP-TO-DATE
+> Task :server:compileJava NO-SOURCE
+> Task :server:processResources NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar UP-TO-DATE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:compileKotlin UP-TO-DATE
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:processResources NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar UP-TO-DATE
+> Task :connector:jvmTestProcessResources NO-SOURCE
+> Task :connector:processJvmTestResources SKIPPED
+> Task :api:preBuild UP-TO-DATE
+> Task :api:preReleaseBuild UP-TO-DATE
+> Task :api:generateReleaseResValues UP-TO-DATE
+> Task :api:generateReleaseResources UP-TO-DATE
+> Task :api:packageReleaseResources UP-TO-DATE
+> Task :api:processReleaseNavigationResources UP-TO-DATE
+> Task :api:parseReleaseLocalResources UP-TO-DATE
+> Task :api:generateReleaseRFile UP-TO-DATE
+> Task :api:javaPreCompileRelease UP-TO-DATE
+> Task :connector:preBuild UP-TO-DATE
+> Task :connector:preReleaseBuild UP-TO-DATE
+> Task :connector:generateReleaseResValues UP-TO-DATE
+> Task :connector:generateReleaseResources UP-TO-DATE
+> Task :connector:packageReleaseResources UP-TO-DATE
+> Task :connector:processReleaseNavigationResources UP-TO-DATE
+> Task :connector:parseReleaseLocalResources UP-TO-DATE
+> Task :connector:generateReleaseRFile UP-TO-DATE
+> Task :observability-api:preBuild UP-TO-DATE
+> Task :observability-api:preReleaseBuild UP-TO-DATE
+> Task :observability-api:generateReleaseResValues UP-TO-DATE
+> Task :observability-api:generateReleaseResources UP-TO-DATE
+> Task :observability-api:packageReleaseResources UP-TO-DATE
+> Task :observability-api:processReleaseNavigationResources UP-TO-DATE
+> Task :observability-api:parseReleaseLocalResources UP-TO-DATE
+> Task :observability-api:generateReleaseRFile UP-TO-DATE
+> Task :observability-api:compileReleaseKotlinAndroid UP-TO-DATE
+> Task :observability-api:javaPreCompileRelease UP-TO-DATE
+> Task :observability-api:compileReleaseJavaWithJavac NO-SOURCE
+> Task :observability-api:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :observability-api:compileKotlinJs UP-TO-DATE
+> Task :api:downloadKotlinNativeDistribution UP-TO-DATE
+
+> Task :connector:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:594:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:783:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1505:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+
+> Task :api:compileKotlinJs
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileReleaseKotlinAndroid
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileKotlinIosSimulatorArm64
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :connector:compileJvmMainJava NO-SOURCE
+> Task :connector:jvmMainClasses
+> Task :connector:jvmJar
+> Task :api:compileReleaseJavaWithJavac NO-SOURCE
+> Task :connector:downloadKotlinNativeDistribution UP-TO-DATE
+> Task :observability-api:downloadKotlinNativeDistribution UP-TO-DATE
+> Task :observability-api:compileKotlinIosSimulatorArm64 UP-TO-DATE
+> Task :api:bundleLibCompileToJarRelease
+
+> Task :connector:compileKotlinJs
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:594:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:783:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1505:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+
+> Task :connector:compileKotlinIosSimulatorArm64
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:594:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:783:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1505:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+
+> Task :connector:compileTestKotlinJvm
+[KOTLIN] [IC] Incremental compilation was attempted but failed:
+    Failed to compute files to recompile: java.lang.IllegalStateException: The following FqNames can't be derived from DirtyData.dirtyLookupSymbols: com.latenighthack.lockers.connector.storage.v1.StoredLocker.
+DirtyData = DirtyData(dirtyLookupSymbols=[LookupSymbol(name=RatchetArchive, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=toByteArray, scope=com.latenighthack.lockers.connector.storage.v1), LookupSymbol(name=ArchiveMigrationProgress, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=Connected, scope=com.latenighthack.lockers.connector.StreamConnectionState), LookupSymbol(name=writeTo, scope=com.latenighthack.lockers.connector.storage.v1), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.connector.storage.v1), LookupSymbol(name=RatchetArchiveDefinitionV1, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=NAME, scope=com.latenighthack.lockers.connector.storage.v1.StoredLocker.Companion), LookupSymbol(name=RatchetArchiveDefinitionV2, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=LockerStoreImplDefinitionV1, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.connector.storage.v1.StoredLocker.Companion), LookupSymbol(name=Companion, scope=com.latenighthack.lockers.connector.storage.v1.StoredLocker), LookupSymbol(name=QueryPage, scope=com.latenighthack.ktstore), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.connector.storage.v1.StoredLocker), LookupSymbol(name=RatchetExpectationDefinitionV2, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=ArchiveMigrationDefinitionV2, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=DatabaseMigration, scope=com.latenighthack.ktstore), LookupSymbol(name=RatchetJournalDefinitionV1, scope=com.latenighthack.lockers.connector.internal)], dirtyClassesFqNames=[com.latenighthack.ktstore.QueryPage, com.latenighthack.lockers.connector.storage.v1, com.latenighthack.lockers.connector.storage.v1.StoredLocker.Companion, com.latenighthack.lockers.connector.internal.RatchetArchive, com.latenighthack.ktstore.DatabaseMigration, com.latenighthack.lockers.connector.internal.RatchetArchiveDefinitionV1, com.latenighthack.lockers.connector.internal.RatchetArchiveDefinitionV2, com.latenighthack.lockers.connector.internal.ArchiveMigrationProgress, com.latenighthack.lockers.connector.internal.RatchetJournalDefinitionV1, com.latenighthack.lockers.connector.storage.v1.StoredLocker, com.latenighthack.lockers.connector.StreamConnectionState.Connected, com.latenighthack.lockers.connector.internal.ArchiveMigrationDefinitionV2, com.latenighthack.lockers.connector.internal.RatchetExpectationDefinitionV2, com.latenighthack.lockers.connector.internal.LockerStoreImplDefinitionV1], dirtyClassesFqNamesForceRecompile=[])
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.toProgramSymbols(ClasspathChangesComputer.kt:364)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeFineGrainedKotlinClassChanges(ClasspathChangesComputer.kt:264)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeKotlinClassChanges(ClasspathChangesComputer.kt:164)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeClassChanges(ClasspathChangesComputer.kt:137)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeChangedAndImpactedSet(ClasspathChangesComputer.kt:87)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeClasspathChanges(ClasspathChangesComputer.kt:55)
+	at org.jetbrains.kotlin.incremental.dirtyFiles.ClasspathSnapshotBasedImpactDeterminer.determineChangedAndImpactedSymbols(ClasspathSnapshotBasedImpactDeterminer.kt:42)
+	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateSourcesToCompileImpl(JvmSourcesToCompileCalculator.kt:41)
+	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateWithClasspathSnapshot(JvmSourcesToCompileCalculator.kt:97)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.calculateSourcesToCompile(IncrementalJvmCompilerRunner.kt:60)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.calculateSourcesToCompile(IncrementalJvmCompilerRunner.kt:23)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally$lambda$0$compile(IncrementalCompilerRunner.kt:225)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally(IncrementalCompilerRunner.kt:267)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:119)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:684)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:94)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1810)
+	at jdk.internal.reflect.GeneratedMethodAccessor12.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+    Falling back to non-incremental compilation (reason = IC_FAILED_TO_COMPUTE_FILES_TO_RECOMPILE)
+    To help us fix this issue, please file a bug at https://youtrack.jetbrains.com/issues/KT with the above stack trace.
+    (Be sure to search for the above exception in existing issues first to avoid filing duplicated bugs.)             
+e: Incremental compilation failed: The following FqNames can't be derived from DirtyData.dirtyLookupSymbols: com.latenighthack.lockers.connector.storage.v1.StoredLocker.
+DirtyData = DirtyData(dirtyLookupSymbols=[LookupSymbol(name=RatchetArchive, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=toByteArray, scope=com.latenighthack.lockers.connector.storage.v1), LookupSymbol(name=ArchiveMigrationProgress, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=Connected, scope=com.latenighthack.lockers.connector.StreamConnectionState), LookupSymbol(name=writeTo, scope=com.latenighthack.lockers.connector.storage.v1), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.connector.storage.v1), LookupSymbol(name=RatchetArchiveDefinitionV1, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=NAME, scope=com.latenighthack.lockers.connector.storage.v1.StoredLocker.Companion), LookupSymbol(name=RatchetArchiveDefinitionV2, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=LockerStoreImplDefinitionV1, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.connector.storage.v1.StoredLocker.Companion), LookupSymbol(name=Companion, scope=com.latenighthack.lockers.connector.storage.v1.StoredLocker), LookupSymbol(name=QueryPage, scope=com.latenighthack.ktstore), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.connector.storage.v1.StoredLocker), LookupSymbol(name=RatchetExpectationDefinitionV2, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=ArchiveMigrationDefinitionV2, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=DatabaseMigration, scope=com.latenighthack.ktstore), LookupSymbol(name=RatchetJournalDefinitionV1, scope=com.latenighthack.lockers.connector.internal)], dirtyClassesFqNames=[com.latenighthack.ktstore.QueryPage, com.latenighthack.lockers.connector.storage.v1, com.latenighthack.lockers.connector.storage.v1.StoredLocker.Companion, com.latenighthack.lockers.connector.internal.RatchetArchive, com.latenighthack.ktstore.DatabaseMigration, com.latenighthack.lockers.connector.internal.RatchetArchiveDefinitionV1, com.latenighthack.lockers.connector.internal.RatchetArchiveDefinitionV2, com.latenighthack.lockers.connector.internal.ArchiveMigrationProgress, com.latenighthack.lockers.connector.internal.RatchetJournalDefinitionV1, com.latenighthack.lockers.connector.storage.v1.StoredLocker, com.latenighthack.lockers.connector.StreamConnectionState.Connected, com.latenighthack.lockers.connector.internal.ArchiveMigrationDefinitionV2, com.latenighthack.lockers.connector.internal.RatchetExpectationDefinitionV2, com.latenighthack.lockers.connector.internal.LockerStoreImplDefinitionV1], dirtyClassesFqNamesForceRecompile=[])
+java.lang.IllegalStateException: The following FqNames can't be derived from DirtyData.dirtyLookupSymbols: com.latenighthack.lockers.connector.storage.v1.StoredLocker.
+DirtyData = DirtyData(dirtyLookupSymbols=[LookupSymbol(name=RatchetArchive, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=toByteArray, scope=com.latenighthack.lockers.connector.storage.v1), LookupSymbol(name=ArchiveMigrationProgress, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=Connected, scope=com.latenighthack.lockers.connector.StreamConnectionState), LookupSymbol(name=writeTo, scope=com.latenighthack.lockers.connector.storage.v1), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.connector.storage.v1), LookupSymbol(name=RatchetArchiveDefinitionV1, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=NAME, scope=com.latenighthack.lockers.connector.storage.v1.StoredLocker.Companion), LookupSymbol(name=RatchetArchiveDefinitionV2, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=LockerStoreImplDefinitionV1, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.connector.storage.v1.StoredLocker.Companion), LookupSymbol(name=Companion, scope=com.latenighthack.lockers.connector.storage.v1.StoredLocker), LookupSymbol(name=QueryPage, scope=com.latenighthack.ktstore), LookupSymbol(name=<SAM-CONSTRUCTOR>, scope=com.latenighthack.lockers.connector.storage.v1.StoredLocker), LookupSymbol(name=RatchetExpectationDefinitionV2, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=ArchiveMigrationDefinitionV2, scope=com.latenighthack.lockers.connector.internal), LookupSymbol(name=DatabaseMigration, scope=com.latenighthack.ktstore), LookupSymbol(name=RatchetJournalDefinitionV1, scope=com.latenighthack.lockers.connector.internal)], dirtyClassesFqNames=[com.latenighthack.ktstore.QueryPage, com.latenighthack.lockers.connector.storage.v1, com.latenighthack.lockers.connector.storage.v1.StoredLocker.Companion, com.latenighthack.lockers.connector.internal.RatchetArchive, com.latenighthack.ktstore.DatabaseMigration, com.latenighthack.lockers.connector.internal.RatchetArchiveDefinitionV1, com.latenighthack.lockers.connector.internal.RatchetArchiveDefinitionV2, com.latenighthack.lockers.connector.internal.ArchiveMigrationProgress, com.latenighthack.lockers.connector.internal.RatchetJournalDefinitionV1, com.latenighthack.lockers.connector.storage.v1.StoredLocker, com.latenighthack.lockers.connector.StreamConnectionState.Connected, com.latenighthack.lockers.connector.internal.ArchiveMigrationDefinitionV2, com.latenighthack.lockers.connector.internal.RatchetExpectationDefinitionV2, com.latenighthack.lockers.connector.internal.LockerStoreImplDefinitionV1], dirtyClassesFqNamesForceRecompile=[])
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.toProgramSymbols(ClasspathChangesComputer.kt:364)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeFineGrainedKotlinClassChanges(ClasspathChangesComputer.kt:264)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeKotlinClassChanges(ClasspathChangesComputer.kt:164)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeClassChanges(ClasspathChangesComputer.kt:137)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeChangedAndImpactedSet(ClasspathChangesComputer.kt:87)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathChangesComputer.computeClasspathChanges(ClasspathChangesComputer.kt:55)
+	at org.jetbrains.kotlin.incremental.dirtyFiles.ClasspathSnapshotBasedImpactDeterminer.determineChangedAndImpactedSymbols(ClasspathSnapshotBasedImpactDeterminer.kt:42)
+	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateSourcesToCompileImpl(JvmSourcesToCompileCalculator.kt:41)
+	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateWithClasspathSnapshot(JvmSourcesToCompileCalculator.kt:97)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.calculateSourcesToCompile(IncrementalJvmCompilerRunner.kt:60)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.calculateSourcesToCompile(IncrementalJvmCompilerRunner.kt:23)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally$lambda$0$compile(IncrementalCompilerRunner.kt:225)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally(IncrementalCompilerRunner.kt:267)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:119)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:684)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:94)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1810)
+	at jdk.internal.reflect.GeneratedMethodAccessor12.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/OwnedTestFixture.kt:30:151 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/OwnedTestFixtureTests.kt:47:31 Unnecessary non-null assertion (!!) on a non-null receiver of type 'LockersClient'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewAuthorityV2Tests.kt:56:107 Unnecessary non-null assertion (!!) on a non-null receiver of type 'UnlockLockerRequest'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewConnectorTests.kt:56:87 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256r1KeyPair'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewConnectorTests.kt:90:129 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256r1KeyPair'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewExpiredRatchetTests.kt:147:42 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangeRequest'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewRatchetAdoptionTests.kt:60:75 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangeRequest'.
+
+> Task :connector:compileJvmTestJava NO-SOURCE
+> Task :connector:jvmTestClasses
+
+> Task :connector:compileReleaseKotlinAndroid
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:594:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:783:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1505:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+
+> Task :connector:jvmTest
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-connector-store-aliases/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 13s
+55 actionable tasks: 14 executed, 41 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html

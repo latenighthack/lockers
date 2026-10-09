@@ -17,7 +17,7 @@ import kotlin.time.Duration.Companion.seconds
  *
  * Gated off `LOCKERS_LOAD_TARGETS` (comma-separated `host:port` list). Optional:
  *  - `LOCKERS_LOAD_LABEL`   — report label (default "external")
- *  - `LOCKERS_TEST_PG_URL`  — when set, asserts `room_claim` cardinality ≤ active rooms
+ *  - `LOCKERS_TEST_PG_URL`  — when set, checks permanent namespace accounting and newly reserved identities
  *  - knobs from [LoadKnobs]
  *
  * After the run it scrapes each target's `/metrics` for the renew-duration max and prints it
@@ -32,6 +32,13 @@ class ExternalClaimLoadDriverTest {
         val label = System.getenv("LOCKERS_LOAD_LABEL") ?: "external"
         val rooms = LoadKnobs.rooms()
 
+        val pgUrl = System.getenv("LOCKERS_TEST_PG_URL")?.takeIf { it.isNotBlank() }
+        fun claimCount(url: String): Long = DriverManager.getConnection(url).use { connection ->
+            connection.createStatement().use { statement ->
+                statement.executeQuery("SELECT count(*) FROM room_claim").use { rows -> rows.next(); rows.getLong(1) }
+            }
+        }
+        val before = pgUrl?.let(::claimCount) ?: 0
         runBlocking {
             val result = ClaimLoadRunner(
                 targetAddrs = targets!!,
@@ -49,16 +56,18 @@ class ExternalClaimLoadDriverTest {
                 }
             }
 
-            System.getenv("LOCKERS_TEST_PG_URL")?.takeIf { it.isNotBlank() }?.let { url ->
+            pgUrl?.let { url ->
                 DriverManager.getConnection(url).use { conn ->
                     conn.createStatement().use { st ->
                         st.executeQuery("SELECT count(*) FROM room_claim").use { rs ->
                             rs.next()
                             val rows = rs.getLong(1)
-                            println("room_claim rows=$rows (active rooms=$rooms)")
-                            // The doc's cardinality invariant: the table tracks active rooms, and
-                            // never exceeds them.
-                            assertThat(rows).isLessThanOrEqualTo(rooms.toLong())
+                            println("room_claim permanent rows=$rows (before=$before, exercised rooms=$rooms)")
+                            assertThat(rows - before).isLessThanOrEqualTo(rooms.toLong())
+                        }
+                        st.executeQuery("SELECT reserved FROM room_claim_capacity WHERE singleton = 1").use { rs ->
+                            check(rs.next())
+                            assertThat(rs.getLong(1)).isEqualTo(claimCount(url))
                         }
                     }
                 }

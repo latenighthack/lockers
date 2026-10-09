@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.claim.ClaimContextFromConfigTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:47.230Z" hostname="Mikes-MacBook-Pro.local" time="0.008">
+  <properties/>
+  <testcase name="ring mode yields no context (its wiring is separate)()" classname="com.latenighthack.lockers.server.claim.ClaimContextFromConfigTest" time="0.001"/>
+  <testcase name="local mode yields no context()" classname="com.latenighthack.lockers.server.claim.ClaimContextFromConfigTest" time="0.0"/>
+  <testcase name="claim without advertise addr names LOCKERS_ADVERTISE_ADDR()" classname="com.latenighthack.lockers.server.claim.ClaimContextFromConfigTest" time="0.0"/>
+  <testcase name="fallback jdbc url substitutes for LOCKERS_DB_URL()" classname="com.latenighthack.lockers.server.claim.ClaimContextFromConfigTest" time="0.0"/>
+  <testcase name="claim without a db url names LOCKERS_DB_URL()" classname="com.latenighthack.lockers.server.claim.ClaimContextFromConfigTest" time="0.001"/>
+  <testcase name="renew must be under half the ttl()" classname="com.latenighthack.lockers.server.claim.ClaimContextFromConfigTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewSubscriptionEchoTests[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T04:05:25.360Z" hostname="Mikes-MacBook-Pro.local" time="0.018">
+  <properties/>
+  <testcase name="successful subscription without the exact requested revision cannot confirm intent[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionEchoTests" time="0.004"/>
+  <testcase name="malformed successful HTTP snapshot cannot publish data or subscription confirmation[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionEchoTests" time="0.014"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

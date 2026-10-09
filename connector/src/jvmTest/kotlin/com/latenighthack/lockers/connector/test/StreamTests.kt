@@ -1,7 +1,7 @@
 package com.latenighthack.lockers.connector.test
 
 import kotlin.test.Test
-import com.latenighthack.ktbuf.test.server.runTestWithServer
+import com.latenighthack.lockers.connector.test.runOwnedTestWithServer as runTestWithServer
 import com.latenighthack.ktcrypto.Secp256r1KeyPair
 import com.latenighthack.ktcrypto.generate
 import com.latenighthack.ktstore.InMemoryKeyValueStoreDelegate
@@ -11,6 +11,7 @@ import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.common.v1.Version
 import com.latenighthack.lockers.connector.*
 import com.latenighthack.lockers.server.*
+import com.latenighthack.lockers.connector.test.ownedRpcClient as rpcClient
 import com.latenighthack.lockers.connector.internal.ShardedRoomServiceRpc
 import com.latenighthack.lockers.connector.storage.v1.StoredAck
 import com.latenighthack.lockers.room.v1.PostLockerChangeRequest
@@ -50,7 +51,7 @@ class StreamTests {
             database.open()
 
             val version = Version(0, 0, 1)
-            val stream1 = Stream(rpcClient, keySource, sessionStore, subscriptionStore, version)
+            val stream1 = createOwnedTestStream(rpcClient, keySource, sessionStore, subscriptionStore, version)
             stream1.start()
             val firstSessionId = awaitConnected(stream1)
             stream1.subscribe(testRoomId, waitForSubscription = true)
@@ -58,7 +59,7 @@ class StreamTests {
 
             sessionStore.updateSessionId(null)
             sessionStore.updateNextSequenceBytes(null)
-            val stream2 = Stream(rpcClient, keySource, sessionStore, subscriptionStore, version)
+            val stream2 = createOwnedTestStream(rpcClient, keySource, sessionStore, subscriptionStore, version)
             stream2.start()
             val freshSessionId = awaitConnected(stream2)
             assertEquals(false, firstSessionId.rawValue.contentEquals(freshSessionId.rawValue))
@@ -110,7 +111,7 @@ class StreamTests {
         sessionStore.prepare()
         database.open()
 
-        val stream = Stream(
+        val stream = createOwnedTestStream(
             rpcClient,
             keySource,
             sessionStore,
@@ -217,7 +218,7 @@ class StreamTests {
             database.open()
 
             val version = Version(0, 0, 1)
-            val stream1 = Stream(rpcClient, keySource, sessionStore, subscriptionStore, version)
+            val stream1 = createOwnedTestStream(rpcClient, keySource, sessionStore, subscriptionStore, version)
             stream1.start()
             val firstSessionId = awaitConnected(stream1)
             stream1.subscribe(testRoomId, waitForSubscription = true)
@@ -236,7 +237,7 @@ class StreamTests {
             // (as when the app dies between the server's rotation and the client's persist).
             sessionStore.updateNextSequenceBytes(Random.nextBytes(32))
 
-            val stream2 = Stream(rpcClient, keySource, sessionStore, subscriptionStore, version)
+            val stream2 = createOwnedTestStream(rpcClient, keySource, sessionStore, subscriptionStore, version)
             val queued = CompletableDeferred<Event>()
             launch { queued.complete(stream2.events.first()) }
             stream2.start()
@@ -273,7 +274,7 @@ class StreamTests {
             sessionStore.addAck(StoredAck(Random.nextBytes(32), Random.nextBytes(32)))
 
             val version = Version(0, 0, 1)
-            val stream = Stream(SlowConnectRpcClient(rpcClient), keySource, sessionStore, subscriptionStore, version)
+            val stream = createOwnedTestStream(SlowConnectRpcClient(rpcClient), keySource, sessionStore, subscriptionStore, version)
             val incoming = CompletableDeferred<Event>()
             launch { incoming.complete(stream.events.first()) }
             stream.start()
@@ -306,7 +307,7 @@ class StreamTests {
             database.open()
 
             val version = Version(0, 0, 1)
-            val stream1 = Stream(rpcClient, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, version)
+            val stream1 = createOwnedTestStream(rpcClient, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, version)
             stream1.start()
             val firstSessionId = awaitConnected(stream1)
             stream1.stop()
@@ -314,7 +315,7 @@ class StreamTests {
             // A different session key: every open signature fails no matter the material, so the
             // client must give up on the session after INVALID_SEQUENCE_WIPE_THRESHOLD attempts
             // and create a fresh one instead of locking out forever.
-            val stream2 = Stream(rpcClient, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, version)
+            val stream2 = createOwnedTestStream(rpcClient, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, version)
             stream2.start()
             val freshSessionId = awaitConnected(stream2)
 
@@ -344,7 +345,7 @@ class StreamTests {
                 }
             }
 
-            val stream = Stream(faulty, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, Version(0, 0, 1))
+            val stream = createOwnedTestStream(faulty, FixedKeySource(Secp256r1KeyPair.generate()), sessionStore, subscriptionStore, Version(0, 0, 1))
             stream.start()
             awaitConnected(stream)
 
@@ -394,7 +395,7 @@ class StreamTests {
             sessionStore.prepare()
             database.open()
 
-            val stream = Stream(
+            val stream = createOwnedTestStream(
                 RoomFaultRpcClient(server.rpcClient, failRoom = badRoomId),
                 FixedKeySource(Secp256r1KeyPair.generate()),
                 sessionStore,

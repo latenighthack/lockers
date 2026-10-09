@@ -17,6 +17,7 @@ import com.latenighthack.lockers.connector.Stream
 import com.latenighthack.lockers.connector.SubscriptionStoreImpl
 import com.latenighthack.lockers.connector.SessionStoreImpl
 import com.latenighthack.lockers.connector.internal.LockerStoreImpl
+import com.latenighthack.lockers.room.v1.CapabilitiesResponse
 import com.latenighthack.lockers.room.v1.PostLockerChangeRequest
 import com.latenighthack.lockers.room.v1.PostLockerChangeResponse
 import com.latenighthack.lockers.room.v1.fromByteArray
@@ -157,8 +158,8 @@ class RoutingRpcClientTests {
         }
 
         // Seed: does not own the shard — always answers NOT_OWNER + a redirect to the owner.
-        val seed = FakeNode("seed", seedHits) { _, _ ->
-            PostLockerChangeResponse {
+        val seed = FakeNode("seed", seedHits) { method, _ ->
+            if (method.methodName == "Capabilities") CapabilitiesResponse().toByteArray() else PostLockerChangeResponse {
                 result = PostLockerChangeResponse.Result.NOT_OWNER
                 redirect = ShardRedirect {
                     ownerAddress = "owner-node:9000"
@@ -181,7 +182,7 @@ class RoutingRpcClientTests {
         assertEquals("3", ownerHits.single().second["e"])
         assertEquals(ridKey, ownerHits.single().second["rid"])
 
-        lockerClient.stop()
+        lockerClient.closeAndJoin(); routing.closeAndJoin()
     }
 
     /** A [LockerClient] wired to [rpcClient] over in-memory stores; not started (writes need no stream). */

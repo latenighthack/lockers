@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.sharding.MonolithModeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:15.950Z" hostname="Mikes-MacBook-Pro.local" time="0.008">
+  <properties/>
+  <testcase name="coLocated router puts both axes on one node for a single-fleet monolith()" classname="com.latenighthack.lockers.sharding.MonolithModeTest" time="0.003"/>
+  <testcase name="a single-node cluster routes every room and session locally()" classname="com.latenighthack.lockers.sharding.MonolithModeTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

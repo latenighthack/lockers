@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.ServerLifecycleDrainTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:38.684Z" hostname="Mikes-MacBook-Pro.local" time="0.665">
+  <properties/>
+  <testcase name="factory failure closes earlier results before component construction()" classname="com.latenighthack.lockers.server.ServerLifecycleDrainTest" time="0.003"/>
+  <testcase name="startup failure rolls back extensions that started successfully()" classname="com.latenighthack.lockers.server.ServerLifecycleDrainTest" time="0.005"/>
+  <testcase name="embedding parent cancellation terminates provider work()" classname="com.latenighthack.lockers.server.ServerLifecycleDrainTest" time="0.262"/>
+  <testcase name="provider asynchronous closure is awaited()" classname="com.latenighthack.lockers.server.ServerLifecycleDrainTest" time="0.003"/>
+  <testcase name="component shutdown joins provider cleanup before closing resources()" classname="com.latenighthack.lockers.server.ServerLifecycleDrainTest" time="0.315"/>
+  <testcase name="provider construction unwinds earlier resources and suppresses cleanup failures()" classname="com.latenighthack.lockers.server.ServerLifecycleDrainTest" time="0.001"/>
+  <testcase name="custom single thread embedding requires suspend shutdown()" classname="com.latenighthack.lockers.server.ServerLifecycleDrainTest" time="0.017"/>
+  <testcase name="shard close waits for a suspended operation and rejects self close()" classname="com.latenighthack.lockers.server.ServerLifecycleDrainTest" time="0.058"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

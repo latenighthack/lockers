@@ -1,0 +1,70 @@
+
+> Configure project :browser-tests
+w: [33m[1m⚠️ Deprecated Gradle Property 'kotlin.js.compiler' Used[0m[0m
+The `kotlin.js.compiler` deprecated property is used in your build.
+[32m[1mSolution:[0m[0m
+[32m[3mIt is unsupported, please stop using it.[0m[0m
+
+
+> Task :migration-gradle-plugin:compileJava UP-TO-DATE
+> Task :migration-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :migration-gradle-plugin:processResources UP-TO-DATE
+> Task :migration-gradle-plugin:classes UP-TO-DATE
+> Task :migration-gradle-plugin:jar UP-TO-DATE
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :kotlinKotlinNpmCachesSetup
+> Task :kotlinNodeJsSetup UP-TO-DATE
+> Task :kotlinRestoreYarnLock UP-TO-DATE
+> Task :kotlinYarnSetup UP-TO-DATE
+> Task :library:jsPackageJson UP-TO-DATE
+> Task :browser-tests:jsPackageJson UP-TO-DATE
+> Task :browser-tests:jsTestPackageJson UP-TO-DATE
+> Task :library:jsTestPackageJson UP-TO-DATE
+> Task :browser-tests:jsPublicPackageJson UP-TO-DATE
+> Task :browser-tests:jsTestPublicPackageJson UP-TO-DATE
+> Task :library:jsPublicPackageJson UP-TO-DATE
+> Task :library:jsTestPublicPackageJson UP-TO-DATE
+> Task :kotlinPackageJsonUmbrella UP-TO-DATE
+> Task :rootPackageJson UP-TO-DATE
+> Task :kotlinNpmInstall UP-TO-DATE
+> Task :kotlinStoreYarnLock UP-TO-DATE
+> Task :library:kmpPartiallyResolvedDependenciesChecker
+> Task :library:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :library:jsProcessResources NO-SOURCE
+> Task :library:jsTestProcessResources NO-SOURCE
+> Task :library:kotlinNodeJsSetup UP-TO-DATE
+> Task :library:compileKotlinJvm FROM-CACHE
+> Task :library:preBuild UP-TO-DATE
+> Task :library:preDebugBuild UP-TO-DATE
+> Task :library:generateDebugResValues FROM-CACHE
+> Task :library:generateDebugResources UP-TO-DATE
+> Task :library:packageDebugResources FROM-CACHE
+> Task :library:parseDebugLocalResources FROM-CACHE
+> Task :library:processDebugManifest FROM-CACHE
+> Task :library:generateDebugRFile FROM-CACHE
+> Task :library:compileDebugKotlinAndroid FROM-CACHE
+
+> Task :library:compileKotlinJs
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners/library/src/commonMain/kotlin/com/latenighthack/ktstore/InMemoryStoreDelegate.kt:129:26 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners/library/src/commonMain/kotlin/com/latenighthack/ktstore/InMemoryStoreDelegate.kt:198:159 Unnecessary non-null assertion (!!) on a non-null receiver of type 'StoreKey<*>'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners/library/src/commonMain/kotlin/com/latenighthack/ktstore/KeyValueStore.kt:36:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners/library/src/commonMain/kotlin/com/latenighthack/ktstore/Sql.kt:283:26 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners/library/src/jsMain/kotlin/com/latenighthack/ktstore/AtomicBoolean.kt:3:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners/library/src/jsMain/kotlin/com/latenighthack/ktstore/AtomicBoolean.kt:23:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners/library/src/jsMain/kotlin/com/latenighthack/ktstore/AtomicBoolean.kt:43:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners/library/src/jsMain/kotlin/com/latenighthack/ktstore/PersistentKeyValueStoreDelegate.kt:5:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners/library/src/jsMain/kotlin/com/latenighthack/ktstore/StoreDelegate.kt:354:9 'when' is exhaustive so 'else' is redundant here.
+
+> Task :library:cinteropSqlite3IosSimulatorArm64
+> Task :library:jsMainClasses
+> Task :library:downloadKotlinNativeDistribution FROM-CACHE
+> Task :library:compileTestKotlinJs
+> Task :library:compileKotlinIosSimulatorArm64 FROM-CACHE
+> Task :library:jsTestClasses
+> Task :library:compileTestDevelopmentExecutableKotlinJs
+> Task :library:jsTestTestDevelopmentExecutableCompileSync
+
+> Task :library:jsBrowserTest
+
+BUILD SUCCESSFUL in 19s
+36 actionable tasks: 8 executed, 9 from cache, 19 up-to-date

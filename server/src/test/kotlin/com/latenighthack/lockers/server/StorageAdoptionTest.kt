@@ -24,12 +24,16 @@ class StorageAdoptionTest {
         "push_delivery_write_receipts" to StoreRow(hex("0a010112030a0102a00607"), listOf(BoundStoreKey.SerializedKey("requestId", hex("01")), BoundStoreKey.SerializedKey("roomIdtoByteArray", hex("0a0102")))),
         "push_delivery_room_sequences" to StoreRow(hex("0a030a0101a00607"), listOf(BoundStoreKey.SerializedKey("roomIdtoByteArray", hex("0a0101"))))
     )
+    @Test fun historicalV3SchemaMatchesTheIndependentlyCapturedStoreSet() {
+        assertEquals(fixtures.keys, ServerStorage.legacyDefinitionsV3.map { it.storeName.value }.toSet())
+    }
+
     @Test fun adoptsEveryOwnedStorePreservesBytesAndSupportsReopen() = runBlocking {
         val file = File.createTempFile("serverstorage-legacy", ".db")
         val configuration = ServerStorage.configuration(file.name)
         val legacy = SqlStoreDelegate(JdbcDriver(file.absolutePath, "sqlite"), "BLOB", legacyBinaryText = true)
         try {
-            configuration.stores.forEach { legacy.registerStore(it.name.value, it.keys, it.primaryKey) }
+            ServerStorage.legacyDefinitionsV3.map { it.declaration }.forEach { legacy.registerStore(it.name.value, it.keys, it.primaryKey) }
             legacy.createStores()
             fixtures.forEach { (table, row) -> legacy.save(table, row.data, row.keys) }
         } finally { legacy.close() }
@@ -43,7 +47,9 @@ class StorageAdoptionTest {
                         assertContentEquals(expected.data as ByteArray, getAll(StoreName(table)).single() as ByteArray)
                         // Every independently captured scalar key remains queryable after rebuilding.
                         expected.keys.forEach { key ->
-                            assertContentEquals(expected.data as ByteArray, get(StoreName(table), StoreRelation.Eq(key)) as ByteArray)
+                            val currentKey = if (table == "lockers" && key is BoundStoreKey.LongKey)
+                                BoundStoreKey.SerializedKey(key.name, com.latenighthack.lockers.server.services.room.v1.lockerKeyspaceKey(key.value)) else key
+                            assertContentEquals(expected.data as ByteArray, get(StoreName(table), StoreRelation.Eq(currentKey)) as ByteArray)
                         }
                     }
                 }

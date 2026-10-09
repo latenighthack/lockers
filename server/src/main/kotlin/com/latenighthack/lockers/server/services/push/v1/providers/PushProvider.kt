@@ -54,4 +54,7 @@ interface PushProvider {
     suspend fun send(registration: PushRegistration, push: Push): PushResult
 
     fun close() {}
+
+    /** Awaits provider-owned resource closure after active sends have joined. */
+    suspend fun closeAndJoin() { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { close() } }
 }

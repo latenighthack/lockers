@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="StoreCompatibilityTests[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:22:07.045Z" hostname="Mikes-MacBook-Pro.local" time="0.758">
+  <properties/>
+  <testcase name="typedGameIndexPreservesProtobufIdEncoding[jvm]" classname="gg.roll.viewmodel.core.store.StoreCompatibilityTests" time="0.737"/>
+  <testcase name="typedProfileIndexReadsAndUpdatesLegacyRecords[jvm]" classname="gg.roll.viewmodel.core.store.StoreCompatibilityTests" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

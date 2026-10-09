@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="InviteViewModelTests[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:21:10.953Z" hostname="Mikes-MacBook-Pro.local" time="6.072">
+  <properties/>
+  <testcase name="friend invite is sealed to the profile inbox and the invitee auto-joins[jvm]" classname="gg.roll.viewmodel.core.InviteViewModelTests" time="2.576"/>
+  <testcase name="profile invite makes mutual contacts and converges on the rendezvous room[jvm]" classname="gg.roll.viewmodel.core.InviteViewModelTests" time="1.794"/>
+  <testcase name="room info invite url joins peer into the same room[jvm]" classname="gg.roll.viewmodel.core.InviteViewModelTests" time="1.701"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

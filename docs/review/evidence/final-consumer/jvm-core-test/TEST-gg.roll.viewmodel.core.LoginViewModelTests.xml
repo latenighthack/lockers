@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="LoginViewModelTests[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:21:17.258Z" hostname="Mikes-MacBook-Pro.local" time="3.91">
+  <properties/>
+  <testcase name="phone OTP signs up then recovers on a second device[jvm]" classname="gg.roll.viewmodel.core.LoginViewModelTests" time="1.83"/>
+  <testcase name="apple sign up on one device recovers the same account on a second[jvm]" classname="gg.roll.viewmodel.core.LoginViewModelTests" time="1.055"/>
+  <testcase name="apple sign in with an unbound identity onboards without prefill[jvm]" classname="gg.roll.viewmodel.core.LoginViewModelTests" time="1.025"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

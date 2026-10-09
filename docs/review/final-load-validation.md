@@ -1,0 +1,9 @@
+# Final source short-run load verification
+
+Frozen31aba20 ran both optional drivers using the repository wrapper, dependencies-indexeddb-final.json and isolated Maven repository. Each phase used2 claim nodes,100 rooms,50 requested writes/second and15 seconds. These are short health checks on a concurrently busy development machine; production latency targets and the design's full600-second soak are not certified.
+
+The in-process retained run completed736 claim writes and752 monolith writes,0 errors. Claim ownership was50 rooms on each node,100 unique rooms in total;0 steals/lost claims. p99 was113.75ms/10.49ms. Its1 test passed with0 failures/errors/skips. An earlier successful run's XML was replaced by Gradle's later driver task, so it was rerun once specifically to retain complete XML/stdout rather than invent missing metric counts.
+
+The external process script built the distribution and launched2 actual claim JVMs plus the monolith phase against a fresh task-owned PostgreSQL database. Claim completed698 writes, monolith712,0 errors. p99 was260.73ms/237.33ms; renew max11.1ms/117.5ms. Both driver invocations ran (report output and successful progression are retained); the final monolith XML is preserved. Permanent claim rows100 matched the reserved counter100. The script shared one ephemeral private peer credential and used internal admin advertised addresses; it terminated and joined its owned processes at exit.
+
+Exact wrapper/env inputs are visible in the retained logs and scripts/claim-load.sh. Evidence is under evidence/final-load. No production service, original checkout or external repository was changed. A subsequently discovered signed Fullhouse consumer write failure is a separate unresolved gate; these unsigned claim health checks do not establish that signed consumer path's correctness.

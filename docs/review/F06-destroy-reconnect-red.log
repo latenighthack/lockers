@@ -1,0 +1,136 @@
+Type-safe project accessors is an incubating feature.
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+
+> Task :api:installProtocGenKt
+go: downloading github.com/lyft/protoc-gen-star v0.6.2
+go: downloading golang.org/x/text v0.3.7
+go: downloading github.com/Masterminds/sprig v2.22.0+incompatible
+go: downloading github.com/Masterminds/goutils v1.1.1
+go: downloading github.com/Masterminds/semver v1.5.0
+go: downloading github.com/google/uuid v1.6.0
+go: downloading github.com/huandu/xstrings v1.5.0
+go: downloading github.com/imdario/mergo v0.3.16
+go: downloading github.com/mitchellh/copystructure v1.2.0
+go: downloading golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+go: downloading github.com/golang/protobuf v1.5.2
+go: downloading github.com/spf13/afero v1.3.3
+go: downloading github.com/mitchellh/reflectwalk v1.0.2
+go: downloading google.golang.org/protobuf v1.26.0
+
+> Task :api:generateProto
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :connector:jvmProcessResources NO-SOURCE
+> Task :connector:processJvmMainResources SKIPPED
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:processResources NO-SOURCE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:processResources NO-SOURCE
+> Task :connector:jvmTestProcessResources NO-SOURCE
+> Task :connector:processJvmTestResources SKIPPED
+> Task :sharding-core:compileKotlin
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :sharding-core:jar
+> Task :observability-api:compileKotlinJvm
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmMainClasses
+> Task :observability-api:jvmJar
+
+> Task :api:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmMainClasses
+> Task :api:jvmJar
+
+> Task :connector:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:534:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:723:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1319:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/StreamConnectionState.kt:18:105 This class or interface requires opt-in to be implemented: Inheriting from this kotlinx.coroutines API is unstable. Either new methods may be added in the future, which would break the inheritance, or correctly inheriting from it requires fulfilling contracts that may change in the future.
+
+> Task :connector:compileJvmMainJava NO-SOURCE
+> Task :connector:jvmMainClasses
+> Task :connector:jvmJar
+> Task :server:kspKotlin
+> Task :server:processResources NO-SOURCE
+
+> Task :server:compileKotlin
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/server/src/main/kotlin/com/latenighthack/lockers/server/MonolithComponent.kt:212:69 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:43:51 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Connection'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:47:27 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Connection'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/RemoteGateway.kt:149:130 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:213:98 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/providers/ApnsPushProvider.kt:103:90 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:184:44 Unnecessary safe call on a non-null receiver of type 'String'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:435:94 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangesResponse'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:437:93 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangesResponse'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:1011:110 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/server/src/main/kotlin/com/latenighthack/lockers/server/tools/WriteTrace.kt:67:46 Unnecessary non-null assertion (!!) on a non-null receiver of type 'String'.
+
+> Task :server:compileJava NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar
+> Task :server:test:compileKotlin
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar
+
+> Task :connector:compileTestKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/OwnedTestFixture.kt:30:151 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/OwnedTestFixture.kt:70:94 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/OwnedTestFixtureTests.kt:47:31 Unnecessary non-null assertion (!!) on a non-null receiver of type 'LockersClient'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewAuthorityV2Tests.kt:56:107 Unnecessary non-null assertion (!!) on a non-null receiver of type 'UnlockLockerRequest'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewConnectorTests.kt:56:87 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256r1KeyPair'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewConnectorTests.kt:90:129 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256r1KeyPair'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewRatchetAdoptionTests.kt:20:75 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangeRequest'.
+
+> Task :connector:compileJvmTestJava NO-SOURCE
+> Task :connector:jvmTestClasses
+
+> Task :connector:jvmTest
+
+ReviewDestroyReconnectTests[jvm] > revocationClosesReconnectBeforeADelayedServerReply[jvm] FAILED
+    java.lang.AssertionError at Assert.java:89
+        Caused by: java.lang.AssertionError at Assert.java:89
+
+ReviewDestroyReconnectTests[jvm] > cancelledRevocationStaysClosedAndExplicitRetryTargetsTheSameIdentity[jvm] FAILED
+    java.lang.AssertionError at Assert.java:89
+        Caused by: java.lang.AssertionError at Assert.java:89
+
+2 tests completed, 2 failed
+
+> Task :connector:jvmTest FAILED
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':connector:jvmTest'.
+> There were failing tests. See the report at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-destroy-reconnect/connector/build/reports/tests/jvmTest/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 1m 9s
+21 actionable tasks: 21 executed

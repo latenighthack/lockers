@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="MessagingFlowTests[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:21:27.606Z" hostname="Mikes-MacBook-Pro.local" time="5.995">
+  <properties/>
+  <testcase name="contact tap and profile scan converge on one rendezvous and messages fan out both ways[jvm]" classname="gg.roll.viewmodel.core.MessagingFlowTests" time="2.626"/>
+  <testcase name="profile scan syncs display names into both contact lists[jvm]" classname="gg.roll.viewmodel.core.MessagingFlowTests" time="1.678"/>
+  <testcase name="scanning a shared room link joins, navigates, and group messages fan out both ways[jvm]" classname="gg.roll.viewmodel.core.MessagingFlowTests" time="1.689"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

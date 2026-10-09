@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.OwnerRecoveryTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:30.224Z" hostname="Mikes-MacBook-Pro.local" time="0.005">
+  <properties/>
+  <testcase name="a denied acquire is retried for an unchanged desired map()" classname="com.latenighthack.lockers.server.OwnerRecoveryTest" time="0.002"/>
+  <testcase name="desired ownership recovers without a new map emission()" classname="com.latenighthack.lockers.server.OwnerRecoveryTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

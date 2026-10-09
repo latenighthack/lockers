@@ -2,7 +2,6 @@ package com.latenighthack.lockers.server
 
 import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.observability.LockersTelemetry
-import com.latenighthack.lockers.server.agents.ExampleLockerAgent
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
 import com.latenighthack.lockers.server.services.push.v1.PushDeadLetterStore
 import com.latenighthack.lockers.server.services.push.v1.PushDeadLetterStoreImpl
@@ -45,20 +44,32 @@ abstract class ServerCore(
     @get:Provides val config: LockersConfig,
     private val storageDelegate: Database
 ) {
+    /** Embedder lifetime; owned children cancel with this parent and are joined by closeAndJoin. */
+    var overrideCoroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext
+        set(value) { check(!contextHolder.isInitialized()) { "Coroutine context must precede service construction" }; field = value }
+    private val contextHolder = lazy {
+        overrideCoroutineContext + kotlinx.coroutines.SupervisorJob(overrideCoroutineContext[kotlinx.coroutines.Job])
+    }
+    @get:Provides val coroutineContext: kotlin.coroutines.CoroutineContext get() = contextHolder.value
+    suspend fun closeAndJoin() { coroutineContext[kotlinx.coroutines.Job]?.let { it.cancel(); it.join() } }
+
+    @get:Provides val cpuAdmission by lazy { CpuAdmission(config.resourceLimits) }
+
     private val pushDeliveryImpl by lazy { com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore(storageDelegate) }
     @get:Provides val pushDelivery: com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore? get() = pushDeliveryImpl
     private val deliveryOutboxImpl by lazy { com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStore(storageDelegate) }
     @get:Provides val deliveryOutbox: com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStore? get() = deliveryOutboxImpl
 
     private val sessionStoreImpl by lazy { SessionStoreImpl(storageDelegate) }
-    private val sessionInboxStoreImpl by lazy { SessionInboxStoreImpl(storageDelegate) }
-    private val subscriptionStoreImpl by lazy { SubscriptionStoreImpl(storageDelegate) }
-    private val lockerStoreImpl by lazy { LockerStoreImpl(storageDelegate) }
-    private val lockStoreImpl by lazy { LockStoreImpl(storageDelegate) }
+    private val sessionInboxStoreImpl by lazy { SessionInboxStoreImpl(storageDelegate, config.resourceLimits) }
+    private val subscriptionStoreImpl by lazy { SubscriptionStoreImpl(storageDelegate, config.resourceLimits) }
+    private val lockerStoreImpl by lazy { LockerStoreImpl(storageDelegate, config.resourceLimits) }
+    private val lockStoreImpl by lazy { LockStoreImpl(storageDelegate, config.resourceLimits) }
     private val pushSessionStoreImpl by lazy { PushSessionStoreImpl(storageDelegate) }
     private val pushQueueStoreImpl by lazy { PushQueueStoreImpl(storageDelegate) }
     private val pushDeadLetterStoreImpl by lazy { PushDeadLetterStoreImpl(storageDelegate) }
 
+    @get:Provides val sessionProofVerifier by lazy { com.latenighthack.lockers.server.services.session.v1.SessionProofVerifier(storageDelegate, sessionStore, limits = config.resourceLimits, cpuAdmission = cpuAdmission) }
     @get:Provides val sessionStore: SessionStore = sessionStoreImpl
     @get:Provides val sessionInboxStore: SessionInboxStore = sessionInboxStoreImpl
     @get:Provides val subscriptionStore: SubscriptionStore = subscriptionStoreImpl
@@ -104,7 +115,7 @@ abstract class ServerCore(
 
     /** Embedder seam: set before [setup] to plug a real agent (mirrors [overridePushProviders]). */
     var overrideAgentRegistry: LockerAgentRegistry? = null
-    private val _agentRegistry by lazy { overrideAgentRegistry ?: ExampleLockerAgent() }
+    private val _agentRegistry by lazy { overrideAgentRegistry ?: LockerAgentRegistry.None }
     @get:Provides val agentRegistry: LockerAgentRegistry get() = _agentRegistry
 
     suspend fun setup() {
@@ -121,5 +132,6 @@ abstract class ServerCore(
         pushDeadLetterStoreImpl.prepare()
 
         storageDelegate.open()
+        sessionInboxStoreImpl.initializeAdmission()
     }
 }

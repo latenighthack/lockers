@@ -56,7 +56,8 @@ class DeliveryLatencyTest {
             }
             val service = RoomServiceImpl(subs, lockers, locks, discovery, object : RoomOwnership {
                 override suspend fun resolve(keyspace: Long, roomId: RoomId) = RoomOwner.Local()
-            }, agent, SimpleMeterRegistry(), LockersConfig.defaults().copy(deliveryOutboxEnabled = outboxEnabled), outbox)
+            }, agent, SimpleMeterRegistry(), LockersConfig.defaults().copy(deliveryOutboxEnabled = outboxEnabled, maxLockerPayloadBytes = 2 * 1024 * 1024), outbox)
+            service.start()
             val rpc = LocalRoomServiceRpc(service)
             val acknowledgements = mutableListOf<Double>(); val deliveries = mutableListOf<Double>(); val overhead = mutableListOf<Double>()
             try {
@@ -75,7 +76,7 @@ class DeliveryLatencyTest {
                 }
                 fun List<Double>.percentile(p: Double) = sorted()[((size - 1) * p).toInt()]
                 println("LATENCY_FIXTURE outbox=$outboxEnabled subscribers=100 gateways=2 bytes=1145000 samples=10 ack_p50_ms=${acknowledgements.percentile(.5)} ack_p95_ms=${acknowledgements.percentile(.95)} non_agent_p50_ms=${overhead.percentile(.5)} gateway_frame_p50_ms=${deliveries.percentile(.5)} gateway_frame_p95_ms=${deliveries.percentile(.95)} gateway_calls=${gatewayCalls.get()}")
-            } finally { service.close() }
+            } finally { service.closeAndJoin(); db.close() }
         }
     }
 }
