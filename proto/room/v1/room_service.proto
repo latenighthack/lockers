@@ -229,6 +229,7 @@ message CapabilitiesResponse {
   int32 max_batch_bytes = 6;
   bool snapshot_paging = 8;
   bool write_outcomes = 14;
+  bool delete_receipts = 15;
 }
 message SubscribeAndSnapshotRequest {
   common.v1.SessionProof proof = 20;

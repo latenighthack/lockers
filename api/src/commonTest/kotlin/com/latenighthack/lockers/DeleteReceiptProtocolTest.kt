@@ -5,6 +5,8 @@ import kotlin.test.*
 
 class DeleteReceiptProtocolTest {
     @Test fun immutableDeleteIdentityRoundTripsWithoutChangingLegacyDefaults() {
+        assertFalse(CapabilitiesResponse().deleteReceipts)
+        assertTrue(CapabilitiesResponse.fromByteArray(CapabilitiesResponse(deleteReceipts = true).toByteArray()).deleteReceipts)
         val id = ByteArray(32) { it.toByte() }
         assertContentEquals(id, DeleteLockerRequest.fromByteArray(DeleteLockerRequest(writeRequestId = id).toByteArray()).writeRequestId)
         val decoded = DeleteLockerResponse.fromByteArray(DeleteLockerResponse(result = DeleteLockerResponse.Result.REQUEST_ID_REUSED, writeRequestId = id).toByteArray())

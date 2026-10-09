@@ -251,6 +251,7 @@ class RoomServiceImpl(
 
     override suspend fun capabilities(context: GrpcRequestContext, request: CapabilitiesRequest) = meterRegistry.trackRpc(TelemetryOperation.ROOM_CAPABILITIES, telemetry) { CapabilitiesResponse(
         authorityV2 = true,
+        deleteReceipts = true,
         subscribeAndSnapshot = config.deliveryOutboxEnabled, getLockers = true,
         postLockerChanges = config.deliveryOutboxEnabled, writeReceipts = config.deliveryOutboxEnabled,
         maxBatchItems = 64, maxBatchBytes = minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)
