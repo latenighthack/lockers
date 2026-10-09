@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.RoomMutationFencePgTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:36.593Z" hostname="Mikes-MacBook-Pro.local" time="2.058">
+  <properties/>
+  <testcase name="expiryDuringTheSourceTransactionRollsBackContentAndIntent()" classname="com.latenighthack.lockers.server.RoomMutationFencePgTest" time="1.336"/>
+  <testcase name="staleClaimCannotCommitWithItsCachedEpoch()" classname="com.latenighthack.lockers.server.RoomMutationFencePgTest" time="0.199"/>
+  <testcase name="twoDatabaseHandlesCannotCommitTheSameParentVersion()" classname="com.latenighthack.lockers.server.RoomMutationFencePgTest" time="0.312"/>
+  <testcase name="ringFenceTokensAdvanceAndRejectAnOldTokenEvenWithStaleLiveness()" classname="com.latenighthack.lockers.server.RoomMutationFencePgTest" time="0.211"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

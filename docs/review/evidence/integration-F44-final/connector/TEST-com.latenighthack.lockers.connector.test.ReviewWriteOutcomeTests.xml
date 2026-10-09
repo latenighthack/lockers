@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewWriteOutcomeTests[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:13.451Z" hostname="Mikes-MacBook-Pro.local" time="0.093">
+  <properties/>
+  <testcase name="receipt polling is cold distinct cancellable and stops at the terminal outcome[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewWriteOutcomeTests" time="0.011"/>
+  <testcase name="unavailable receipts expire under a configurable deadline[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewWriteOutcomeTests" time="0.038"/>
+  <testcase name="indeterminate agent status reports an already committed source[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewWriteOutcomeTests" time="0.006"/>
+  <testcase name="poll deadline cancels a held RPC instead of leaving detached work[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewWriteOutcomeTests" time="0.038"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.ShardCountReshardTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:41.077Z" hostname="Mikes-MacBook-Pro.local" time="0.233">
+  <properties/>
+  <testcase name="count change hands off a split-range room and delivery continues with no loss()" classname="com.latenighthack.lockers.server.ShardCountReshardTest" time="0.122"/>
+  <testcase name="a stale write on the old owner increments the CAS conflict backstop()" classname="com.latenighthack.lockers.server.ShardCountReshardTest" time="0.111"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

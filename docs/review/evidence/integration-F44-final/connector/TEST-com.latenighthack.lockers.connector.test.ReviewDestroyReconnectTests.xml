@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewDestroyReconnectTests[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:07.587Z" hostname="Mikes-MacBook-Pro.local" time="2.541">
+  <properties/>
+  <testcase name="revocationClosesReconnectBeforeADelayedServerReply[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests" time="2.522"/>
+  <testcase name="committedDestroyWithLostReplyCanBeConfirmedByFreshAuthenticatedRetry[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests" time="0.01"/>
+  <testcase name="cancelledRevocationStaysClosedAndExplicitRetryTargetsTheSameIdentity[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests" time="0.009"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

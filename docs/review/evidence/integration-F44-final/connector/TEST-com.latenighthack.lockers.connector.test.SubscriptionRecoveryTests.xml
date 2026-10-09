@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="SubscriptionRecoveryTests[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:15.141Z" hostname="Mikes-MacBook-Pro.local" time="0.133">
+  <properties/>
+  <testcase name="unsubscribe supersedes a pending subscribe and survives session replacement[jvm]" classname="com.latenighthack.lockers.connector.test.SubscriptionRecoveryTests" time="0.122"/>
+  <testcase name="session replacement requires a new acknowledgment and restores every room[jvm]" classname="com.latenighthack.lockers.connector.test.SubscriptionRecoveryTests" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

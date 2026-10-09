@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewControllerBudgetTests[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:07.325Z" hostname="Mikes-MacBook-Pro.local" time="0.009">
+  <properties/>
+  <testcase name="push observes exhausted transport retry budget and retains its durable intent[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewControllerBudgetTests" time="0.005"/>
+  <testcase name="subscription observes exhausted transport retry budget without treating it as caller cancellation[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewControllerBudgetTests" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

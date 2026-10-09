@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.sharding.RingAssignmentTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:15.968Z" hostname="Mikes-MacBook-Pro.local" time="0.009">
+  <properties/>
+  <testcase name="adding a node moves only a minimal fraction of shards()" classname="com.latenighthack.lockers.sharding.RingAssignmentTest" time="0.003"/>
+  <testcase name="distributes shards roughly evenly across nodes()" classname="com.latenighthack.lockers.sharding.RingAssignmentTest" time="0.004"/>
+  <testcase name="deterministic across instances with the same node set()" classname="com.latenighthack.lockers.sharding.RingAssignmentTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

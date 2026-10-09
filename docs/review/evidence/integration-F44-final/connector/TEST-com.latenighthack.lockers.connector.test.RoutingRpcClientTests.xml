@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="RoutingRpcClientTests[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:13.545Z" hostname="Mikes-MacBook-Pro.local" time="0.124">
+  <properties/>
+  <testcase name="routes to seed until a redirect is recorded, then to the owner with the epoch stamped[jvm]" classname="com.latenighthack.lockers.connector.test.RoutingRpcClientTests" time="0.002"/>
+  <testcase name="a lower-epoch redirect does not override a newer one[jvm]" classname="com.latenighthack.lockers.connector.test.RoutingRpcClientTests" time="0.001"/>
+  <testcase name="updateLocker follows a NOT_OWNER redirect and succeeds on the owner[jvm]" classname="com.latenighthack.lockers.connector.test.RoutingRpcClientTests" time="0.121"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

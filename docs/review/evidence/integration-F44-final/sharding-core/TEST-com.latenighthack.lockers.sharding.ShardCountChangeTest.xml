@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.sharding.ShardCountChangeTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:15.978Z" hostname="Mikes-MacBook-Pro.local" time="0.016">
+  <properties/>
+  <testcase name="a redundant count change does not perturb the epoch()" classname="com.latenighthack.lockers.sharding.ShardCountChangeTest" time="0.002"/>
+  <testcase name="every node sees the same repartition at the same counts()" classname="com.latenighthack.lockers.sharding.ShardCountChangeTest" time="0.005"/>
+  <testcase name="movedShards reports exactly the shards whose owner changed on a count change()" classname="com.latenighthack.lockers.sharding.ShardCountChangeTest" time="0.002"/>
+  <testcase name="changing a keyspace count bumps the epoch over an unchanged node set()" classname="com.latenighthack.lockers.sharding.ShardCountChangeTest" time="0.002"/>
+  <testcase name="repartitioning one keyspace leaves other keyspaces byte-identical()" classname="com.latenighthack.lockers.sharding.ShardCountChangeTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

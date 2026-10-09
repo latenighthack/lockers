@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewDeleteReceiptTests[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:07.335Z" hostname="Mikes-MacBook-Pro.local" time="0.251">
+  <properties/>
+  <testcase name="old receipt replay preserves a newer cached incarnation[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewDeleteReceiptTests" time="0.003"/>
+  <testcase name="lost delete response reuses one frozen receipt and notification[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewDeleteReceiptTests" time="0.11"/>
+  <testcase name="legacy ambiguity cannot auto rebase a deletion onto recreated content[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewDeleteReceiptTests" time="0.136"/>
+  <testcase name="reused receipt rejection is terminal[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewDeleteReceiptTests" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

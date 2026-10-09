@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.SessionOwnershipTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:40.514Z" hostname="Mikes-MacBook-Pro.local" time="0.01">
+  <properties/>
+  <testcase name="session open on the owning node proceeds past the gate()" classname="com.latenighthack.lockers.server.SessionOwnershipTest" time="0.005"/>
+  <testcase name="RingSessionOwnership reports local vs remote exactly per the session ring()" classname="com.latenighthack.lockers.server.SessionOwnershipTest" time="0.002"/>
+  <testcase name="session open on a non-owner node returns EPOCH_STALE and a redirect()" classname="com.latenighthack.lockers.server.SessionOwnershipTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

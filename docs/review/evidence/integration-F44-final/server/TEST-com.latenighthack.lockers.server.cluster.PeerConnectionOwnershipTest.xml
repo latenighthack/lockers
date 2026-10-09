@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.cluster.PeerConnectionOwnershipTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:00.388Z" hostname="Mikes-MacBook-Pro.local" time="0.04">
+  <properties/>
+  <testcase name="active eviction retains its lease and counts toward capacity until completion()" classname="com.latenighthack.lockers.server.cluster.PeerConnectionOwnershipTest" time="0.002"/>
+  <testcase name="close cancels a held real HTTP call and joins socket disposal()" classname="com.latenighthack.lockers.server.cluster.PeerConnectionOwnershipTest" time="0.007"/>
+  <testcase name="concurrent authenticated calls create one transport and close it once()" classname="com.latenighthack.lockers.server.cluster.PeerConnectionOwnershipTest" time="0.027"/>
+  <testcase name="eviction and close dispose retained transports()" classname="com.latenighthack.lockers.server.cluster.PeerConnectionOwnershipTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

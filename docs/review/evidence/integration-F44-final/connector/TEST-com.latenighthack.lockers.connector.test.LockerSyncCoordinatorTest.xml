@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="LockerSyncCoordinatorTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:04.904Z" hostname="Mikes-MacBook-Pro.local" time="0.004">
+  <properties/>
+  <testcase name="sameLockerMutationsRemainSerializedAcrossSuspension[jvm]" classname="com.latenighthack.lockers.connector.test.LockerSyncCoordinatorTest" time="0.001"/>
+  <testcase name="interactiveRequestGetsNextSlotAheadOfQueuedHydration[jvm]" classname="com.latenighthack.lockers.connector.test.LockerSyncCoordinatorTest" time="0.002"/>
+  <testcase name="cancellationOfFirstWaiterDoesNotCancelSharedRead[jvm]" classname="com.latenighthack.lockers.connector.test.LockerSyncCoordinatorTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

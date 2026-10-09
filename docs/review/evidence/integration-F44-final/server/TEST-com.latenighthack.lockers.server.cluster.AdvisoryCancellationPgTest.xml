@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.cluster.AdvisoryCancellationPgTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:00.324Z" hostname="Mikes-MacBook-Pro.local" time="0.04">
+  <properties/>
+  <testcase name="cancellationDuringLeaseHandoffReleasesTheActualPostgresLock()" classname="com.latenighthack.lockers.server.cluster.AdvisoryCancellationPgTest" time="0.04"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

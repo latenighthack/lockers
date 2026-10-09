@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.claim.InMemorySessionGatewayStoreTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:53.321Z" hostname="Mikes-MacBook-Pro.local" time="0.912">
+  <properties/>
+  <testcase name="delete only removes the row when the node still holds it()" classname="com.latenighthack.lockers.server.claim.InMemorySessionGatewayStoreTest" time="0.001"/>
+  <testcase name="upsert moves a session between nodes unconditionally()" classname="com.latenighthack.lockers.server.claim.InMemorySessionGatewayStoreTest" time="0.001"/>
+  <testcase name="renewAll extends exactly the node's live rows()" classname="com.latenighthack.lockers.server.claim.InMemorySessionGatewayStoreTest" time="0.453"/>
+  <testcase name="upsert registers and lookup resolves the live row()" classname="com.latenighthack.lockers.server.claim.InMemorySessionGatewayStoreTest" time="0.0"/>
+  <testcase name="releaseAll drops the node's rows only()" classname="com.latenighthack.lockers.server.claim.InMemorySessionGatewayStoreTest" time="0.0"/>
+  <testcase name="expired rows are invisible to lookup()" classname="com.latenighthack.lockers.server.claim.InMemorySessionGatewayStoreTest" time="0.456"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.PushQueueClaimsTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:30.678Z" hostname="Mikes-MacBook-Pro.local" time="0.025">
+  <properties/>
+  <testcase name="expired claim cannot complete or renew a replacement lease()" classname="com.latenighthack.lockers.server.PushQueueClaimsTest" time="0.004"/>
+  <testcase name="session quota counts pending deliveries across backends()" classname="com.latenighthack.lockers.server.PushQueueClaimsTest" time="0.001"/>
+  <testcase name="session cleanup deletes multiple bounded pages and preserves other sessions()" classname="com.latenighthack.lockers.server.PushQueueClaimsTest" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

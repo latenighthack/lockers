@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.WholeRoomOwnershipTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:42.549Z" hostname="Mikes-MacBook-Pro.local" time="0.003">
+  <properties/>
+  <testcase name="every locker keyspace shares the room authority lease()" classname="com.latenighthack.lockers.server.WholeRoomOwnershipTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

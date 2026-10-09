@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.BroadcastShapeTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:20.825Z" hostname="Mikes-MacBook-Pro.local" time="0.05">
+  <properties/>
+  <testcase name="durable bodyless broadcast preserves its full metadata without inventing a locker scope()" classname="com.latenighthack.lockers.server.BroadcastShapeTest" time="0.05"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

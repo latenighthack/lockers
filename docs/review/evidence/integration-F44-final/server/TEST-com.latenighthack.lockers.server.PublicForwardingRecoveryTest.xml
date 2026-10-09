@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.PublicForwardingRecoveryTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:30.376Z" hostname="Mikes-MacBook-Pro.local" time="0.263">
+  <properties/>
+  <testcase name="public ownership fence loss is retryable while legacy stamped redirects remain compatible()" classname="com.latenighthack.lockers.server.PublicForwardingRecoveryTest" time="0.033"/>
+  <testcase name="default backoff makes one attempt for permanent owner errors()" classname="com.latenighthack.lockers.server.PublicForwardingRecoveryTest" time="0.032"/>
+  <testcase name="every write response rejects a private handoff on public HTTP()" classname="com.latenighthack.lockers.server.PublicForwardingRecoveryTest" time="0.037"/>
+  <testcase name="forged public marker cannot suppress authenticated forwarding()" classname="com.latenighthack.lockers.server.PublicForwardingRecoveryTest" time="0.012"/>
+  <testcase name="handoff invalidates seed ownership without relaying private redirect()" classname="com.latenighthack.lockers.server.PublicForwardingRecoveryTest" time="0.017"/>
+  <testcase name="caller cancellation during forwarding remains cancellation()" classname="com.latenighthack.lockers.server.PublicForwardingRecoveryTest" time="0.064"/>
+  <testcase name="peer RPC statuses preserve operation codes across public forwarding()" classname="com.latenighthack.lockers.server.PublicForwardingRecoveryTest" time="0.042"/>
+  <testcase name="legacy direct routing preserves terminal authorization errors()" classname="com.latenighthack.lockers.server.PublicForwardingRecoveryTest" time="0.009"/>
+  <testcase name="public retries stay on seed after private peer failure()" classname="com.latenighthack.lockers.server.PublicForwardingRecoveryTest" time="0.014"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewSubscriptionRevisionPersistenceTests[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:13.208Z" hostname="Mikes-MacBook-Pro.local" time="0.018">
+  <properties/>
+  <testcase name="SQLite V6 adoption and V7 reopen retain removal floors and frozen subscription metadata[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionRevisionPersistenceTests" time="0.018"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

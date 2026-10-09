@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.RuntimeCancellationTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:38.676Z" hostname="Mikes-MacBook-Pro.local" time="0.008">
+  <properties/>
+  <testcase name="push registration propagates cancellation()" classname="com.latenighthack.lockers.server.RuntimeCancellationTest" time="0.002"/>
+  <testcase name="session creation propagates cancellation()" classname="com.latenighthack.lockers.server.RuntimeCancellationTest" time="0.005"/>
+  <testcase name="endpoint DNS policy propagates cancellation()" classname="com.latenighthack.lockers.server.RuntimeCancellationTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

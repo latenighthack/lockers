@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.AgentWorkflowTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:18.905Z" hostname="Mikes-MacBook-Pro.local" time="1.7">
+  <properties/>
+  <testcase name="cooperative execution deadlines retain stable effect identity across bounded retries()" classname="com.latenighthack.lockers.server.AgentWorkflowTest" time="0.697"/>
+  <testcase name="derived commit cannot use the ownership proof captured before an external effect()" classname="com.latenighthack.lockers.server.AgentWorkflowTest" time="0.265"/>
+  <testcase name="caller cancellation leaves accepted execution owned by the service()" classname="com.latenighthack.lockers.server.AgentWorkflowTest" time="0.085"/>
+  <testcase name="arbitrary interrupted effect becomes indeterminate and blocks later work until trusted reconciliation()" classname="com.latenighthack.lockers.server.AgentWorkflowTest" time="0.186"/>
+  <testcase name="blocked room prefixes cannot starve work beyond the first discovery page()" classname="com.latenighthack.lockers.server.AgentWorkflowTest" time="0.085"/>
+  <testcase name="agent outputs are frozen before telemetry or storage can invoke another extension()" classname="com.latenighthack.lockers.server.AgentWorkflowTest" time="0.111"/>
+  <testcase name="arbitrary execution deadline is indeterminate and is never automatically replayed()" classname="com.latenighthack.lockers.server.AgentWorkflowTest" time="0.21"/>
+  <testcase name="persisted result recovers without invoking the external effect again()" classname="com.latenighthack.lockers.server.AgentWorkflowTest" time="0.028"/>
+  <testcase name="expired idempotent execution reuses immutable effect identity and applies once()" classname="com.latenighthack.lockers.server.AgentWorkflowTest" time="0.029"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

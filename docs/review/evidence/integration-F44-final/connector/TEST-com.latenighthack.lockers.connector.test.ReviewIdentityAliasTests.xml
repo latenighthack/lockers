@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewIdentityAliasTests[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:11.070Z" hostname="Mikes-MacBook-Pro.local" time="0.122">
+  <properties/>
+  <testcase name="unknown identity fields cannot create a second mutation lane[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewIdentityAliasTests" time="0.109"/>
+  <testcase name="canonical identity snapshots mutable caller bytes and unknown keyspace fields[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewIdentityAliasTests" time="0.001"/>
+  <testcase name="duplicate aliased locker batch is rejected before RPC[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewIdentityAliasTests" time="0.003"/>
+  <testcase name="legacy decorated ratchet receipt recovers before a canonical mutation[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewIdentityAliasTests" time="0.009"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

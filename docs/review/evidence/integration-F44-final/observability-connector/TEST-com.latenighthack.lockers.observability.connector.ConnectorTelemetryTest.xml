@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ConnectorTelemetryTest[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:16.992Z" hostname="Mikes-MacBook-Pro.local" time="0.124">
+  <properties/>
+  <testcase name="aggregatesAllSamplesAndNeverRetriesFailedUploads[jvm]" classname="com.latenighthack.lockers.observability.connector.ConnectorTelemetryTest" time="0.109"/>
+  <testcase name="hungExporterCannotBlockShutdown[jvm]" classname="com.latenighthack.lockers.observability.connector.ConnectorTelemetryTest" time="0.005"/>
+  <testcase name="simultaneousMetricsAndDiagnosticFlushesUseOneTransportAttemptAtATime[jvm]" classname="com.latenighthack.lockers.observability.connector.ConnectorTelemetryTest" time="0.005"/>
+  <testcase name="diagnosticsAreBoundedAndCloseDrainsWithoutWaitingForTheInterval[jvm]" classname="com.latenighthack.lockers.observability.connector.ConnectorTelemetryTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

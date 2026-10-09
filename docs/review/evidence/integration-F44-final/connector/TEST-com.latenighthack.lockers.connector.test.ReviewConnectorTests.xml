@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewConnectorTests[jvm]" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:06.788Z" hostname="Mikes-MacBook-Pro.local" time="0.469">
+  <properties/>
+  <testcase name="null and zero keyspaces are rejected as duplicate batch identities[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewConnectorTests" time="0.001"/>
+  <testcase name="a silent session expires its receive deadline and reconnects[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewConnectorTests" time="0.191"/>
+  <testcase name="ratchet journal survives client replacement and replays the exact request[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewConnectorTests" time="0.016"/>
+  <testcase name="watch first cached emission contains the whole snapshot[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewConnectorTests" time="0.003"/>
+  <testcase name="transport failure clears readiness and session during backoff[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewConnectorTests" time="0.004"/>
+  <testcase name="awaitConnected reports a closed client instead of hanging[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewConnectorTests" time="0.002"/>
+  <testcase name="starting a stream twice opens only one transport[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewConnectorTests" time="0.206"/>
+  <testcase name="transport cancellation escapes a write without retry or wrapping[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewConnectorTests" time="0.003"/>
+  <testcase name="committed ratchet adopts the new key even when agent fails[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewConnectorTests" time="0.006"/>
+  <testcase name="slow change subscriber cannot block unrelated room commits[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewConnectorTests" time="0.023"/>
+  <testcase name="events accepted without collectors replay from a persistent cursor[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewConnectorTests" time="0.01"/>
+  <testcase name="acceptance failure rolls back cache journal and ACK together[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewConnectorTests" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

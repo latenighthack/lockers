@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.cluster.AdvisoryLockCoordinatorTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:00.365Z" hostname="Mikes-MacBook-Pro.local" time="0.019">
+  <properties/>
+  <testcase name="advisoryKeyFoldsKeyspaceSoSameShardDiffersAcrossKeyspaces()" classname="com.latenighthack.lockers.server.cluster.AdvisoryLockCoordinatorTest" time="0.001"/>
+  <testcase name="releaseMakesLeaseInvalidAndReacquirable()" classname="com.latenighthack.lockers.server.cluster.AdvisoryLockCoordinatorTest" time="0.011"/>
+  <testcase name="advisoryKeyGoldenVector()" classname="com.latenighthack.lockers.server.cluster.AdvisoryLockCoordinatorTest" time="0.001"/>
+  <testcase name="grantsAtMostOneLeasePerShard()" classname="com.latenighthack.lockers.server.cluster.AdvisoryLockCoordinatorTest" time="0.001"/>
+  <testcase name="lostDbSessionInvalidatesLease()" classname="com.latenighthack.lockers.server.cluster.AdvisoryLockCoordinatorTest" time="0.002"/>
+  <testcase name="advisoryKeyDistinguishesShardWithinKeyspace()" classname="com.latenighthack.lockers.server.cluster.AdvisoryLockCoordinatorTest" time="0.0"/>
+  <testcase name="advisoryKeyIsDeterministic()" classname="com.latenighthack.lockers.server.cluster.AdvisoryLockCoordinatorTest" time="0.0"/>
+  <testcase name="leaseCarriesKeyspaceShardEpochAndFencingToken()" classname="com.latenighthack.lockers.server.cluster.AdvisoryLockCoordinatorTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

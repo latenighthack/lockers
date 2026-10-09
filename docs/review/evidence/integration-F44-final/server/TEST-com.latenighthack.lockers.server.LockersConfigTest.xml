@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.LockersConfigTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:28.791Z" hostname="Mikes-MacBook-Pro.local" time="0.003">
+  <properties/>
+  <testcase name="legacyFeatureOptOutIsExplicit()" classname="com.latenighthack.lockers.server.LockersConfigTest" time="0.001"/>
+  <testcase name="readsShardingOverrides()" classname="com.latenighthack.lockers.server.LockersConfigTest" time="0.0"/>
+  <testcase name="defaultsEqualsFromEnvNull()" classname="com.latenighthack.lockers.server.LockersConfigTest" time="0.001"/>
+  <testcase name="blankDatabaseUrlIsTreatedAsUnset()" classname="com.latenighthack.lockers.server.LockersConfigTest" time="0.0"/>
+  <testcase name="clusterEnabledRequiresBothPeersAndNodeId()" classname="com.latenighthack.lockers.server.LockersConfigTest" time="0.0"/>
+  <testcase name="appliesSafeDefaultsWhenUnset()" classname="com.latenighthack.lockers.server.LockersConfigTest" time="0.0"/>
+  <testcase name="readsEnvironmentOverrides()" classname="com.latenighthack.lockers.server.LockersConfigTest" time="0.0"/>
+  <testcase name="shardingDefaultsDisableClusterMode()" classname="com.latenighthack.lockers.server.LockersConfigTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

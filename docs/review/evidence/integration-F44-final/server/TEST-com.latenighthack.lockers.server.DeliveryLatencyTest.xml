@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.DeliveryLatencyTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:23.742Z" hostname="Mikes-MacBook-Pro.local" time="1.761">
+  <properties/>
+  <testcase name="reportsAcknowledgementAndDerivedDeliverySeparately()" classname="com.latenighthack.lockers.server.DeliveryLatencyTest" time="1.761"/>
+  <system-out><![CDATA[LATENCY_FIXTURE outbox=false subscribers=100 gateways=2 bytes=1145000 samples=10 ack_p50_ms=55.10425 ack_p95_ms=107.604416 non_agent_p50_ms=31.025250000000003 gateway_frame_p50_ms=24.0105 gateway_frame_p95_ms=25.357625 gateway_calls=64
+LATENCY_FIXTURE outbox=true subscribers=100 gateways=2 bytes=1145000 samples=10 ack_p50_ms=55.114459 ack_p95_ms=107.424667 non_agent_p50_ms=32.60012400000001 gateway_frame_p50_ms=12.659166 gateway_frame_p95_ms=20.149041 gateway_calls=66
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

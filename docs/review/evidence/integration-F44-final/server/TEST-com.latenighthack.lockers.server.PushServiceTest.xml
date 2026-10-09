@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.PushServiceTest" tests="24" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:30.991Z" hostname="Mikes-MacBook-Pro.local" time="5.06">
+  <properties/>
+  <testcase name="sendPush enqueues one per backend and dispatches to each provider()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.012"/>
+  <testcase name="admin retryDeadLetters moves dead letters back onto the queue()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.003"/>
+  <testcase name="gateway replay does not send an accepted delivery identity twice()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.556"/>
+  <testcase name="a permanent rejection dead-letters after a single attempt()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.268"/>
+  <testcase name="provider rejection cannot remove rotated credential()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.004"/>
+  <testcase name="credential tombstone rejects late registration and revision payload conflicts()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.003"/>
+  <testcase name="getPushConfig reports only configured backends()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.003"/>
+  <testcase name="admin getQueueStats reports per-backend queue and dead-letter depths()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.001"/>
+  <testcase name="registerSession upserts per backend()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.001"/>
+  <testcase name="late credential revisions cannot overwrite or unregister newer registration()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.001"/>
+  <testcase name="a disabled worker enqueues but does not drain()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.302"/>
+  <testcase name="invalid token drops the registration()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.003"/>
+  <testcase name="unregisterSession removes only the named backend()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.002"/>
+  <testcase name="provider timeout advances durable retry budget and parks without losing work()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.798"/>
+  <testcase name="replica without a backend cannot consume another replicas durable work()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.52"/>
+  <testcase name="admin purgeDeadLetters clears the dead-letter queue()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.004"/>
+  <testcase name="admin listDeadLetters returns entries()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.002"/>
+  <testcase name="retries a transient failure then succeeds()" classname="com.latenighthack.lockers.server.PushServiceTest" time="1.018"/>
+  <testcase name="admin calls require the token when one is configured()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.002"/>
+  <testcase name="exhausted retries move the push to the dead-letter queue()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.774"/>
+  <testcase name="admin drainQueue re-feeds pending pushes()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.002"/>
+  <testcase name="worker discovers pushes saved by an API-only replica after startup()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.255"/>
+  <testcase name="send concurrency is bounded per backend()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.206"/>
+  <testcase name="two workers do not concurrently send one durable queue row()" classname="com.latenighthack.lockers.server.PushServiceTest" time="0.316"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.RingPublicSessionRecoveryTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:36.393Z" hostname="Mikes-MacBook-Pro.local" time="0.197">
+  <properties/>
+  <testcase name="ring reconnect targets owner public websocket instead of private gateway()" classname="com.latenighthack.lockers.server.RingPublicSessionRecoveryTest" time="0.196"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

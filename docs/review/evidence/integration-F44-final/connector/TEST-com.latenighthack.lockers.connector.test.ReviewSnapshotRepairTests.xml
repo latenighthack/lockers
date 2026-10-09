@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewSnapshotRepairTests[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:12.103Z" hostname="Mikes-MacBook-Pro.local" time="0.014">
+  <properties/>
+  <testcase name="a paged snapshot drains all pages before publishing the complete set[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSnapshotRepairTests" time="0.004"/>
+  <testcase name="inconsistent snapshot watermark rolls back all pages[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSnapshotRepairTests" time="0.002"/>
+  <testcase name="missing read cannot erase cache accepted while the request was in flight[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSnapshotRepairTests" time="0.004"/>
+  <testcase name="an authoritative missing read removes unchanged cached content[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSnapshotRepairTests" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

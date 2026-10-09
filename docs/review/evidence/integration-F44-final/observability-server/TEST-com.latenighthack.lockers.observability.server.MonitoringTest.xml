@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.observability.server.MonitoringTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:17.573Z" hostname="Mikes-MacBook-Pro.local" time="0.289">
+  <properties/>
+  <testcase name="compositeRegistryExposesFailuresBucketsAndPreservesParentMeters()" classname="com.latenighthack.lockers.observability.server.MonitoringTest" time="0.204"/>
+  <testcase name="storageOperationsOutsideWriteTracingAreMeasuredAndExtensionStoresAreExcluded()" classname="com.latenighthack.lockers.observability.server.MonitoringTest" time="0.004"/>
+  <testcase name="internalSpansReuseParentTraceAndFinishWhenTheOperationFails()" classname="com.latenighthack.lockers.observability.server.MonitoringTest" time="0.023"/>
+  <testcase name="importedHistogramsMergeIntoCumulativePrometheusFamiliesAndResetWithTheProcess()" classname="com.latenighthack.lockers.observability.server.MonitoringTest" time="0.022"/>
+  <testcase name="backlogSamplesAreCachedBecomeUnhealthyAndOwnedGaugesAreRemoved()" classname="com.latenighthack.lockers.observability.server.MonitoringTest" time="0.017"/>
+  <testcase name="failedMetricRegistrationCannotOverrideRpcResultsOrFailures()" classname="com.latenighthack.lockers.observability.server.MonitoringTest" time="0.013"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+Oct 09, 2026 1:09:17 AM io.opentelemetry.sdk.trace.SdkTracerProvider shutdown
+INFO: Calling shutdown() multiple times.
+]]></system-err>
+</testsuite>

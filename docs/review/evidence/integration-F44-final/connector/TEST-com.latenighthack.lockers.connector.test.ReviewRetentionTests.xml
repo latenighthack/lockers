@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewRetentionTests[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:11.670Z" hostname="Mikes-MacBook-Pro.local" time="0.07">
+  <properties/>
+  <testcase name="explicit consumer watermark prunes pages and stale cursors fail[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRetentionTests" time="0.003"/>
+  <testcase name="cancelling a queued mutation preserves serialization for the remaining waiter[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRetentionTests" time="0.002"/>
+  <testcase name="completed mutation identities are evicted[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRetentionTests" time="0.003"/>
+  <testcase name="pending ACK pages exclude confirmed history and horizon pruning preserves pending[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRetentionTests" time="0.018"/>
+  <testcase name="configured version three upgrades recovery schemas without changing old wire bytes[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewRetentionTests" time="0.044"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

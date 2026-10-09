@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewNotificationContextTests[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:03.962Z" hostname="Mikes-MacBook-Pro.local" time="0.043">
+  <properties/>
+  <testcase name="context authenticated partial push metadata survives live and offline replay[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewNotificationContextTests" time="0.043"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

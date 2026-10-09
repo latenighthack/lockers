@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewSubscriptionFailureTests[jvm]" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:12.425Z" hostname="Mikes-MacBook-Pro.local" time="0.783">
+  <properties/>
+  <testcase name="unsubscribe storage failure is observable and pending removal survives replacement[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionFailureTests" time="0.02"/>
+  <testcase name="failed room churn stays within finite intent and failure bounds[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionFailureTests" time="0.117"/>
+  <testcase name="startup storage failure remains observable instead of leaving started without workers[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionFailureTests" time="0.002"/>
+  <testcase name="new intent persistence rejection fails its caller without retaining a ghost room or stopping healthy work[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionFailureTests" time="0.004"/>
+  <testcase name="one permanent subscription failure is observable and does not stop another room[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionFailureTests" time="0.004"/>
+  <testcase name="retiring subscription effects remain bounded across session generations[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionFailureTests" time="0.242"/>
+  <testcase name="removed room identities retain their global work budget until actual cleanup completes[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionFailureTests" time="0.207"/>
+  <testcase name="retained permanent RPC metadata preserves status with finite text and identity bounds[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionFailureTests" time="0.002"/>
+  <testcase name="confirmation storage failure is observable without a child crash and replacement recovers intent[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionFailureTests" time="0.004"/>
+  <testcase name="temporary subscription quota retries and old permanent failure cannot poison a replacement session[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionFailureTests" time="0.181"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

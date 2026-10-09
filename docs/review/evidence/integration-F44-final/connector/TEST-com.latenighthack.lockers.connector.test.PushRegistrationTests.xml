@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="PushRegistrationTests[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:04.986Z" hostname="Mikes-MacBook-Pro.local" time="0.296">
+  <properties/>
+  <testcase name="a registered device receives a push for a subscribed update[jvm]" classname="com.latenighthack.lockers.connector.test.PushRegistrationTests" time="0.296"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

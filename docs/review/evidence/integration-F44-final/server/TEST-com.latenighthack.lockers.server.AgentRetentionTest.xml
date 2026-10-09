@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.AgentRetentionTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:17.844Z" hostname="Mikes-MacBook-Pro.local" time="0.005">
+  <properties/>
+  <testcase name="completed receipts expire after31days while pending work and its inputs remain()" classname="com.latenighthack.lockers.server.AgentRetentionTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

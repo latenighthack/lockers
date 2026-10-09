@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.RoomOwnershipTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:38.651Z" hostname="Mikes-MacBook-Pro.local" time="0.023">
+  <properties/>
+  <testcase name="write to a non-owner node is rejected with NOT_OWNER and a redirect()" classname="com.latenighthack.lockers.server.RoomOwnershipTest" time="0.007"/>
+  <testcase name="write to the owning node proceeds()" classname="com.latenighthack.lockers.server.RoomOwnershipTest" time="0.003"/>
+  <testcase name="RingRoomOwnership reports local vs remote exactly per the room ring()" classname="com.latenighthack.lockers.server.RoomOwnershipTest" time="0.003"/>
+  <testcase name="lock and unlock on a non-owner node are rejected with NOT_OWNER()" classname="com.latenighthack.lockers.server.RoomOwnershipTest" time="0.009"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

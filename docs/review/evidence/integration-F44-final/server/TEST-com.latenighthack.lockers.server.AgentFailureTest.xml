@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.AgentFailureTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:17.748Z" hostname="Mikes-MacBook-Pro.local" time="0.082">
+  <properties/>
+  <testcase name="agent exception does not fail the already-persisted write()" classname="com.latenighthack.lockers.server.AgentFailureTest" time="0.082"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

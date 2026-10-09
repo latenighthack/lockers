@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.sharding.IndependentAxesTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:15.842Z" hostname="Mikes-MacBook-Pro.local" time="0.107">
+  <properties/>
+  <testcase name="a room node forwards all session delivery to the gateway tier()" classname="com.latenighthack.lockers.sharding.IndependentAxesTest" time="0.078"/>
+  <testcase name="room and session rings resolve onto their own separate node pools()" classname="com.latenighthack.lockers.sharding.IndependentAxesTest" time="0.006"/>
+  <testcase name="scaling the gateway tier does not move room ownership()" classname="com.latenighthack.lockers.sharding.IndependentAxesTest" time="0.006"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

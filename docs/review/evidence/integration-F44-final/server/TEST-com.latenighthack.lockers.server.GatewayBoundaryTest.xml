@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.GatewayBoundaryTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:26.456Z" hostname="Mikes-MacBook-Pro.local" time="0.035">
+  <properties/>
+  <testcase name="internal peer HTTP routes require a credential before dispatch()" classname="com.latenighthack.lockers.server.GatewayBoundaryTest" time="0.015"/>
+  <testcase name="delivery gateways are absent from public service routes()" classname="com.latenighthack.lockers.server.GatewayBoundaryTest" time="0.001"/>
+  <testcase name="default monolith router does not expose privileged gateway RPCs()" classname="com.latenighthack.lockers.server.GatewayBoundaryTest" time="0.016"/>
+  <testcase name="peer credentials fail closed and compare exact values()" classname="com.latenighthack.lockers.server.GatewayBoundaryTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

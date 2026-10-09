@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.ResponseBoundaryTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:36.287Z" hostname="Mikes-MacBook-Pro.local" time="0.082">
+  <properties/>
+  <testcase name="permanentClaimCapacityMapsToFailedPreconditionWithoutSavingWrite()" classname="com.latenighthack.lockers.server.ResponseBoundaryTest" time="0.002"/>
+  <testcase name="bulkReadStopsFetchingAndDecodingOnceCompleteReplyCannotFit()" classname="com.latenighthack.lockers.server.ResponseBoundaryTest" time="0.013"/>
+  <testcase name="completeBulkReadAndConflictReplyCannotExceedEnvelopeAndPagingRemainsComplete()" classname="com.latenighthack.lockers.server.ResponseBoundaryTest" time="0.067"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

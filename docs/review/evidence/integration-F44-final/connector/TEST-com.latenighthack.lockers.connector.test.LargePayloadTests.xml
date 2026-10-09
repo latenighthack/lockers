@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="LargePayloadTests[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:04.855Z" hostname="Mikes-MacBook-Pro.local" time="0.047">
+  <properties/>
+  <testcase name="signed 16KB write with notification round-trips[jvm]" classname="com.latenighthack.lockers.connector.test.LargePayloadTests" time="0.021"/>
+  <testcase name="signed 16KB write round-trips[jvm]" classname="com.latenighthack.lockers.connector.test.LargePayloadTests" time="0.015"/>
+  <testcase name="open 16KB write round-trips[jvm]" classname="com.latenighthack.lockers.connector.test.LargePayloadTests" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

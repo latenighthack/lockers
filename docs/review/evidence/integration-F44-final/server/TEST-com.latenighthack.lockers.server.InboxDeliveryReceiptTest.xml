@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.InboxDeliveryReceiptTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:27.503Z" hostname="Mikes-MacBook-Pro.local" time="0.961">
+  <properties/>
+  <testcase name="retryAtNewGatewayWakesPendingInboxWithoutRepeatingDelivery()" classname="com.latenighthack.lockers.server.InboxDeliveryReceiptTest" time="0.22"/>
+  <testcase name="oldUnacknowledgedDeliverySurvivesMoreThanOneThousandNewAcknowledgements()" classname="com.latenighthack.lockers.server.InboxDeliveryReceiptTest" time="0.735"/>
+  <testcase name="lostGatewayReplyAfterAckNeverRefillsInboxOrRepeatsPushAndChangedBytesReject()" classname="com.latenighthack.lockers.server.InboxDeliveryReceiptTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

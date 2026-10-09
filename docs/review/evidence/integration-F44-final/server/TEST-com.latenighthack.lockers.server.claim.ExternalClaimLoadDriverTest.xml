@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.claim.ExternalClaimLoadDriverTest" tests="1" skipped="1" failures="0" errors="0" timestamp="2026-10-09T05:08:49.073Z" hostname="Mikes-MacBook-Pro.local" time="0.0">
+  <properties/>
+  <testcase name="drive external servers at the target write load()" classname="com.latenighthack.lockers.server.claim.ExternalClaimLoadDriverTest" time="0.0">
+    <skipped message="org.opentest4j.TestAbortedException: Assumption failed: LOCKERS_LOAD_TARGETS not set; skipping" type="org.opentest4j.TestAbortedException">org.opentest4j.TestAbortedException: Assumption failed: LOCKERS_LOAD_TARGETS not set; skipping
+	at org.junit.jupiter.api.Assumptions.throwAssumptionFailed(Assumptions.java:316)
+	at org.junit.jupiter.api.Assumptions.assumeTrue(Assumptions.java:115)
+	at com.latenighthack.lockers.server.claim.ExternalClaimLoadDriverTest.drive external servers at the target write load(ExternalClaimLoadDriverTest.kt:31)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+</skipped>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

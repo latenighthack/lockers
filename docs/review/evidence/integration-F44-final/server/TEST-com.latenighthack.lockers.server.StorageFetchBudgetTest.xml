@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.StorageFetchBudgetTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:41.471Z" hostname="Mikes-MacBook-Pro.local" time="0.028">
+  <properties/>
+  <testcase name="rawFetchBudgetDoesNotChangeReplayPageContractOrCompleteLockerOrder()" classname="com.latenighthack.lockers.server.StorageFetchBudgetTest" time="0.028"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewSubscriptionConfirmationCasTests[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:09:12.118Z" hostname="Mikes-MacBook-Pro.local" time="0.281">
+  <properties/>
+  <testcase name="late HTTP subscribe confirmation cannot recreate another controller removal[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionConfirmationCasTests" time="0.158"/>
+  <testcase name="late HTTP unsubscribe confirmation cannot delete another controller resubscription[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewSubscriptionConfirmationCasTests" time="0.123"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

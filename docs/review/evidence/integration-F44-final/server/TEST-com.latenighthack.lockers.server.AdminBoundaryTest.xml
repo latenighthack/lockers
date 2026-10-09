@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.AdminBoundaryTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:08:16.596Z" hostname="Mikes-MacBook-Pro.local" time="0.663">
+  <properties/>
+  <testcase name="wrongAdminCredentialIsRejectedBeforeDispatch()" classname="com.latenighthack.lockers.server.AdminBoundaryTest" time="0.611"/>
+  <testcase name="absentAdminCredentialDoesNotExposeManagementRoutes()" classname="com.latenighthack.lockers.server.AdminBoundaryTest" time="0.045"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>
