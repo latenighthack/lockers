@@ -28,6 +28,23 @@ class InboxByteAdmissionTest {
             assertEquals(row.toByteArray().size.toLong(), inboxRowBytes(row))
         }
     }
+    @Test fun inMemoryAcceptanceAndReadResultsCannotMutateDurablePayloadOrIndexes() = runBlocking {
+        val db = ServerStorage.inMemory(); db.open()
+        try {
+            val inbox = SessionInboxStoreImpl(db)
+            val sid = ServerSessionId(byteArrayOf(1))
+            val accepted = inbox.acceptClientEvents(listOf(pair(1))).single()
+            accepted.first.encodedPayload.fill(9); accepted.first.eventId!!.rawValue.fill(9)
+            accepted.second.notification!!.payload!!.rawValue.fill(8)
+            val loaded = inbox.getAllEvents(sid).single()
+            assertEquals(7.toByte(), loaded.encodedPayload.first())
+            assertContentEquals(byteArrayOf(1), loaded.eventId!!.rawValue)
+            loaded.encodedPayload.fill(3); loaded.sessionId!!.rawValue.fill(3)
+            assertEquals(7.toByte(), inbox.getAllEvents(sid).single().encodedPayload.first())
+            assertEquals(7.toByte(), inbox.getAllClientEvents(sid).single().notification!!.payload!!.rawValue.first())
+            assertTrue(inbox.acceptClientEvents(listOf(pair(1))).isEmpty())
+        } finally { db.close() }
+    }
     @Test fun quotaAndAckDestroyAreAtomicAndSurviveReopen() = runBlocking {
         val file = File.createTempFile("inbox-bytes", ".db")
         val configuration = ServerStorage.configuration(file.name)

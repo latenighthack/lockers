@@ -16,11 +16,11 @@ import com.latenighthack.lockers.server.ServerResourceLimits
 import com.latenighthack.lockers.server.ResourceLimitException
 
 internal fun ServerSessionEvent.legacyClientEvent() = Event {
-    eventId { rawValue = this@legacyClientEvent.eventId!!.rawValue }
-    roomId { rawValue = this@legacyClientEvent.roomId!!.rawValue }
+    eventId { rawValue = this@legacyClientEvent.eventId!!.rawValue.copyOf() }
+    roomId { rawValue = this@legacyClientEvent.roomId!!.rawValue.copyOf() }
     roomSequence = this@legacyClientEvent.roomSequence
     if (encodedLocker.isNotEmpty()) locker = IdentifiedLocker.fromByteArray(encodedLocker)
-    if (encodedPayload.isNotEmpty()) notification { payload { rawValue = encodedPayload } }
+    if (encodedPayload.isNotEmpty()) notification { payload { rawValue = encodedPayload.copyOf() } }
 }
 
 interface SessionInboxStore {
@@ -156,6 +156,11 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
         }
         changeBytes(changes, checkCapacity = false)
     }
+    private fun detachedRow(row: ServerSessionEvent) = row.copy(
+        sessionId = row.sessionId?.let { ServerSessionId.fromByteArray(it.toByteArray()) },
+        roomId = row.roomId?.let { ServerRoomId.fromByteArray(it.toByteArray()) },
+        eventId = row.eventId?.let { ServerEventId.fromByteArray(it.toByteArray()) },
+        encodedPayload = row.encodedPayload.copyOf(), encodedLocker = row.encodedLocker.copyOf(), unknownFields = row.unknownFields?.copyOf())
     override suspend fun saveClientEvents(events: List<Pair<ServerSessionEvent, Event>>) { acceptClientEvents(events) }
     override suspend fun acceptClientEvents(events: List<Pair<ServerSessionEvent, Event>>): List<Pair<ServerSessionEvent, Event>> {
         if (events.size > 1024) throw RpcResponseException("", "RPC", Codes.OUT_OF_RANGE, "Inbox recipient batch too large")
@@ -238,7 +243,9 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
             saveAll(accepted.map { it.first })
             metadata.saveRows((accepted + backfills).map { (row, event) -> row.copy(encodedPayload = requireNotNull(byFrozen[event]).bytes, encodedLocker = byteArrayOf()) })
             receipts.putAll(receiptRows)
-            accepted
+            val returnedEvents = IdentityHashMap<Event, Event>()
+            accepted.map { (row, event) -> detachedRow(row) to
+                (returnedEvents[event] ?: Event.fromByteArray(requireNotNull(byFrozen[event]).bytes).also { returnedEvents[event] = it }) }
         }
     }
     override suspend fun isPending(eventId: ServerEventId, sessionId: ServerSessionId) = get(rowRelation(eventId, sessionId)) != null
@@ -316,6 +323,6 @@ class SessionInboxStoreImpl(private val database: Database, private val limits: 
             metadata.removeMany(rows.map { metadataRelation(requireNotNull(it.eventId), sessionId) })
         } while (rows.isNotEmpty())
     }
-    override suspend fun getAllEvents(sessionId: ServerSessionId) = getAll(sessionIdKey.eq(sessionId.toByteArray()))
+    override suspend fun getAllEvents(sessionId: ServerSessionId) = getAll(sessionIdKey.eq(sessionId.toByteArray())).map(::detachedRow)
     override suspend fun deleteEvent(eventId: ServerEventId, sessionId: ServerSessionId) = deleteEvents(listOf(eventId), sessionId)
 }
