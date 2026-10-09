@@ -24,7 +24,7 @@ class ResponseBoundaryTest {
     }
     @Test fun completeBulkReadAndConflictReplyCannotExceedEnvelopeAndPagingRemainsComplete() = runBlocking {
         val (db, store, service) = fixture(); val rpc = LocalRoomServiceRpc(service); val room = RoomId(byteArrayOf(1))
-        val ids = (1..12).map { LockerId(byteArrayOf(it.toByte())) }
+        val ids = (1..20).map { LockerId(byteArrayOf(it.toByte())) }
         try {
             val large = Locker { open { encodedPayload = ByteArray(1024 * 1024) } }
             store.updateLockers(ids.map { ServerLocker(ServerRoomId(room.rawValue), 0, ServerLockerId(it.rawValue), large.toByteArray(), 1) })
@@ -42,10 +42,10 @@ class ResponseBoundaryTest {
                 assertTrue(page.toByteArray().size <= ProtocolValidation.MAX_ENVELOPE_BYTES)
                 page = rpc.getAllLockers(GetAllLockersRequest(roomId = room, pageSize = 64, pageToken = page.nextPageToken)); count += page.lockers.size
             }
-            assertEquals(12, count)
+            assertEquals(ids.size, count)
         } finally { service.close(); db.close() }
     }
-    @Test fun permanentClaimCapacityMapsToResourceExhaustionWithoutSavingWrite() = runBlocking {
+    @Test fun permanentClaimCapacityMapsToFailedPreconditionWithoutSavingWrite() = runBlocking {
         val (db, store, service) = fixture(object : RoomOwnership {
             override suspend fun resolve(keyspace: Long, roomId: RoomId): RoomOwner = throw RoomClaimCapacityExceeded()
         })
