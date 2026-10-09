@@ -1,0 +1,104 @@
+{
+  "api:jvmTest": {
+    "tests": 12,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "connector:jvmTest": {
+    "tests": 211,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "server:test": {
+    "tests": 373,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2
+  },
+  "keymaster:test": {
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "sharding-core:test": {
+    "tests": 29,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "observability-api:jvmTest": {
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "observability-connector:jvmTest": {
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "observability-server:test": {
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "api:jsNodeTest": {
+    "tests": 10,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "api:jsBrowserTest": {
+    "tests": 10,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "api:iosSimulatorArm64Test": {
+    "tests": 10,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "connector:jsNodeTest": {
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "connector:jsBrowserTest": {
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "connector:iosSimulatorArm64Test": {
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "connector:Android": {
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "Fullhouse:core": {
+    "tests": 59,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "Fullhouse:server": {
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+}

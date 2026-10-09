@@ -1,0 +1,62 @@
+[
+  {
+    "id": "4b3522f3-e7e1-47a9-8c7a-10fe901ebfc7",
+    "status": "passed",
+    "startedAt": "2026-10-09T15:17:38.485Z",
+    "finishedAt": "2026-10-09T15:19:25.401Z",
+    "durationMs": 106916,
+    "reportId": "4b3522f3-e7e1-47a9-8c7a-10fe901ebfc7",
+    "results": [
+      {
+        "id": "core",
+        "status": "passed",
+        "commands": [
+          {
+            "cwd": "project",
+            "argv": [
+              "./gradlew",
+              ":core:test:jvmTest",
+              "--console=plain"
+            ]
+          }
+        ],
+        "logs": [
+          ".fh/logs/4b3522f3-e7e1-47a9-8c7a-10fe901ebfc7/core-0.log"
+        ],
+        "outputs": [
+          "project/core/test/build/test-results/jvmTest"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "d8fdc459-6b54-49b6-9f88-8a5c4755552a",
+    "status": "passed",
+    "startedAt": "2026-10-09T15:19:25.462Z",
+    "finishedAt": "2026-10-09T15:19:43.707Z",
+    "durationMs": 18245,
+    "reportId": "d8fdc459-6b54-49b6-9f88-8a5c4755552a",
+    "results": [
+      {
+        "id": "server",
+        "status": "passed",
+        "commands": [
+          {
+            "cwd": "project",
+            "argv": [
+              "./gradlew",
+              ":server:jvmTest",
+              "--console=plain"
+            ]
+          }
+        ],
+        "logs": [
+          ".fh/logs/d8fdc459-6b54-49b6-9f88-8a5c4755552a/server-0.log"
+        ],
+        "outputs": [
+          "project/server/build/test-results"
+        ]
+      }
+    ]
+  }
+]

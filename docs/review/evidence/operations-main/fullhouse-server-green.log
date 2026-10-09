@@ -1,0 +1,94 @@
+Type-safe project accessors is an incubating feature.
+
+> Configure project :android
+w: ⚠️ Usage of Internal Kotlin Gradle Plugin Properties Detected
+ATTENTION! This build uses the following Kotlin Gradle Plugin properties:
+
+kotlin.internal.suppressGradlePluginErrors
+
+Internal properties are not recommended for production use.
+Stability and future compatibility of the build is not guaranteed.
+Solution: Please consider using the public API instead of internal properties.
+
+
+> Configure project :server
+w: ⚠️ Unsupported API dependency types in test source sets
+API dependency types are used in test source sets
+Dependencies:
+    - fullhouse:api:unspecified (source sets: jvmTest)
+
+Adding API dependency types to test source sets is not supported and will removed in a future version of Kotlin.
+
+API dependencies are transitively exposed to consumers, but test source sets should not be consumable.
+Solutions:
+ • Replace API dependency types in test source sets with implementation dependencies.
+ • For Kotlin/JVM projects, consider using Test Fixtures https://docs.gradle.org/current/userguide/java_testing.html#sec:java_test_fixtures
+ • For Test Fixtures support in non-Kotlin/JVM projects, please add your use-case to https://youtrack.jetbrains.com/issue/KT-63142
+
+
+> Configure project :core:test
+w: ⚠️ Unsupported API dependency types in test source sets
+API dependency types are used in test source sets
+Dependencies:
+    - fullhouse.server:test:unspecified (source sets: jvmTest)
+    - fullhouse:server:unspecified (source sets: jvmTest)
+
+Adding API dependency types to test source sets is not supported and will removed in a future version of Kotlin.
+
+API dependencies are transitively exposed to consumers, but test source sets should not be consumable.
+Solutions:
+ • Replace API dependency types in test source sets with implementation dependencies.
+ • For Kotlin/JVM projects, consider using Test Fixtures https://docs.gradle.org/current/userguide/java_testing.html#sec:java_test_fixtures
+ • For Test Fixtures support in non-Kotlin/JVM projects, please add your use-case to https://youtrack.jetbrains.com/issue/KT-63142
+
+
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:extractIncludeProto UP-TO-DATE
+> Task :api:extractProto UP-TO-DATE
+
+> Task :api:generateProto
+protoc plugin 'kt' not defined. Trying to use 'protoc-gen-kt' from system path
+
+> Task :api:compileKotlinJvm UP-TO-DATE
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:extractJvmMainProto UP-TO-DATE
+> Task :api:processJvmMainResources SKIPPED
+> Task :api:jvmMainClasses UP-TO-DATE
+> Task :api:jvmJar UP-TO-DATE
+> Task :server:kmpPartiallyResolvedDependenciesChecker
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:extractIncludeProto UP-TO-DATE
+> Task :server:extractProto UP-TO-DATE
+
+> Task :server:generateProto
+protoc plugin 'kt' not defined. Trying to use 'protoc-gen-kt' from system path
+
+> Task :server:kspKotlinJvm UP-TO-DATE
+> Task :server:compileKotlinJvm UP-TO-DATE
+> Task :server:compileJvmMainJava NO-SOURCE
+> Task :server:jvmProcessResources NO-SOURCE
+> Task :server:extractJvmMainProto UP-TO-DATE
+> Task :server:processJvmMainResources SKIPPED
+> Task :server:jvmMainClasses UP-TO-DATE
+> Task :server:jvmJar UP-TO-DATE
+> Task :server:kspTestKotlinJvm SKIPPED
+> Task :server:jvmTestProcessResources NO-SOURCE
+> Task :server:extractJvmTestProto UP-TO-DATE
+> Task :server:processJvmTestResources SKIPPED
+> Task :server:compileTestKotlinJvm
+> Task :server:compileJvmTestJava NO-SOURCE
+> Task :server:jvmTestClasses
+> Task :server:jvmTest
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 15s
+18 actionable tasks: 6 executed, 12 up-to-date

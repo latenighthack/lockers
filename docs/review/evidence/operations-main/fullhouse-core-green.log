@@ -1,0 +1,240 @@
+Type-safe project accessors is an incubating feature.
+
+> Configure project :android
+w: ⚠️ Usage of Internal Kotlin Gradle Plugin Properties Detected
+ATTENTION! This build uses the following Kotlin Gradle Plugin properties:
+
+kotlin.internal.suppressGradlePluginErrors
+
+Internal properties are not recommended for production use.
+Stability and future compatibility of the build is not guaranteed.
+Solution: Please consider using the public API instead of internal properties.
+
+
+> Configure project :server
+w: ⚠️ Unsupported API dependency types in test source sets
+API dependency types are used in test source sets
+Dependencies:
+    - fullhouse:api:unspecified (source sets: jvmTest)
+
+Adding API dependency types to test source sets is not supported and will removed in a future version of Kotlin.
+
+API dependencies are transitively exposed to consumers, but test source sets should not be consumable.
+Solutions:
+ • Replace API dependency types in test source sets with implementation dependencies.
+ • For Kotlin/JVM projects, consider using Test Fixtures https://docs.gradle.org/current/userguide/java_testing.html#sec:java_test_fixtures
+ • For Test Fixtures support in non-Kotlin/JVM projects, please add your use-case to https://youtrack.jetbrains.com/issue/KT-63142
+
+
+> Configure project :core:test
+w: ⚠️ Unsupported API dependency types in test source sets
+API dependency types are used in test source sets
+Dependencies:
+    - fullhouse.server:test:unspecified (source sets: jvmTest)
+    - fullhouse:server:unspecified (source sets: jvmTest)
+
+Adding API dependency types to test source sets is not supported and will removed in a future version of Kotlin.
+
+API dependencies are transitively exposed to consumers, but test source sets should not be consumable.
+Solutions:
+ • Replace API dependency types in test source sets with implementation dependencies.
+ • For Kotlin/JVM projects, consider using Test Fixtures https://docs.gradle.org/current/userguide/java_testing.html#sec:java_test_fixtures
+ • For Test Fixtures support in non-Kotlin/JVM projects, please add your use-case to https://youtrack.jetbrains.com/issue/KT-63142
+
+Configuration 'jvmMainAnnotationProcessor' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jvmMainCompileClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kotlinCompilerPluginClasspathJvmMain' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kotlinCompilerClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jvmCompileClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'debugProtobuf' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'debugCompileClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'debugRuntimeClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'protobuf' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kspCommonMainKotlinMetadataProcessorClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'commonMainResolvableDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'allSourceSetsCompileDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'iosX64CompilationDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'iosSimulatorArm64CompilationDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'iosArm64CompilationDependenciesMetadata' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'kspKotlinJvmProcessorClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api:extractIncludeProto UP-TO-DATE
+> Task :api:extractProto UP-TO-DATE
+
+> Task :api:generateProto
+protoc plugin 'kt' not defined. Trying to use 'protoc-gen-kt' from system path
+
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:extractJvmMainProto UP-TO-DATE
+> Task :api:processJvmMainResources SKIPPED
+> Task :core:kmpPartiallyResolvedDependenciesChecker
+> Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:extractDebugProto UP-TO-DATE
+> Task :core:extractIncludeDebugProto
+> Task :core:extractProto UP-TO-DATE
+
+> Task :core:generateDebugProto
+protoc plugin 'kt' not defined. Trying to use 'protoc-gen-kt' from system path
+
+> Task :core:transformCommonMainDependenciesMetadata
+> Task :server:kmpPartiallyResolvedDependenciesChecker
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:extractIncludeProto UP-TO-DATE
+> Task :server:extractProto UP-TO-DATE
+
+> Task :server:generateProto
+protoc plugin 'kt' not defined. Trying to use 'protoc-gen-kt' from system path
+
+> Task :server:extractJvmMainProto UP-TO-DATE
+> Task :core:test:kmpPartiallyResolvedDependenciesChecker
+> Task :core:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:processResources NO-SOURCE
+
+> Task :api:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/api/build/generated/source/proto/main/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/api/build/generated/source/proto/main/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/api/build/generated/source/proto/main/kotlin/com/google/protobuf/descriptor.data.kt:996:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/api/build/generated/source/proto/main/kotlin/com/google/protobuf/descriptor.data.kt:2296:93 Redundant call of conversion method.
+
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmMainClasses
+> Task :core:kspCommonMainKotlinMetadata
+> Task :api:jvmJar
+> Task :core:kspKotlinJvm
+> Task :core:jvmProcessResources NO-SOURCE
+> Task :core:processJvmMainResources SKIPPED
+> Task :server:kspKotlinJvm
+> Task :server:jvmProcessResources NO-SOURCE
+> Task :server:processJvmMainResources SKIPPED
+
+> Task :core:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/build/generated/source/proto/debug/kotlin/gg/roll/core/storage/v1/stored_property.data.kt:299:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/build/generated/source/proto/debug/kotlin/gg/roll/core/storage/v1/stored_property.data.kt:301:75 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IContactsViewModel.kt:166:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/ILibraryViewModel.kt:85:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:379:73 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:385:92 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:405:57 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256R1Key.PublicKey'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:446:14 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/IRoomViewModel.kt:639:28 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/ISelectFriendsViewModel.kt:211:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ChatRepository.kt:146:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ChatRepository.kt:203:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/repositories/ProfileRepository.kt:133:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/core/usecases/WatchRecentMessagesUseCase.kt:29:10 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/commonMain/kotlin/gg/roll/viewmodel/tools/GlobalDispatcher.kt:5:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/src/jvmMain/kotlin/gg/roll/viewmodel/tools/GlobalDispatcher.kt:6:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+
+> Task :core:compileJvmMainJava NO-SOURCE
+> Task :core:jvmMainClasses
+> Task :core:jvmJar
+> Task :core:test:kspKotlinJvm SKIPPED
+> Task :core:test:compileKotlinJvm NO-SOURCE
+> Task :core:test:compileJvmMainJava NO-SOURCE
+> Task :core:test:jvmProcessResources NO-SOURCE
+> Task :core:test:processJvmMainResources SKIPPED
+> Task :core:test:jvmMainClasses UP-TO-DATE
+> Task :core:test:jvmJar UP-TO-DATE
+
+> Task :server:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/build/generated/source/proto/main/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/build/generated/source/proto/main/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/build/generated/source/proto/main/kotlin/com/google/protobuf/descriptor.data.kt:996:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/build/generated/source/proto/main/kotlin/com/google/protobuf/descriptor.data.kt:2296:93 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/src/commonMain/kotlin/gg/roll/fullhouse/server/services/agent/v1/GameAgentServiceImpl.kt:197:58 Unnecessary safe call on a non-null receiver of type 'LockerKeyspace'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/src/commonMain/kotlin/gg/roll/fullhouse/server/services/library/v1/LibraryContents.kt:46:66 Unchecked cast of 'Any?' to 'Map<String, Any>'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/src/commonMain/kotlin/gg/roll/fullhouse/server/services/library/v1/LibraryContents.kt:47:49 Unchecked cast of 'Any?' to 'Map<String, Any>'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/src/commonMain/kotlin/gg/roll/fullhouse/server/services/library/v1/LibraryContents.kt:147:41 Unchecked cast of 'Any?' to 'Map<String, Any>'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/src/commonMain/kotlin/gg/roll/fullhouse/server/services/library/v1/LibraryContents.kt:148:51 Unchecked cast of 'Any?' to 'List<Map<String, Any>>'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/src/commonMain/kotlin/gg/roll/fullhouse/server/services/library/v1/LibraryContents.kt:190:34 Unchecked cast of 'Any?' to 'Map<String, Any>'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/src/commonMain/kotlin/gg/roll/fullhouse/server/services/library/v1/LibraryContents.kt:195:46 Unchecked cast of 'Any' to 'Map<String, Any>'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/src/commonMain/kotlin/gg/roll/fullhouse/server/services/library/v1/LibraryContents.kt:213:44 Unchecked cast of 'Any' to 'Map<String, Any>'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/src/commonMain/kotlin/gg/roll/fullhouse/server/services/library/v1/LibraryContents.kt:222:30 Unchecked cast of 'Any?' to 'Map<String, Any>'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/src/commonMain/kotlin/gg/roll/fullhouse/server/services/library/v1/LibraryContents.kt:232:32 Unchecked cast of 'Any?' to 'Map<String, Any>'.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/server/src/commonMain/kotlin/gg/roll/fullhouse/server/tools/BaseServiceImpl.kt:10:45 'annotation class BuilderInference : Annotation' is deprecated. BuilderInference annotation must not be used anymore. Builder inference is enabled automatically for builder calls if needed.
+
+> Task :server:compileJvmMainJava NO-SOURCE
+> Task :server:jvmMainClasses
+> Task :server:jvmJar
+> Task :server:test:compileKotlin
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar UP-TO-DATE
+> Task :core:test:kspTestKotlinJvm SKIPPED
+> Task :core:test:jvmTestProcessResources NO-SOURCE
+> Task :core:test:processJvmTestResources SKIPPED
+
+> Task :core:test:compileTestKotlinJvm
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/test/src/commonTest/kotlin/gg/roll/viewmodel/core/MessageTests.kt:53:17 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/test/src/commonTest/kotlin/gg/roll/viewmodel/core/MessageTests.kt:61:29 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/test/src/commonTest/kotlin/gg/roll/viewmodel/core/MessageTests.kt:72:29 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/core/test/src/commonTest/kotlin/gg/roll/viewmodel/core/tools/RunCoreTest.kt:61:48 Unchecked cast of 'StubRpcClient' to 'RpcClientType (of fun <RpcClientType : RpcClient> runCoreTest)'.
+
+> Task :core:test:compileJvmTestJava NO-SOURCE
+> Task :core:test:jvmTestClasses
+> Task :core:test:jvmTest
+
+[java.io.IOException: unexpected end of stream on http://0.0.0.0:51979/..., java.io.IOException: unexpected end of stream on http://0.0.0.0:51979/...]
+[java.io.IOException: unexpected end of stream on http://0.0.0.0:51979/..., java.io.IOException: unexpected end of stream on http://0.0.0.0:51979/...]
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/project/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 44s
+31 actionable tasks: 21 executed, 10 up-to-date

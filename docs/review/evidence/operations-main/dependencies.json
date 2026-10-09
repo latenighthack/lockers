@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "mode": "workspace",
+  "repository": "/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/maven",
+  "groups": {
+    "com.latenighthack.ktstore": {
+      "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners",
+      "revision": "f5e9eaa801ff90c7c81538025a9d545a6c75056a",
+      "sourceHash": "d1cd270704ab9c7d550cf14a44e0e1179f5d293981b39f4e6697b04e61d4c2d1",
+      "inputsHash": "d53a47cbc15434b3ce1e3bfc9de5b89ec81236975676ce356e417688b4b4878c",
+      "version": "0.2.0-fh.d53a47cbc15434b3ce1e",
+      "group": "com.latenighthack.ktstore"
+    },
+    "com.latenighthack.ktbuf": {
+      "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktbuf-review-publish",
+      "revision": "780bcc0bad28f59be37edc7d9ddb4c3c72bd8705",
+      "sourceHash": "3cd9dcf82328783b156d18c2399ea4b16ec49b4d789ce25f4a12c1e4eb40b07d",
+      "inputsHash": "9c3962ea021c76107b844f286dbc672b5718083875ac7832e66f51fd357d76f4",
+      "version": "1.1.10-fh.9c3962ea021c76107b84",
+      "group": "com.latenighthack.ktbuf"
+    },
+    "com.latenighthack.lockers": {
+      "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-operations-main-publish",
+      "revision": "6fcc4bf9fecf0314ca02f49f1f9dabe9dabd8cfc",
+      "sourceHash": "29d845a8ab89f973c874df7609a8bde3ae61e9120e09d6dadde38fff6f972e28",
+      "inputsHash": "24c5b0ea3c757d84b6066a46d4a1d4f0d0f487aeb3c35df27af01d299fb5e137",
+      "version": "0.1.16-fh.24c5b0ea3c757d84b606",
+      "group": "com.latenighthack.lockers"
+    },
+    "com.latenighthack.social": {
+      "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/social-review-lockers-consumer",
+      "revision": "3f51e905cf16f30b1da8f47b28dcff16c9a38934",
+      "sourceHash": "f830bb5e3886f9717992bf2c51e7562966714918eb5b8730d0ebb7ef473efeac",
+      "inputsHash": "4eb9197664e10cad0c6844bb02a163c25bb20bd1a88e0beb4221e786766b58bc",
+      "version": "0.1.11-fh.4eb9197664e10cad0c68",
+      "group": "com.latenighthack.social"
+    }
+  },
+  "libraries": {
+    "ktstore": {
+      "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktstore-review-indexeddb-owners",
+      "revision": "f5e9eaa801ff90c7c81538025a9d545a6c75056a",
+      "sourceHash": "d1cd270704ab9c7d550cf14a44e0e1179f5d293981b39f4e6697b04e61d4c2d1",
+      "inputsHash": "d53a47cbc15434b3ce1e3bfc9de5b89ec81236975676ce356e417688b4b4878c",
+      "version": "0.2.0-fh.d53a47cbc15434b3ce1e",
+      "group": "com.latenighthack.ktstore"
+    },
+    "ktbuf": {
+      "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/ktbuf-review-publish",
+      "revision": "780bcc0bad28f59be37edc7d9ddb4c3c72bd8705",
+      "sourceHash": "3cd9dcf82328783b156d18c2399ea4b16ec49b4d789ce25f4a12c1e4eb40b07d",
+      "inputsHash": "9c3962ea021c76107b844f286dbc672b5718083875ac7832e66f51fd357d76f4",
+      "version": "1.1.10-fh.9c3962ea021c76107b84",
+      "group": "com.latenighthack.ktbuf"
+    },
+    "lockers": {
+      "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-operations-main-publish",
+      "revision": "6fcc4bf9fecf0314ca02f49f1f9dabe9dabd8cfc",
+      "sourceHash": "29d845a8ab89f973c874df7609a8bde3ae61e9120e09d6dadde38fff6f972e28",
+      "inputsHash": "24c5b0ea3c757d84b6066a46d4a1d4f0d0f487aeb3c35df27af01d299fb5e137",
+      "version": "0.1.16-fh.24c5b0ea3c757d84b606",
+      "group": "com.latenighthack.lockers"
+    },
+    "social": {
+      "path": "/Users/mikeroberts/workspace/latenighthack/.worktrees/social-review-lockers-consumer",
+      "revision": "3f51e905cf16f30b1da8f47b28dcff16c9a38934",
+      "sourceHash": "f830bb5e3886f9717992bf2c51e7562966714918eb5b8730d0ebb7ef473efeac",
+      "inputsHash": "4eb9197664e10cad0c6844bb02a163c25bb20bd1a88e0beb4221e786766b58bc",
+      "version": "0.1.11-fh.4eb9197664e10cad0c68",
+      "group": "com.latenighthack.social"
+    }
+  },
+  "snapshotExceptions": [
+    {
+      "group": "dev.tamboui",
+      "reason": "basekit TUI currently requires snapshot toolkit; resolved checksums are captured in verification evidence"
+    }
+  ]
+}

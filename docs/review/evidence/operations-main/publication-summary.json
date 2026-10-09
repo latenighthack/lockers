@@ -1,0 +1,22 @@
+[
+  {
+    "library": "lockers",
+    "revision": "6fcc4bf9fecf0314ca02f49f1f9dabe9dabd8cfc",
+    "version": "0.1.16-fh.24c5b0ea3c757d84b606",
+    "sourceHash": "29d845a8ab89f973c874df7609a8bde3ae61e9120e09d6dadde38fff6f972e28",
+    "inputsHash": "24c5b0ea3c757d84b6066a46d4a1d4f0d0f487aeb3c35df27af01d299fb5e137",
+    "artifacts": 176,
+    "receiptSHA256": "3e0f248a1a5678b39b67d25a619ebbcf298f700b04afebfe4ef645611c8e9a7e",
+    "receiptPath": "/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/publications/lockers-0.1.16-fh.24c5b0ea3c757d84b606.json"
+  },
+  {
+    "library": "social",
+    "revision": "3f51e905cf16f30b1da8f47b28dcff16c9a38934",
+    "version": "0.1.11-fh.4eb9197664e10cad0c68",
+    "sourceHash": "f830bb5e3886f9717992bf2c51e7562966714918eb5b8730d0ebb7ef473efeac",
+    "inputsHash": "4eb9197664e10cad0c6844bb02a163c25bb20bd1a88e0beb4221e786766b58bc",
+    "artifacts": 1561,
+    "receiptSHA256": "1080dc4746339da94288749c9a0bdf6a13396f036ebf7d1f192d444aa826dbd3",
+    "receiptPath": "/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/publications/social-0.1.11-fh.4eb9197664e10cad0c68.json"
+  }
+]
