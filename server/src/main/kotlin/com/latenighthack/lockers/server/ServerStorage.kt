@@ -36,13 +36,20 @@ object ServerStorage {
         com.latenighthack.lockers.server.services.session.v1.UsedSessionProofOwnersDefinitionV2,
         com.latenighthack.lockers.server.services.session.v1.RevokedSessionDefinitionV2,
     )
-    val definitions = legacyDefinitionsV3 + additionsV4
+    val definitions = legacyDefinitionsV3.map { definition ->
+        if (definition === com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreImplDefinitionV1)
+            com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreDefinitionV2 else definition
+    } + additionsV4
     fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()): DatabaseConfiguration {
         val historical = definitionDatabaseConfiguration(identity, legacyDefinitionsV3 + additional)
         val declarations = (definitions + additional).map { it.declaration }
         return historical.copy(version = 4, stores = declarations, migrations = historical.migrations +
             DatabaseMigration.configured(3, 4, historical.stores, declarations) {
                 for (definition in additionsV4) createStore(definition.declaration)
+                val inbox = com.latenighthack.lockers.server.services.session.v1.SessionInboxStoreDefinitionV2
+                rebuildStore(inbox.storeName, inbox.declaration) { raw ->
+                    StoreRow(raw.copyOf(), inbox.encodeRow(inbox.decode(raw)).keys)
+                }
             })
     }
     fun inMemory(identity: String = "ServerStorage-test", meterRegistry: MeterRegistry? = null, telemetry: LockersTelemetry = LockersTelemetry.NONE) =

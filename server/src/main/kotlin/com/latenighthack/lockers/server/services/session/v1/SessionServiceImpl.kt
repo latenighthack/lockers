@@ -339,13 +339,13 @@ class SessionServiceImpl(
                         if (it.sequence > lastSequence + 1 || (it.catchUp && it.event?.sessionId?.rawValue.contentEquals(sessionId.rawValue))) {
                             // A slow stream overran the bounded live buffer. Recover from the
                             // durable inbox immediately rather than waiting for reconnect.
-                            val missed = sessionInboxStore.getAllClientEvents(sessionId).filter { event ->
-                                event.eventId?.rawValue?.toList() !in seen
+                            sessionInboxStore.clientEventPages(sessionId).collect { page ->
+                                val missed = page.filter { event -> event.eventId?.rawValue?.toList() !in seen }
+                                if (missed.isNotEmpty()) emit(StreamControlEvent.Message(WatchSessionResponse {
+                                    response.events { event = missed }
+                                }))
+                                remember(missed)
                             }
-                            if (missed.isNotEmpty()) emit(StreamControlEvent.Message(WatchSessionResponse {
-                                response.events { event = missed }
-                            }))
-                            remember(missed)
                         }
                         lastSequence = it.sequence
                         return@onEach
@@ -354,23 +354,20 @@ class SessionServiceImpl(
                     isFirst = false
                     lastSequence = it.sequence
 
-                    val startTime = System.nanoTime()
-                    val response = dispatchers.runOnDispatcher(SessionId(sessionId.rawValue)) {
-                        dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
-
-                        val queuedEvents = sessionInboxStore.getAllClientEvents(sessionId)
-
+                    var sentOpen = false
+                    sessionInboxStore.clientEventPages(sessionId).collect { queuedEvents ->
                         remember(queuedEvents)
-
                         eventsDeliveredQueuedCounter.increment(queuedEvents.size.toDouble())
-
-                        WatchSessionResponse {
-                            response.open = originalOpen.copy(queuedEvents = queuedEvents)
-                        }
+                        emit(StreamControlEvent.Message(WatchSessionResponse {
+                            if (!sentOpen) response.open = originalOpen.copy(queuedEvents = queuedEvents)
+                            else response.events { event = queuedEvents }
+                        }))
+                        if (!sentOpen) { sentOpen = true; openSent.complete(Unit) }
                     }
-
-                    emit(StreamControlEvent.Message(response))
-                    openSent.complete(Unit)
+                    if (!sentOpen) {
+                        emit(StreamControlEvent.Message(WatchSessionResponse { response.open = originalOpen }))
+                        openSent.complete(Unit)
+                    }
                 }
                 .filter {
                     !it.catchUp && it.event?.sessionId?.rawValue.contentEquals(sessionId.rawValue)
