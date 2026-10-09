@@ -223,6 +223,24 @@ class RoomServiceImpl(
             null
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
+        } catch (e: com.latenighthack.ktbuf.net.RpcResponseException) {
+            forwardFailureCounter.increment()
+            if (config.peerToken != null && (e.code == com.latenighthack.ktbuf.proto.Codes.UNAUTHENTICATED ||
+                    e.code == com.latenighthack.ktbuf.proto.Codes.PERMISSION_DENIED)) {
+                // These credentials belong to the private transport, not the public operation.
+                logger.warn("write forward to {} rejected the peer credential", address)
+                forwardConnections.evict(address)
+                null
+            } else {
+                // Preserve Codes.retriable(): permanent operation errors must remain permanent.
+                if (e.retriable()) {
+                    roomOwnership.invalidate(room)
+                    forwardConnections.evict(address)
+                }
+                // Rebuild the exception so neither its path nor diagnostic contains a private URL.
+                throw com.latenighthack.ktbuf.net.RpcResponseException(context.originalUrl, "POST", e.code,
+                    "Room owner could not complete operation")
+            }
         } catch (e: Exception) {
             forwardFailureCounter.increment()
             logger.warn("write forward to {} failed ({})", address, e.message)

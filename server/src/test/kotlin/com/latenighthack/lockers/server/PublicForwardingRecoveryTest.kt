@@ -3,6 +3,7 @@ package com.latenighthack.lockers.server
 import com.latenighthack.ktbuf.net.*
 import com.latenighthack.ktbuf.proto.Codes
 import com.latenighthack.ktbuf.rpc.HttpRpcClient
+import com.latenighthack.ktbuf.rpc.repeatWithBackoff
 import com.latenighthack.ktbuf.server.serveUnary
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.RoutingRpcClient
@@ -25,8 +26,9 @@ class PublicForwardingRecoveryTest {
     private fun request() = PostLockerChangesRequest(roomId = room, writeRequestId = ByteArray(16) { 7 }, changes = listOf(
         PostLockerChangeRequest(lockerId = LockerId(byteArrayOf(2)), locker = Locker { open { encodedPayload = byteArrayOf(3) } })))
     private class Ownership(var owner: RoomOwner, var refresh: (() -> RoomOwner)? = null) : RoomOwnership {
+        val invalidations = java.util.concurrent.atomic.AtomicInteger()
         override suspend fun resolve(keyspace: Long, roomId: RoomId) = owner
-        override fun invalidate(roomId: RoomId) { refresh?.let { owner = it() } }
+        override fun invalidate(roomId: RoomId) { invalidations.incrementAndGet(); refresh?.let { owner = it() } }
     }
     private class Fixture(ownership: RoomOwnership, token: String? = "secret") {
         val db = ServerStorage.inMemory()
@@ -74,7 +76,8 @@ class PublicForwardingRecoveryTest {
             }
         }
         val (privateServer, address) = listener(unstable, true)
-        val seed = Fixture(Ownership(RoomOwner.Remote(address, 1))); seed.open()
+        val placement = Ownership(RoomOwner.Remote(address, 1))
+        val seed = Fixture(placement); seed.open()
         val (publicServer, publicAddress) = listener(seed.service)
         val privateRoutes = mutableListOf<String>()
         val routing = RoutingRpcClient(HttpRpcClient(publicAddress), { target -> privateRoutes.add(target); HttpRpcClient(target) }, { it })
@@ -85,8 +88,10 @@ class PublicForwardingRecoveryTest {
                 response.redirect?.let { routing.recordRedirect("room", it.ownerAddress.orEmpty(), it.epoch) }
             } }.exceptionOrNull()
             assertIs<RpcResponseException>(failure); assertEquals(Codes.UNAVAILABLE, failure.code)
+            assertEquals(1, placement.invalidations.get())
             fail = false
             retryable(rpc) // The owner commits, but this reply is lost. Retry the same immutable ID.
+            assertEquals(2, placement.invalidations.get())
             loseReply = false
             assertTrue(rpc.postLockerChanges(request()).result.isOk())
             assertTrue(privateRoutes.isEmpty(), "Public client must never dial the authenticated private endpoint")
@@ -166,6 +171,73 @@ class PublicForwardingRecoveryTest {
             val context = GrpcRequestContext("", emptyMap(), emptyMap(), emptyMap(), RoomServer.Descriptor, RoomServer.Descriptor.methods[0])
             assertFailsWith<TimeoutCancellationException> { withTimeout(50) { seed.service.postLockerChanges(context, request()) } }
         } finally { peerServer.stop(0, 1000); seed.close(); peer.close() }
+    }
+    @Test fun `peer RPC statuses preserve operation codes across public forwarding`(): Unit = runBlocking {
+        val peer = Fixture(LocalRoomOwnership()); peer.open()
+        val code = java.util.concurrent.atomic.AtomicReference(Codes.INVALID_ARGUMENT)
+        val rejecting = object : RoomServer by peer.service {
+            override suspend fun postLockerChanges(context: GrpcRequestContext, request: PostLockerChangesRequest): PostLockerChangesResponse =
+                throw RpcResponseException(context.originalUrl, "POST", code.get(), "Opaque owner error")
+        }
+        val (peerServer, peerAddress) = listener(rejecting, true)
+        val seed = Fixture(Ownership(RoomOwner.Remote(peerAddress, 1))); seed.open(); val (server, address) = listener(seed.service)
+        try {
+            val rpc = RoomServiceRpc(HttpRpcClient(address))
+            for (ownerCode in Codes.entries.filter { it != Codes.OK }) {
+                code.set(ownerCode)
+                val failure = assertFailsWith<RpcResponseException> { rpc.postLockerChanges(request()) }
+                val expected = if (ownerCode == Codes.UNAUTHENTICATED || ownerCode == Codes.PERMISSION_DENIED) Codes.UNAVAILABLE else ownerCode
+                assertEquals(expected, failure.code, "Peer code $ownerCode")
+                assertEquals(expected.retriable(), failure.retriable())
+                assertFalse(failure.message.orEmpty().contains(peerAddress), "Public errors do not reveal private routing")
+            }
+        } finally { server.stop(0, 1000); peerServer.stop(0, 1000); seed.close(); peer.close() }
+    }
+    @Test fun `default backoff makes one attempt for permanent owner errors`(): Unit = runBlocking {
+        val peer = Fixture(LocalRoomOwnership()); peer.open()
+        val code = java.util.concurrent.atomic.AtomicReference(Codes.FAILED_PRECONDITION)
+        val calls = java.util.concurrent.atomic.AtomicInteger()
+        val rejecting = object : RoomServer by peer.service {
+            override suspend fun postLockerChanges(context: GrpcRequestContext, request: PostLockerChangesRequest): PostLockerChangesResponse {
+                calls.incrementAndGet()
+                throw RpcResponseException(context.originalUrl, "POST", code.get(), "Permanent owner error")
+            }
+        }
+        val (peerServer, peerAddress) = listener(rejecting, true)
+        val seed = Fixture(Ownership(RoomOwner.Remote(peerAddress, 1))); seed.open(); val (server, address) = listener(seed.service)
+        try {
+            val rpc = RoomServiceRpc(HttpRpcClient(address))
+            for (permanent in listOf(Codes.FAILED_PRECONDITION, Codes.OUT_OF_RANGE, Codes.INVALID_ARGUMENT, Codes.UNIMPLEMENTED,
+                Codes.DATA_LOSS, Codes.NOT_FOUND, Codes.ALREADY_EXISTS, Codes.CANCELLED)) {
+                code.set(permanent); calls.set(0)
+                val failure = assertFailsWith<RpcResponseException> {
+                    repeatWithBackoff(retryLimit = 2, backoff = 1, minRetryTime = 1, maxRetryTime = 1, jitter = 0f) { rpc.postLockerChanges(request()) }
+                }
+                assertEquals(permanent, failure.code)
+                assertEquals(1, calls.get(), "Permanent $permanent must not consume a retry budget")
+            }
+        } finally { server.stop(0, 1000); peerServer.stop(0, 1000); seed.close(); peer.close() }
+    }
+    @Test fun `legacy direct routing preserves terminal authorization errors`(): Unit = runBlocking {
+        val peer = Fixture(LocalRoomOwnership(), token = null); peer.open()
+        val code = java.util.concurrent.atomic.AtomicReference(Codes.UNAUTHENTICATED)
+        val rejecting = object : RoomServer by peer.service {
+            override suspend fun postLockerChanges(context: GrpcRequestContext, request: PostLockerChangesRequest): PostLockerChangesResponse =
+                throw RpcResponseException(context.originalUrl, "POST", code.get(), "Operation authorization rejected")
+        }
+        // Legacy mode advertises public direct addresses, not private authenticated listeners.
+        val (peerServer, peerAddress) = listener(rejecting)
+        val seed = Fixture(Ownership(RoomOwner.Remote(peerAddress, 1)), token = null); seed.open(); val (server, address) = listener(seed.service)
+        try {
+            val rpc = RoomServiceRpc(HttpRpcClient(address))
+            for (authorizationCode in listOf(Codes.UNAUTHENTICATED, Codes.PERMISSION_DENIED)) {
+                code.set(authorizationCode)
+                val failure = assertFailsWith<RpcResponseException> { rpc.postLockerChanges(request()) }
+                assertEquals(authorizationCode, failure.code)
+                assertFalse(failure.retriable())
+                assertFalse(failure.message.orEmpty().contains(peerAddress))
+            }
+        } finally { server.stop(0, 1000); peerServer.stop(0, 1000); seed.close(); peer.close() }
     }
     @Test fun `public ownership fence loss is retryable while legacy stamped redirects remain compatible`(): Unit = runBlocking {
         var sourceExecuted = false
