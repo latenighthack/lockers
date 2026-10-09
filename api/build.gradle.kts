@@ -50,9 +50,11 @@ dependencies {
 // the plugin. The generator itself is private to this checkout, never global.
 val protocGenKtVersion = providers.gradleProperty("protocGenKtVersion").get()
 val codegenGoVersion = providers.gradleProperty("codegenGoVersion").get()
-val protocGenKt = layout.buildDirectory.file("tools/protoc-gen-kt${if (System.getProperty("os.name").lowercase().contains("win")) ".exe" else ""}")
+val workspaceGenerator = providers.gradleProperty("protocGenKtPath")
+val protocGenKt = layout.file(workspaceGenerator.map { file(it) }).orElse(layout.buildDirectory.file("tools/protoc-gen-kt${if (System.getProperty("os.name").lowercase().contains("win")) ".exe" else ""}"))
 val installProtocGenKt by tasks.registering(Exec::class) {
     group = "build"
+    onlyIf { !workspaceGenerator.isPresent }
     description = "Install the pinned Kotlin protobuf generator into this build"
     inputs.property("module", "latenighthack.com/protoc-gen-kt@$protocGenKtVersion")
     inputs.property("goToolchain", codegenGoVersion)
@@ -72,7 +74,7 @@ val generateProto by tasks.registering(Exec::class) {
     description = "Generate Kotlin protobuf sources via protoc-gen-kt"
 
     val protoRoot = file("$rootDir/proto")
-    val protoFiles = fileTree(protoRoot) { include("**/*.proto") }
+    val protoFiles = fileTree(protoRoot) { include("**/*.proto"); exclude("google/protobuf/descriptor.proto") }
     val outDir = layout.buildDirectory.dir("generated/ktproto/kotlin")
 
     inputs.files(protoFiles)
