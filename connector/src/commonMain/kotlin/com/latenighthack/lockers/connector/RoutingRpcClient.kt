@@ -1,116 +1,138 @@
 package com.latenighthack.lockers.connector
 
-import com.latenighthack.ktbuf.net.RpcClient
-import com.latenighthack.ktbuf.net.RpcMethodSpecifier
-import com.latenighthack.ktbuf.net.RpcResponse
-import com.latenighthack.ktbuf.net.RpcServerStream
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
+import com.latenighthack.ktbuf.net.*
+import com.latenighthack.ktbuf.rpc.HttpRpcClient
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
-/**
- * A smart-client [RpcClient] that follows server-provided ownership redirects. The service stubs
- * already stamp each routable call with its shard key metadata — `rid=base64(roomId)` on room RPCs
- * ([com.latenighthack.lockers.connector.internal.ShardedRoomServiceRpc]) and `s=base64(sessionId)`
- * on the session watch ([com.latenighthack.lockers.connector.internal.ShardedSessionServiceRpc]).
- * This client reads that metadata and dispatches the call to the node currently cached as the owner
- * of that shard key, falling back to the [seed] node when the owner is unknown.
- *
- * Routing is driven ENTIRELY by the server: the client holds no ring logic. When a room write is
- * answered `NOT_OWNER` + `ShardRedirect`, or a session open is answered `EPOCH_STALE` +
- * `ShardRedirect`, the decode layer that saw the (decoded) response calls [recordRedirect] with the
- * shard key and the `owner_address` the server handed back. The next call for that key then routes
- * to the owner. Because the room write path ([LockerClient]) already retries a non-terminal result
- * inside its `repeatWithBackoff` loop, and the [Stream] reconnect loop re-opens on a retryable
- * result, recording the redirect is enough for the very next attempt/reconnect to land on the owner
- * with no ring knowledge and no bespoke retry here.
- *
- * @param seed the node to reach before any owner is known (the client's configured entry point).
- * @param clientFactory builds (and this client caches) one delegate [RpcClient] per owner address;
- *   the platform supplies e.g. `{ url -> HttpRpcClient(url) }`. Kept as a parameter so this stays
- *   multiplatform and unit-testable with a fake transport.
- * @param normalizeAddress maps a server `owner_address` (`host:port` or a URL) to the key/URL the
- *   [clientFactory] expects; defaults to prefixing `http://` when the address is bare host:port.
+class RoutingCapacityExceededException : IllegalStateException("All routed transport slots are active or awaiting disposal")
+
+/** Server-directed routing. The factory returns one independently owned transport per address.
+ * Room and session keys occupy separate namespaces. Delegates are created serially and retained
+ * in a bounded cache; an active delegate is never evicted. Custom transports provide [disposeClient].
+ * The seed remains caller-owned unless [ownsSeed] is requested. Call [closeAndJoin] to complete disposal.
  */
 class RoutingRpcClient(
     private val seed: RpcClient,
     private val clientFactory: (address: String) -> RpcClient,
     private val normalizeAddress: (String) -> String = ::defaultNormalizeAddress,
+    private val disposeClient: suspend (RpcClient) -> Unit = { if (it is HttpRpcClient) it.closeAndJoin() },
+    private val maxClients: Int = 64,
+    private val maxRoutes: Int = 2_048,
+    private val ownsSeed: Boolean = false,
 ) : RpcClient {
-    // Lock-free, thread-safe state via atomic StateFlow updates (the pattern used across the
-    // connector); no platform lock primitive is needed in common code.
-    private val ownerByKey = MutableStateFlow<Map<String, Owner>>(emptyMap())
-    private val clientsByAddress = MutableStateFlow<Map<String, RpcClient>>(emptyMap())
-
-    /** A cached shard owner: the normalized [address] and the [epoch] the server resolved it at. */
+    init { require(maxClients > 0 && maxRoutes > 0) }
+    private enum class Namespace { ROOM, SESSION }
+    private data class Key(val namespace: Namespace, val bytes: String)
     private data class Owner(val address: String, val epoch: Long)
+    private data class Calls(val closed: Boolean = false, val jobs: Set<Job> = emptySet())
+    private class Client(val value: RpcClient, var users: Int = 0, var touched: Long = 0)
+    private val owners = MutableStateFlow<Map<Key, Owner>>(emptyMap())
+    private val calls = MutableStateFlow(Calls())
+    private val mutex = Mutex()
+    private val clients = mutableMapOf<String, Client>()
+    private val retiring = mutableSetOf<Client>()
+    private val seedClient = Client(seed)
+    private var clock = 0L
+    private var closing: CompletableDeferred<Unit>? = null
 
-    /**
-     * Record that [ownerAddress] owns [routingKey] (the base64 `rid`/`s` the stubs emit), as of
-     * shard-map [epoch]. Called by the decode layer on a `NOT_OWNER` / `EPOCH_STALE` redirect. An
-     * empty/blank address clears any cached owner so the key falls back to the [seed]. A redirect
-     * at a lower epoch than the one already cached is ignored (staleness ordering). Idempotent and
-     * safe to call concurrently.
-     */
-    fun recordRedirect(routingKey: String, ownerAddress: String, epoch: Long = 0L) {
-        if (ownerAddress.isBlank()) {
-            ownerByKey.update { it - routingKey }
-            return
+    fun recordRedirect(routingKey: String, ownerAddress: String, epoch: Long = 0L) = record(Key(Namespace.ROOM, routingKey), ownerAddress, epoch)
+    fun recordSessionRedirect(routingKey: String, ownerAddress: String, epoch: Long = 0L) = record(Key(Namespace.SESSION, routingKey), ownerAddress, epoch)
+    private fun record(key: Key, address: String, epoch: Long) {
+        if (calls.value.closed) return
+        val owner = address.takeIf { it.isNotBlank() }?.let { Owner(normalizeAddress(it), epoch) }
+        owners.update { current ->
+            val existing = current[key]
+            if (existing != null && existing.epoch > epoch) current
+            else if (owner == null) current - key
+            else {
+                val retained = if (key !in current && current.size >= maxRoutes) current - current.keys.first() else current
+                retained + (key to owner)
+            }
         }
-        val owner = Owner(normalizeAddress(ownerAddress), epoch)
-        ownerByKey.update { current ->
-            val existing = current[routingKey]
-            if (existing != null && existing.epoch > owner.epoch) current
-            else current + (routingKey to owner)
+    }
+
+    private suspend fun acquire(owner: Owner?): Client {
+        if (owner == null) return mutex.withLock { check(!calls.value.closed) { "Routing client is closed" }; seedClient.also { it.users++ } }
+        while (true) {
+            val decision = mutex.withLock {
+                check(!calls.value.closed) { "Routing client is closed" }
+                clients[owner.address]?.let { it.users++; it.touched = ++clock; return@withLock it to null }
+                if (clients.size + retiring.size < maxClients) {
+                    val created = Client(clientFactory(owner.address), users = 1, touched = ++clock)
+                    check(clients.values.none { it.value === created.value } && retiring.none { it.value === created.value } && created.value !== seed) {
+                        "Routing factory must return an independently owned transport per address"
+                    }
+                    clients[owner.address] = created
+                    created to null
+                } else {
+                    val idle = clients.entries.filter { it.value.users == 0 }.minByOrNull { it.value.touched } ?: throw RoutingCapacityExceededException()
+                    clients.remove(idle.key); retiring.add(idle.value)
+                    null to idle.value
+                }
+            }
+            decision.first?.let { return it }
+            val retired = requireNotNull(decision.second)
+            // Cleanup must finish even when shutdown cancels the request which discovered eviction.
+            withContext(NonCancellable) {
+                disposeClient(retired.value)
+                mutex.withLock { retiring.remove(retired) }
+            }
         }
     }
-
-    /**
-     * Where a call routes right now: the delegate [client] plus the [method] to send — the original
-     * method against the [seed] when no owner is known, or one with the resolved epoch stamped on
-     * (alongside the stub's `rid`/`s`, so the target can detect a stale route) against the owner.
-     * Resolves the owner exactly once per call.
-     */
-    private fun route(method: RpcMethodSpecifier): Pair<RpcClient, RpcMethodSpecifier> {
-        val owner = routingKeyOf(method)?.let { ownerByKey.value[it] } ?: return seed to method
-        val stamped = method.copy(
-            additionalParameters = method.additionalParameters + ("e" to owner.epoch.toString()),
-        )
-        return clientFor(owner.address) to stamped
+    private suspend fun <T> routed(method: RpcMethodSpecifier, operation: suspend (RpcClient, RpcMethodSpecifier) -> T): T = coroutineScope {
+        val job = coroutineContext[Job]!!
+        calls.update { check(!it.closed) { "Routing client is closed" }; check(it.jobs.size < 1_024) { "Routing admission limit exceeded" }; it.copy(jobs = it.jobs + job) }
+        var client: Client? = null
+        try {
+            val key = method.additionalParameters["rid"]?.let { Key(Namespace.ROOM, it) }
+                ?: method.additionalParameters["s"]?.let { Key(Namespace.SESSION, it) }
+            val owner = key?.let { owners.value[it] }
+            val acquired = acquire(owner)
+            client = acquired
+            val stamped = if (owner == null) method else method.copy(additionalParameters = method.additionalParameters + ("e" to owner.epoch.toString()))
+            operation(acquired.value, stamped)
+        } finally {
+            withContext(NonCancellable) {
+                client?.let { leased -> mutex.withLock { leased.users-- } }
+                calls.update { it.copy(jobs = it.jobs - job) }
+            }
+        }
     }
+    override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray): RpcResponse =
+        routed(method) { client, stamped -> client.unaryCall(stamped, headers, request) }
+    override suspend fun serverStreamingCall(method: RpcMethodSpecifier, block: suspend RpcServerStream.() -> Unit, readyCallback: () -> Unit): Unit =
+        routed(method) { client, stamped -> client.serverStreamingCall(stamped, block, readyCallback) }
 
-    /** The delegate for [address], built once and cached (a concurrent build is harmless). */
-    private fun clientFor(address: String): RpcClient {
-        clientsByAddress.value[address]?.let { return it }
-        val created = clientFactory(address)
-        clientsByAddress.update { if (it.containsKey(address)) it else it + (address to created) }
-        return clientsByAddress.value[address] ?: created
+    fun close() {
+        while (true) {
+            val previous = calls.value
+            if (previous.closed) return
+            if (calls.compareAndSet(previous, previous.copy(closed = true))) { previous.jobs.forEach { it.cancel(CancellationException("Routing client closed")) }; return }
+        }
     }
-
-    override suspend fun unaryCall(
-        method: RpcMethodSpecifier,
-        headers: Map<String, String>,
-        request: ByteArray,
-    ): RpcResponse {
-        val (client, routedMethod) = route(method)
-        return client.unaryCall(routedMethod, headers, request)
-    }
-
-    override suspend fun serverStreamingCall(
-        method: RpcMethodSpecifier,
-        block: suspend RpcServerStream.() -> Unit,
-        readyCallback: () -> Unit,
-    ) {
-        val (client, routedMethod) = route(method)
-        return client.serverStreamingCall(routedMethod, block, readyCallback)
-    }
-
-    private companion object {
-        /** The shard-key the stubs attach: `rid` for room calls, `s` for the session watch. */
-        fun routingKeyOf(method: RpcMethodSpecifier): String? =
-            method.additionalParameters["rid"] ?: method.additionalParameters["s"]
+    suspend fun closeAndJoin() {
+        close()
+        calls.first { it.jobs.isEmpty() }
+        val (done, owner) = mutex.withLock {
+            closing?.let { it to false } ?: CompletableDeferred<Unit>().also { closing = it }.let { it to true }
+        }
+        if (!owner) return done.await()
+        withContext(NonCancellable) {
+            val resources = mutex.withLock { (clients.values + retiring + if (ownsSeed) listOf(seedClient) else emptyList()).also { clients.clear(); retiring.clear() } }
+            var failure: Throwable? = null
+            for (resource in resources) try { disposeClient(resource.value) } catch (error: Throwable) { if (failure == null) failure = error else failure.addSuppressed(error) }
+            owners.value = emptyMap()
+            if (failure == null) done.complete(Unit) else done.completeExceptionally(failure)
+        }
+        done.await()
     }
 }
-
-/** Prefix a bare `host:port` with `http://`; leave anything that already looks like a URL alone. */
-internal fun defaultNormalizeAddress(address: String): String =
-    if (address.contains("://")) address else "http://$address"
+internal fun defaultNormalizeAddress(address: String): String {
+    val trimmed = address.trim().trimEnd('/')
+    val normalized = if (trimmed.contains("://")) trimmed else "http://$trimmed"
+    require(trimmed.isNotEmpty() && (normalized.startsWith("http://") || normalized.startsWith("https://"))) { "Unsupported routing address" }
+    return normalized
+}

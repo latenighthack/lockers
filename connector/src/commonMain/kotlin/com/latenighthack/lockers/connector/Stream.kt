@@ -647,7 +647,7 @@ class Stream(
                                 // redirect toward the owner (keyed by this session's `s` metadata)
                                 // then reconnect: the routing client re-targets the owner on the
                                 // next open, and resendSubscriptions + inbox replay recover state.
-                                routing?.recordRedirect(
+                                routing?.recordSessionRedirect(
                                     currentSessionId.rawValue.toBase64String(),
                                     open.redirect?.ownerAddress ?: "",
                                     open.redirect?.epoch ?: 0L,
