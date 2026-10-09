@@ -14,9 +14,10 @@ class DeliveryOutboxPgTest {
         val schema = "delivery_test_${System.nanoTime()}"
         DriverManager.getConnection(base).use { it.createStatement().use { statement -> statement.execute("CREATE SCHEMA $schema") } }
         val url = base + (if ('?' in base) "&" else "?") + "currentSchema=$schema"
+        val handles = mutableListOf<Database>()
         try {
             suspend fun store(): Pair<Database, DeliveryOutboxStore> {
-                val db = ServerStorage.postgres(url)
+                val db = ServerStorage.postgres(url).also { handles.add(it) }
                 val outbox = DeliveryOutboxStore(db).also { it.prepareStores() }
                 db.open()
                 return db to outbox
@@ -36,6 +37,7 @@ class DeliveryOutboxPgTest {
             b.accepted(claim, listOf(SessionId(byteArrayOf(1))))
             assertEquals(2L, a.claim("c", 101).single().roomSequence)
         } finally {
+            handles.forEach { it.close() }
             DriverManager.getConnection(base).use { it.createStatement().use { statement -> statement.execute("DROP SCHEMA $schema CASCADE") } }
         }
     }

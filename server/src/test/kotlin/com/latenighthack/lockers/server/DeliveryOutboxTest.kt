@@ -1,6 +1,8 @@
 package com.latenighthack.lockers.server
 
 import com.latenighthack.ktstore.Database
+import com.latenighthack.ktcrypto.encode
+import com.latenighthack.ktcrypto.generate
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.room.v1.*
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
@@ -63,6 +65,8 @@ class DeliveryOutboxTest {
             override suspend fun findServer(sessionId: SessionId): SessionGatewayService = unreliable
         })
         val id = SessionId(byteArrayOf(3))
+        sessions.updateSession(ServerSession(sessionId = ServerSessionId(id.rawValue), nextKeyMaterial = ByteArray(32),
+            authorizedPublicKey = com.latenighthack.ktcrypto.Secp256r1KeyPair.generate().publicKey.encode()))
         try {
             outbox.commit(room, listOf(id), listOf(event(1))) { }
             worker.drainOnce()

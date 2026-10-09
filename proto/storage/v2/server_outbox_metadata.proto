@@ -1,0 +1,20 @@
+syntax = "proto3";
+package com.latenighthack.lockers.server.storage.v2;
+option java_package = "com.latenighthack.lockers.server.storage.v2";
+
+message ServerOutboxEntry {
+  bytes event_id = 1;
+  bytes room_id = 2;
+  int64 sequence = 3;
+  int64 created_at = 4;
+  int64 deadline = 5;
+  string parked_reason = 6;
+  bytes parked_intent = 7;
+  int64 resolved_at = 8;
+}
+message ServerOutboxHead {
+  bytes room_id = 1;
+  bytes event_id = 2;
+  int64 sequence = 3;
+  int64 due_at = 4;
+}
