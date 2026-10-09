@@ -3,6 +3,7 @@ package com.latenighthack.lockers.server.cluster
 import com.latenighthack.lockers.push.v1.PushGatewayService
 import com.latenighthack.lockers.session.v1.SessionGatewayService
 import com.latenighthack.lockers.sharding.Keyspace
+import com.latenighthack.lockers.sharding.NodeId
 import com.latenighthack.lockers.sharding.ShardRouter
 import com.latenighthack.lockers.sharding.spi.OwnershipCoordinator
 
@@ -27,6 +28,14 @@ class ClusterContext(
     val ownerCoordinator: OwnershipCoordinator? = null,
     val roomKeyspaces: List<Keyspace> = listOf(Keyspace(0L)),
     val ownerMetrics: OwnerLifecycleMetrics = OwnerLifecycleMetrics.NONE,
+    /** Null only for trusted legacy embeddings with directly reachable ring addresses. */
+    sessionPublicAddresses: Map<NodeId, String>? = null,
 ) {
-    init { require(roomKeyspaces == listOf(Keyspace(0))) { "Room authority is sharded as a whole under keyspace 0" } }
+    val sessionPublicAddresses = sessionPublicAddresses?.mapValues { PublicSessionAddresses.validate(it.value) }?.toMap()
+    init {
+        require(roomKeyspaces == listOf(Keyspace(0))) { "Room authority is sharded as a whole under keyspace 0" }
+        require(this.sessionPublicAddresses == null || this.sessionPublicAddresses.keys.containsAll(router.sessionMap().nodes)) {
+            "Public session endpoints must cover every session ring member"
+        }
+    }
 }

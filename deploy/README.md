@@ -99,7 +99,8 @@ must be set (a single stray var can never silently promote a monolith to a mis-c
 | Var | Meaning | Default |
 | --- | --- | --- |
 | `LOCKERS_NODE_ID` | this node's logical ring identity (must appear in `LOCKERS_PEERS`) | unset ⇒ monolith |
-| `LOCKERS_ADVERTISE_ADDR` | this node's peer-reachable `host:port` (must agree with its peer entry) | unset |
+| `LOCKERS_ADVERTISE_ADDR` | this node's private peer listener `host:port` (must agree with its peer entry) | unset |
+| `LOCKERS_PUBLIC_SESSION_ADDRS` | complete `node=public HTTP(S) endpoint,...` map for session WebSocket redirects | required for authenticated ring mode |
 | `LOCKERS_PEERS` | full roster: `id=host:port,...` or bare `host:port,...` (host = id) | unset ⇒ monolith |
 | `LOCKERS_DB_URL` | Postgres JDBC URL — reused for storage, `shard_map`, and advisory locks | unset ⇒ in-memory (dev) |
 | `LOCKERS_REQUIRE_DB` | fail fast at boot if `LOCKERS_DB_URL` is unset | `false` |
@@ -108,8 +109,17 @@ must be set (a single stray var can never silently promote a monolith to a mis-c
 | `LOCKERS_RING_VNODES` | consistent-hash virtual nodes per node | `128` |
 | `LOCKERS_SESSION_SHARD_COUNT` | session/gateway-ring shard count | `256` |
 
-Ports: `8080` public (client/peer + `/healthz` `/readyz` `/metrics`), `8081` internal admin
-(bind cluster-internal; set `LOCKERS_ADMIN_TOKEN`).
+Ports: `8080` public (client RPCs and WebSockets + `/healthz` `/readyz` `/metrics`), `8081` internal admin and authenticated peer RPCs
+(bind cluster-internal; configure `LOCKERS_PEER_TOKEN` and the admin credential).
+
+Ring session redirects use the explicit public map, for example
+`LOCKERS_PUBLIC_SESSION_ADDRS=lockers-0=https://lockers-0.example,lockers-1=lockers-1.example:8080`.
+Each endpoint must reach that node's public session WebSocket route. It can include a base path;
+userinfo, query strings, and fragments are rejected. All current ring nodes must have an entry at
+boot, and future nodes can be declared before joining. An undeclared future owner fails closed
+without exposing its private address. Claim-mode sessions follow their live socket registry and
+do not require this ring-only map. Trusted legacy embeddings using directly reachable public
+ring addresses can still explicitly use the one-argument `RingSessionOwnership` constructor.
 
 ## The `shard_map` control table
 

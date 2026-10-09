@@ -46,6 +46,9 @@ class MonolithComponent(
     internal val adminToken: String? get() = serverCore.config.adminToken
     init {
         require(cluster == null || claim == null) { "ring and claim ownership are mutually exclusive" }
+        require(cluster == null || serverCore.config.peerToken == null || cluster.sessionPublicAddresses != null) {
+            "Authenticated ring hosts require explicit public session endpoints"
+        }
     }
 
     /**
@@ -74,7 +77,7 @@ class MonolithComponent(
     // Claim mode keeps session ownership Local: a session lives wherever its WebSocket is, and a
     // reconnect legitimately moves it (the registry's unconditional upsert follows the socket).
     private val sessionOwnership: SessionOwnership =
-        cluster?.let { RingSessionOwnership(it.router) } ?: LocalSessionOwnership()
+        cluster?.let { RingSessionOwnership(it.router, it.sessionPublicAddresses) } ?: LocalSessionOwnership()
 
     /** Claim-mode registry publishing live sessions to `session_gateway`; Noop otherwise. */
     private val sessionRegistry: SessionRegistry =

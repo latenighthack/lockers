@@ -59,6 +59,8 @@ data class ShardingConfig(
     val keyspaceShardCounts: String?,
     val ringVnodes: Int,
     val sessionShardCount: Int,
+    /** Complete node=public-URL map; private advertised peer addresses are not session endpoints. */
+    val publicSessionAddresses: String? = null,
 )
 
 /**
@@ -87,6 +89,7 @@ data class ShardingConfig(
  *   WEBPUSH_SUBJECT              VAPID `sub` claim (mailto: or origin URL)
  *   LOCKERS_NODE_ID              this node's logical ring identity (default: unset => monolith)
  *   LOCKERS_ADVERTISE_ADDR       peer-reachable host:port for east-west RPC
+ *   LOCKERS_PUBLIC_SESSION_ADDRS node=public HTTP(S) endpoint map; required for authenticated ring mode
  *   LOCKERS_PEERS                comma-separated node list; presence enables cluster mode
  *   LOCKERS_SHARD_COUNT_DEFAULT  room-ring global shard count (default 256)
  *   LOCKERS_KEYSPACE_SHARD_COUNTS  per-keyspace overrides, e.g. "1=512,30=128"
@@ -187,6 +190,7 @@ data class LockersConfig(
                     keyspaceShardCounts = env("LOCKERS_KEYSPACE_SHARD_COUNTS")?.takeIf { it.isNotBlank() },
                     ringVnodes = int("LOCKERS_RING_VNODES", 128),
                     sessionShardCount = int("LOCKERS_SESSION_SHARD_COUNT", 256),
+                    publicSessionAddresses = env("LOCKERS_PUBLIC_SESSION_ADDRS")?.takeIf { it.isNotBlank() },
                 ),
                 requireDb = bool("LOCKERS_REQUIRE_DB", false),
                 roomOwnership = env("LOCKERS_ROOM_OWNERSHIP")?.trim()?.takeIf { it.isNotBlank() } ?: "local",

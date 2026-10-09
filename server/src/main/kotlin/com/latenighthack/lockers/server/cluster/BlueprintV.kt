@@ -71,6 +71,11 @@ object BlueprintV {
         val sharding = config.sharding
         val topology = ClusterTopology.fromEnv(sharding.peers, sharding.nodeId, sharding.advertiseAddr)
             ?: return null
+        // Production ring boot validates the complete public address book before starting jobs,
+        // allocating peer transports, or opening database resources. Legacy trusted hosts opt out
+        // only by using their explicit no-peer-credential/direct-address embedding contract.
+        val publicAddresses = if (config.peerToken != null || sharding.publicSessionAddresses != null)
+            PublicSessionAddresses.parse(sharding.publicSessionAddresses, topology.nodes) else null
         val databaseUrl = config.databaseUrl
 
         val membership = StaticMembership(topology)
@@ -93,6 +98,7 @@ object BlueprintV {
             router = router,
             sessionGateways = HttpSessionGateways(pool),
             pushGateways = HttpPushGateways(pool),
+            sessionPublicAddresses = publicAddresses,
             // Enable M5 fenced ownership when a DB is present (advisory locks need a Postgres
             // session); without a DB the cluster degrades to route-local gating.
             ownerCoordinator = ownershipCoordinator(config),
