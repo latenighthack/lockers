@@ -56,10 +56,15 @@ val installProtocGenKt by tasks.registering(Exec::class) {
     description = "Install the pinned Kotlin protobuf generator into this build"
     inputs.property("module", "latenighthack.com/protoc-gen-kt@$protocGenKtVersion")
     inputs.property("goToolchain", codegenGoVersion)
+    inputs.files(rootProject.files("build-tools/install-protoc-gen-kt.go", "build-tools/protoc-gen-kt-patches.json"))
     outputs.file(protocGenKt)
     environment("GOBIN", protocGenKt.get().asFile.parentFile.absolutePath)
     environment("GOTOOLCHAIN", "go$codegenGoVersion")
-    commandLine("go", "install", "latenighthack.com/protoc-gen-kt@$protocGenKtVersion")
+    environment("GOPATH", layout.buildDirectory.dir("tooling/gopath").get().asFile.absolutePath)
+    environment("GOMODCACHE", layout.buildDirectory.dir("tooling/gomod").get().asFile.absolutePath)
+    environment("GOCACHE", layout.buildDirectory.dir("tooling/gocache").get().asFile.absolutePath)
+    commandLine("go", "run", rootProject.file("build-tools/install-protoc-gen-kt.go"), protocGenKtVersion,
+        rootProject.file("build-tools/protoc-gen-kt-patches.json"), protocGenKt.get().asFile.absolutePath)
 }
 
 val generateProto by tasks.registering(Exec::class) {
@@ -97,6 +102,23 @@ val generateProto by tasks.registering(Exec::class) {
     }
 }
 
+val generateCodegenFixtures by tasks.registering(Exec::class) {
+    val fixture = file("src/commonTest/proto/generator_contract.proto")
+    val output = layout.buildDirectory.dir("generated/codegen-test/kotlin")
+    val tool = providers.gradleProperty("codegenFixtureGenerator").map { file(it) }.orElse(protocGenKt.map { it.asFile })
+    dependsOn(installProtocGenKt)
+    inputs.file(fixture)
+    inputs.file(tool)
+    inputs.files(protocExecutable)
+    outputs.dir(output)
+    doFirst {
+        val protoc = protocExecutable.singleFile.apply { setExecutable(true) }
+        output.get().asFile.apply { deleteRecursively(); mkdirs() }
+        commandLine(protoc.absolutePath, "--plugin=protoc-gen-kt=${tool.get().absolutePath}",
+            "--kt_out=${output.get().asFile.absolutePath}", "-I", fixture.parentFile.absolutePath, fixture.absolutePath)
+    }
+}
+
 kotlin {
     jvmToolchain(17)
 
@@ -112,6 +134,7 @@ kotlin {
     }
 
     sourceSets {
+        commonTest { kotlin.srcDir(generateCodegenFixtures) }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.coroutines.test)

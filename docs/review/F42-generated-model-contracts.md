@@ -1,0 +1,7 @@
+# F42: generated model contracts
+
+Actual JVM baseline failures: unknown-field equality was asymmetric (plain equals future, future does not equal plain); nullable and empty unknown fields could compare equal with different hashes; generated enum equality cast arbitrary objects and compared across different enum families. A common packed repeated-enum fixture also failed decoding because its loop read from the parent reader rather than its packed-field reader.
+
+Fix the pinned generator source, never generated bindings. `build-tools/install-protoc-gen-kt.go` downloads the exact existing pseudo-version into checkout-private Go caches, copies source privately and applies exact guarded template patches before compiling with the pinned Go toolchain. Checked-in patch inputs are part of Gradle task inputs. Main and test fixture generation consume that binary. A deliberate fixture-only override allows reproduction against the old binary without changing production generation.
+
+Source generator commit in isolated paired checkout:71ba465; source compiler check passed. Repository regressions: `GeneratedEqualityContractTest` and `PackedEnumGeneratorContractTest`, alongside existing signing/wire goldens. API suite passed10 JVM,10 Node,10 Apple simulator tests with no failures/skips; Android compilation passed. Logs include actual red regressions and the platform green run. No external generator publication was performed.

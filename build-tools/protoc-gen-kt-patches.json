@@ -1,0 +1,6 @@
+[
+  {"file":"templates/data.kt.tmpl","before":"if (unknownFields?.contentEquals(other.unknownFields) == false) return false","after":"if (!(unknownFields ?: byteArrayOf()).contentEquals(other.unknownFields ?: byteArrayOf())) return false"},
+  {"file":"templates/data.kt.tmpl","before":"result = 31 * result + (unknownFields?.contentHashCode() ?: 0)","after":"result = 31 * result + (unknownFields ?: byteArrayOf()).contentHashCode()"},
+  {"file":"templates/data.kt.tmpl","before":"if (other == null) return false\n\n        other as com.latenighthack.ktbuf.proto.Enum","after":"if (other !is {{ $enumName }}) return false"},
+  {"file":"templates/decoder.kt.tmpl","before":"{{ name . }} = {{ name . }} + {{ elementTypeNonNull . }}.Companion.fromInt(reader.readInt32())","after":"{{ name . }} = {{ name . }} + {{ elementTypeNonNull . }}.Companion.fromInt(fieldReader.readInt32())"}
+]
