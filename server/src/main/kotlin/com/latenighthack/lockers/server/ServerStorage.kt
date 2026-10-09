@@ -43,7 +43,7 @@ object ServerStorage {
     fun inMemory(identity: String = "ServerStorage-test", meterRegistry: MeterRegistry? = null, telemetry: LockersTelemetry = LockersTelemetry.NONE) =
         Database(configuration(identity + "-${kotlin.random.Random.nextLong()}"), com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(com.latenighthack.lockers.server.services.room.v1.FencedMemoryDelegate(InMemoryStoreDelegate()), meterRegistry, telemetry))
     fun postgres(location: String, additional: List<StoreDefinition<*>> = emptyList(), meterRegistry: MeterRegistry? = null, telemetry: LockersTelemetry = LockersTelemetry.NONE): Database {
-        val configuration = configuration("lockers-server", additional).copy(externalTables = setOf("room_claim", "session_gateway", "shard_map", "shard_fence"))
+        val configuration = configuration("lockers-server", additional).copy(externalTables = setOf("room_claim", "room_claim_capacity", "session_gateway", "shard_map", "shard_fence"))
         val driver = com.latenighthack.lockers.server.services.room.v1.FencedSqlDriver(JdbcDriver(location.removePrefix("jdbc:postgresql:"), "postgresql"))
         return Database(configuration, com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(SqlStoreDelegate(driver, "BYTEA", configuration), meterRegistry, telemetry))
     }

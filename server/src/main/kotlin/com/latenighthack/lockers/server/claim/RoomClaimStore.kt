@@ -49,38 +49,57 @@ interface RoomClaimStore {
 }
 
 /** Production [RoomClaimStore] over the shared Postgres, plain JDBC on a [ClaimJdbcPool]. */
-class JdbcRoomClaimStore(private val pool: ClaimJdbcPool) : RoomClaimStore {
+class RoomClaimCapacityExceeded : IllegalStateException("Permanent room claim history capacity exceeded")
+
+class JdbcRoomClaimStore(private val pool: ClaimJdbcPool, private val maxRoomClaims: Long = 1_000_000) : RoomClaimStore {
+    init { require(maxRoomClaims > 0) }
     override suspend fun prepare() {
         pool.withConnection { conn ->
             conn.createStatement().use { st ->
                 st.execute(TABLE_DDL)
                 st.execute(INDEX_DDL)
+                st.execute("CREATE TABLE IF NOT EXISTS room_claim_capacity (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), reserved BIGINT NOT NULL CHECK (reserved >= 0))")
+                st.execute("INSERT INTO room_claim_capacity (singleton, reserved) SELECT 1, COUNT(*) FROM room_claim ON CONFLICT (singleton) DO NOTHING")
             }
         }
     }
 
     override suspend fun claim(roomId: RoomId, nodeId: String, nodeAddr: String, ttlMs: Long): RoomClaimRow {
-        // The upsert returns a row when we won (insert, steal, or self-renew); when the WHERE was
-        // false a valid owner exists — read it. A concurrent release can delete that row between
-        // the two statements, so retry the claim once rather than fail the write.
-        repeat(CLAIM_ATTEMPTS) {
-            val row = pool.withConnection { conn ->
-                conn.prepareStatement(CLAIM_SQL).use { st ->
+        require(roomId.rawValue.size in 1..128 && nodeId.isNotBlank() && nodeAddr.isNotBlank() && ttlMs > 0)
+        return pool.withConnection { conn ->
+            conn.autoCommit = false
+            try {
+                fun lookup(): RoomClaimRow? = conn.prepareStatement(LOOKUP_SQL).use { st ->
+                    st.setBytes(1, roomId.rawValue)
+                    st.executeQuery().use { rs -> if (rs.next()) rs.toClaimRow() else null }
+                }
+                if (lookup() == null) {
+                    val count = conn.createStatement().use { st ->
+                        st.executeQuery("SELECT reserved FROM room_claim_capacity WHERE singleton = 1 FOR UPDATE").use { rs ->
+                            check(rs.next()) { "Room claim capacity must be prepared before admission" }
+                            rs.getLong(1)
+                        }
+                    }
+                    // A competing admission may have installed this identity while we waited.
+                    if (lookup() == null) {
+                        if (count >= maxRoomClaims) throw RoomClaimCapacityExceeded()
+                        conn.createStatement().use { it.executeUpdate("UPDATE room_claim_capacity SET reserved = reserved + 1 WHERE singleton = 1") }
+                    }
+                }
+                val row = conn.prepareStatement(CLAIM_SQL).use { st ->
                     st.setBytes(1, roomId.rawValue)
                     st.setString(2, nodeId)
                     st.setString(3, nodeAddr)
                     st.setDouble(4, ttlMs.toDouble())
-                    st.executeQuery().use { rs ->
-                        if (rs.next()) rs.toClaimRow() else null
-                    }
-                } ?: conn.prepareStatement(LOOKUP_SQL).use { st ->
-                    st.setBytes(1, roomId.rawValue)
                     st.executeQuery().use { rs -> if (rs.next()) rs.toClaimRow() else null }
-                }
-            }
-            if (row != null) return row
+                } ?: requireNotNull(lookup()) { "Room claim disappeared during admission" }
+                conn.commit()
+                row
+            } catch (failure: Throwable) {
+                try { conn.rollback() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                throw failure
+            } finally { conn.autoCommit = true }
         }
-        error("room claim for ${roomId.rawValue.size}-byte roomId raced deletes $CLAIM_ATTEMPTS times")
     }
 
     override suspend fun renewAll(nodeId: String, ttlMs: Long): Set<RoomId> =
@@ -134,7 +153,6 @@ class JdbcRoomClaimStore(private val pool: ClaimJdbcPool) : RoomClaimStore {
     )
 
     companion object {
-        private const val CLAIM_ATTEMPTS = 3
 
         const val TABLE_DDL = """
             CREATE TABLE IF NOT EXISTS room_claim (

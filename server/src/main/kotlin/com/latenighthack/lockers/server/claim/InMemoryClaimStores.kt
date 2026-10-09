@@ -15,6 +15,11 @@ import kotlinx.coroutines.sync.withLock
 class InMemoryRoomClaimStore(
     private val clock: () -> Long = System::currentTimeMillis,
 ) : RoomClaimStore {
+    private var maxRoomClaims: Long = 1_000_000
+    constructor(maxRoomClaims: Long, clock: () -> Long = System::currentTimeMillis) : this(clock) {
+        require(maxRoomClaims > 0)
+        this.maxRoomClaims = maxRoomClaims
+    }
     private data class Entry(val nodeId: String, val nodeAddr: String, val epoch: Long, val expiresAt: Long)
 
     private val mutex = Mutex()
@@ -35,7 +40,10 @@ class InMemoryRoomClaimStore(
     override suspend fun claim(roomId: RoomId, nodeId: String, nodeAddr: String, ttlMs: Long): RoomClaimRow =
         mutex.withLock {
             val now = clock()
+            require(roomId.rawValue.size in 1..128 && nodeId.isNotBlank() && nodeAddr.isNotBlank() && ttlMs > 0)
             val existing = rows[roomId]
+            if (existing == null && rows.size.toLong() >= maxRoomClaims) throw RoomClaimCapacityExceeded()
+            if (existing != null && existing.expiresAt < now) check(existing.epoch < Long.MAX_VALUE) { "Room claim epoch exhausted" }
             val next = when {
                 existing == null -> Entry(nodeId, nodeAddr, epoch = 1, expiresAt = now + ttlMs)
                 existing.expiresAt < now ->
