@@ -142,7 +142,8 @@ class PostgresShardMapSource(
                 catch (cancelled: CancellationException) { throw cancelled }
                 catch (error: Exception) {
                     status.value = status.value.copy(failed = true)
-                    System.err.println("shard_map poll failed; retaining last map")
+                    org.slf4j.LoggerFactory.getLogger(PostgresShardMapSource::class.java)
+                        .warn("shard_map poll failed; retaining last map", error)
                 }
                 delay(pollInterval)
             }

@@ -54,27 +54,28 @@ internal fun <T> runOwnedTestWithServer(
             val runnerJob = currentCoroutineContext()[Job]!!
             var runnerFailure: Throwable? = null
             try { runner.invoke(CoroutineScope(currentCoroutineContext()), server, context) }
-            catch (error: Throwable) { runnerFailure = error; throw error }
+            catch (error: Throwable) { runnerFailure = error }
             finally {
                 withContext(NonCancellable) { runnerJob.children.toList().forEach { it.cancelAndJoin() } }
                 try { resources.closeAndJoin() }
-                catch (cleanup: Throwable) { if (runnerFailure == null) throw cleanup else runnerFailure.addSuppressed(cleanup) }
+                catch (cleanup: Throwable) { if (runnerFailure == null) runnerFailure = cleanup else runnerFailure.addSuppressed(cleanup) }
             }
+            runnerFailure?.let { throw it }
         }
-    } catch (error: Throwable) { failure = error; throw error }
+    } catch (error: Throwable) { failure = error }
     finally { withContext(NonCancellable) {
-        var cleanupFailure: Throwable? = null
         suspend fun close(action: suspend () -> Unit) {
             try { action() } catch (cleanup: Throwable) {
-                if (failure != null) failure.addSuppressed(cleanup)
-                else if (cleanupFailure == null) cleanupFailure = cleanup else cleanupFailure!!.addSuppressed(cleanup)
+                val prior = failure
+                if (prior != null) prior.addSuppressed(cleanup)
+                else failure = cleanup
             }
         }
         close { resources.closeAndJoin() }
         close { transports.remove(server)?.closeAndJoin() }
         close { server.stop() }
-        cleanupFailure?.let { throw it }
     } }
+    failure?.let { throw it }
 
 }
 

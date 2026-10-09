@@ -213,7 +213,7 @@ class RoomServiceImpl(
             val stub = RoomServiceRpc(forwardConnections.clientFor(address)) { _, _ -> mapOf(FORWARDED_PARAM to "1") }
             kotlinx.coroutines.withTimeout(FORWARD_TIMEOUT_MS) { call(stub) }
                 .also { forwardedWritesCounter.increment() }
-        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+        } catch (expectedForwardTimeout: kotlinx.coroutines.TimeoutCancellationException) {
             // A caller deadline is cancellation, not a private-owner routing failure.
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
             forwardFailureCounter.increment()
@@ -223,22 +223,22 @@ class RoomServiceImpl(
             null
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
-        } catch (e: com.latenighthack.ktbuf.net.RpcResponseException) {
+        } catch (expectedOperationFailure: com.latenighthack.ktbuf.net.RpcResponseException) {
             forwardFailureCounter.increment()
-            if (config.peerToken != null && (e.code == com.latenighthack.ktbuf.proto.Codes.UNAUTHENTICATED ||
-                    e.code == com.latenighthack.ktbuf.proto.Codes.PERMISSION_DENIED)) {
+            if (config.peerToken != null && (expectedOperationFailure.code == com.latenighthack.ktbuf.proto.Codes.UNAUTHENTICATED ||
+                    expectedOperationFailure.code == com.latenighthack.ktbuf.proto.Codes.PERMISSION_DENIED)) {
                 // These credentials belong to the private transport, not the public operation.
                 logger.warn("write forward to {} rejected the peer credential", address)
                 forwardConnections.evict(address)
                 null
             } else {
                 // Preserve Codes.retriable(): permanent operation errors must remain permanent.
-                if (e.retriable()) {
+                if (expectedOperationFailure.retriable()) {
                     roomOwnership.invalidate(room)
                     forwardConnections.evict(address)
                 }
                 // Rebuild the exception so neither its path nor diagnostic contains a private URL.
-                throw com.latenighthack.ktbuf.net.RpcResponseException(context.originalUrl, "POST", e.code,
+                throw com.latenighthack.ktbuf.net.RpcResponseException(context.originalUrl, "POST", expectedOperationFailure.code,
                     "Room owner could not complete operation")
             }
         } catch (e: Exception) {
@@ -260,7 +260,7 @@ class RoomServiceImpl(
         return try {
             val fence = roomOwnership.mutationFence(0, room)
             kotlinx.coroutines.withContext(fence) { dispatchers.runOnDispatcher(room, block) }
-        } catch (lost: RoomOwnershipLost) { roomOwnership.invalidate(room); requireRedirectAccess(context); onLost() }
+        } catch (expectedOwnershipLoss: RoomOwnershipLost) { roomOwnership.invalidate(room); requireRedirectAccess(context); onLost() }
         catch (_: com.latenighthack.lockers.server.claim.RoomClaimCapacityExceeded) { namespaceExhausted("Permanent room claim namespace exhausted") }
 
     }
@@ -585,7 +585,7 @@ class RoomServiceImpl(
         } catch (cancelled: CancellationException) {
             withContext(NonCancellable) { outbox.agentWork.interrupt(claim, "Execution cancelled") }
             throw cancelled
-        } catch (lost: RoomOwnershipLost) {
+        } catch (expectedOwnershipLoss: RoomOwnershipLost) {
             roomOwnership.invalidate(RoomId(claim.roomId))
             outbox.agentWork.interrupt(claim, "Room authority changed")
         } catch (error: Exception) {
@@ -775,8 +775,8 @@ class RoomServiceImpl(
                     PostLockerChangeResponse.Result.NOT_OWNER else PostLockerChangeResponse.Result.UNKNOWN_ERROR, redirect = batch.redirect)
     }
 
-    private suspend fun performLockerChange(request: PostLockerChangeRequest, pendingEvents: MutableList<Event>? = null,
-        pendingWrites: MutableList<ServerLocker>? = null, prefetchedLocker: ServerLocker? = null,
+    private suspend fun performLockerChange(request: PostLockerChangeRequest, pendingEvents: MutableList<Event>,
+        pendingWrites: MutableList<ServerLocker>, prefetchedLocker: ServerLocker?,
         prefetchedLock: ServerLock? = null, prefetchLocks: Boolean = false): PostLockerChangeResponse {
         val requestRoomId = requireNotNull(request.roomId)
         val requestLockerId = requireNotNull(request.lockerId)
@@ -785,11 +785,7 @@ class RoomServiceImpl(
         val encodedLocker = updatedLocker.toByteArray()
         val requestEventId = EventId(Random.nextBytes(32))
         val requestVersion = request.parentVersion
-            val storedLocker = if (pendingWrites != null) prefetchedLocker else lockerStore.getLocker(
-                ServerRoomId(requestRoomId.rawValue),
-                (requestLockerId.keyspace?.value ?: 0L),
-                ServerLockerId(requestLockerId.rawValue)
-            )
+            val storedLocker = prefetchedLocker
 
             val effectiveLock = if (prefetchLocks) prefetchedLock else effectiveLockOrNull(requestRoomId, requestLockerId)
             if (request.ratchet != null && effectiveLock == null) return PostLockerChangeResponse(result = PostLockerChangeResponse.Result.NOT_AUTHORIZED)
@@ -863,15 +859,14 @@ class RoomServiceImpl(
                 keyspace = (requestLockerId.keyspace?.value ?: 0L)
                 version = updatedLockerVersion
             }
-            val sessionIds = if (pendingEvents != null) mutableListOf() else lookupSessions(requestRoomId).toMutableList()
             val sourceEvent = Event {
                 roomId = requestRoomId
                 eventId = requestEventId
                 locker { locker = updatedLocker; lockerId = requestLockerId; version = updatedLockerVersion; lockState = effectiveState }
                 notification = request.notification
             }
-            requireNotNull(pendingWrites).add(serverLocker)
-            requireNotNull(pendingEvents).add(sourceEvent)
+            pendingWrites.add(serverLocker)
+            pendingEvents.add(sourceEvent)
             return PostLockerChangeResponse(result = PostLockerChangeResponse.Result.OK, version = updatedLockerVersion, lockState = effectiveState)
     }
 

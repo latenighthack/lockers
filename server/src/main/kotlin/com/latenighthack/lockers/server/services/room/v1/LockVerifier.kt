@@ -272,7 +272,7 @@ class LockVerifier(private val lockStore: LockStore) {
             Secp256r1PublicKey.decode(keyBytes)
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
             throw cancelled
-        } catch (e: Exception) {
+        } catch (expectedCryptographicRejection: Exception) {
             null
         }
     }
@@ -282,7 +282,7 @@ class LockVerifier(private val lockStore: LockStore) {
             Secp256r1PublicKey.decode(publicKeyBytes).verify(message, signature)
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
             throw cancelled
-        } catch (e: Exception) {
+        } catch (expectedCryptographicRejection: Exception) {
             false
         }
 
@@ -291,7 +291,7 @@ class LockVerifier(private val lockStore: LockStore) {
             key.verify(message, signature)
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
             throw cancelled
-        } catch (e: Exception) {
+        } catch (expectedCryptographicRejection: Exception) {
             false
         }
 }

@@ -316,7 +316,7 @@ class SessionServiceImpl(
                 // A cancelled source must end every merge branch, including unopened waiters.
                 streamJob.cancel(cancelled)
                 throw cancelled
-            } catch (e: StreamRejected) {
+            } catch (ignoredSentRejection: StreamRejected) {
                 // Rejection response and Close already emitted; end this branch normally.
             }
         }, cancellationChannel.receiveAsFlow().map {
@@ -691,7 +691,7 @@ class SessionServiceImpl(
             result = WatchSessionResponse.Open.Result.OK
             nextSequenceKey = updatedSession.nextKeyMaterial
             meterRegistry.counter("lockers.session.opens", "result", "OK").increment()
-        } catch (signatureException: SignatureException) {
+        } catch (expectedInvalidSignature: SignatureException) {
             result = WatchSessionResponse.Open.Result.INVALID_SEQUENCE
             nextSequenceKey = session.nextKeyMaterial
             meterRegistry.counter("lockers.session.opens", "result", "INVALID_SEQUENCE").increment()

@@ -259,12 +259,12 @@ class PushServiceImpl(
             return
         }
 
-        val serverSessionId = push.sessionId ?: run { dequeue(claim, backend); return }
+        val serverSessionId = push.sessionId ?: run { dequeue(claim); return }
         val storedRegistration = pushSessionStore.getPushInfo(serverSessionId)?.registrations?.firstOrNull { it.backend == push.backend }
         val registration = storedRegistration?.let { PushRegistration.fromByteArray(it.encodedRegistration) }
         if (registration == null) {
             logger.debug("No ${backend.name} registration for session, dropping push")
-            dequeue(claim, backend)
+            dequeue(claim)
             return
         }
 
@@ -282,14 +282,14 @@ class PushServiceImpl(
 
         when (result) {
             is PushResult.Accepted -> {
-                if (dequeue(claim, backend)) counter("lockers.push.sent", backend).increment()
+                if (dequeue(claim)) counter("lockers.push.sent", backend).increment()
             }
 
             is PushResult.Rejected -> {
                 counter("lockers.push.rejected", backend).increment()
                 if (result.tokenInvalid) {
                     pushSessionStore.removeCredentialIfCurrent(serverSessionId, push.backend, requireNotNull(storedRegistration).encodedRegistration)
-                    dequeue(claim, backend)
+                    dequeue(claim)
                 } else {
                     // A permanent, non-token failure (bad payload, etc.): park it.
                     deadLetter(claim, backend, result.reason)
@@ -322,7 +322,7 @@ class PushServiceImpl(
             .record(durationNanos, TimeUnit.NANOSECONDS)
     }
 
-    private suspend fun dequeue(claim: PushClaim, backend: PushBackendKind?): Boolean {
+    private suspend fun dequeue(claim: PushClaim): Boolean {
         val finished = pushQueueStore.finish(claim)
         return finished
     }

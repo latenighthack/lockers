@@ -445,6 +445,7 @@ class Stream(
     private val heartbeatTimeoutMillis: Long = 2 * PING_TIMEOUT,
 ) {
     init { require(heartbeatIntervalMillis > 0 && heartbeatTimeoutMillis > heartbeatIntervalMillis) }
+    private val log: KmLog = logging()
     companion object {
         val PING_TIMEOUT = 60_000L
         val RECONNECT_DELAY_MILLIS = 1_000L
@@ -600,9 +601,11 @@ class Stream(
             // outcome belongs in fatalError, not an uncaught scope crash
             try {
                 connect()
-            } catch (e: FatalStreamException) {
+            } catch (ignoredRecordedFatal: FatalStreamException) {
                 // fatalErrorState already set by failFatally
             } catch (e: RetryLimitExceeded) {
+                // Keep transport diagnostics observable without logging endpoint credentials or payloads.
+                log.warn { "Transport retry budget exhausted (${e::class.simpleName})" }
                 transition(StreamConnectionState.Failed(StreamFatalError.TransportExhausted))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
