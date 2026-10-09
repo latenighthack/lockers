@@ -17,10 +17,12 @@ class AuthorizedRoomServer(private val trusted: RoomServer, private val proofs: 
 
 class AuthorizedPushServer(private val trusted: PushServer, private val proofs: SessionProofVerifier) : PushServer by trusted {
     override suspend fun registerSession(context: GrpcRequestContext, request: RegisterSessionRequest) =
-        proofs.authorize(SessionSigning.REGISTER_PUSH, request.sessionId, request.proof, request.copy(proof = null).toByteArray(),
+        if (request.credentialRevision <= 0) RegisterSessionResponse(RegisterSessionResponse.Result.UNKNOWN_ERROR)
+        else proofs.authorize(SessionSigning.REGISTER_PUSH, request.sessionId, request.proof, request.copy(proof = null).toByteArray(),
             { RegisterSessionResponse(RegisterSessionResponse.Result.UNKNOWN_ERROR) }) { trusted.registerSession(context, request) }
     override suspend fun unregisterSession(context: GrpcRequestContext, request: UnregisterSessionRequest) =
-        proofs.authorize(SessionSigning.UNREGISTER_PUSH, request.sessionId, request.proof, request.copy(proof = null).toByteArray(),
+        if (request.credentialRevision <= 0) UnregisterSessionResponse(UnregisterSessionResponse.Result.UNKNOWN_ERROR)
+        else proofs.authorize(SessionSigning.UNREGISTER_PUSH, request.sessionId, request.proof, request.copy(proof = null).toByteArray(),
             { UnregisterSessionResponse(UnregisterSessionResponse.Result.UNKNOWN_ERROR) }) { trusted.unregisterSession(context, request) }
 }
 
