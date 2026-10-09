@@ -452,6 +452,10 @@ README describes room/locker authorization as entirely pending and the connector
 
 **Correction.** Align README and publication metadata with the intended current contract, including lock semantics, read access, delivery modes, supported targets, and extension trust. Adopt a reviewed static-analysis baseline and enforce important checks over actual KMP source sets. Document transform purity/retry behavior; the single-write retry path currently reevaluates transform and codecs even when reusing a frozen submitted request. Publish exact canonical signing vectors and correct the length-prefix specification.
 
+### F43 An older signed subscription can commit after a newer unsubscribe
+
+A subsequent actual HTTP remediation regression proves that an old authenticated subscribe can commit after a newer same-session unsubscribe, restoring a removed durable subscription. Local cancellation and response-generation guards do not order server commits. The additive signed intent-revision repair and its full validation are tracked in [F43-subscription-order.md](F43-subscription-order.md) and [BURNDOWN.md](BURNDOWN.md).
+
 ## Flow and coroutine design changes
 
 The fast source/outbox transaction, generation-checked SubscriptionController, stable event identities, and version-aware cache acceptance are useful foundations. The storage definitions also provide an explicit composition boundary before opening a database. Extend those patterns consistently across every supported path.

@@ -284,7 +284,9 @@
       "f1fe0fe1af8c0265984da6492ad3889c0e46ac85",
       "813720475c8bd109703436b6ba0edfc421ac25a7",
       "076f5a14473594103fbc79894a0e65ac9a86f5fe",
-      "d0a45c1503693f5f575d6169376f5be44cb69206"
+      "d0a45c1503693f5f575d6169376f5be44cb69206",
+      "8bdf808e4bfe96888fc90bae0d258cfeadd26208",
+      "4e66a0d0d68de7cc89399a640f5351941a5e9bd9"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F11-connector.md",
     "regression": "ReviewConnectorTests; ReviewExpiredRatchetTests; ReviewRatchetArchiveOrderingTests; exact receipt/key adoption, source uncertainty, isolated recovery and epoch ordering regressions",
@@ -641,7 +643,8 @@
       "3555f92acdd4f82d35551944febc08f929bc4bb7",
       "565a39feaac026486b167ae08df8122801928406",
       "2f59f54c123b71fae7b14117b34ac793799a8d10",
-      "c862e868dafbc24893963043cc8c477567feed80"
+      "c862e868dafbc24893963043cc8c477567feed80",
+      "845fbfd7264f80eaf7d4d7316aae5df8ca3ae9e9"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F25-advisory-cancellation.md, docs/review/F25-connector.md, docs/review/F25-coordination-sql-limits.md, docs/review/F25-runtime.md, docs/review/F25-telemetry-cancellation.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
@@ -680,7 +683,9 @@
       "eb14e47bfd2e6f68ee9a95e30f3621cf6fa6d058",
       "40b705ddf6556af90d8ec0df0b4b03b92e7d0256",
       "7f7bfff6cd99840f842aefc12648f1219a9d3acd",
-      "467755990837fecdfeb79e49219ac5b5286881d4"
+      "467755990837fecdfeb79e49219ac5b5286881d4",
+      "845fbfd7264f80eaf7d4d7316aae5df8ca3ae9e9",
+      "82a262a4844bacbe7ff9e1a33c29725c45c23f19"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F26-connector.md, docs/review/F26-host-lifetime.md, docs/review/F26-runtime.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
@@ -706,7 +711,9 @@
     "status": "partial",
     "commits": [
       "0750a2961893538593474d9aadad4d992cb7bc68",
-      "7f7bfff6cd99840f842aefc12648f1219a9d3acd"
+      "7f7bfff6cd99840f842aefc12648f1219a9d3acd",
+      "845fbfd7264f80eaf7d4d7316aae5df8ca3ae9e9",
+      "82a262a4844bacbe7ff9e1a33c29725c45c23f19"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F27-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
@@ -1032,7 +1039,8 @@
       "03b11b55c48e8d97e4740665a1318351a2297793",
       "6628762c36bcaec95e56dba84ba0cc02b7e137d9",
       "b37de9364fe59edd64f31e5d11246c6c50e8bb1b",
-      "7f7bfff6cd99840f842aefc12648f1219a9d3acd"
+      "7f7bfff6cd99840f842aefc12648f1219a9d3acd",
+      "82a262a4844bacbe7ff9e1a33c29725c45c23f19"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F38-boundaries.md, docs/review/F38-claim-capacity.md",
     "regression": "BoundaryAuthorityTest; CpuAdmissionBoundaryTest; GatewayAdmissionTest; GeneratedDecodeAllocationTest; InboxReplayPagingTest; LockVerifierTest; NamespaceAdmissionPgTest; NamespaceAdmissionTest; ResourceAdmissionTest; ResponseBoundaryTest; RoomIdentityAdmissionTest; SessionAdmissionFailureContractTest; SessionFrameBoundaryTest; SnapshotPagingTest; StorageAdoptionTest; actual red/green evidence in linked issue notes; StorageFetchBudgetTest",
@@ -1158,5 +1166,26 @@
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F42-build.md, docs/review/F42-connector.md",
     "regression": "GeneratedEqualityContractTest; PackedEnumGeneratorContractTest; ReviewAuthorityV2Tests; actual red/green evidence in linked issue notes",
     "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+  },
+  {
+    "id": "F43",
+    "priority": "P2",
+    "title": "An older signed subscription can commit after a newer unsubscribe",
+    "locations": [
+      "server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:669",
+      "connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt"
+    ],
+    "problem": "Canceled RPC completion and local generation checks do not order remote commits. A held old authenticated subscribe can restore a durable subscription after a newer unsubscribe succeeds.",
+    "evidence": [
+      "docs/review/F43-subscription-order.md",
+      "docs/review/evidence/runtime-subscription-http-order.log",
+      "docs/review/evidence/F43-subscription-order-red.xml"
+    ],
+    "fix": "Add signed durable intent revisions, atomic server monotonic comparison and retained unsubscribe tombstones, binding ordinary and snapshot paths. Preserve legacy wire and frozen schemas through additive negotiated support.",
+    "status": "partial",
+    "commits": [],
+    "reproduction": "SubscriptionHttpOrderingTest: actual HTTP late old subscribe restored the revoked subscription, baseline assertion failure",
+    "regression": "SubscriptionHttpOrderingTest; subsequent server/SDK storage, snapshot and compatibility tests pending",
+    "verification": "Actual HTTP red reproduced with valid fresh SessionProof and same SID. Fix and final gates pending."
   }
 ]
