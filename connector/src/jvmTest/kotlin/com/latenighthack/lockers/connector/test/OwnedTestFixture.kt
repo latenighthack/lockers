@@ -82,7 +82,7 @@ internal suspend fun createOwnedTestClient(
     rpcClient: RpcClient, database: Database, keyValueStore: KeyValueStore,
     keySource: AuthenticationKeySource, appVersion: Version, lockKeySource: LockKeySource? = null,
     codecs: NotificationCodecs = NotificationCodecs.identity(), telemetry: LockersTelemetry = LockersTelemetry.NONE,
-    coroutineContext: CoroutineContext = EmptyCoroutineContext,
+    coroutineContext: CoroutineContext = Dispatchers.Default,
     broadcastCodecs: BroadcastCodecs = BroadcastCodecs.identity(), retentionPolicy: ConnectorRetentionPolicy = ConnectorRetentionPolicy(),
 ): LockersClient = LockersClient.create(rpcClient, database, keyValueStore, keySource, appVersion, lockKeySource, codecs, telemetry,
     coroutineContext, broadcastCodecs, retentionPolicy).also { currentCoroutineContext()[FixtureResources]?.own(it, database) }
