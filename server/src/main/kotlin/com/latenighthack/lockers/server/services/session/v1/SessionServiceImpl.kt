@@ -194,14 +194,17 @@ class SessionServiceImpl(
                 request.collectFirst({ openOrCreate ->
                 // attempt to handle the open OR create
                 val openBuilder = WatchSessionResponse_OpenBuilder()
-                val sessionId = when (val oneOf = openOrCreate.request) {
+                val sessionId = if (openOrCreate.toByteArray().size > 4096) {
+                    openBuilder.result = WatchSessionResponse.Open.Result.INVALID_REQUEST
+                    null
+                } else when (val oneOf = openOrCreate.request) {
                     is WatchSessionRequest.OneOfRequest.open -> openBuilder.handleOpen(oneOf.getOpen()!!)
                     is WatchSessionRequest.OneOfRequest.create -> openBuilder.handleCreate(oneOf.getCreate()!!)
                     else -> {
                         // First frame wasn't open/create (e.g. a client bug sent an ack first).
                         // Result must be explicit: the proto default is OK, and answering OK here
                         // made such a client believe it was connected to a stream that then closed.
-                        openBuilder.result = WatchSessionResponse.Open.Result.UNKNOWN_ERROR
+                        openBuilder.result = WatchSessionResponse.Open.Result.INVALID_REQUEST
                         eventsPreOpen.increment()
                         null
                     }
@@ -266,6 +269,9 @@ class SessionServiceImpl(
                     // handle ack
                     is WatchSessionRequest.OneOfRequest.ack -> {
                         val ack = message.getAck()!!
+                        if (ack.acks.size > 256 || nextRequest.toByteArray().size > 128 * 1024 || ack.acks.any {
+                            !ProtocolValidation.identity(it.eventId?.rawValue) || it.roomId == null || it.roomId!!.rawValue.size > 128
+                        }) com.latenighthack.lockers.server.invalidArgument("Invalid session acknowledgement frame")
                         val startTime = System.nanoTime()
                         val response = dispatchers.runOnDispatcher(SessionId(sessionId.rawValue)) {
                             dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
