@@ -355,6 +355,7 @@ class SubscriptionController(
  * can react (e.g. regenerate keys or prompt for an upgrade).
  */
 sealed class StreamFatalError(val reason: String) {
+    object InvalidRequest : StreamFatalError("session open request was rejected by the server")
     object InvalidPublicKey : StreamFatalError("session public key was rejected by the server")
     object InvalidSessionId : StreamFatalError("session id was rejected by the server")
     object UpgradeRequired : StreamFatalError("client version is no longer supported; upgrade required")
@@ -640,6 +641,8 @@ class Stream(
                                 sessionStore.updateNextSequenceBytes(null)
                                 throw RetryableStreamException("unknown session; re-creating")
                             }
+                            is WatchSessionResponse.Open.Result.INVALID_REQUEST -> failFatally(StreamFatalError.InvalidRequest)
+                            is WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED -> throw RetryableStreamException("session capacity exhausted")
                             is WatchSessionResponse.Open.Result.SERVICE_UNAVAILABLE ->
                                 throw RetryableStreamException("session service unavailable")
                             is WatchSessionResponse.Open.Result.EPOCH_STALE -> {
