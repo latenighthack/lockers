@@ -583,13 +583,15 @@ class LockerClient(
                                 val authority = if (initialKey != null) targetVersion + 1 else authorities[change.lockerId] ?: 0L
                                 restoreArchivedKeyFor(roomId, change.lockerId)
                                 val body = buildWriteBody(initialKey ?: lockKeySource?.writeKeyFor(roomId, change.lockerId),
-                                    roomId, change.lockerId, version, change.transform(plaintext), authority, null, caps.authorityV2)
+                                    roomId, change.lockerId, version, change.transform(plaintext.copyOf()), authority, null, caps.authorityV2)
                                 PostLockerChangeRequest(roomId = roomId, lockerId = change.lockerId, locker = body.locker,
                                     parentVersion = version, writeSignature = body.signature)
-                            }).also {
-                                if (it.toByteArray().size > minOf(8 * 1024 * 1024, caps.maxBatchBytes))
+                            }).let { draft ->
+                                val frozen = PostLockerChangesRequest.fromByteArray(draft.toByteArray())
+                                if (frozen.toByteArray().size > minOf(8 * 1024 * 1024, caps.maxBatchBytes))
                                     throw LockerWriteException("atomic locker batch exceeds encoded request limit")
-                                submitted = it
+                                submitted = frozen
+                                frozen
                             }
                     }
                     val response = sync.network { roomService.postLockerChanges(request) }
@@ -974,7 +976,7 @@ class LockerClient(
             repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
                 val request = submitted ?: run {
                     val authority = if (signingKey != null && caps.authorityV2) currentAuthorityVersion(roomId, lockerId) else 0L
-                    val newPlaintext = transform(currentPlaintext)
+                    val newPlaintext = transform(currentPlaintext.copyOf())
                     // The builder sees a provisional payload envelope; the final V2 signature binds its encoded notification.
                     val provisional = buildWriteBody(signingKey, roomId, lockerId, parentVersion, newPlaintext)
                     val notif = encodedNotification(roomId, lockerId) { this.notificationBuilder(provisional.locker) }
@@ -986,9 +988,11 @@ class LockerClient(
                         this.roomId = roomId; this.lockerId = lockerId; this.parentVersion = parentVersion
                         this.locker = body.locker; this.writeSignature = body.signature
                         this.ratchet = ratchetMsg; this.notification = notif
-                    }.also {
-                        if (pendingRatchetKey != null) lockerStore.saveRatchet(PendingRatchet(it, pendingRatchetKey.privateKey.encode()))
-                        submitted = it
+                    }.let { draft ->
+                        val frozen = PostLockerChangeRequest.fromByteArray(draft.toByteArray())
+                        if (pendingRatchetKey != null) lockerStore.saveRatchet(PendingRatchet(frozen, pendingRatchetKey.privateKey.encode()))
+                        submitted = frozen
+                        frozen
                     }
                 }
                 val result = sync.network { roomService.postLockerChange(request) }

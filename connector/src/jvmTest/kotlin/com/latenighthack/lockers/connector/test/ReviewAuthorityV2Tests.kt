@@ -78,4 +78,24 @@ class ReviewAuthorityV2Tests {
         } finally { client.closeAndJoin() }
     }
 
+    @Test fun `ambiguous retries freeze caller-owned payload arrays`() = runBlocking {
+        val transformed = byteArrayOf(4); val notification = byteArrayOf(9)
+        var attempts = 0; var original: ByteArray? = null
+        val client = reviewClient(ReviewRpc { method, bytes -> when (method.methodName) {
+            "Capabilities" -> CapabilitiesResponse(writeReceipts = true).toByteArray()
+            "PostLockerChange" -> {
+                if (original == null) original = bytes.copyOf() else assertContentEquals(original, bytes)
+                if (++attempts == 1) {
+                    transformed.fill(8); notification.fill(7)
+                    throw FaultInjectingRpcClient.rpcError(com.latenighthack.ktbuf.proto.Codes.UNAVAILABLE)
+                }
+                PostLockerChangeResponse(version = 1).toByteArray()
+            }
+            else -> error(method.methodName)
+        } })
+        try {
+            client.updateLocker(RoomId(byteArrayOf(1)), LockerId(byteArrayOf(2)), { payload { rawValue = notification } }) { transformed }
+            assertEquals(2, attempts)
+        } finally { client.closeAndJoin() }
+    }
 }
