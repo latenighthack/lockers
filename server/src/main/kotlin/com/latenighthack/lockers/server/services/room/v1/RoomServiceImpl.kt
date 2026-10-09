@@ -60,8 +60,11 @@ class RoomServiceImpl(
     private val config: LockersConfig,
     deliveryOutbox: DeliveryOutboxStore? = null,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
+    coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
 ) : BaseServiceImpl(), RoomServer {
     private val deliveryOutbox = deliveryOutbox ?: lockStore.deliveryOutbox()
+    private val lifecycleStarted = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val lifecycleClosed = java.util.concurrent.atomic.AtomicBoolean(false)
     private val logger = LoggerFactory.getLogger(RoomServiceImpl::class.java)
     private suspend fun processAgent(room: RoomId, id: LockerId, locker: Locker): List<LockerAgentRegistry.LockerWrite> {
         val start = System.nanoTime(); var outcome = "error"
@@ -78,7 +81,7 @@ class RoomServiceImpl(
     }
 
     private val deliveryWorker = if (config.deliveryWorkerEnabled)
-        DeliveryWorker(requireNotNull(this.deliveryOutbox), sessionGatewayDiscovery, meterRegistry, telemetry).also { it.start() } else null
+        DeliveryWorker(requireNotNull(this.deliveryOutbox), sessionGatewayDiscovery, meterRegistry, telemetry, coroutineContext = coroutineContext) else null
     private val lockVerifier = LockVerifier(lockStore)
     private val dispatchers = ShardedDispatcher<RoomId>(config.shardCount, "room-shard") {
         it.rawValue.contentHashCode()
@@ -765,8 +768,15 @@ class RoomServiceImpl(
         roomToSessionCache.invalidateAll()
     }
 
-    fun close() {
-        deliveryWorker?.close()
-        dispatchers.close()
+    fun start() {
+        check(!lifecycleClosed.get() && lifecycleStarted.compareAndSet(false, true)) { "Service already started or closed" }
+        deliveryWorker?.start()
     }
+    suspend fun closeAndJoin() {
+        ServiceLifecycle.requireExternalClose()
+        lifecycleClosed.set(true)
+        deliveryWorker?.closeAndJoin()
+        dispatchers.closeAndJoin()
+    }
+    fun close() = ServiceLifecycle.blockingClose { closeAndJoin() }
 }

@@ -44,6 +44,15 @@ abstract class ServerCore(
     @get:Provides val config: LockersConfig,
     private val storageDelegate: Database
 ) {
+    /** Embedder lifetime; owned children cancel with this parent and are joined by closeAndJoin. */
+    var overrideCoroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext
+        set(value) { check(!contextHolder.isInitialized()) { "Coroutine context must precede service construction" }; field = value }
+    private val contextHolder = lazy {
+        overrideCoroutineContext + kotlinx.coroutines.SupervisorJob(overrideCoroutineContext[kotlinx.coroutines.Job])
+    }
+    @get:Provides val coroutineContext: kotlin.coroutines.CoroutineContext get() = contextHolder.value
+    suspend fun closeAndJoin() { coroutineContext[kotlinx.coroutines.Job]?.let { it.cancel(); it.join() } }
+
     private val pushDeliveryImpl by lazy { com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore(storageDelegate) }
     @get:Provides val pushDelivery: com.latenighthack.lockers.server.services.session.v1.PushDeliveryStore? get() = pushDeliveryImpl
     private val deliveryOutboxImpl by lazy { com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStore(storageDelegate) }

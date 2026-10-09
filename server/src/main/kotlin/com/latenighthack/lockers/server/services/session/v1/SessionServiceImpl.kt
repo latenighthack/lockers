@@ -17,6 +17,7 @@ import com.latenighthack.lockers.session.v1.*
 import io.micrometer.core.instrument.MeterRegistry
 import com.latenighthack.lockers.observability.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -99,9 +100,12 @@ class SessionServiceImpl(
     private val sessionRegistry: SessionRegistry = SessionRegistry.Noop,
     private val pushDelivery: PushDeliveryStore? = null,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
+    coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
 ) : BaseServiceImpl(), SessionServer, SessionGatewayServer, BroadcastAdminServer {
+    private val lifecycleStarted = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val lifecycleClosed = java.util.concurrent.atomic.AtomicBoolean(false)
     private val logger = LoggerFactory.getLogger(SessionServiceImpl::class.java)
-    private val deliveryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val deliveryScope = CoroutineScope(coroutineContext + SupervisorJob(coroutineContext[Job]) + Dispatchers.IO + ServiceLifecycle.context)
     private val pushPermits = kotlinx.coroutines.sync.Semaphore(4)
     private val pushWorker = pushDelivery?.let { store ->
         com.latenighthack.lockers.server.services.room.v1.DeliveryWorker(store.outbox, object : SessionGatewayDiscovery {
@@ -113,7 +117,7 @@ class SessionServiceImpl(
                 }
                 override suspend fun postEvents(request: PostEventsRequest) = PostEventsResponse(request.groups.map { postEvent(it) })
             }
-        }, meterRegistry, telemetry, "push_delivery").also { if (config.deliveryWorkerEnabled) it.start() }
+        }, meterRegistry, telemetry, "push_delivery", coroutineContext)
     }
     private val dispatchers = ShardedDispatcher<SessionId>(config.shardCount, "session-shard") {
         it.rawValue.contentHashCode()
@@ -169,12 +173,14 @@ class SessionServiceImpl(
         context: GrpcRequestContext,
         request: Flow<WatchSessionRequest>
     ): Flow<StreamControlEvent<WatchSessionResponse>> {
+        return channelFlow {
         val cancellationChannel = Channel<Unit>(Channel.CONFLATED)
         val registeredSession = AtomicReference<ServerSessionId?>()
         val openState = CompletableDeferred<OpenState?>()
         val openSent = CompletableDeferred<Unit>()
 
-        return flow { coroutineScope {
+        val producer = deliveryScope.launch(currentCoroutineContext().minusKey(Job) + ServiceLifecycle.context) {
+        flow { coroutineScope {
         val streamJob = currentCoroutineContext()[Job]!!
         merge(flow {
             try {
@@ -389,7 +395,11 @@ class SessionServiceImpl(
             }
             cancellationChannel.close()
         }.collect { emit(it) }
-        } }
+        } }.collect { send(it) }
+        }
+        producer.invokeOnCompletion { close(it) }
+        awaitClose { producer.cancel() }
+        }
     }
 
     /** Immediately closes this node's stream; shared-store revocation also closes remote streams. */
@@ -397,11 +407,18 @@ class SessionServiceImpl(
         openStreamCancellationChannels[sessionId]?.trySend(Unit)
     }
 
-    fun close() {
-        pushWorker?.close()
-        deliveryScope.cancel()
-        dispatchers.close()
+    fun start() {
+        check(!lifecycleClosed.get() && lifecycleStarted.compareAndSet(false, true)) { "Service already started or closed" }
+        if (config.deliveryWorkerEnabled) pushWorker?.start()
     }
+    suspend fun closeAndJoin() {
+        ServiceLifecycle.requireExternalClose()
+        lifecycleClosed.set(true)
+        deliveryScope.coroutineContext[Job]!!.cancelAndJoin()
+        pushWorker?.closeAndJoin()
+        dispatchers.closeAndJoin()
+    }
+    fun close() = ServiceLifecycle.blockingClose { closeAndJoin() }
 
     override suspend fun postEvents(context: GrpcRequestContext, request: PostEventsRequest): PostEventsResponse =
         meterRegistry.trackRpc(TelemetryOperation.SESSION_POST_MANY, telemetry, { if (it.results.all { result -> result.result.isOk() }) TelemetryOutcome.OK else TelemetryOutcome.REJECTED }) { observedPostEvents(context, request) }

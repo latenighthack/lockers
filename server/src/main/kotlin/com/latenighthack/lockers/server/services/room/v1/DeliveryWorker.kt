@@ -14,18 +14,18 @@ import com.latenighthack.lockers.server.tools.safeMeters
 import java.util.concurrent.TimeUnit
 
 /** Leases recover after process death; stable event ids make retries safe at the gateway. */
-class DeliveryWorker(private val store: DeliveryOutboxStore, private val discovery: SessionGatewayDiscovery, private val meters: MeterRegistry? = null, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, private val queue: String = "room") {
+class DeliveryWorker(private val store: DeliveryOutboxStore, private val discovery: SessionGatewayDiscovery, private val meters: MeterRegistry? = null, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, private val queue: String = "room", coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext) {
     init { meters?.counter("lockers.delivery.accepted", "queue", queue); meters?.counter("lockers.delivery.attempts", "queue", queue); meters?.counter("lockers.delivery.failures", "queue", queue) }
     private val active = java.util.concurrent.atomic.AtomicInteger(0)
     init { meters?.gauge("lockers.delivery.worker.active", listOf(io.micrometer.core.instrument.Tag.of("queue", queue)), active) { it.get().toDouble() } }
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(coroutineContext + SupervisorJob(coroutineContext[Job]) + Dispatchers.IO + com.latenighthack.lockers.server.tools.ServiceLifecycle.context)
     private val permits = Semaphore(4)
     private val owner = UUID.randomUUID().toString()
     private val logger = LoggerFactory.getLogger(DeliveryWorker::class.java)
     private var job: Job? = null
     @Volatile private var stopping = false
     fun start() {
-        check(job == null)
+        check(job == null && !stopping && scope.isActive) { "Delivery worker already started or closed" }
         active.set(1)
         job = scope.launch {
             // Independent room lanes keep a slow gateway from imposing a batch barrier on
@@ -116,5 +116,11 @@ class DeliveryWorker(private val store: DeliveryOutboxStore, private val discove
         job?.join()
         while (store.pendingCount() > 0) { if (!drainOnce()) store.awaitWork() }
     }
-    fun close() { active.set(0); scope.cancel() }
+    suspend fun closeAndJoin() {
+        com.latenighthack.lockers.server.tools.ServiceLifecycle.requireExternalClose()
+        stopping = true
+        scope.coroutineContext[Job]!!.cancelAndJoin()
+        active.set(0)
+    }
+    fun close() = com.latenighthack.lockers.server.tools.ServiceLifecycle.blockingClose { closeAndJoin() }
 }

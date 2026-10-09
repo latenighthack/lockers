@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.sync.withLock
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import org.slf4j.LoggerFactory
@@ -96,6 +97,7 @@ class PushServiceImpl(
     private val pushProviders: List<PushProvider>,
     private val dispatch: PushDispatchConfig = PushDispatchConfig.DEFAULT,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
+    coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
 ) : BaseServiceImpl(), PushServer, PushGatewayServer, PushAdminServer {
     private val logger = LoggerFactory.getLogger(PushServiceImpl::class.java)
 
@@ -109,7 +111,10 @@ class PushServiceImpl(
     }
 
     private val workAvailable = Channel<Unit>(Channel.CONFLATED)
-    private val processorScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val processorScope = CoroutineScope(coroutineContext + Dispatchers.IO + SupervisorJob(coroutineContext[Job]) + ServiceLifecycle.context)
+    private val closing = kotlinx.coroutines.sync.Mutex()
+    private var closed = false
+    private var started = false
     private val workerId = java.util.UUID.randomUUID().toString()
     private val localClaims = java.util.concurrent.ConcurrentHashMap<ServerPushId, PushClaim>()
     private var processorJob: Job? = null
@@ -147,10 +152,10 @@ class PushServiceImpl(
     }
 
     fun start() {
+        synchronized(this) { check(!closed && !started) { "Push service already started or closed" }; started = true }
         if (!dispatch.workerEnabled) {
             // API-only replica: still report depths from the shared stores, but do
-            // not drain — exactly one replica must own the queue (ktstore has no
-            // atomic row claim, so a second drainer would double-send).
+            // not drain. Enabled replicas coordinate through durable claims.
             logger.info("Push worker disabled on this replica; queue drain not started")
             processorScope.launch { seedGauges() }
             return
@@ -205,10 +210,26 @@ class PushServiceImpl(
         }
     }
 
-    fun stop() {
-        logger.info("Stopping push service processor")
-        processorScope.cancel()
-        pushProviders.forEach { runCatching { it.close() } }
+    fun stop() = ServiceLifecycle.blockingClose { stopAndJoin() }
+
+    suspend fun stopAndJoin() {
+        ServiceLifecycle.requireExternalClose()
+        closing.withLock {
+            if (closed) return
+            closed = true
+            withContext(NonCancellable) {
+                processorScope.coroutineContext[Job]!!.cancelAndJoin()
+                var failed: Throwable? = null
+                fun record(failure: Throwable) { if (failed == null) failed = failure else failed!!.addSuppressed(failure) }
+                for (claim in localClaims.values) {
+                    try { pushQueueStore.release(claim, System.currentTimeMillis()) } catch (failure: Throwable) { record(failure) }
+                }
+                localClaims.clear()
+                pushProviders.forEach { try { it.close() } catch (failure: Throwable) { record(failure) } }
+                workAvailable.close()
+                failed?.let { throw it }
+            }
+        }
     }
 
     private suspend fun processPush(claim: PushClaim) {
