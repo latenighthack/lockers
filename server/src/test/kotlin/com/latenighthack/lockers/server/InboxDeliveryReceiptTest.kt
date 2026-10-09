@@ -79,4 +79,42 @@ class InboxDeliveryReceiptTest {
         } finally { watcher.cancelAndJoin(); old.close(); current.close(); db.close() }
     }
 
+    @Test fun oldUnacknowledgedDeliverySurvivesMoreThanOneThousandNewAcknowledgements() = runBlocking {
+        val db = ServerStorage.inMemory(); db.open(); val sessions = SessionStoreImpl(db)
+        val limits = ServerResourceLimits(maxInboxEventsPerSession = 2)
+        val inbox = SessionInboxStoreImpl(db, limits)
+        val service = SessionServiceImpl(sessions, inbox, SimpleMeterRegistry(), object : PushGatewayDiscovery {
+            override suspend fun findServer(sessionId: SessionId): PushGatewayService? = null
+        }, LocalSessionOwnership(), LockersConfig.defaults().copy(resourceLimits = limits))
+        val sid = SessionId(byteArrayOf(4)); val pair = Secp256r1KeyPair.generate(); val nonce = ByteArray(32) { 4 }
+        sessions.updateSession(ServerSession(ServerSessionId(sid.rawValue), nonce, pair.publicKey.encode()))
+        val requests = Channel<WatchSessionRequest>(Channel.UNLIMITED); val responses = Channel<WatchSessionResponse>(Channel.UNLIMITED)
+        val signature = pair.privateKey.sign(nonce)
+        val watcher = launch {
+            service.watchSession(context, flow {
+                emit(WatchSessionRequest { request.open { sessionId = sid; sequenceKeySignature { this.signature = signature } } })
+                for (request in requests) emit(request)
+            }).collect { if (it is StreamControlEvent.Message) responses.send(it.message) }
+        }
+        fun event(id: ByteArray) = Event(roomId = RoomId(byteArrayOf(9)), eventId = EventId(id), notification = Notification { payload { rawValue = byteArrayOf(1) } })
+        try {
+            withTimeout(30_000) {
+                responses.receive().response!!.getOpen()!!
+                val old = event(byteArrayOf(1))
+                service.postEvent(context, PostEventRequest(listOf(sid), old))
+                assertEquals(old, responses.receive().response!!.getEvents()!!.event.single())
+                repeat(1030) { n ->
+                    val next = event(byteArrayOf((n ushr 8).toByte(), n.toByte()))
+                    assertTrue(service.postEvent(context, PostEventRequest(listOf(sid), next)).result.isOk())
+                    assertEquals(next.eventId, responses.receive().response!!.getEvents()!!.event.single().eventId)
+                    requests.send(WatchSessionRequest { request.ack { acks = listOf(EventAck(roomId = next.roomId, eventId = next.eventId)) } })
+                    assertEquals(next.eventId, responses.receive().response!!.getAck()!!.confirmedAcks.single().eventId)
+                }
+                assertEquals(1, inbox.getAllEvents(ServerSessionId(sid.rawValue)).size)
+                assertTrue(service.postEvent(context, PostEventRequest(listOf(sid), old)).result.isOk())
+                assertNull(withTimeoutOrNull(200) { responses.receive() }, "Pending delivery identity must survive newer ACKs")
+            }
+        } finally { watcher.cancelAndJoin(); service.close(); db.close() }
+    }
+
 }

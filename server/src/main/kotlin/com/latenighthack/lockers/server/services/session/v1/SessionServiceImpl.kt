@@ -178,6 +178,9 @@ class SessionServiceImpl(
         val registeredSession = AtomicReference<ServerSessionId?>()
         val openState = CompletableDeferred<OpenState?>()
         val openSent = CompletableDeferred<Unit>()
+        // Delivered identities remain until durable ACK. They cannot be LRU-evicted:
+        // an old unacknowledged event must not reappear after newer events are ACKed.
+        val pendingDelivered = ConcurrentHashMap.newKeySet<List<Byte>>()
 
         val producer = deliveryScope.async(currentCoroutineContext().minusKey(Job) + ServiceLifecycle.context) {
         try {
@@ -264,6 +267,7 @@ class SessionServiceImpl(
                         val response = dispatchers.runOnDispatcher(SessionId(sessionId.rawValue)) {
                             dispatcherWaitTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
                             sessionInboxStore.deleteEvents(ack.acks.mapNotNull { it.eventId?.let { id -> ServerEventId(id.rawValue) } }, sessionId)
+                            ack.acks.mapNotNull { it.eventId?.rawValue?.toList() }.forEach(pendingDelivered::remove)
                             inboxDeletesCounter.increment(ack.acks.size.toDouble())
 
                             WatchSessionResponse {
@@ -325,11 +329,25 @@ class SessionServiceImpl(
             var lastSequence = 0L
             // Keyed by List<Byte> — a Set<ByteArray> compares by reference and would never match,
             // re-delivering every open-queued event on the live path too.
-            val seen = object : java.util.LinkedHashMap<List<Byte>, Unit>(16, 0.75f, true) {
-                override fun removeEldestEntry(eldest: MutableMap.MutableEntry<List<Byte>, Unit>) =
-                    size > config.resourceLimits.maxInboxEventsPerSession + 1024
+            suspend fun remember(events: List<Event>) {
+                for (event in events) {
+                    val raw = event.eventId?.rawValue ?: continue
+                    val identity = raw.toList()
+                    if (identity in pendingDelivered) continue
+                    if (!sessionInboxStore.isPending(ServerEventId(raw), sessionId)) continue
+                    if (pendingDelivered.size >= config.resourceLimits.maxInboxEventsPerSession) {
+                        // A concurrent ACK can finish between the pending read and
+                        // insertion. Remove only identities proved no longer pending.
+                        for (old in pendingDelivered) {
+                            if (!sessionInboxStore.isPending(ServerEventId(old.toByteArray()), sessionId)) pendingDelivered.remove(old)
+                            if (pendingDelivered.size < config.resourceLimits.maxInboxEventsPerSession) break
+                        }
+                        if (pendingDelivered.size >= config.resourceLimits.maxInboxEventsPerSession)
+                            throw ResourceLimitException("Pending stream delivery tracking exceeds inbox capacity")
+                    }
+                    pendingDelivered.add(identity)
+                }
             }
-            fun remember(events: List<Event>) { events.mapNotNull { it.eventId?.rawValue?.toList() }.forEach { seen[it] = Unit } }
 
             emitAll(incomingEvents
                 .onSubscription {
@@ -341,7 +359,7 @@ class SessionServiceImpl(
                             // A slow stream overran the bounded live buffer. Recover from the
                             // durable inbox immediately rather than waiting for reconnect.
                             sessionInboxStore.clientEventPages(sessionId).collect { page ->
-                                val missed = page.filter { event -> event.eventId?.rawValue?.toList() !in seen }
+                                val missed = page.filter { event -> event.eventId?.rawValue?.toList() !in pendingDelivered }
                                 if (missed.isNotEmpty()) emit(StreamControlEvent.Message(WatchSessionResponse {
                                     response.events { event = missed }
                                 }))
@@ -374,7 +392,7 @@ class SessionServiceImpl(
                     !it.catchUp && it.event?.sessionId?.rawValue.contentEquals(sessionId.rawValue)
                 }
                 .mapNotNull {
-                    if (it.event?.eventId?.rawValue?.toList() in seen) {
+                    if (it.event?.eventId?.rawValue?.toList() in pendingDelivered) {
                         return@mapNotNull null
                     }
 
