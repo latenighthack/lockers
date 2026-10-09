@@ -10,16 +10,18 @@
     ],
     "problem": "In an opaque room, applyLock resolves the parent key but the unsigned TOFU branch checks only whether the room ID embeds a public key. It does not reject an existing room or keyspace parent. Anyone who knows the room and locker IDs can establish their own more-specific key; resolveEffective then selects that key ahead of the legitimate parent. A room lock therefore does not secure its descendants.",
     "evidence": [
-      "docs/review/F01.md"
+      "docs/review/F01.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Permit unsigned establishment only when the relevant authority hierarchy is genuinely unclaimed. Require a valid parent grant whenever an ancestor governs the scope, and perform establishment atomically with that ancestor state. Cover room-to-keyspace, room-to-locker, and keyspace-to-locker delegation in both TOFU and public-keyed rooms.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "0ea9f0cc47de5df6d54a43b13eae83385bf994b8"
     ],
     "reproduction": "LockVerifierTest: unsigned descendants cannot replace room or keyspace authority (baseline assertion failure)",
     "regression": "LockVerifierTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F02",
@@ -34,10 +36,12 @@
     "evidence": [
       "docs/review/F02.md",
       "docs/review/F02-stored-envelope.md",
-      "docs/review/F02-conflict-envelope.md"
+      "docs/review/F02-conflict-envelope.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Reject every invalid or ambiguous envelope before signature verification and persistence; require exactly one supported representation. Share that validator across single writes, batches, reads, and extension outputs. Define which metadata is authenticated: notifications and ratchet.newSharedKeys are also outside the current signing contexts. Introduce any changed signing preimage through an explicit protocol version, while retaining the existing wire compatibility path.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "13a6d1fa151e24ba43fe011ed48022c0936c5ea7",
       "8e0d9d86e0ae4e9a3dfa6df65e28d2ce1ae926d1",
@@ -46,7 +50,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F02-stored-envelope.md, docs/review/F02.md",
     "regression": "ConflictEnvelopeBoundaryTest; ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F03",
@@ -61,10 +65,12 @@
     "problem": "unlockContext contains no lock version or incarnation. Unlock deletes the row, and re-establishment resets its version to 1. An old unlock signed by a key reused for a later lock therefore removes that later lock as well. Changing the unsigned parentLockVersion to the current version also allows reuse after a key returns. Grant contexts likewise lack parent epoch/version, and applyLock ignores parentLockVersion.",
     "evidence": [
       "docs/review/F03-connector.md",
-      "docs/review/F03.md"
+      "docs/review/F03.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Retain a monotonic authority incarnation even when a scope becomes unlocked. Bind that incarnation and the expected authority version into grants, unlocks, and ratchets, and compare them atomically. Decide explicitly whether ancestor revocation invalidates existing descendants. Migrate the signing domain rather than silently changing V1 bytes.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "189eee14055eb625317cd2dfcae93681c19de371",
       "4ca4d43baa02a98015fd7d4697d631a4c698664e",
@@ -73,7 +79,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F03-connector.md, docs/review/F03.md",
     "regression": "LockVerifierTest; ReviewAuthorityV2Tests; ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F04",
@@ -89,10 +95,12 @@
     "evidence": [
       "docs/review/F04-runtime.md",
       "docs/review/F04-admin-boundary.md",
-      "docs/review/F04-public-convenience.md"
+      "docs/review/F04-public-convenience.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Give trusted peer RPCs their own transport boundary and authenticate peer identity. Keep in-process discovery usable without exposing equivalent public endpoints. Validate sender authority and event identity at that boundary; an internal port alone is insufficient if callers can reach it. Preserve the extension API while requiring an explicit decision about which of its routes are public.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "670ecd591ee19bb93612502b4d267b237f9c6090",
       "e2cdeafde6e2426cc922171b37cf3ec2547e0999",
@@ -101,7 +109,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F04-admin-boundary.md, docs/review/F04-public-convenience.md, docs/review/F04-runtime.md",
     "regression": "GatewayBoundaryTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F05",
@@ -113,16 +121,18 @@
     ],
     "problem": "A Web Push registration accepts an arbitrary endpoint. The provider checks only that it is nonempty before handing it to an HTTP client. With Web Push configured, the public registration and send gateway can be combined to make the server POST to loopback, private network, or other unintended destinations. The encryption of the request body does not prevent the outbound connection.",
     "evidence": [
-      "docs/review/F05-runtime.md"
+      "docs/review/F05-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Validate endpoints at registration and at send time. Require HTTPS, validate host and port against the supported push-service policy, reject private and special IP destinations after DNS resolution, and constrain redirects and outbound network access. Authenticate registration ownership independently. Apply length and public-key/auth-secret validation before persisting credentials.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "cf38a3d9556ea5c50f645f63abfffe855a6626f8"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F05-runtime.md",
     "regression": "WebPushEndpointTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F06",
@@ -142,10 +152,12 @@
       "docs/review/F06-revocation.md",
       "docs/review/F06-destroy-reconnect.md",
       "docs/review/F06-snapshot-revocation.md",
-      "docs/review/F06-destroy-outcome.md"
+      "docs/review/F06-destroy-outcome.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Bind unary mutations to an authenticated session context or a signed, scoped session capability with expiry and replay protection. Define whether identifiers are public names or secret capabilities; the current API mixes those models. Implement authenticated revocation that closes live sockets and removes or expires session routing, subscription, inbox, and push state, with a documented deletion policy.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "01c53db97726118f96991163981c9d247bd0d98e",
       "77c07c693d075eb6fc19ed16ea8720a4c2043125",
@@ -158,7 +170,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F06-connector.md, docs/review/F06-revocation.md, docs/review/F06.md",
     "regression": "ReviewDestroyReconnectTests; ReviewSessionProofTests; SessionProofBoundaryTest; SessionRevocationTest; actual red/green evidence in linked issue notes; SessionRevocationTest actual two PostgreSQL handles and SQLite reopen confirmation",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F07",
@@ -172,16 +184,18 @@
     ],
     "problem": "roomHasLocksCache stores false without an expiry or authority epoch. Reads on a non-owner can populate it. A different owner may subsequently establish a lock, after which the reader can acquire the room with its old negative cache intact. effectiveLockOrNull then skips all lock resolution. This affects the default legacy write/delete path and paths that choose cached resolution rather than batch lock prefetch. Reads can also report incorrect lock state.",
     "evidence": [
-      "docs/review/F07.md"
+      "docs/review/F07.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Make authorization reads authoritative inside the mutation transaction. If caching is retained, key it by a proven ownership/authority epoch and invalidate before acquiring or resuming authority, with distributed lock-change invalidation. A TTL alone cannot establish the security invariant.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "4c0b7dcdd50bd16052cc4724ad19cf84835b9d03"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F07.md",
     "regression": "ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F08",
@@ -197,17 +211,19 @@
     "problem": "Legacy writes compare a fetched version and then perform an unconditional save under a process-local room mutex. Two coordinators can both read version N and both commit N+1. Ownership is checked before queueing and database work, with no owner epoch checked at commit, so a paused or draining former owner can continue after takeover. Deletes validate before their outbox transaction; standalone lock operations also lack a shared mutation transaction. The advisory lease's so-called fencing token is the stable shard hash, not a monotonically increasing token enforced by storage.",
     "evidence": [
       "Reproduced by twoCoordinatorsAcceptTheSameVersionWithoutStorageCAS: two services read version 3 and both return successful version 4. The fast batch source path does serialize its read/validation/write transaction, which improves version races, but still lacks a commit-time ownership fence.",
-      "docs/review/F08.md"
+      "docs/review/F08.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Require the storage mutation to atomically compare both expected locker/authority version and the current owner incarnation. Include content, lock changes, receipts, and delivery intents in the same transaction. Apply that invariant to writes, deletes, lock/unlock, and derived writes. Remove comments and metrics claiming that an ordinary read-and-save is a database CAS.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "ca6e060c3fc699ccb37cd221cfda98f589588e46",
       "56ba70473bfa745922f5dc55d7d6f3559b81fc0d"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F08.md",
     "regression": "RoomMutationFencePgTest (four actual PostgreSQL regressions); ReviewRegressionTest; RatchetAtomicityRegressionTest",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F09",
@@ -220,16 +236,18 @@
     ],
     "problem": "ServerCore installs ExampleLockerAgent whenever the embedder supplies no override. That agent mirrors a write in keyspace 31 into keyspace 30, and derived writes bypass the target's lock verification. An unsigned write to an open input keyspace can therefore overwrite a locked output keyspace. Shipping this demo as the default also assigns implicit meaning to otherwise opaque keyspaces.",
     "evidence": [
-      "docs/review/F09-runtime.md"
+      "docs/review/F09-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Use a no-op registry by default and require explicit installation of trusted authoritative agents. Preserve their ability to produce privileged derived state, but declare and enforce their permitted input/output scopes and validation policy. Put the demonstration behind an explicit sample configuration.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "f28f0afce95ffdbf04b5ccb0461c77ac9812cb19"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F09-runtime.md",
     "regression": "DefaultAgentAuthorityTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F10",
@@ -245,10 +263,12 @@
       "Reproduced by legacyRatchetCommitsEvenWhenLockerPersistenceFails: inject a locker-save failure, submit a correctly signed ratchet write, and observe the new public key persisted while the locker remains absent. Fast batch source transactions avoid this particular partial commit.",
       "docs/review/F10.md",
       "docs/review/F10-delete-receipts.md",
-      "docs/review/F10-connector-delete.md"
+      "docs/review/F10-connector-delete.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Commit ratchet, locker, receipt, and delivery intent in one transaction on every supported path. Make success and ambiguous-response recovery refer to the complete transaction outcome. Do not advertise atomic ratcheting on a path that can persist only its authority half.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "984e2f03819a4eacc837004181cff37caa5299c0",
       "238cc852ca30e4bfae78553c7a7a8b008edfdf1d",
@@ -259,7 +279,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F10-delete-receipts.md, docs/review/F10.md",
     "regression": "RatchetAtomicityRegressionTest; ReviewDeleteReceiptTests; ReviewRatchetAdoptionTests",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F11",
@@ -278,10 +298,12 @@
       "docs/review/evidence/lockers-integration-ratchet-archive-green.log",
       "docs/review/F11-archive-source-metadata.md",
       "docs/review/F26-archive-migration.md",
-      "docs/review/F11-legacy-archive-authority.md"
+      "docs/review/F11-legacy-archive-authority.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Persist a pending ratchet key and immutable request identity before submission. Resolve a committed outcome and adopt that key even when derived agent work is pending or failed. Return a typed outcome separating source commit from agent completion; reserve an ordinary write-failed exception for a source mutation that did not commit. Recover pending key transitions on startup.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "f41db2c4cc217fb283e4ec9688042f84955386d2",
       "f1fe0fe1af8c0265984da6492ad3889c0e46ac85",
@@ -297,7 +319,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F11-connector.md",
     "regression": "ReviewConnectorTests; ReviewExpiredRatchetTests; ReviewRatchetArchiveOrderingTests; exact receipt/key adoption, source uncertainty, isolated recovery and epoch ordering regressions",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F12",
@@ -312,16 +334,18 @@
     ],
     "problem": "Create checks for absence and then unconditionally saves the session. Concurrent creates for the same identifier can both succeed with different authorization keys, leaving one persisted authority. Open similarly reads a challenge, verifies it, and unconditionally rotates it; concurrent uses of the same valid challenge can both succeed. The create path does not use the session owner gate or a database put-if-absent.",
     "evidence": [
-      "docs/review/F12-runtime.md"
+      "docs/review/F12-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Add atomic create-if-absent and challenge compare-and-rotate operations. Tie the winning socket/registry attachment to the committed session incarnation, and reject competing admissions before publishing live state. Test both same-node and cross-node races; serialization of event ACKs does not serialize session admission.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "b7768ab3338f8324d45bb611b4c6b1023ce565de"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F12-runtime.md",
     "regression": "SessionAtomicityTest; SessionOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F13",
@@ -334,17 +358,19 @@
     "problem": "When no stored locker exists, the server assigns request.parentVersion as the new version. With the usual parent 0, creation returns 0; a second stale parent-0 request is then accepted and returns 1. The first existence transition does not invalidate optimistic concurrency. The same initial rule applies to deletion of an absent locker.",
     "evidence": [
       "docs/review/F13.md",
-      "docs/review/F13-batch-creation.md"
+      "docs/review/F13-batch-creation.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Define one initial parent sentinel, reject inappropriate parents for absence, and advance the version on every committed state transition. Include first-create races and deletion/recreation in the protocol's version tests. Guard negative values and overflow, and plan how legacy version-0 rows are interpreted during migration.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "987e85bc7ebcde69be0250d0add16564ab1d1125",
       "1b749f20266804b92ac81083c97113426ff8d8a0"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F13.md",
     "regression": "ReviewBatchCreationTests; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F14",
@@ -362,10 +388,12 @@
       "docs/review/F14.md",
       "docs/review/F14-connector-aliases.md",
       "docs/review/F14-unknown-identities.md",
-      "docs/review/F14-locker-store-isolation.md"
+      "docs/review/F14-locker-store-isolation.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Define a canonical identity type for room, keyspace, and locker bytes. Normalize at API entry before distinctness checks, mutation-lock acquisition, receipt construction, storage lookup, and routing. Keep the existing signed equivalence of omitted and zero keyspace; enforce it consistently rather than changing its meaning.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "a15c0ac4129157b029799df1a8d9d8523da3640f",
       "14b4a3238b66b49d53bde6e400e425b57bec228a",
@@ -377,7 +405,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F14-connector.md, docs/review/F14.md",
     "regression": "CanonicalBatchRegressionTest; ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F15",
@@ -391,16 +419,18 @@
     ],
     "problem": "getLockers decodes stored.locker regardless of stored.deleted. Deleted rows contain an empty byte array, which decodes to a non-null empty Locker and is returned as OK. getLocker hides the deleted row, getAllLockers filters it out, and subscribeAndSnapshot correctly returns a versioned identified tombstone. The client bulk-read path treats any non-null locker body as present.",
     "evidence": [
-      "docs/review/F15.md"
+      "docs/review/F15.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Use one versioned tombstone representation across every read, snapshot, event, and write-conflict response. Teach clients to preserve the tombstone version while removing the visible value. Add parity tests for all read APIs, including an empty but genuinely present payload.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "99379f6c0a7092cef994a81b564812239e6d5479"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F15.md",
     "regression": "ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F16",
@@ -415,16 +445,18 @@
     "problem": "Legacy hydration merges only lockers returned by getAllLockers, which omits deleted rows. fetchLocker accepts only a non-null response. Neither operation removes a previously cached locker when the server reports absence. A disconnected client that misses a delete, or creates a replacement session after an inbox gap, can keep the deleted value indefinitely despite repeated successful revalidation.",
     "evidence": [
       "Confirmed by the absence-only branches and the default capabilities path. The fast subscribeAndSnapshot path includes tombstones and can repair this specific gap; its behavior is not available when deliveryOutboxEnabled is false.",
-      "docs/review/F16-connector.md"
+      "docs/review/F16-connector.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Return versioned tombstones on legacy-compatible reads, or reconcile a complete authoritative snapshot with its boundary/watermark. Do not infer an unversioned delete from absence while a newer live event may race hydration. Make reconciliation repair deletions as well as additions.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "9b77ef23b59287c2fdd9faf5a2bd9f2188bb9c47"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F16-connector.md",
     "regression": "ReviewSnapshotRepairTests; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F17",
@@ -439,16 +471,18 @@
     "problem": "Subscriptions are deliberately allowed on non-owner nodes, but each RoomService caches its own room-to-session set without expiry or distributed invalidation. A writing owner that has already cached recipients does not learn a subscription added elsewhere, and can continue delivering to a session removed elsewhere. The legacy path can therefore miss live and offline inbox delivery until eviction or takeover.",
     "evidence": [
       "Confirmed by the shared subscription store, process-local cache, and local-only cache updates. Fast outbox commits query durable recipients and avoid this cached-recipient path.",
-      "docs/review/F17-runtime.md"
+      "docs/review/F17-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Resolve recipients from authoritative storage at the event's commit boundary, or maintain an observed subscription revision tied to a coherent distributed cache. Keep subscribe-and-snapshot atomicity and unsubscribe semantics explicit. Do not rely on requests happening to land on the writer.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "70e6bfc5dc5e28523026bc25d6189091d5daa15e"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F17-runtime.md",
     "regression": "SubscriptionFreshnessTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F18",
@@ -463,10 +497,12 @@
     "evidence": [
       "Confirmed by the default configuration and post-persistence direct delivery. The optional outbox path provides the missing durable intent, so the reliability contract currently changes materially with configuration.",
       "docs/review/F18-runtime.md",
-      "docs/review/F18-default-construction.md"
+      "docs/review/F18-default-construction.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Make durable delivery the supported invariant for production writes, deletes, and derived state, after resolving its scaling issues in F33. If a weaker legacy mode remains, expose its guarantee explicitly and provide snapshot repair that includes deletions. Treat local Flow wakeups as hints to recoverable work.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "d103c0c77467e6920d0943498a60ed7e86e1ee5a",
       "fab169a501323c5de2c03edaaf962ea3b55d04a4",
@@ -474,7 +510,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F18-default-construction.md, docs/review/F18-runtime.md",
     "regression": "LegacyDeliveryModeTest; LockersConfigTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F19",
@@ -489,16 +525,18 @@
     "problem": "The push worker reads the durable queue once in onStart, then consumes only this instance's replay-zero SharedFlow. Work enqueued by an API-only replica emits into a different instance and is never discovered by the running worker. An enqueue between the startup query and actual subscription can also be missed. A startup storage failure terminates the collector with no recovery loop.",
     "evidence": [
       "Reproduced by APIReplicaEnqueueIsInvisibleToRunningWorkerReplica: the worker sends its startup row, another instance enqueues a new row into the same store, and the row remains pending with no second send. Structurally, there is no polling or distributed observation that can discover it later.",
-      "docs/review/F19-runtime.md"
+      "docs/review/F19-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Use durable queue claims with a bounded worker pool and a store-driven observation or notification seam, plus periodic recovery scanning. Subscribe to wakeups before scanning, and rescan after errors or restarts. The queue row must determine whether work exists; an in-process emission cannot be its only discovery mechanism.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "8786ba85eaa99d555fe34d87727459f6eb629370"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F19-runtime.md",
     "regression": "PushServiceTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F20",
@@ -512,17 +550,19 @@
     "problem": "Each emitted queue row creates another coroutine. drainQueue re-emits all rows, including those already being sent, without a row lease or in-flight guard. A semaphore bounds vendor calls but not the number of jobs waiting behind it. Multiple worker replicas have the same duplicate-send risk, while a large backlog can create an arbitrarily large coroutine set.",
     "evidence": [
       "Reproduced by drainingQueueDuplicatesAnInFlightSend: hold the first provider send open, invoke drainQueue, and observe a second concurrent send for the same row.",
-      "docs/review/F20-runtime.md"
+      "docs/review/F20-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Claim rows atomically with lease identity, expected state, and a persisted next-attempt time. Use a fixed number of consumers over bounded claims. Make drain a request to accelerate discovery rather than a second delivery stream. Preserve at-least-once semantics for ambiguous provider acceptance and make duplicates observable.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "ca1cfd5e1f7676905bfeb8716f581c203bc16208",
       "b425873853f1a217478c0a2f1de865efffe068f4"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F20-runtime.md",
     "regression": "PushQueueClaimsTest; PushServiceTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F21",
@@ -538,10 +578,12 @@
     "evidence": [
       "Reproduced by registrationTransportFailureIsNotRetriedForSameSession: one failed registration remains pending; publishing an equal session ID makes no second RPC. The source has no independent retry loop.",
       "docs/review/F21-connector.md",
-      "docs/review/F21-session-admission.md"
+      "docs/review/F21-session-admission.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Reconcile persisted desired registrations against a session state containing connection incarnation and readiness. Retry recoverable failures with bounded backoff while that desired state remains current. Represent terminal failure and closed state explicitly so callers can await a real outcome.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "7dc75fbcd35b18c14d0f2856440d4f618b750fc6",
       "7c880d082e61db567929d7805efc165e72fa4107",
@@ -550,7 +592,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F21-connector.md, docs/review/F21-session-admission.md",
     "regression": "ReviewPushControllerTests; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F22",
@@ -566,10 +608,12 @@
       "Reproduced by lateRegistrationResponseResurrectsUnregisteredCredential: block register, complete unregister and local deletion, then release the register response; the credential is recreated and reported registered.",
       "docs/review/F22-connector.md",
       "docs/review/F22-public-boundary.md",
-      "docs/review/F22-runtime.md"
+      "docs/review/F22-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Use a serialized reducer with desired credential revision, session incarnation, and durable pending removal. Apply acknowledgements only when all three still match. SubscriptionController's generation-checked confirmations provide a useful local pattern, with bounded commands and explicit lifecycle outcomes.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "4374c3c0dfec508614f51f48b317a3a1badd8e16",
       "9c8c7741e09ba741103c16932267f706b953fab9",
@@ -578,7 +622,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F22-connector.md, docs/review/F22-public-boundary.md, docs/review/F22-runtime.md",
     "regression": "PushQueueClaimsTest; PushServiceTest; ReviewPushControllerTests; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F23",
@@ -591,17 +635,19 @@
     ],
     "problem": "watchSnapshot calls merge for each cached locker, and merge emits immediately. Its first value therefore represents only the first historical item rather than the room/keyspace snapshot. Live events may interleave those partial histories. SharingStarted.WhileSubscribed also retains replay across idle periods while a restarted producer rebuilds its local map. The state.isEmpty check reads the mutable map outside stateMutex.",
     "evidence": [
-      "docs/review/F23-connector.md"
+      "docs/review/F23-connector.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Load and reduce a complete snapshot before one initial emission, buffering and version-ordering live events around a snapshot boundary. Expose an immutable state with loading/freshness metadata when cached state is intentionally emitted early. Keep all state access serialized, and define replay reset and watcher eviction.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "fe7b93a8695ce45f605039fadc3bdf0e6893da0d",
       "1e2ff0c934e45cdc16b279a64ef1c75b66369d8f"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F23-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F24",
@@ -615,17 +661,19 @@
     ],
     "problem": "accept holds a client-wide mutex while saving and emitting to internalChanges. Once its 64-item buffer fills, one slow collector blocks every room's acceptance and writers waiting on that mutex. Notification emission and raw stream-event emission also happen before ACK persistence. Cancellation after save but before emission can leave an active watcher behind the store; a replay of equal content is suppressed by the stored-version guard. With no collectors, replay-zero change and notification emissions are instead ephemeral.",
     "evidence": [
-      "docs/review/F24-connector.md"
+      "docs/review/F24-connector.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Commit accepted state and dedup/ACK intent independently of application multicast. Observe committed state through a transaction-aware storage Flow or a reducer that reloads from storage after conflated wakeups. Give state snapshots conflation and give events requiring delivery a persisted cursor or inbox. Move emission outside correctness mutexes; blindly dropping changes would introduce another delivery gap.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "a321be6b160d281dc9df355a4e77ec785880677d",
       "1e2ff0c934e45cdc16b279a64ef1c75b66369d8f"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F24-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F25",
@@ -644,10 +692,12 @@
       "docs/review/F25-advisory-cancellation.md",
       "docs/review/F25-coordination-sql-limits.md",
       "docs/review/F25-runtime.md",
-      "docs/review/F25-telemetry-cancellation.md"
+      "docs/review/F25-telemetry-cancellation.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Rethrow CancellationException before transient-error classification. Use narrowly scoped NonCancellable cleanup only for necessary resource release or completion of an already-defined transaction boundary. Review the pinned retry helper's exception contract, including its use of CancellationException for retry exhaustion, and distinguish exhaustion from actual caller cancellation.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "ea56134dbfdd7851fba5020c092f9caf04f31290",
       "3555f92acdd4f82d35551944febc08f929bc4bb7",
@@ -660,7 +710,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F25-advisory-cancellation.md, docs/review/F25-connector.md, docs/review/F25-coordination-sql-limits.md, docs/review/F25-runtime.md, docs/review/F25-telemetry-cancellation.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F26",
@@ -682,10 +732,12 @@
       "docs/review/F26-runtime.md",
       "docs/review/F26-connector-integration-fixtures.md",
       "docs/review/F26-watch-producer-lifetime.md",
-      "docs/review/F26-archive-migration.md"
+      "docs/review/F26-archive-migration.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Give each client/server component one explicit lifecycle scope with a supplied parent, owned child jobs, and injected execution contexts. Keep deliberately shared reads owned by that client scope so one waiter cannot cancel everyone. Make start idempotent or reject duplicate starts, clean up partial initialization, and provide suspending close/stop that cancels and joins. Add an equivalent awaitable lifecycle seam for extensions.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "0d339e5a8fddb3c16f11441985a584fd34b68d2b",
       "b87f34b2a1f706a6fb39edf986bfe9b5071bf419",
@@ -705,7 +757,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F26-connector.md, docs/review/F26-host-lifetime.md, docs/review/F26-runtime.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F27",
@@ -721,10 +773,12 @@
     "problem": "onConnected is cleared around the outer connection loop and normal completion, but an exception retried inside repeatWithBackoff can leave it true throughout retries. Fatal failure and stop do not consistently clear it. sessionIdSource also remains populated through disconnection or abandoned sessions. awaitConnected waits only for true and never observes fatal or closed state; subscription and push waiters have similar missing lifecycle outcomes.",
     "evidence": [
       "Confirmed by the distinct updates to isConnected, fatalError, sessionId, and stop. A previously connected client can report a stale true value, while a never-connected terminal client can leave awaitConnected suspended indefinitely unless its caller supplies cancellation.",
-      "docs/review/F27-connector.md"
+      "docs/review/F27-connector.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Publish one StateFlow describing Connecting, Connected(session, connectionEpoch), Retrying, Failed, and Closed. Derive compatibility properties from it. Transition in connection-level try/finally and make await APIs complete with a typed terminal outcome. Use its connection epoch for registration/subscription reconciliation.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "0750a2961893538593474d9aadad4d992cb7bc68",
       "7f7bfff6cd99840f842aefc12648f1219a9d3acd",
@@ -733,7 +787,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F27-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F28",
@@ -747,10 +801,12 @@
     "evidence": [
       "Reproduced by sessionPingDoesNotEmitPong: open a valid test stream, send ping, and receive no response. The stream remains otherwise active. This probe also showed that an empty session public key is accepted, covered in F38.",
       "docs/review/F28-connector.md",
-      "docs/review/F28-runtime.md"
+      "docs/review/F28-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Emit the pong, track heartbeat identity or a monotonic deadline, and reconnect when the expected response does not arrive. Distinguish transport liveness from slow application processing so an observer cannot monopolize the heartbeat path. Test half-open connections, clean closes, and cancellation of heartbeat jobs.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "d2eea55ee789baa6792e3110aa7da54e116e47b4",
       "b11e9f2cc589955251f52e22c5452823a5bf384e",
@@ -758,7 +814,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F28-connector.md, docs/review/F28-runtime.md",
     "regression": "ReviewConnectorTests; SessionAtomicityTest; SessionHeartbeatTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F29",
@@ -774,17 +830,19 @@
     "evidence": [
       "Confirmed by publication and cleanup ordering. The registration failure case needs a deterministic fault-injection regression test; the resulting map/count leak and unmatched channel send follow directly from the current branches.",
       "docs/review/F29-runtime.md",
-      "docs/review/F29-terminal-watch-close.md"
+      "docs/review/F29-terminal-watch-close.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Use explicit registration ownership and try/finally from the first local mutation. Cancel the prior socket by job or a nonblocking close signal. Attach and detach registry rows using a socket/attachment incarnation so cleanup cannot erase a successor; monitor and await required publication before announcing connection success.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "8865d82d8a5c1ca25a9297130dbc08ed7eb08720",
       "4c85efc8b54b2cb677540f42f20ae57f51af46a1"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F29-runtime.md",
     "regression": "InMemorySessionGatewayStoreTest; RegistryIncarnationTest; RegistrySessionGatewayDiscoveryTest; SessionAtomicityTest; SessionAttachFailureTest; SessionHeartbeatTest; SessionOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F30",
@@ -799,16 +857,18 @@
     "problem": "OwnerLifecycle acquires only initially or for shards whose map owner changed, then records the map even when acquire returned null. Reconciliation of the same map cannot acquire a missing lease, and a failed/expired lease is not restored independently. PostgreSQL advisory locks cannot preempt a live old holder merely because the desired epoch is higher, so a normal handoff race can leave the new owner unavailable indefinitely.",
     "evidence": [
       "Reproduced by deniedLeaseIsNeverRetriedAtTheSameMap: deny the first acquire, later allow it, reconcile the same map, and observe one attempt and zero held leases.",
-      "docs/review/F30-runtime.md"
+      "docs/review/F30-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Continuously reconcile desired shards against actual valid leases, with bounded retry and cancellation on topology change. Make ownership state and retry failures observable. Test the real advisory-lock handoff protocol rather than relying only on the in-memory coordinator's stronger preemption behavior.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "2e3a03dbc4a9ca35f3f42f6ceafae9c56b29671b"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F30-runtime.md",
     "regression": "OwnerLifecycleTest; OwnerRecoveryTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F31",
@@ -822,16 +882,18 @@
     "problem": "ClusterContext defaults roomKeyspaces to only zero, and BlueprintV does not override that list. With a real ownership coordinator, writes to nonzero keyspaces have no maintained lease and can be redirected back toward the same node indefinitely. Even if more leases are configured, room-wide locks and agents span keyspaces while ring ownership splits them; room-wide authority changes and atomic batches can require coordination across different owners.",
     "evidence": [
       "Confirmed by production wiring and RingRoomOwnership's leaseFor(keyspace, shard) gate. This applies to the retained ring mode; claim mode intentionally owns an entire room and avoids the keyspace split.",
-      "docs/review/F31-runtime.md"
+      "docs/review/F31-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Make the supported ownership unit match the authority unit. Prefer whole-room claim ownership for room locks, batches, and agents. If ring mode remains supported, wire its actual keyspace set and define how room-wide operations are serialized across those shards, or reject unsupported combinations explicitly.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "bb99a0c3428b028c5c0ac1aa14772d321d6ef819"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F31-runtime.md",
     "regression": "OwnerLifecycleTest; RoomOwnershipTest; ShardCountReshardTest; WholeRoomOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F32",
@@ -847,16 +909,18 @@
     "problem": "The shutdown hook closes coordination and calls component.stop before stopping the public listener. component.stop releases shard leases or claim rows first, then cancels workers and closes dispatchers without awaiting all work. A successor can acquire authority while an existing handler continues on this node; the listener can still admit requests during part of that interval. This amplifies the missing commit fence in F08. ClaimJdbcPool.close also treats a successfully received null slot as an empty channel and stops draining: a normal partially initialized queue such as [null, openConnection] leaves the connection unclosed.",
     "evidence": [
       "Confirmed by the shutdown order. stopAndRelease also cancels its renewal job without joining before deleting rows, permitting an in-flight renewal or publication to overlap release.",
-      "docs/review/F32-runtime.md"
+      "docs/review/F32-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "First reject new traffic and mark the component draining; then stop claiming work, cancel or finish handlers and join worker/renewal jobs. Release ownership only after authoritative work has stopped, then close providers, dispatchers, stores, and transports. Use one suspending shutdown path with bounded grace and preserve commit fencing as the final defense. Drain nullable pool slots by checking ChannelResult success separately from its nullable value, and await or close borrowed connections under a defined policy.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "5c2755b153db42588524e4f2e3a4bd59cd315d42"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F32-runtime.md",
     "regression": "ClaimRenewalServiceTest; ClaimResourceDrainTest; InMemorySessionGatewayStoreTest; RegistryIncarnationTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F33",
@@ -876,10 +940,12 @@
       "docs/review/F33-connector.md",
       "docs/review/F33-runtime.md",
       "docs/review/F33-inbox-receipts.md",
-      "docs/review/F33-pending-stream-deliveries.md"
+      "docs/review/F33-pending-stream-deliveries.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Define deduplication and idempotency horizons before pruning ACKs, receipts, or tombstones. Add indexed due-work/head-of-room queries with bounded results and safe row claims instead of full scans under a global lock. Use observer reference counts and lock entry lifetimes, bound or coalesce persisted-intent wakeups, and measure backlog age, query size, lock wait, active jobs, and storage growth.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "0457e0d8179884b696e435af1cedac5871303ced",
       "abc27633d1e135088ebbb731ad39a41485b3f46d",
@@ -890,7 +956,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F33-connector.md, docs/review/F33-runtime.md",
     "regression": "DeliveryFrameBoundsTest; GatewayAdmissionTest; InboxDeliveryReceiptTest; InboxReceiptPersistenceTest; PushQuotaPgTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F34",
@@ -906,17 +972,19 @@
     "evidence": [
       "Confirmed by the inbox event shape and reconstruction. Existing simple codec tests do not exercise a context-dependent codec through persistence and session replay.",
       "docs/review/F34-notification-metadata.md",
-      "docs/review/F34-inbox-in-memory-isolation.md"
+      "docs/review/F34-inbox-in-memory-isolation.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Persist and replay the metadata that is part of the codec contract, or explicitly narrow encode/decode context to values guaranteed on both sides. Version storage/wire changes as needed. Test context-dependent authentication and transformation through both live and offline delivery.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "85533853052cd3b8af29b88780bb315afcbca52d",
       "4b36827678e3ef542f3c9d824b6305fb074d4068"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F34-notification-metadata.md",
     "regression": "BroadcastServiceTest; SessionAtomicityTest; SessionInboxMetadataPersistenceTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes; InboxByteAdmissionTest mutable result/lookup isolation",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F35",
@@ -931,17 +999,19 @@
     "evidence": [
       "Confirmed by the broadcast event shape and the notification branch. A caller using Stream directly can observe raw events; the standard LockersClient API cannot consume these broadcast notifications.",
       "docs/review/F35-connector.md",
-      "docs/review/F35-runtime.md"
+      "docs/review/F35-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Expose a session-level event/notification Flow with explicit room notification and broadcast variants. Decode and acknowledge each variant under a documented delivery policy. Keep locker-scoped codecs scoped, and provide a separate broadcast codec context rather than inventing a locker identity.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "60533196ea820486f02ce0d8f70ad5bea89943c4",
       "a5131b73f45951adf448b93ff054581bce01f95f"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F35-connector.md",
     "regression": "BroadcastShapeTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F36",
@@ -959,10 +1029,12 @@
       "docs/review/F36-connector.md",
       "docs/review/F36-server-peer-ownership.md",
       "docs/review/F36-forwarding-runtime.md",
-      "docs/review/F36-ring-public-session.md"
+      "docs/review/F36-ring-public-session.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Make address adaptation an explicit platform transport contract and add real transport tests for bare, HTTP, HTTPS, and redirected endpoints. Namespace room/session routing keys, including keyspace if ring mode requires it. Serialize client creation or close losing instances, and provide bounded cache/resource disposal.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "d771d62f3dabfc1785604651d63a8d1b74956b74",
       "8c4b7c52feedde67150f48a50698098486641b74",
@@ -973,7 +1045,7 @@
     ],
     "reproduction": "ReviewRoutingOwnershipTests: real bare/full HTTP destination failed before address normalization; PublicForwardingRecoveryTest: private forward failure/NOT_OWNER poisoned public route before fix. Red/green linked in issue notes.",
     "regression": "ReviewRoutingOwnershipTests; PeerConnectionOwnershipTest; PublicForwardingRecoveryTest (six actual HTTP tests); ReviewTerminalProtocolTests; RingPublicSessionRecoveryTest; PublicSessionAddressContractTest",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F37",
@@ -990,10 +1062,12 @@
       "Confirmed by the source receipt, replay branch, and synchronous post-commit hook. Avoiding blind replay is intentional and protects an at-most-once extension; the unresolved gap is how pending work reaches a final state.",
       "docs/review/F37-connector.md",
       "docs/review/F37-integration-fixtures.md",
-      "docs/review/F37-runtime.md"
+      "docs/review/F37-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Define agent completion as a first-class durable workflow with a completion/status Flow. Give recoverable agents immutable request identity and an idempotent effect/derived-write contract before permitting replay. For arbitrary non-idempotent extensions, expose an explicit indeterminate outcome and reconciliation hook. Always preserve the committed source result, as required by F11.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "4f437d68e0f515574b0b50f99c72c03ec3e04131",
       "45a96a6d4cf35b968658cf3d9918bd715b2db1b0",
@@ -1001,7 +1075,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F37-connector.md",
     "regression": "AgentRecoveryTest; DeliveryLatencyTest; PersistedEnvelopeValidationTest; RequestPreflightTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F38",
@@ -1031,10 +1105,12 @@
       "docs/review/F38-snapshot-paging.md",
       "docs/review/F38-write-preflight.md",
       "docs/review/F38-bulk-read-memory.md",
-      "docs/review/F38-storage-fetch-budget.md"
+      "docs/review/F38-storage-fetch-budget.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Validate canonical IDs, key encodings, known scopes, supported envelopes, versions, and complete encoded sizes at the trust boundary. Reject invalid public-keyed room encodings explicitly. Bound recipients, sessions, notification bytes, and global admission/storage consumption, and paginate snapshots/inbox replay with stable cursor semantics. Return precise protocol errors rather than poisoning persisted state or throwing decoder exceptions.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "4cc7cea70ee450959500c181363baf79e500d3cf",
       "c8e89e10346b773481efd8c43b1b14f569cd8d1c",
@@ -1062,7 +1138,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F38-boundaries.md, docs/review/F38-claim-capacity.md",
     "regression": "BoundaryAuthorityTest; CpuAdmissionBoundaryTest; GatewayAdmissionTest; GeneratedDecodeAllocationTest; InboxReplayPagingTest; LockVerifierTest; NamespaceAdmissionPgTest; NamespaceAdmissionTest; ResourceAdmissionTest; ResponseBoundaryTest; RoomIdentityAdmissionTest; SessionAdmissionFailureContractTest; SessionFrameBoundaryTest; SnapshotPagingTest; StorageAdoptionTest; actual red/green evidence in linked issue notes; StorageFetchBudgetTest",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F39",
@@ -1089,7 +1165,9 @@
       "docs/review/integration-checkpoint.md",
       "docs/review/F39-released-mode-gate.md",
       "docs/review/F26-archive-migration.md",
-      "docs/review/F43-storage-platforms.md"
+      "docs/review/F43-storage-platforms.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Complete the dependency publication/version transition and verify released-mode resolution before release. Preserve isolated workspace repositories while allowing toolchain distribution resolution. Pin and provision the same generator in local, CI, and container builds; include all generator/compiler inputs in caching. Move portable protocol/reducer tests to commonTest and add real platform storage/transport tests plus Fullhouse consumer checks for affected variants.",
     "status": "partial",
@@ -1109,11 +1187,15 @@
       "83aa6370f3d98095dd3f5d377a47df2658b136fe",
       "7f32cb74048ecaa96cda7738f59e1ec15e1603bf",
       "ef528af5a67e12144ab61ef850566d0b1cecc72d",
-      "4bb5ea4ad2bca00fc67078aef9cceeeffb7e7db2"
+      "4bb5ea4ad2bca00fc67078aef9cceeeffb7e7db2",
+      "fe7ec2425b806efb3331453ea9ccc0e9fd73dfcf",
+      "4441ef9dc05b2afc023caedc45759b0182125353",
+      "93fde6d80ba6dac1d162cfd61efa059e848656a0",
+      "4bec125d70d2b7b4e78b23bf4afac71cfe4bef60"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F39-build.md, docs/review/F39-historical-schema.md, docs/review/F39-source-project-pins.md",
     "regression": "NamespaceAdmissionPgTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit. Released-mode connector/server was rechecked atfe7ec24 and still cannot resolve public ktstore-library0.2.0. Complete the separate coordinated public release/generator transition and rerun without workspace pins before closing F39."
   },
   {
     "id": "F40",
@@ -1126,16 +1208,18 @@
     "problem": "PostgresShardMapSource.bind calls its first refresh outside the retrying loop. A transient database or table-read failure on that call ends the job permanently. Later database recovery cannot restart polling. BlueprintV readiness checks only database connectivity, so it can return ready while the router stays on its synthetic bootstrap map and never adopts control-plane updates.",
     "evidence": [
       "Confirmed by the unguarded first refresh, subsequent loop, and database-only readiness predicate. This concerns ring mode; claim ownership has a different coordination source.",
-      "docs/review/F40-runtime.md"
+      "docs/review/F40-runtime.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Put initial loading and later refreshes in the same cancellation-aware recovery pipeline. Publish Loaded, Retrying, and Failed/stale source state alongside the map, and derive readiness from the required initial load and its freshness policy. Test an initial read failure followed by recovery without a membership change.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "1ff4c46b94993d7c438e5ea55a16184dd987fc54"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F40-runtime.md",
     "regression": "PostgresShardMapSourceTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F41",
@@ -1149,17 +1233,19 @@
     "problem": "The server application resolves PostgreSQL JDBC 42.7.3, while the library graph alone resolves 42.3.1 through the workspace ktstore dependency. Both are in the affected range for the SCRAM authentication CPU-exhaustion advisory fixed in 42.7.11. Exploitation requires SCRAM and a malicious or impersonated database endpoint; loginTimeout does not necessarily stop the worker's CPU work. [Maintainer SCRAM advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-98qh-xjc8-98pq)\n\nThe library's 42.3.1 also predates the fix for CVE-2024-1597. That SQL injection requires non-default simple query mode and a specific user-controlled negated numeric/string query pattern. The application override to 42.7.3 contains that fix, and this review does not establish an exploitable default SQL path. [Maintainer SQL injection advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-24rp-q3w6-vc56)\n\nNetty resolves a mix of 4.1.104.Final modules, including HTTP/2, and 4.1.116.Final core/handler modules. The HTTP/2 version falls in the range for a maintained server frame-flood advisory; this service uses CIO for its public listener and Netty for outgoing dependencies, so the server-side advisory is not evidence of an exposed Netty HTTP/2 listener here. [Maintainer HTTP/2 advisory](https://github.com/netty/netty/security/advisories/GHSA-w9fj-cfpg-grvv)",
     "evidence": [
       "Established from both resolved Gradle runtime graphs and the maintainers' affected-version/condition statements. The graph also resolves coroutines core 1.10.1 despite the catalog's 1.9.0 request; review and test the resolved versions rather than assuming catalog pins win.",
-      "docs/review/F41-build.md"
+      "docs/review/F41-build.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Update the JDBC dependency at its owning library boundary and retain an appropriate application constraint, using a currently patched supported release that covers applicable advisories. Align related Netty modules and update their parent dependencies with protocol tests. Add resolved-artifact advisory checks with documented reachability conditions; do not treat every transitive advisory as an exploitable application defect.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "c22369681e1a64b90823b216710676379b8c52b0",
       "a9d78e30cbf9bfa7c2a61a6028ead02812543d9d"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F41-build.md",
     "regression": "NetworkDependencyContractTest; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F42",
@@ -1177,10 +1263,12 @@
       "Confirmed against current build configuration, LICENSE, README, and POM properties. The licensing discrepancy is a factual metadata inconsistency; this review does not choose a license on the owner's behalf.",
       "docs/review/F42-build.md",
       "docs/review/F42-connector.md",
-      "docs/review/F42-generated-model-contracts.md"
+      "docs/review/F42-generated-model-contracts.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Align README and publication metadata with the intended current contract, including lock semantics, read access, delivery modes, supported targets, and extension trust. Adopt a reviewed static-analysis baseline and enforce important checks over actual KMP source sets. Document transform purity/retry behavior; the single-write retry path currently reevaluates transform and codecs even when reusing a frozen submitted request. Publish exact canonical signing vectors and correct the length-prefix specification.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "008d5d309ff2b151e87edd1ac8095b6669985800",
       "91e672c27fca3b01c63fc34e9a834472d8990a80",
@@ -1196,11 +1284,14 @@
       "31aba202a57cb00f3c0237c0730e870e04560a69",
       "5c3e9012c2b20dcca1807e5c7da82c6020b0ea41",
       "22266765b6de13fe742347ca6675a2a43d66e708",
-      "6c41d579897ed73f324fbf9df200c38e0d7c727e"
+      "6c41d579897ed73f324fbf9df200c38e0d7c727e",
+      "00a0990f61a6f655b26cc02913bed90a04dc789b",
+      "0cf5393376b9cf5e2fc96141cf44ff5b409a07dd",
+      "3db7fefd45686d80607ecd689e1545d21cfb283f"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F42-build.md, docs/review/F42-connector.md",
     "regression": "GeneratedEqualityContractTest; PackedEnumGeneratorContractTest; ReviewAuthorityV2Tests; actual red/green evidence in linked issue notes",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F43",
@@ -1218,10 +1309,12 @@
       "docs/review/F43-runtime.md",
       "docs/review/F43-connector.md",
       "docs/review/F43-storage-platforms.md",
-      "docs/review/evidence/F43-lock-order/test-counts.json"
+      "docs/review/evidence/F43-lock-order/test-counts.json",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Add signed durable intent revisions, atomic server monotonic comparison and retained unsubscribe tombstones, binding ordinary and snapshot paths. Preserve legacy wire and frozen schemas through additive negotiated support.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "4da978d549d5637ac24e72982a0f070c8296234f",
       "e202cc91ef5d1e3b161a7ee547365331ecd250a7",
@@ -1236,7 +1329,7 @@
     ],
     "reproduction": "SubscriptionHttpOrderingTest: actual HTTP late old subscribe restored the revoked subscription, baseline assertion failure",
     "regression": "SubscriptionHttpOrderingTest; SubscriptionIntentBoundaryTest; SubscriptionIntentStoreTest; SubscriptionIntentPgTest; ReviewSubscriptionRevisionTests; ReviewSubscriptionRevisionPersistenceTests; shared persistent V7 contracts",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   },
   {
     "id": "F44",
@@ -1251,16 +1344,20 @@
       "docs/review/F44-authority-establishment.md",
       "docs/review/evidence/F44-consumer-red/TEST-gg.roll.viewmodel.core.OnboardingViewModelTests.xml",
       "docs/review/evidence/F44-consumer-red/gradle.log",
-      "docs/review/F44-sdk-authority-repair.md"
+      "docs/review/F44-sdk-authority-repair.md",
+      "docs/review/final-source-verification.md",
+      "docs/review/F39-final-consumer.md"
     ],
     "fix": "Bound authority-only reconciliation for a definitive first rejection when current authority still uses the original owned key. Preserve encoded payload/notification and transform purity; use a fresh write identity for changed signed bytes. Never re-sign or rebase an outcome-uncertain request, weaken epoch checks, silently adopt another key, or discard a pending ratchet key. Retain finite retry budgets.",
-    "status": "partial",
+    "status": "complete",
     "commits": [
       "0ec6f150a87f554e37d7ef89a3dc3bc6d22798a3",
-      "95ede873e41e699de57a92e51bb34c248b49f7a3"
+      "95ede873e41e699de57a92e51bb34c248b49f7a3",
+      "4441ef9dc05b2afc023caedc45759b0182125353",
+      "4bec125d70d2b7b4e78b23bf4afac71cfe4bef60"
     ],
     "reproduction": "Actual Fullhouse onboarding epoch-zero discovery races same-key ROOM establishment; minimal consumer1/1 fails. Valid SDK baseline8 executions/3 failures: ROOM and KEYSPACE races plus missing repair budget.",
     "regression": "ReviewAuthorityDriftTests8; ReviewConsumerSignedWritesTests2; AuthorityRepairPortabilityTest2. Frozen payload/notification, one transform/codec, fresh IDs, scope-local counters, ambiguous/ratchet guards, finite repair budget.",
-    "verification": "Focused JVM29 and actual Node6/Apple9/Chrome9/Android9 passed with zero failures/errors/skips; Android production compilation passed. Whole JVM, independent F44 verifier and new immutable publication/actual Fullhouse consumer gates in progress."
+    "verification": "Final production source-equivalent to immutable publisher00a0990:627 forced JVM executions passed (SDK209, server359;2 optional load drivers separately executed), required PostgreSQL, host compile and resolved runtime security passed;73 applicable actual Node/Chrome/Apple/Android executions passed; all10 static modules passed. Final fixture-only gate78 passed. Available Codex independent review33 previous final-source tests and29 F44-repeat tests accepted no new confirmed source blocker; first timeout/failures are retained, not erased. Fullhouse consumer69 JVM executions passed with1 pre-existing ignore, plus Android compile/JS distribution/Apple link; immutable4-group artifacts/checksums verified. F39 public-release prerequisite and separate consumer confidentiality debt remain explicit."
   }
 ]
