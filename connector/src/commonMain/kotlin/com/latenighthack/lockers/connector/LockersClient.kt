@@ -48,6 +48,11 @@ class LockersClient private constructor(
     val subscriptionFailures: StateFlow<Map<com.latenighthack.lockers.common.v1.RoomId, Throwable>> get() = stream.subscriptionFailures
     val subscriptionFailure: StateFlow<Throwable?> get() = stream.subscriptionFailure
 
+    val ratchetRecoveryFailures: StateFlow<List<RatchetRecoveryFailure>> get() = lockers.ratchetRecoveryFailures
+    suspend fun acknowledgeRatchetSourceUncertainty(roomId: com.latenighthack.lockers.common.v1.RoomId,
+        lockerId: com.latenighthack.lockers.common.v1.LockerId, writeRequestId: ByteArray) =
+        lockers.acknowledgeRatchetSourceUncertainty(roomId, lockerId, writeRequestId)
+
     /** Suspends until the stream connects at least once. */
     suspend fun awaitConnected() {
         stream.awaitConnected()

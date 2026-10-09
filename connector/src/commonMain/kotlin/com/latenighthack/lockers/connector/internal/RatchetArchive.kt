@@ -1,6 +1,7 @@
 package com.latenighthack.lockers.connector.internal
 
 import com.latenighthack.ktstore.*
+import kotlinx.coroutines.flow.*
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.canonical
 import com.latenighthack.lockers.room.v1.fromByteArray
@@ -32,7 +33,15 @@ object RatchetArchiveDefinitionV1 : StoreDefinition<ArchivedRatchet>(StoreName("
     val roomPublicKey = compositeIndex(IndexName("room_public_key"), room, publicKey)
 }
 internal class RatchetArchive(private val database: Database) : Store<ArchivedRatchet>(database, RatchetArchiveDefinitionV1) {
-    suspend fun archives(): List<ArchivedRatchet> { prepare(); return getAll() }
+    fun entries(): Flow<ArchivedRatchet> = flow {
+        prepare(); var after: LocalContinuation? = null
+        do {
+            val page = database.query(RatchetArchiveDefinitionV1.storeName, IndexedQuery(RatchetArchiveDefinitionV1.room.key, 1, after = after))
+            page.records.forEach { emit(decodeArchive(if (it is ArchivedRatchet) encodeArchive(it) else it as ByteArray)) }
+            after = page.continuation
+        } while (after != null)
+    }
+    suspend fun archives(): List<ArchivedRatchet> = entries().toList()
     suspend fun hasRoom(room: RoomId): Boolean { prepare(); return get(RatchetArchiveDefinitionV1.room.eq(room.rawValue)) != null }
     suspend fun put(value: ArchivedRatchet) {
         prepare(); database.transaction("connector-ratchet") {

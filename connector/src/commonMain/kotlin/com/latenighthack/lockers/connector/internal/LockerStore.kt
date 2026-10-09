@@ -25,6 +25,9 @@ interface LockerStore {
     fun liveChanges(): kotlinx.coroutines.flow.Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable change journal required")
 
     suspend fun pendingRatchets(): List<PendingRatchet> = emptyList()
+    fun pendingRatchetsFlow(): kotlinx.coroutines.flow.Flow<PendingRatchet> = kotlinx.coroutines.flow.flow { pendingRatchets().forEach { emit(it) } }
+    fun archivedRatchetsFlow(): kotlinx.coroutines.flow.Flow<ArchivedRatchet> = kotlinx.coroutines.flow.flow { archivedRatchets().forEach { emit(it) } }
+    suspend fun acknowledgeRatchetUncertainty(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest): Unit = throw UnsupportedOperationException("Durable uncertainty acknowledgment required")
     suspend fun saveRatchet(value: PendingRatchet): Unit = throw UnsupportedOperationException("Durable ratchet journal required")
     suspend fun clearRatchet(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest): Unit = throw UnsupportedOperationException("Durable ratchet journal required")
 
@@ -72,6 +75,9 @@ class LockerStoreImpl(private val database: Database, private val policy: com.la
     }
     private val ratchetJournal = RatchetJournal(database)
     override suspend fun pendingRatchets() = ratchetJournal.pending()
+    override fun pendingRatchetsFlow() = ratchetJournal.entries()
+    override fun archivedRatchetsFlow() = archive.entries()
+    override suspend fun acknowledgeRatchetUncertainty(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest) = ratchetJournal.acknowledge(request)
     override suspend fun saveRatchet(value: PendingRatchet) = ratchetJournal.put(value)
     override suspend fun clearRatchet(request: com.latenighthack.lockers.room.v1.PostLockerChangeRequest) = ratchetJournal.remove(request)
     private val roomIdKey = LockerStoreImplDefinitionV1.roomIdKey

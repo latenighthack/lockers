@@ -5,6 +5,7 @@ import com.latenighthack.ktbuf.proto.Codes
 import com.latenighthack.ktcrypto.*
 import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.common.v1.*
+import com.latenighthack.lockers.common.LockerSigning
 import com.latenighthack.lockers.connector.*
 import com.latenighthack.lockers.connector.internal.*
 import com.latenighthack.lockers.room.v1.*
@@ -60,12 +61,28 @@ class ReviewExpiredRatchetTests {
             laterClient.updateLocker(room, id) { byteArrayOf(9) }
             val recovered = reviewClient(server.ownedRpcClient, source, database).also { replacement = it }
             recovered.start()
-            withTimeout(5_000) { while (LockerStoreImpl(database).pendingRatchets().isNotEmpty()) delay(10) }
+            withTimeout(5_000) { while (!active.publicKey.encode().contentEquals(rotated.publicKey.encode())) delay(10) }
+            assertEquals(1, LockerStoreImpl(database).pendingRatchets().size, "authority proves key validity, never the original source write")
             assertContentEquals(rotated.publicKey.encode(), active.publicKey.encode(), "expired receipt discarded the only new private key")
             val cached = recovered.getAllKnownLockers().single()
             assertEquals(2L, cached.version)
             assertContentEquals(byteArrayOf(9), cached.payload)
-            recovered.updateLocker(room, id) { byteArrayOf(10) }
+            var rerun = 0
+            val unknown = assertFailsWith<RatchetRecoveryUnresolvedException> { recovered.updateLocker(room, id) { rerun++; byteArrayOf(10) } }
+            assertTrue(unknown.authorityRecovered); assertEquals(2L, unknown.observedVersion); assertEquals(0, rerun)
+            assertFailsWith<IllegalArgumentException> { recovered.acknowledgeRatchetSourceUncertainty(room, id, ByteArray(32)) }
+            recovered.acknowledgeRatchetSourceUncertainty(room, id, pending.request.writeRequestId)
+            assertTrue(LockerStoreImpl(database).pendingRatchets().single().expectation!!.sourceUncertaintyAcknowledged)
+            recovered.updateLocker(room, id) { assertContentEquals(byteArrayOf(9), it); byteArrayOf(10) }
+            assertEquals(3L, recovered.getAllKnownLockers().single().version)
+            recovered.closeAndJoin(); active = old
+            val reopened = reviewClient(server.ownedRpcClient, source, database).also { replacement = it }
+            reopened.start()
+            withTimeout(5_000) { while (!active.publicKey.encode().contentEquals(rotated.publicKey.encode())) delay(10) }
+            assertEquals(1, LockerStoreImpl(database).pendingRatchets().size)
+            assertTrue(LockerStoreImpl(database).archivedRatchets().isEmpty())
+            assertEquals(3L, reopened.getAllKnownLockers().single().version)
+            assertContentEquals(byteArrayOf(10), reopened.getAllKnownLockers().single().payload)
         } finally { first.closeAndJoin(); replacement?.closeAndJoin(); later?.closeAndJoin(); database.close() }
     } }
 
@@ -123,18 +140,150 @@ class ReviewExpiredRatchetTests {
             override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) { active = newKeyPair }
         }, database)
         try {
-            val failure = assertFailsWith<RatchetReceiptUnavailableException> { client.updateLocker(room, id, ratchet = true) { transforms++; byteArrayOf(3) } }
+            val failure = assertFailsWith<RatchetRecoveryUnresolvedException> { client.updateLocker(room, id, ratchet = true) { transforms++; byteArrayOf(3) } }
             assertEquals(2, calls); assertEquals(1, transforms)
-            assertEquals(1L, failure.version); assertEquals(listOf(WriteSourceVersion(id, 1)), failure.sourceVersions)
+            assertFalse((failure as Throwable) is LockerSourceCommittedException)
             assertContentEquals(submitted!!.writeRequestId, failure.writeRequestId)
             assertContentEquals(submitted!!.ratchet!!.newPublicKey!!.rawValue, active.publicKey.encode())
-            assertTrue(LockerStoreImpl(database).pendingRatchets().isEmpty())
-            assertEquals(LockScopeKind.LOCK_SCOPE_ROOM, LockerStoreImpl(database).archivedRatchets().single().scope.kind)
-            assertEquals(listOf(LockScopeKind.LOCK_SCOPE_ROOM, LockScopeKind.LOCK_SCOPE_KEYSPACE, LockScopeKind.LOCK_SCOPE_LOCKER), scopes)
+            assertEquals(1, LockerStoreImpl(database).pendingRatchets().size)
+            assertTrue(LockerStoreImpl(database).archivedRatchets().isEmpty())
+            assertEquals(1, scopes.size); assertEquals<LockScopeKind>(LockScopeKind.LOCK_SCOPE_ROOM, scopes.single())
             assertEquals(9L, client.getAllKnownLockers().single().version)
             assertContentEquals(byteArrayOf(9), client.getAllKnownLockers().single().payload)
         } finally { client.closeAndJoin(); database.close() }
     }
+
+    @Test fun `proposed public key in a different scope cannot certify the original authority`() = runBlocking {
+        val room = RoomId(byteArrayOf(41)); val id = LockerId(byteArrayOf(42), LockerKeyspace(0))
+        val original = LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER, keyspace = id.keyspace, lockerRawValue = id.rawValue)
+        val old = Secp256r1KeyPair.generate(); var active = old; var submitted: PostLockerChangeRequest? = null; var calls = 0
+        val database = ConnectorStorage.inMemory()
+        val oldState = LockState(locked = true, scope = original, lockVersion = 1, publicKey = Secp256R1Key.PublicKey(old.publicKey.encode()))
+        val client = reviewClient(ReviewRpc { method, bytes -> when (method.methodName) {
+            "Capabilities" -> CapabilitiesResponse(writeReceipts = true, authorityV2 = true).toByteArray()
+            "GetLocker" -> GetLockerResponse(locker = IdentifiedLocker(id, lockState = oldState)).toByteArray()
+            "GetLockScope" -> {
+                val scope = requireNotNull(GetLockScopeRequest.fromByteArray(bytes).scope)
+                GetLockScopeResponse(scopeState = if (scope.kind == LockScopeKind.LOCK_SCOPE_ROOM)
+                    LockState(locked = true, scope = scope, lockVersion = 2, publicKey = submitted!!.ratchet!!.newPublicKey) else oldState).toByteArray()
+            }
+            "PostLockerChange" -> { submitted = PostLockerChangeRequest.fromByteArray(bytes); calls++
+                if (calls == 1) throw RpcResponseException("test", "POST", Codes.UNAVAILABLE, "reply lost")
+                PostLockerChangeResponse(result = PostLockerChangeResponse.Result.SIGNATURE_INVALID).toByteArray() }
+            else -> error(method.methodName)
+        } }, object : LockKeySource {
+            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = active
+            override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) { active = newKeyPair }
+        }, database)
+        try {
+            assertFailsWith<RatchetRecoveryUnresolvedException> { client.updateLocker(room, id, ratchet = true) { byteArrayOf(3) } }
+            assertContentEquals(old.publicKey.encode(), active.publicKey.encode())
+            assertEquals(1, LockerStoreImpl(database).pendingRatchets().size)
+            assertTrue(LockerStoreImpl(database).archivedRatchets().isEmpty())
+        } finally { client.closeAndJoin(); database.close() }
+    }
+
+    @Test fun `a failing first recovery does not starve later intents or archives and eventually retries`() = runBlocking {
+        val database = ConnectorStorage.inMemory(); database.open(); val store = LockerStoreImpl(database)
+        val old = Secp256r1KeyPair.generate()
+        val pairs = (1..3).associateWith { Secp256r1KeyPair.generate() }
+        val active = java.util.concurrent.ConcurrentHashMap<Int, Secp256r1KeyPair>()
+        suspend fun pending(n: Int): PendingRatchet = PendingRatchet(PostLockerChangeRequest(roomId = RoomId(byteArrayOf(n.toByte())),
+            lockerId = LockerId(byteArrayOf(1), LockerKeyspace(0)), locker = Locker(open = Locker.OpenLocker(byteArrayOf(n.toByte()))),
+            writeRequestId = ByteArray(32) { n.toByte() }, writeSignature = Signature(publicKey = Secp256R1Key.PublicKey(old.publicKey.encode())),
+            ratchet = PostLockerChangeRequest.Ratchet(newPublicKey = Secp256R1Key.PublicKey(pairs.getValue(n).publicKey.encode()))), pairs.getValue(n).privateKey.encode())
+        suspend fun state(n: Int) = LockState(locked = true, scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER,
+            keyspace = LockerKeyspace(0), lockerRawValue = byteArrayOf(1)), lockVersion = 2, publicKey = Secp256R1Key.PublicKey(pairs.getValue(n).publicKey.encode()))
+        store.saveRatchet(pending(1)); store.saveRatchet(pending(2)); store.archiveRatchet(ArchivedRatchet(pending(3), state(3), 1))
+        val reachable = java.util.concurrent.atomic.AtomicBoolean(false)
+        val client = reviewClient(ReviewRpc { method, bytes -> when (method.methodName) {
+            "Capabilities" -> CapabilitiesResponse(writeReceipts = true, authorityV2 = true).toByteArray()
+            "PostLockerChange" -> { val n = PostLockerChangeRequest.fromByteArray(bytes).roomId!!.rawValue[0].toInt()
+                if (n == 1 && !reachable.get()) throw RpcResponseException("test", "POST", Codes.UNAVAILABLE, "temporarily unreachable")
+                PostLockerChangeResponse(version = 1, lockState = state(n)).toByteArray() }
+            "GetLockScope" -> GetLockScopeResponse(scopeState = state(GetLockScopeRequest.fromByteArray(bytes).roomId!!.rawValue[0].toInt())).toByteArray()
+            else -> error(method.methodName)
+        } }, object : LockKeySource {
+            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = active[roomId.rawValue[0].toInt()] ?: old
+            override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) { active[roomId.rawValue[0].toInt()] = newKeyPair }
+        }, database)
+        try {
+            client.start()
+            withTimeout(1_500) { while (active[2] == null || active[3] == null) delay(10) }
+            assertEquals(1, store.pendingRatchets().size)
+            withTimeout(1_500) { while (client.ratchetRecoveryFailures.value.isEmpty()) delay(10) }
+            val failure = client.ratchetRecoveryFailures.value.single()
+            assertContentEquals(ByteArray(32) { 1 }, failure.writeRequestId)
+            failure.writeRequestId.fill(0); failure.roomId.rawValue.fill(0)
+            assertContentEquals(ByteArray(32) { 1 }, failure.writeRequestId)
+            assertContentEquals(byteArrayOf(1), failure.roomId.rawValue)
+            assertEquals("RECOVERY_FAILED", failure.reason)
+            reachable.set(true)
+            withTimeout(5_000) { while (store.pendingRatchets().isNotEmpty()) delay(10) }
+            assertContentEquals(pairs.getValue(1).publicKey.encode(), active.getValue(1).publicKey.encode())
+            withTimeout(1_500) { while (client.ratchetRecoveryFailures.value.isNotEmpty()) delay(10) }
+        } finally { client.closeAndJoin(); database.close() }
+    }
+
+    @Test(timeout = 20_000)
+    fun `unrelated source write and direct public key grant cannot certify the lost ratchet source`() = runOwnedTestWithServer({
+        attachTestServices()
+    }) { server, _ -> withContext(Dispatchers.Default) {
+        val room = RoomId(byteArrayOf(71)); val id = LockerId(byteArrayOf(72), LockerKeyspace(0))
+        val root = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM)
+        val scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER, keyspace = id.keyspace, lockerRawValue = id.rawValue)
+        val old = Secp256r1KeyPair.generate(); var active = old
+        val source = object : LockKeySource {
+            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = active
+            override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) { active = newKeyPair }
+        }
+        val proposed = CompletableDeferred<PostLockerChangeRequest>()
+        val gated = object : RpcClient by server.ownedRpcClient {
+            override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray): RpcResponse {
+                if (method.methodName == "PostLockerChange") {
+                    val intent = PostLockerChangeRequest.fromByteArray(request)
+                    if (intent.ratchet != null) { proposed.complete(intent); awaitCancellation() } // This source never reaches the server.
+                }
+                return server.ownedRpcClient.unaryCall(method, headers, request)
+            }
+        }
+        val database = ConnectorStorage.inMemory()
+        val first = reviewClient(gated, source, database)
+        val other = reviewClient(server.ownedRpcClient, object : LockKeySource {
+            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = old
+        })
+        var replacement: LockerClient? = null
+        try {
+            assertTrue(first.lockLocker(room, root, old).result.isOk())
+            assertTrue(first.lockLocker(room, scope, old, old).result.isOk())
+            first.updateLocker(room, id) { byteArrayOf(1) }
+            val write = launch { first.updateLocker(room, id, ratchet = true) { byteArrayOf(3) } }
+            val intent = withTimeout(5_000) { proposed.await() }; write.cancelAndJoin(); first.closeAndJoin()
+            other.updateLocker(room, id) { byteArrayOf(9) }
+            assertTrue(other.unlockLocker(room, scope, old, 1).result.isOk())
+            val discovered = other.getLockScope(room, scope)
+            val pub = intent.ratchet!!.newPublicKey!! // Only the public key is used by the unrelated authorized holder.
+            val grant = LockLockerRequest(roomId = room, parentLockVersion = discovered.scopeState!!.lockVersion,
+                grant = LockGrant(scope = scope, publicKey = pub, authorityVersion = discovered.parentState!!.lockVersion,
+                    scopeVersion = discovered.scopeState!!.lockVersion, parentSignature = Signature(
+                        publicKey = Secp256R1Key.PublicKey(old.publicKey.encode()), signingVersion = 2,
+                        signature = old.privateKey.sign(LockerSigning.grantContextV2(room, scope, pub.rawValue,
+                            discovered.parentState!!.lockVersion, discovered.scopeState!!.lockVersion)))))
+            assertTrue(ShardedRoomServiceRpc(server.ownedRpcClient).lockLocker(grant).result.isOk())
+            val recovered = reviewClient(server.ownedRpcClient, source, database).also { replacement = it }
+            recovered.start()
+            withTimeout(5_000) { while (recovered.ratchetRecoveryFailures.value.isEmpty()) delay(10) }
+            assertContentEquals(old.publicKey.encode(), active.publicKey.encode(), "a different epoch cannot certify the expected transition")
+            assertEquals(1, LockerStoreImpl(database).pendingRatchets().size, "an unrelated grant must not erase source uncertainty")
+            assertTrue(LockerStoreImpl(database).archivedRatchets().isEmpty())
+            var transforms = 0
+            val unknown = assertFailsWith<RatchetRecoveryUnresolvedException> { recovered.updateLocker(room, id) { transforms++; byteArrayOf(10) } }
+            assertFalse(unknown.authorityRecovered); assertEquals(2L, unknown.observedVersion); assertEquals(0, transforms)
+            assertFalse((unknown as Throwable) is LockerSourceCommittedException)
+            assertContentEquals(byteArrayOf(9), recovered.getAllKnownLockers().single().payload)
+            assertFailsWith<RatchetRecoveryUnresolvedException> { recovered.acknowledgeRatchetSourceUncertainty(room, id, intent.writeRequestId) }
+        } finally { first.closeAndJoin(); other.closeAndJoin(); replacement?.closeAndJoin(); database.close() }
+    } }
 
     private var serverDatabase: Database? = null
 }

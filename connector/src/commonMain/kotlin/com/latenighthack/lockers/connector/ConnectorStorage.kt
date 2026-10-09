@@ -12,7 +12,7 @@ object ConnectorStorage {
         PushRegistrationStoreImplDefinitionV1, SubscriptionStoreImplDefinitionV1,
         SessionStoreImplDefinitionV1, com.latenighthack.lockers.connector.internal.LockerStoreImplDefinitionV1,
     )
-    val definitions: List<StoreDefinition<*>> = listOf(
+    val definitionsV4: List<StoreDefinition<*>> = listOf(
         com.latenighthack.lockers.connector.PushRegistrationStoreImplDefinitionV1,
         com.latenighthack.lockers.connector.SubscriptionStoreImplDefinitionV1,
         com.latenighthack.lockers.connector.SessionStoreImplDefinitionV2,
@@ -24,18 +24,22 @@ object ConnectorStorage {
         AckConfirmationAgeDefinitionV1,
         com.latenighthack.lockers.connector.internal.JournalRetentionDefinitionV1,
     )
+    val definitions: List<StoreDefinition<*>> = definitionsV4 + com.latenighthack.lockers.connector.internal.RatchetExpectationDefinitionV2
     fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()): DatabaseConfiguration {
         val historical = definitionDatabaseConfiguration(identity, definitionsV3 + additional)
+        val previous = (definitionsV4 + additional).map { it.declaration }
         val target = (definitions + additional).map { it.declaration }
-        return historical.copy(version = 4, stores = target, migrations = historical.migrations +
-            DatabaseMigration.configured(3, 4, historical.stores, target) {
+        return historical.copy(version = 5, stores = target, migrations = historical.migrations +
+            DatabaseMigration.configured(3, 4, historical.stores, previous) {
                 rebuildStore(SessionStoreImplDefinitionV1.storeName, SessionStoreImplDefinitionV2.declaration) { bytes ->
                     val row = SessionStoreImplDefinitionV2.encodeRow(SessionStoreImplDefinitionV1.decode(bytes))
                     StoreRow(bytes.copyOf(), row.keys)
                 }
-                for (definition in definitions.filter { it.storeName !in definitionsV3.map { old -> old.storeName } }) {
+                for (definition in definitionsV4.filter { it.storeName !in definitionsV3.map { old -> old.storeName } }) {
                     createStore(definition.declaration)
                 }
+            } + DatabaseMigration.configured(4, 5, previous, target) {
+                createStore(com.latenighthack.lockers.connector.internal.RatchetExpectationDefinitionV2.declaration)
             })
     }
     fun inMemory(identity: String = "ConnectorStorage-test") =

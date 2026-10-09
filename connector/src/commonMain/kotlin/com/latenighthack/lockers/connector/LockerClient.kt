@@ -16,6 +16,7 @@ import com.latenighthack.lockers.common.LockerSigning
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.internal.ArchivedRatchet
 import com.latenighthack.lockers.connector.internal.PendingRatchet
+import com.latenighthack.lockers.connector.internal.RatchetExpectation
 import com.latenighthack.lockers.connector.internal.LockerStore
 import com.latenighthack.lockers.connector.internal.ShardedRoomServiceRpc
 import com.latenighthack.lockers.connector.storage.v1.fromByteArray
@@ -317,18 +318,27 @@ class RatchetAdoptionPendingException(version: Long, cause: Throwable? = null, r
 
 /** The receipt is unavailable and current authority cannot prove this key transition committed.
  * The confidential intent is retained; callers must not blindly resubmit the mutation. */
-class RatchetRecoveryUnresolvedException(roomId: RoomId, writeRequestId: ByteArray, cause: Throwable? = null) :
-    LockerWriteException("Ratchet outcome is unresolved; its private key intent is retained", cause) {
+class RatchetRecoveryUnresolvedException(roomId: RoomId, writeRequestId: ByteArray, cause: Throwable? = null,
+    lockerId: LockerId? = null, val observedVersion: Long? = null, val authorityRecovered: Boolean = false) :
+    LockerWriteException("Ratchet source outcome is unknown; its confidential intent is retained", cause) {
     private val roomBytes = roomId.rawValue.copyOf()
     private val requestBytes = writeRequestId.copyOf()
+    private val lockerBytes = lockerId?.rawValue?.copyOf()
+    private val keyspace = lockerId?.keyspace?.value ?: 0
     val roomId: RoomId get() = RoomId(roomBytes.copyOf())
     val writeRequestId: ByteArray get() = requestBytes.copyOf()
+    val lockerId: LockerId? get() = lockerBytes?.let { LockerId(it.copyOf(), LockerKeyspace(keyspace)) }
 }
 
-/** Authority proves the atomic source/key transition, but the expired receipt cannot report derived work. */
-class RatchetReceiptUnavailableException(version: Long, roomId: RoomId, lockerId: LockerId, writeRequestId: ByteArray) :
-    LockerSourceCommittedException(version, true, "Ratchet source and key committed at version $version; receipt and agent outcome unavailable",
-        roomId = roomId, writeRequestId = writeRequestId, sourceVersions = listOf(WriteSourceVersion(lockerId, version)))
+/** Bounded, detached recovery diagnostics. Contains no private keys, requests, or payloads. */
+class RatchetRecoveryFailure internal constructor(roomId: RoomId, lockerId: LockerId, requestId: ByteArray,
+    val reason: String, val observedVersion: Long?, val authorityRecovered: Boolean) {
+    private val roomBytes = roomId.rawValue.copyOf(); private val lockerBytes = lockerId.rawValue.copyOf()
+    private val keyspace = lockerId.keyspace?.value ?: 0; private val requestBytes = requestId.copyOf()
+    val roomId: RoomId get() = RoomId(roomBytes.copyOf())
+    val lockerId: LockerId get() = LockerId(lockerBytes.copyOf(), LockerKeyspace(keyspace))
+    val writeRequestId: ByteArray get() = requestBytes.copyOf()
+}
 
 class LockerClient(
     rpcClient: RpcClient,
@@ -347,6 +357,8 @@ class LockerClient(
     private val started = MutableStateFlow(false)
     private val sync = LockerSyncCoordinator(processingScope, telemetry)
     private val ratchetAdoption = Mutex()
+    private val recoveryFailures = MutableStateFlow<List<RatchetRecoveryFailure>>(emptyList())
+    val ratchetRecoveryFailures: StateFlow<List<RatchetRecoveryFailure>> = recoveryFailures.asStateFlow()
     private val acceptance = Mutex()
     private class AcceptanceContext(val client: LockerClient) : kotlin.coroutines.AbstractCoroutineContextElement(Key) {
         companion object Key : kotlin.coroutines.CoroutineContext.Key<AcceptanceContext>
@@ -492,8 +504,37 @@ class LockerClient(
         stream.hydrateSubscription = { room, session -> hydrateRoom(room, session) }
         processingScope.launch {
             repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
-                lockerStore.pendingRatchets().forEach { recoverRatchet(it) }
-                lockerStore.archivedRatchets().forEach { restoreArchivedRatchet(it) }; Unit
+                val failures = mutableListOf<RatchetRecoveryFailure>()
+                var retryPending = false
+                lockerStore.pendingRatchetsFlow().collect { pending ->
+                    try { recoverRatchet(pending) }
+                    catch (exhausted: RetryLimitExceeded) {
+                        currentCoroutineContext().ensureActive(); retryPending = true
+                        if (failures.size < 1_024) failures += recoveryFailure(pending, exhausted)
+                    }
+                    catch (cancelled: CancellationException) { throw cancelled }
+                    catch (failure: Exception) {
+                        retryPending = true
+                        if (failures.size < 1_024) failures += recoveryFailure(pending, failure)
+                    }
+                    // Acknowledged unknown source still owns the only recoverable private key.
+                    if (pending.expectation?.sourceUncertaintyAcknowledged == true) retryPending = true
+                }
+                lockerStore.archivedRatchetsFlow().collect { archive ->
+                    try { restoreArchivedRatchet(archive) }
+                    catch (exhausted: RetryLimitExceeded) {
+                        currentCoroutineContext().ensureActive(); retryPending = true
+                        if (failures.size < 1_024) failures += recoveryFailure(archive.pending, exhausted)
+                    }
+                    catch (cancelled: CancellationException) { throw cancelled }
+                    catch (failure: Exception) {
+                        retryPending = true
+                        if (failures.size < 1_024) failures += recoveryFailure(archive.pending, failure)
+                    }
+                }
+                recoveryFailures.value = failures.toList()
+                if (retryPending) retry()
+                Unit
             }
         }
     }
@@ -1022,7 +1063,14 @@ class LockerClient(
         ratchet: Boolean = false,
         transform: suspend (ByteArray) -> ByteArray,
     ): Locker? {
-        lockerStore.pendingRatchets().filter { it.request.roomId?.canonical() == roomId.canonical() && it.request.lockerId?.canonical() == lockerId.canonical() }.forEach { recoverRatchet(it, serialized = true) }
+        var acknowledgedUncertainty = false
+        lockerStore.pendingRatchetsFlow().collect {
+            if (it.request.roomId?.canonical() == roomId && it.request.lockerId?.canonical() == lockerId) {
+                recoverRatchet(it, serialized = true)
+                if (it.expectation?.sourceUncertaintyAcknowledged == true) acknowledgedUncertainty = true
+            }
+        }
+        if (acknowledgedUncertainty) fetchLocker(roomId, lockerId) // New caller write reads actual content/version, never the frozen uncertain body.
         val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
         var currentPlaintext = cached?.toIdentifiedLocker()?.locker?.plaintextPayload() ?: byteArrayOf()
         var parentVersion = cached?.version ?: 0L
@@ -1045,7 +1093,8 @@ class LockerClient(
         val updatedLocker = try {
             repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
                 val request = submitted ?: run {
-                    val authority = if (signingKey != null && caps.authorityV2) currentAuthorityVersion(roomId, lockerId) else 0L
+                    val authorityState = if (signingKey != null && caps.authorityV2) currentAuthorityState(roomId, lockerId) else null
+                    val authority = authorityState?.lockVersion ?: 0L
                     val newPlaintext = transform(currentPlaintext.copyOf())
                     // The builder sees a provisional payload envelope; the final V2 signature binds its encoded notification.
                     val provisional = buildWriteBody(signingKey, roomId, lockerId, parentVersion, newPlaintext)
@@ -1060,7 +1109,12 @@ class LockerClient(
                         this.ratchet = ratchetMsg; this.notification = notif
                     }.let { draft ->
                         val frozen = PostLockerChangeRequest.fromByteArray(draft.toByteArray())
-                        if (pendingRatchetKey != null) lockerStore.saveRatchet(PendingRatchet(frozen, pendingRatchetKey.privateKey.encode()))
+                        if (pendingRatchetKey != null) lockerStore.saveRatchet(PendingRatchet(frozen, pendingRatchetKey.privateKey.encode(),
+                            authorityState?.takeIf { it.locked && it.scope != null && it.lockVersion in 1 until Long.MAX_VALUE &&
+                                it.publicKey?.rawValue?.contentEquals(signingKey?.publicKey?.encode()) == true }?.let {
+                                RatchetExpectation(frozen.writeRequestId.copyOf(), LockState(locked = true, scope = it.scope!!.canonical(),
+                                    lockVersion = it.lockVersion, publicKey = Secp256R1Key.PublicKey(it.publicKey!!.rawValue.copyOf())))
+                            }))
                         submitted = frozen
                         frozen
                     }
@@ -1161,7 +1215,12 @@ class LockerClient(
         val room = requireNotNull(request.roomId).canonical()
         val id = requireNotNull(request.lockerId).canonical()
         suspend fun resolve() {
-            if (lockerStore.pendingRatchets().none { it.request.writeRequestId.contentEquals(request.writeRequestId) }) return
+            val pending = lockerStore.pendingRatchetsFlow().firstOrNull { it.request.writeRequestId.contentEquals(request.writeRequestId) } ?: return
+            if (pending.expectation?.sourceUncertaintyAcknowledged == true) {
+                val uncertainty = recoverRatchetAuthority(pending)
+                if (!uncertainty.authorityRecovered) throw uncertainty
+                return // Explicit ACK skips original source replay, including after provider reset.
+            }
             val response = sync.network { roomService.postLockerChange(request) }
             when (response.result) {
                 is PostLockerChangeResponse.Result.OK -> {
@@ -1177,47 +1236,87 @@ class LockerClient(
                 is PostLockerChangeResponse.Result.UPDATE_LOCAL_VERSION,
                 is PostLockerChangeResponse.Result.SIGNATURE_INVALID,
                 is PostLockerChangeResponse.Result.SIGNATURE_REQUIRED,
-                is PostLockerChangeResponse.Result.NOT_AUTHORIZED -> recoverRatchetAuthority(pending)
+                is PostLockerChangeResponse.Result.NOT_AUTHORIZED -> throw recoverRatchetAuthority(pending)
                 else -> throw IllegalStateException("Unresolved ratchet receipt: ${response.result}")
             }
         }
         if (serialized) resolve() else sync.mutate(room to id.canonical()) { resolve() }
     }
 
+    private fun recoveryFailure(pending: PendingRatchet, failure: Throwable) = RatchetRecoveryFailure(
+        requireNotNull(pending.request.roomId), requireNotNull(pending.request.lockerId), pending.request.writeRequestId,
+        when (failure) {
+            is RatchetRecoveryUnresolvedException -> "SOURCE_OUTCOME_UNKNOWN"
+            is RatchetAdoptionPendingException -> "KEY_ADOPTION_PENDING"
+            is RetryLimitExceeded -> "RETRY_EXHAUSTED"
+            else -> "RECOVERY_FAILED"
+        }, (failure as? RatchetRecoveryUnresolvedException)?.observedVersion,
+        (failure as? RatchetRecoveryUnresolvedException)?.authorityRecovered == true)
+
     private suspend fun resolveRejectedRatchet(request: PostLockerChangeRequest, key: Secp256r1KeyPair): Nothing {
-        recoverRatchetAuthority(PendingRatchet(request, key.privateKey.encode()))
-        throw RatchetReceiptUnavailableException(request.parentVersion + 1, requireNotNull(request.roomId).canonical(),
-            requireNotNull(request.lockerId).canonical(), request.writeRequestId)
+        val pending = lockerStore.pendingRatchetsFlow().firstOrNull { it.request.writeRequestId.contentEquals(request.writeRequestId) }
+            ?: PendingRatchet(request, key.privateKey.encode())
+        throw recoverRatchetAuthority(pending)
     }
 
-    /** Receipt expiry is not proof of rejection. A matching live authority proves the atomic
-     * source/key transition; a different key can hide an ancestor or a later rotation. */
-    private suspend fun recoverRatchetAuthority(pending: PendingRatchet) {
+    /** Exact scope/epoch proves only that the private key is currently usable, never source commit. */
+    private suspend fun recoverRatchetAuthority(pending: PendingRatchet): RatchetRecoveryUnresolvedException {
         val request = pending.request
         val room = requireNotNull(request.roomId).canonical(); val id = requireNotNull(request.lockerId).canonical()
-        val publicKey = requireNotNull(request.ratchet?.newPublicKey).rawValue
-        val state: LockState
+        var observed: Long? = null
+        fun unknown(cause: Throwable? = null, recovered: Boolean = false) =
+            RatchetRecoveryUnresolvedException(room, request.writeRequestId, cause, id, observed, recovered)
         try {
-            val caps = capabilities()
             val current = sync.network { roomService.getLocker(GetLockerRequest(room, id)) }
             check(current.result.isOk()) { "Ratchet authority read rejected" }
-            // Cache only the actual current payload/version, never the expired request's body.
+            observed = current.locker?.version
             acceptRead(room, current.locker, lockerStore.getLocker(room, id.keyspaceOrDefault(), id))
-            val candidates = if (caps.authorityV2) {
-                val scopes = listOf(LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM),
-                    LockScope(kind = LockScopeKind.LOCK_SCOPE_KEYSPACE, keyspace = id.keyspace),
-                    LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER, keyspace = id.keyspace, lockerRawValue = id.rawValue))
-                scopes.map { getLockScope(room, it).scopeState }
-            } else listOf(current.locker?.lockState)
-            state = candidates.firstOrNull { it?.locked == true && it.publicKey?.rawValue?.contentEquals(publicKey) == true }
-                ?: throw RatchetRecoveryUnresolvedException(room, request.writeRequestId)
-            check(request.parentVersion in 0 until Long.MAX_VALUE) { "Invalid ratchet source version" }
-        } catch (cancelled: CancellationException) { throw cancelled }
-        catch (unresolved: RatchetRecoveryUnresolvedException) { throw unresolved }
-        catch (failure: Exception) { throw RatchetRecoveryUnresolvedException(room, request.writeRequestId, failure) }
-        // A single ratchet and its source write commit atomically at parent + 1. Receipt
-        // expiry prevents recovering the agent outcome, but does not invalidate this key.
-        adoptCommittedRatchet(pending, PostLockerChangeResponse(version = request.parentVersion + 1, lockState = state))
+            val expectation = pending.expectation ?: return unknown()
+            val original = expectation.previous
+            val scope = requireNotNull(original.scope).canonical()
+            if (!capabilities().authorityV2 || original.lockVersion !in 1 until Long.MAX_VALUE) return unknown()
+            val state = getLockScope(room, scope).scopeState ?: return unknown()
+            val proposed = requireNotNull(request.ratchet?.newPublicKey).rawValue
+            val active = state.locked && state.scope?.canonical() == scope && state.lockVersion == original.lockVersion + 1 &&
+                state.publicKey?.rawValue?.contentEquals(proposed) == true
+            if (!active) {
+                if (expectation.sourceUncertaintyAcknowledged && state.scope?.canonical() == scope &&
+                    state.lockVersion >= original.lockVersion + 1 && (!state.locked || state.publicKey?.rawValue?.contentEquals(proposed) != true)) {
+                    lockerStore.clearRatchet(request) // Explicitly acknowledged source uncertainty; authority proves key obsolete.
+                    return unknown(recovered = true)
+                }
+                return unknown()
+            }
+            ratchetAdoption.withLock {
+                val source = lockKeySource ?: return unknown()
+                val key = Secp256r1KeyPair.fromPrivateKey(pending.privateKey) ?: return unknown()
+                if (!key.publicKey.encode().contentEquals(proposed)) return unknown()
+                val currentKey = source.writeKeyFor(room, id)?.publicKey?.encode()
+                if (currentKey?.contentEquals(proposed) != true) {
+                    if (currentKey != null && !currentKey.contentEquals(original.publicKey?.rawValue ?: byteArrayOf())) return unknown()
+                    source.onRatcheted(room, id, key)
+                }
+                if (source.writeKeyFor(room, id)?.publicKey?.encode()?.contentEquals(proposed) != true) return unknown()
+            }
+            return unknown(recovered = true)
+        } catch (exhausted: RetryLimitExceeded) { currentCoroutineContext().ensureActive(); return unknown(exhausted) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (failure: Exception) { return unknown(failure) }
+    }
+
+    /** Accept the unresolved source outcome for exactly this write. This never asserts source commit.
+     * A later explicit mutation reads current state and gets a new write ID. The confidential key
+     * remains durable for provider reset until its exact authority scope proves it obsolete. */
+    suspend fun acknowledgeRatchetSourceUncertainty(roomId: RoomId, lockerId: LockerId, writeRequestId: ByteArray) {
+        val room = roomId.canonical(); val id = lockerId.canonical(); val requestId = writeRequestId.copyOf()
+        sync.mutate(room to id) {
+            val pending = requireNotNull(lockerStore.pendingRatchetsFlow().firstOrNull {
+                it.request.roomId?.canonical() == room && it.request.lockerId?.canonical() == id && it.request.writeRequestId.contentEquals(requestId)
+            }) { "Unknown ratchet intent" }
+            val uncertainty = recoverRatchetAuthority(pending)
+            if (!uncertainty.authorityRecovered) throw uncertainty
+            lockerStore.acknowledgeRatchetUncertainty(pending.request)
+        }
     }
 
     private fun adoptionPending(archive: ArchivedRatchet, target: LockerId, cause: Throwable? = null) =
@@ -1327,10 +1426,12 @@ class LockerClient(
     suspend fun getLockScope(roomId: RoomId, scope: LockScope): GetLockScopeResponse =
         sync.network { roomService.getLockScope(GetLockScopeRequest(roomId.canonical(), scope.canonical())) }.also { check(it.result.isOk()) { "Authority discovery rejected" } }
 
-    private suspend fun currentAuthorityVersion(roomId: RoomId, lockerId: LockerId): Long {
+    private suspend fun currentAuthorityVersion(roomId: RoomId, lockerId: LockerId): Long = currentAuthorityState(roomId, lockerId)?.lockVersion ?: 0L
+
+    private suspend fun currentAuthorityState(roomId: RoomId, lockerId: LockerId): LockState? {
         val response = sync.network { roomService.getLocker(GetLockerRequest(roomId, lockerId.canonical())) }
         check(response.result.isOk()) { "Authority discovery failed: ${response.result}" }
-        return response.locker?.lockState?.lockVersion ?: 0L
+        return response.locker?.lockState
     }
 
     private class WriteBody(val locker: Locker, val signature: Signature?)
