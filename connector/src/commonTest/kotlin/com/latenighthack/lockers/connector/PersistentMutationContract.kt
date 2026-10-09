@@ -40,6 +40,18 @@ suspend fun verifyPersistentConnectorMutations(factory: () -> Database) {
         val push = PushRegistrationStoreImpl(db)
         val intent = push.nextIntent(1, byteArrayOf(8, 9))
         assertTrue(push.confirmIntent(intent))
+        val subscriptions = SubscriptionStoreImpl(db,
+            ConnectorRetentionPolicy(maxSubscriptions = 1, maxSubscriptionHistories = 1))
+        assertEquals(1L, subscriptions.commitIntent(room, true))
+        assertTrue(subscriptions.getSubscription(room)!!.isPendingAdd)
+        assertEquals(1L, subscriptions.ensureIntentRevision(room, true))
+        assertEquals(2L, subscriptions.commitIntent(room, false))
+        assertTrue(subscriptions.getSubscription(room)!!.isPendingRemove)
+        subscriptions.deleteSubscription(room)
+        assertFalse(subscriptions.intentRevision(room)!!.subscribed)
+        val other = RoomId(byteArrayOf(10))
+        assertFailsWith<SubscriptionHistoryCapacityException> { subscriptions.commitIntent(other, true) }
+        assertNull(subscriptions.getSubscription(other)); assertNull(subscriptions.intentRevision(other))
     } finally { db.close() }
     db = factory(); db.open()
     try {
@@ -57,5 +69,12 @@ suspend fun verifyPersistentConnectorMutations(factory: () -> Database) {
         val intent = PushRegistrationStoreImpl(db).getAllIntents().single()
         assertEquals(1, intent.revision); assertFalse(intent.pending)
         assertContentEquals(byteArrayOf(8, 9), intent.encodedRegistration)
+        val subscriptions = SubscriptionStoreImpl(db)
+        assertNull(subscriptions.getSubscription(room))
+        val removal = subscriptions.intentRevision(room)!!
+        assertEquals(2L, removal.revision); assertFalse(removal.subscribed)
+        assertEquals(3L, subscriptions.commitIntent(room, true))
+        assertEquals(3L, subscriptions.intentRevision(room)!!.revision)
+        assertTrue(subscriptions.getSubscription(room)!!.isPendingAdd)
     } finally { db.close() }
 }

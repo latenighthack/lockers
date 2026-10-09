@@ -14,12 +14,13 @@ suspend fun verifyHistoricalConnectorMigration(
     version: Int,
     factory: (DatabaseConfiguration) -> Database,
 ) {
-    require(version in 3..5)
+    require(version in 3..6)
     val target = ConnectorStorage.configuration(identity)
     val definitions = when (version) {
         3 -> ConnectorStorage.definitionsV3
         4 -> ConnectorStorage.definitionsV4
-        else -> ConnectorStorage.definitionsV4 + RatchetExpectationDefinitionV2
+        5 -> ConnectorStorage.definitionsV5
+        else -> ConnectorStorage.definitionsV6
     }
     val legacy = target.copy(version = version, stores = definitions.map { it.declaration },
         migrations = target.migrations.filter { it.toVersion <= version })
@@ -61,7 +62,7 @@ suspend fun verifyHistoricalConnectorMigration(
     try {
         val names = mutableSetOf(ackDefinition.storeName, LockerStoreImplDefinitionV1.storeName)
         if (version >= 4) names += setOf(RatchetArchiveDefinitionV1.storeName, RatchetJournalDefinitionV1.storeName)
-        if (version == 5) names += RatchetExpectationDefinitionV2.storeName
+        if (version >= 5) names += RatchetExpectationDefinitionV2.storeName
         db.transaction(names) {
             save(ackDefinition.storeName, StoreRow(ackBytes, ackDefinition.encodeRow(ack).keys))
             save(LockerStoreImplDefinitionV1.storeName, StoreRow(cacheBytes, LockerStoreImplDefinitionV1.encodeRow(cache).keys))
@@ -72,10 +73,11 @@ suspend fun verifyHistoricalConnectorMigration(
                 }
                 save(RatchetJournalDefinitionV1.storeName,
                     StoreRow(pendingBytes, RatchetJournalDefinitionV1.encodeRow(newer.pending).keys))
-                if (version == 5) save(RatchetExpectationDefinitionV2.storeName,
+                if (version >= 5) save(RatchetExpectationDefinitionV2.storeName,
                     StoreRow(expectationBytes, RatchetExpectationDefinitionV2.encodeRow(expectation).keys))
             }
         }
+        if (version == 6) assertEquals(3, LockerStoreImpl(db).archivedRatchets().size)
     } finally { db.close() }
     repeat(2) {
         db = factory(target); db.open()
@@ -110,7 +112,7 @@ suspend fun verifyHistoricalConnectorMigration(
                     assertEquals(4, preserved.size)
                     archiveBytes.forEach { bytes -> assertTrue(preserved.any { it.contentEquals(bytes) }) }
                     assertContentEquals(pendingBytes, getAll(RatchetJournalDefinitionV1.storeName).single() as ByteArray)
-                    if (version == 5) assertContentEquals(expectationBytes,
+                    if (version >= 5) assertContentEquals(expectationBytes,
                         getAll(RatchetExpectationDefinitionV2.storeName).single() as ByteArray)
                 }
             }

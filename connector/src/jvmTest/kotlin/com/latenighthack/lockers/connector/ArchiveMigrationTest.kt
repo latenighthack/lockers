@@ -7,7 +7,7 @@ import kotlin.test.Test
 
 class ArchiveMigrationTest {
     @Test fun historicalSqliteSchemasPreservePrivateBytesAndNormalizeAliases() = runTest {
-        for (version in 3..5) {
+        for (version in 3..6) {
             val file = File.createTempFile("connector-v$version", ".db")
             try { verifyHistoricalConnectorMigration(file.name, version) { createDatabase(it, file.absolutePath) } }
             finally { file.delete() }

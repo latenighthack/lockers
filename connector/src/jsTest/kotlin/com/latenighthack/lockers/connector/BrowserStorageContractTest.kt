@@ -14,7 +14,7 @@ class BrowserStorageContractTest {
         verifyPersistentConnectorStorage { createDatabase(configuration, null) }
     } }
     @Test fun historicalIndexedDbSchemasPreservePrivateBytesAndNormalizeAliases() = runTest { withContext(Dispatchers.Default) {
-        for (version in 3..5) {
+        for (version in 3..6) {
             val identity = "lockers-migration-v$version-${Random.nextLong()}"
             verifyHistoricalConnectorMigration(identity, version) { createDatabase(it, null) }
         }

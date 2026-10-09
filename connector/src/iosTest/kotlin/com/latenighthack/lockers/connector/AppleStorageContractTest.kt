@@ -13,7 +13,7 @@ class AppleStorageContractTest {
         verifyPersistentConnectorStorage { createDatabase(configuration, location) }
     }
     @Test fun historicalSqliteSchemasPreservePrivateBytesAndNormalizeAliases() = runTest {
-        for (version in 3..5) {
+        for (version in 3..6) {
             val location = NSTemporaryDirectory() + "lockers-migration-v$version-${Random.nextLong()}.db"
             verifyHistoricalConnectorMigration(location, version) { createDatabase(it, location) }
         }

@@ -15,7 +15,7 @@ class AndroidStorageContractTest {
         finally { file.delete() }
     }
     @Test fun historicalSqliteSchemasPreservePrivateBytesAndNormalizeAliases() = runTest {
-        for (version in 3..5) {
+        for (version in 3..6) {
             val file = File.createTempFile("lockers-migration-v$version", ".db",
                 InstrumentationRegistry.getInstrumentation().targetContext.cacheDir)
             try { verifyHistoricalConnectorMigration(file.name, version) { createDatabase(it, file.absolutePath) } }

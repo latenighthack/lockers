@@ -1,0 +1,358 @@
+Type-safe project accessors is an incubating feature.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Configuration 'jsTestNpmAggregated' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://github.com/yarnpkg/yarn/releases/download' was added by unknown code
+Build was configured to prefer settings repositories over project repositories but repository 'Distributions at https://nodejs.org/dist' was added by unknown code
+> Task :api:kmpPartiallyResolvedDependenciesChecker
+> Task :api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+
+> Task :api:installProtocGenKt
+go: downloading github.com/lyft/protoc-gen-star v0.6.2
+go: downloading github.com/Masterminds/sprig v2.22.0+incompatible
+go: downloading golang.org/x/text v0.3.7
+go: downloading github.com/golang/protobuf v1.5.2
+go: downloading github.com/spf13/afero v1.3.3
+go: downloading github.com/Masterminds/goutils v1.1.1
+go: downloading github.com/Masterminds/semver v1.5.0
+go: downloading github.com/google/uuid v1.6.0
+go: downloading github.com/huandu/xstrings v1.5.0
+go: downloading github.com/imdario/mergo v0.3.16
+go: downloading github.com/mitchellh/copystructure v1.2.0
+go: downloading golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+go: downloading github.com/mitchellh/reflectwalk v1.0.2
+go: downloading google.golang.org/protobuf v1.26.0
+
+> Task :api:generateProto
+> Task :api:jvmProcessResources NO-SOURCE
+> Task :api:processJvmMainResources SKIPPED
+> Task :connector:kmpPartiallyResolvedDependenciesChecker
+> Task :connector:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:kmpPartiallyResolvedDependenciesChecker
+> Task :observability-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :observability-api:generateMonitoringVersion
+> Task :observability-api:jvmProcessResources NO-SOURCE
+> Task :observability-api:processJvmMainResources SKIPPED
+> Task :connector:jvmProcessResources NO-SOURCE
+> Task :connector:processJvmMainResources SKIPPED
+> Task :server:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sharding-core:processResources NO-SOURCE
+> Task :server:test:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server:test:processResources NO-SOURCE
+> Task :connector:jvmTestProcessResources NO-SOURCE
+> Task :connector:processJvmTestResources SKIPPED
+> Task :kotlinKotlinNpmCachesSetup
+> Task :sharding-core:compileKotlin
+> Task :observability-api:compileKotlinJvm
+> Task :kotlinNodeJsSetup
+> Task :observability-api:compileJvmMainJava NO-SOURCE
+> Task :observability-api:jvmMainClasses
+> Task :observability-api:jvmJar
+> Task :sharding-core:compileJava NO-SOURCE
+> Task :sharding-core:classes UP-TO-DATE
+> Task :sharding-core:jar
+> Task :kotlinRestoreYarnLock
+> Task :kotlinYarnSetup
+> Task :api:jsPackageJson
+> Task :api:jsTestPackageJson
+> Task :observability-api:jsPackageJson
+> Task :connector:jsPackageJson
+> Task :connector:jsTestPackageJson
+> Task :observability-api:jsTestPackageJson
+> Task :observability-connector:jsPackageJson
+> Task :observability-connector:jsTestPackageJson
+> Task :api:jsPublicPackageJson
+> Task :api:jsTestPublicPackageJson
+> Task :connector:jsPublicPackageJson
+> Task :connector:jsTestPublicPackageJson
+> Task :observability-api:jsPublicPackageJson
+> Task :observability-api:jsTestPublicPackageJson
+> Task :observability-connector:jsPublicPackageJson
+> Task :observability-connector:jsTestPublicPackageJson
+> Task :kotlinPackageJsonUmbrella
+> Task :rootPackageJson
+
+> Task :kotlinNpmInstall
+(node:82926) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+warning Ignored scripts due to flag.
+
+> Task :kotlinStoreYarnLock
+> Task :connector:jsProcessResources NO-SOURCE
+> Task :connector:jsTestProcessResources NO-SOURCE
+> Task :connector:kotlinNodeJsSetup
+> Task :observability-api:compileKotlinJs
+> Task :api:downloadKotlinNativeDistribution
+
+> Task :api:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileKotlinJs
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileKotlinIosSimulatorArm64
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileJvmMainJava NO-SOURCE
+> Task :api:jvmMainClasses
+> Task :api:jvmJar
+> Task :connector:downloadKotlinNativeDistribution
+> Task :observability-api:downloadKotlinNativeDistribution
+> Task :observability-api:compileKotlinIosSimulatorArm64
+
+> Task :connector:compileKotlinJs
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:602:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:791:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1512:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+
+> Task :server:kspKotlin
+
+> Task :connector:compileKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:602:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:791:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1512:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+
+> Task :connector:compileKotlinIosSimulatorArm64
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:602:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:791:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1512:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+
+> Task :connector:compileJvmMainJava NO-SOURCE
+> Task :connector:jvmMainClasses
+> Task :connector:jvmJar
+> Task :server:processResources NO-SOURCE
+> Task :connector:jsMainClasses
+> Task :connector:iosSimulatorArm64ProcessResources NO-SOURCE
+> Task :connector:iosSimulatorArm64MainKlibrary
+> Task :connector:compileTestKotlinJs
+> Task :connector:compileTestKotlinIosSimulatorArm64
+> Task :connector:jsTestClasses
+
+> Task :server:compileKotlin
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/server/src/main/kotlin/com/latenighthack/lockers/server/MonolithComponent.kt:215:69 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:43:51 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Connection'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/server/src/main/kotlin/com/latenighthack/lockers/server/claim/ClaimJdbcPool.kt:47:27 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Connection'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/server/src/main/kotlin/com/latenighthack/lockers/server/cluster/RemoteGateway.kt:149:130 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/PushServiceImpl.kt:213:98 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/server/src/main/kotlin/com/latenighthack/lockers/server/services/push/v1/providers/ApnsPushProvider.kt:103:90 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/server/src/main/kotlin/com/latenighthack/lockers/server/tools/WriteTrace.kt:67:46 Unnecessary non-null assertion (!!) on a non-null receiver of type 'String'.
+
+> Task :connector:linkDebugTestIosSimulatorArm64
+warning: /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/Foundation-26APARFLUI2TQ.pcm: No such file or directory
+note: while processing /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/Foundation-26APARFLUI2TQ.pcm
+note: Linking a static library that was built with -gmodules, but the module cache was not found.  Redistributable static libraries should never be built with module debugging enabled.  The debug experience will be degraded due to incomplete debug information.
+warning: /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/_SwiftConcurrencyShims-1O6J4FRGOX9K.pcm: No such file or directory
+note: while processing /Users/runner/work/ktcrypto/ktcrypto/library/build/swiftklib/KtCrypto/iosSimulatorArm64/swiftBuild/.build/arm64-apple-macosx/release/ModuleCache/3KEURXHTBV2EJ/_SwiftConcurrencyShims-1O6J4FRGOX9K.pcm
+
+> Task :connector:compileTestDevelopmentExecutableKotlinJs
+> Task :server:compileJava NO-SOURCE
+> Task :server:classes UP-TO-DATE
+> Task :server:jar
+> Task :connector:jsTestTestDevelopmentExecutableCompileSync
+> Task :server:test:compileKotlin
+
+> Task :connector:jsBrowserTest
+> Task :server:test:compileJava NO-SOURCE
+> Task :server:test:classes UP-TO-DATE
+> Task :server:test:jar
+
+> Task :connector:compileTestKotlinJvm
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/OwnedTestFixture.kt:30:151 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Throwable'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/OwnedTestFixtureTests.kt:47:31 Unnecessary non-null assertion (!!) on a non-null receiver of type 'LockersClient'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewAuthorityV2Tests.kt:56:107 Unnecessary non-null assertion (!!) on a non-null receiver of type 'UnlockLockerRequest'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewConnectorTests.kt:56:87 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256r1KeyPair'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewConnectorTests.kt:90:129 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Secp256r1KeyPair'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewExpiredRatchetTests.kt:147:42 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangeRequest'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewRatchetAdoptionTests.kt:20:75 Unnecessary non-null assertion (!!) on a non-null receiver of type 'PostLockerChangeRequest'.
+
+> Task :connector:iosSimulatorArm64Test
+> Task :connector:compileJvmTestJava NO-SOURCE
+> Task :connector:jvmTestClasses
+> Task :connector:jvmTest
+> Task :api:preBuild UP-TO-DATE
+> Task :api:preDebugBuild UP-TO-DATE
+> Task :api:generateDebugResValues
+> Task :api:generateDebugResources
+> Task :api:packageDebugResources
+> Task :api:processDebugNavigationResources
+> Task :connector:preBuild UP-TO-DATE
+> Task :connector:preDebugBuild UP-TO-DATE
+> Task :api:javaPreCompileDebug
+> Task :connector:generateDebugResValues
+> Task :connector:generateDebugResources
+> Task :api:parseDebugLocalResources
+> Task :connector:packageDebugResources
+> Task :connector:processDebugNavigationResources
+> Task :api:generateDebugRFile
+> Task :connector:parseDebugLocalResources
+> Task :observability-api:preBuild UP-TO-DATE
+> Task :observability-api:preDebugBuild UP-TO-DATE
+> Task :observability-api:generateDebugResValues
+> Task :connector:generateDebugRFile
+> Task :observability-api:generateDebugResources
+> Task :observability-api:packageDebugResources
+> Task :observability-api:processDebugNavigationResources
+> Task :observability-api:javaPreCompileDebug
+> Task :connector:javaPreCompileDebug
+> Task :observability-api:parseDebugLocalResources
+> Task :api:compileDebugLibraryResources
+> Task :connector:preDebugAndroidTestBuild UP-TO-DATE
+> Task :api:writeDebugAarMetadata
+> Task :connector:writeDebugAarMetadata
+> Task :observability-api:generateDebugRFile
+> Task :observability-api:writeDebugAarMetadata
+> Task :connector:processDebugAndroidTestNavigationResources
+> Task :connector:checkDebugAndroidTestAarMetadata
+> Task :connector:compileDebugAndroidTestNavigationResources
+> Task :connector:compileDebugLibraryResources
+> Task :connector:generateDebugAndroidTestResValues
+> Task :connector:mapDebugAndroidTestSourceSetPaths
+> Task :connector:generateDebugAndroidTestResources
+> Task :connector:mergeDebugAndroidTestResources
+> Task :api:extractDeepLinksDebug
+> Task :connector:extractDeepLinksDebug
+> Task :api:processDebugManifest
+> Task :observability-api:extractDeepLinksDebug
+> Task :connector:processDebugManifest
+> Task :observability-api:compileDebugLibraryResources
+> Task :observability-api:processDebugManifest
+> Task :connector:javaPreCompileDebugAndroidTest
+
+> Task :connector:processDebugAndroidTestManifest
+[com.latenighthack.ktbuf:ktbuf-rpc-android:1.1.10-fh.9c3962ea021c76107b84] /Users/mikeroberts/.gradle/caches/9.5.1/transforms/d35761be0e69b0cfc47707e1de2dd92c/transformed/rpc-release/AndroidManifest.xml Warning:
+	Namespace 'com.latenighthack.ktbuf' is used in multiple modules and/or libraries: com.latenighthack.ktbuf:ktbuf-rpc-android:1.1.10-fh.9c3962ea021c76107b84, com.latenighthack.ktbuf:ktbuf-library-android:1.1.10-fh.9c3962ea021c76107b84. Please ensure that all modules and libraries have a unique namespace. For more information, See https://developer.android.com/studio/build/configure-app-module#set-namespace
+
+> Task :api:mergeDebugShaders
+> Task :api:compileDebugShaders NO-SOURCE
+> Task :api:debugAssetsCopyForAGP NO-SOURCE
+> Task :api:generateDebugAssets UP-TO-DATE
+> Task :api:mergeDebugAssets
+> Task :connector:mergeDebugAndroidTestShaders
+> Task :connector:compileDebugAndroidTestShaders NO-SOURCE
+> Task :connector:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :connector:mergeDebugShaders
+> Task :connector:compileDebugShaders NO-SOURCE
+> Task :connector:debugAssetsCopyForAGP NO-SOURCE
+> Task :connector:generateDebugAssets UP-TO-DATE
+> Task :connector:mergeDebugAssets
+> Task :observability-api:mergeDebugShaders
+> Task :observability-api:compileDebugShaders NO-SOURCE
+> Task :observability-api:debugAssetsCopyForAGP NO-SOURCE
+> Task :observability-api:generateDebugAssets UP-TO-DATE
+> Task :observability-api:mergeDebugAssets
+> Task :connector:mergeDebugAndroidTestAssets
+> Task :connector:compressDebugAndroidTestAssets
+> Task :connector:desugarDebugAndroidTestFileDependencies
+> Task :api:mergeDebugJniLibFolders
+> Task :api:mergeDebugNativeLibs NO-SOURCE
+> Task :api:copyDebugJniLibsProjectOnly
+> Task :connector:mergeDebugJniLibFolders
+> Task :connector:mergeDebugNativeLibs NO-SOURCE
+> Task :connector:copyDebugJniLibsProjectOnly
+> Task :connector:checkDebugAndroidTestDuplicateClasses
+> Task :connector:mergeDebugAndroidTestJniLibFolders
+> Task :observability-api:mergeDebugJniLibFolders
+> Task :observability-api:mergeDebugNativeLibs NO-SOURCE
+> Task :observability-api:copyDebugJniLibsProjectOnly
+> Task :connector:validateSigningDebugAndroidTest
+> Task :connector:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :connector:stripDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :connector:writeDebugAndroidTestSigningConfigVersions
+> Task :connector:processDebugAndroidTestResources
+> Task :observability-api:compileDebugKotlinAndroid
+> Task :observability-api:compileDebugJavaWithJavac NO-SOURCE
+> Task :observability-api:bundleLibCompileToJarDebug
+> Task :observability-api:bundleLibRuntimeToJarDebug
+> Task :observability-api:processDebugJavaRes
+> Task :observability-api:bundleLibRuntimeToDirDebug
+> Task :connector:mergeExtDexDebugAndroidTest
+
+> Task :api:compileDebugKotlinAndroid
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:81:63 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:320:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:992:67 Redundant call of conversion method.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/api/build/generated/ktproto/kotlin/com/google/protobuf/descriptor.data.kt:2284:93 Redundant call of conversion method.
+
+> Task :api:compileDebugJavaWithJavac NO-SOURCE
+> Task :api:processDebugJavaRes
+> Task :api:bundleLibRuntimeToJarDebug
+> Task :api:bundleLibCompileToJarDebug
+> Task :api:bundleLibRuntimeToDirDebug
+
+> Task :connector:compileDebugKotlinAndroid
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:602:76 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:791:68 Unnecessary non-null assertion (!!) on a non-null receiver of type 'Locker'.
+w: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:1512:48 Unnecessary safe call on a non-null receiver of type 'RoomId'.
+
+> Task :connector:compileDebugJavaWithJavac NO-SOURCE
+> Task :connector:processDebugJavaRes
+> Task :connector:bundleLibRuntimeToJarDebug
+> Task :connector:bundleLibCompileToJarDebug
+> Task :connector:bundleLibRuntimeToDirDebug
+> Task :connector:compileDebugAndroidTestKotlinAndroid
+> Task :connector:compileDebugAndroidTestJavaWithJavac NO-SOURCE
+> Task :connector:dexBuilderDebugAndroidTest
+> Task :connector:processDebugAndroidTestJavaRes
+> Task :connector:mergeProjectDexDebugAndroidTest
+> Task :connector:mergeDebugAndroidTestJavaResource
+> Task :connector:mergeDebugAndroidTestGlobalSynthetics
+> Task :connector:mergeLibDexDebugAndroidTest
+> Task :connector:packageDebugAndroidTest
+> Task :connector:createDebugAndroidTestApkListingFileRedirect
+
+> Task :connector:connectedDebugAndroidTest
+Starting 7 tests on LockersReview(AVD) - 14
+
+Finished 7 tests on LockersReview(AVD) - 14
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-storage-v7/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 47s
+150 actionable tasks: 150 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html
