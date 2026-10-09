@@ -1,0 +1,28 @@
+syntax = "proto3";
+package com.latenighthack.lockers.server.storage.v2;
+option java_package = "com.latenighthack.lockers.server.storage.v2";
+
+// Immutable agent inputs and fenced execution result, separate from frozen v1 receipts.
+message ServerAgentWork {
+  bytes key = 1;
+  bytes room_id = 2;
+  bytes write_request_id = 3;
+  bytes encoded_request = 4;
+  bytes encoded_outcome = 5;
+  int32 state = 6;
+  string agent_version = 7;
+  bytes effect_key = 8;
+  string lease_owner = 9;
+  int64 lease_until = 10;
+  int64 source_order = 11;
+  int64 created_at = 12;
+  int64 completed_at = 13;
+  repeated ServerAgentDerivedWrite writes = 14;
+  int32 attempts = 15;
+  string failure = 16;
+}
+message ServerAgentDerivedWrite {
+  bytes locker_id = 1;
+  int64 keyspace = 2;
+  bytes encoded_locker = 3;
+}

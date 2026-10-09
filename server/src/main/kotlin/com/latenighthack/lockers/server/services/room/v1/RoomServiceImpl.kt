@@ -30,8 +30,10 @@ import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
 import org.slf4j.LoggerFactory
 import kotlin.random.Random
-import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import com.latenighthack.lockers.server.agents.IdempotentLockerAgentRegistry
+import com.latenighthack.lockers.server.storage.v2.*
 
 /** Query-param stamp on east-west forwarded writes; its presence means "do not forward again". */
 private const val FORWARDED_PARAM = "fwd"
@@ -65,15 +67,32 @@ class RoomServiceImpl(
     deliveryOutbox: DeliveryOutboxStore? = null,
     private val telemetry: LockersTelemetry = LockersTelemetry.NONE,
     private val coroutineContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext,
+    private val agentTimeoutMs: Long = 30_000,
+    private val agentMaxAttempts: Int = 8,
 ) : BaseServiceImpl(), RoomServer {
+    init { require(agentTimeoutMs in 1..300_000 && agentMaxAttempts in 1..32) }
+    private class AgentOutputRejected(message: String) : IllegalArgumentException(message)
+    private fun requireAgentOutput(valid: Boolean, message: String) { if (!valid) throw AgentOutputRejected(message) }
     private val deliveryOutbox = deliveryOutbox ?: lockStore.deliveryOutbox()
     private val lifecycleStarted = java.util.concurrent.atomic.AtomicBoolean(false)
     private val lifecycleClosed = java.util.concurrent.atomic.AtomicBoolean(false)
     private val logger = LoggerFactory.getLogger(RoomServiceImpl::class.java)
-    private suspend fun processAgent(room: RoomId, id: LockerId, locker: Locker): List<LockerAgentRegistry.LockerWrite> {
+    private suspend fun processAgent(effectKey: ByteArray, room: RoomId, id: LockerId, locker: Locker): List<LockerAgentRegistry.LockerWrite> {
         val start = System.nanoTime(); var outcome = "error"
-        try { return telemetry.observe(TelemetryOperation.AGENT_EXECUTE) { agentRegistry.processPayload(room, id, locker) }.also {
-            require(it.all { output -> LockerEnvelope.isSupported(output.locker) }) { "Unsupported derived locker envelope" }
+        try { return telemetry.observe(TelemetryOperation.AGENT_EXECUTE) {
+            val outputs = if (agentRegistry is IdempotentLockerAgentRegistry) agentRegistry.processPayload(effectKey.copyOf(), room, id, locker) else agentRegistry.processPayload(room, id, locker)
+            requireAgentOutput(outputs.size <= 64, "Agent output limit exceeded")
+            var bytes = 0L
+            // Freeze inside the observed call, before telemetry teardown or storage can suspend.
+            outputs.map { output ->
+                requireAgentOutput(ProtocolValidation.locker(output.lockerId), "Invalid derived locker")
+                val encoded = output.locker.toByteArray()
+                bytes += encoded.size
+                requireAgentOutput(bytes <= minOf(8L * 1024 * 1024, config.maxLockerPayloadBytes.toLong()), "Agent output limit exceeded")
+                LockerAgentRegistry.LockerWrite(LockerId.fromByteArray(output.lockerId.toByteArray()), Locker.fromByteArray(encoded))
+            }
+        }.also {
+            requireAgentOutput(it.all { output -> LockerEnvelope.isSupported(output.locker) }, "Unsupported derived locker envelope")
             outcome = "ok"; meterRegistry.safeMeters { counter("lockers.agent.derived.writes").increment(it.size.toDouble()) }
         } } catch (cancelled: kotlinx.coroutines.CancellationException) { outcome = "cancelled"; throw cancelled }
         finally {
@@ -86,6 +105,10 @@ class RoomServiceImpl(
 
     private val deliveryWorker = if (config.deliveryWorkerEnabled)
         DeliveryWorker(requireNotNull(this.deliveryOutbox), sessionGatewayDiscovery, meterRegistry, telemetry, coroutineContext = coroutineContext) else null
+    private val agentVersion = (agentRegistry as? IdempotentLockerAgentRegistry)?.agentVersion.orEmpty().also {
+        require(agentRegistry !is IdempotentLockerAgentRegistry || (it.isNotBlank() && it.encodeToByteArray().size <= 128)) { "Durable agent version must be nonempty and bounded" }
+    }
+    private val agentWorkflow = AgentWorkflow(requireNotNull(this.deliveryOutbox), roomOwnership, agentVersion, ::executeAgentWork, coroutineContext)
     private val lockVerifier = LockVerifier(lockStore)
     private val dispatchers = ShardedDispatcher<RoomId>(config.shardCount, "room-shard") {
         it.rawValue.contentHashCode()
@@ -243,8 +266,9 @@ class RoomServiceImpl(
         val receipt = deliveryOutbox?.receipt(room, request.writeRequestId)
             ?: return GetWriteOutcomeResponse(result = GetWriteOutcomeResponse.Result.NOT_FOUND)
         val response = PostLockerChangesResponse.fromByteArray(receipt.encodedOutcome)
+        val work = deliveryOutbox.agentWork.find(room, request.writeRequestId)
         // Historical pending receipts have no recoverable agent input. Never promise replay.
-        val state = when {
+        val state = work?.let { agentState(it.state) } ?: when {
             response.agentPending || response.agentIndeterminate -> WriteOutcome.AgentState.INDETERMINATE
             response.agentFailed -> WriteOutcome.AgentState.FAILED
             else -> WriteOutcome.AgentState.APPLIED
@@ -254,7 +278,7 @@ class RoomServiceImpl(
     }
 
     override suspend fun capabilities(context: GrpcRequestContext, request: CapabilitiesRequest) = meterRegistry.trackRpc(TelemetryOperation.ROOM_CAPABILITIES, telemetry) { CapabilitiesResponse(
-        authorityV2 = true, deleteReceipts = true, snapshotPaging = lockerStore.supportsSnapshotPaging(),
+        authorityV2 = true, deleteReceipts = true, snapshotPaging = lockerStore.supportsSnapshotPaging(), writeOutcomes = true,
         subscribeAndSnapshot = config.deliveryOutboxEnabled, getLockers = true,
         postLockerChanges = config.deliveryOutboxEnabled, writeReceipts = config.deliveryOutboxEnabled,
         maxBatchItems = 64, maxBatchBytes = minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)
@@ -350,7 +374,7 @@ class RoomServiceImpl(
         val outbox = requireNotNull(deliveryOutbox)
         val digest = com.latenighthack.ktcrypto.SHA256.digest(request.toByteArray())
         val queuedAt = System.nanoTime()
-        return runRoomMutation(room, onLost = { PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, room)) }) {
+        val committed = runRoomMutation(room, onLost = { PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, room)) }) {
             meterRegistry.timer("lockers.write.phase", "phase", "room_queue").record(System.nanoTime() - queuedAt, java.util.concurrent.TimeUnit.NANOSECONDS)
             val events = mutableListOf<Event>()
             var replay: PostLockerChangesResponse? = null
@@ -391,7 +415,11 @@ class RoomServiceImpl(
                         result = PostLockerChangesResponse.Result.CONFLICT, changes = results, lockState = lockState), PostLockerChangesResponse::toByteArray))
                     lockerStore.updateLockers(sourceWrites)
                     pending = boundedResponse(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.OK, changes = results,
-                        lockState = lockState, agentPending = true), PostLockerChangesResponse::toByteArray)
+                        lockState = lockState, agentPending = agentRegistry !== LockerAgentRegistry.None, writeRequestId = request.writeRequestId,
+                        sourceVersions = normalized.zip(results) { change, result -> WriteSourceVersion(change.lockerId, result.version) }), PostLockerChangesResponse::toByteArray)
+                    val order = outbox.watermark(room)
+                    check(order < Long.MAX_VALUE) { "Agent source order exhausted" }
+                    outbox.agentWork.create(room, request.copy(changes = normalized), pending!!, agentVersion, order + 1, applied = agentRegistry === LockerAgentRegistry.None)
                     outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
                         request.writeRequestId, ServerRoomId(room.rawValue), digest, pending!!.toByteArray()))
                 }
@@ -400,43 +428,161 @@ class RoomServiceImpl(
             } catch (e: BatchRejected) {
                 return@runRoomMutation e.response
             }
-            replay?.let { return@runRoomMutation it }
-            // The durable pending receipt prevents an ambiguous retry from executing an agent twice.
-            // After a crash here, the client sees committed/pending, not an invitation to replay a move.
-            var failed = false
-            try {
-                val writes = linkedMapOf<LockerId, ServerLocker>()
-                val derivedEvents = mutableListOf<Event>()
-                for (change in normalized) {
-                    for (derived in trace.phase("agent") { processAgent(room, change.lockerId!!, change.locker!!) }) {
-                        val id = derived.lockerId
-                        val existing = writes[id] ?: lockerStore.getLocker(ServerRoomId(room.rawValue), id.keyspace?.value ?: 0L, ServerLockerId(id.rawValue))
-                        val version = (existing?.version ?: 0L) + 1
-                        writes[id] = ServerLocker(ServerRoomId(room.rawValue), id.keyspace?.value ?: 0L,
-                            ServerLockerId(id.rawValue), derived.locker.toByteArray(), version)
-                        derivedEvents.add(Event(roomId = room, eventId = EventId(Random.nextBytes(32)),
-                            locker = IdentifiedLocker(id, derived.locker, version)))
+            replay?.let { response ->
+                val work = outbox.agentWork.find(room, request.writeRequestId)
+                return@runRoomMutation if (response.result.isOk() && work != null) responseForWork(work) else response
+            }
+            pending!!
+        }
+        if (!committed.result.isOk() || !committed.agentPending || !lifecycleStarted.get()) return committed
+        // Waiting observes owned work. A disconnected caller never owns its execution job.
+        return withTimeoutOrNull(5_000) {
+            writeOutcomeFlow(room, request.writeRequestId).first { it.agentState in setOf(WriteOutcome.AgentState.APPLIED, WriteOutcome.AgentState.FAILED, WriteOutcome.AgentState.INDETERMINATE) }
+            outbox.agentWork.find(room, request.writeRequestId)?.let(::responseForWork) ?: committed
+        } ?: committed
+    }
+
+    private fun agentState(state: Int): WriteOutcome.AgentState = when (state) {
+        AgentWorkState.PENDING -> WriteOutcome.AgentState.PENDING
+        AgentWorkState.RUNNING, AgentWorkState.READY -> WriteOutcome.AgentState.RUNNING
+        AgentWorkState.APPLIED -> WriteOutcome.AgentState.APPLIED
+        AgentWorkState.FAILED -> WriteOutcome.AgentState.FAILED
+        else -> WriteOutcome.AgentState.INDETERMINATE
+    }
+    private fun responseForWork(work: ServerAgentWork): PostLockerChangesResponse = PostLockerChangesResponse.fromByteArray(work.encodedOutcome).copy(
+        writeRequestId = work.writeRequestId.copyOf(), agentPending = work.state in setOf(AgentWorkState.PENDING, AgentWorkState.RUNNING, AgentWorkState.READY),
+        agentFailed = work.state == AgentWorkState.FAILED, agentIndeterminate = work.state == AgentWorkState.INDETERMINATE)
+
+    /** Cold metadata-only observation for trusted server extensions; collection owns polling. */
+    fun writeOutcomeFlow(room: RoomId, writeRequestId: ByteArray): Flow<WriteOutcome> {
+        val identity = writeRequestId.copyOf(); val roomCopy = room.copy(rawValue = room.rawValue.copyOf())
+        return flow {
+            require(identity.size in 16..64 && ProtocolValidation.room(roomCopy))
+            var previous: ByteArray? = null
+            while (currentCoroutineContext().isActive) {
+                val work = deliveryOutbox!!.agentWork.find(roomCopy, identity)
+                if (work != null) {
+                    val response = responseForWork(work)
+                    val outcome = WriteOutcome(roomCopy, identity.copyOf(), response.sourceVersions, agentState(work.state))
+                    val bytes = outcome.toByteArray()
+                    if (previous?.contentEquals(bytes) != true) { emit(outcome); previous = bytes }
+                    if (AgentWorkState.terminal(work.state) || work.state == AgentWorkState.INDETERMINATE) return@flow
+                }
+                delay(50)
+            }
+        }
+    }
+
+    private suspend fun executeAgentWork(claim: ServerAgentWork, fence: RoomMutationFence) = coroutineScope {
+        val outbox = requireNotNull(deliveryOutbox)
+        val processing = currentCoroutineContext()[Job]!!
+        val heartbeat = launch {
+            while (isActive) {
+                delay(10_000)
+                if (!outbox.agentWork.renew(claim, System.currentTimeMillis())) processing.cancel(CancellationException("Agent execution lease revoked"))
+            }
+        }
+        try {
+            var ready = claim
+            if (claim.state != AgentWorkState.READY) {
+                val request = PostLockerChangesRequest.fromByteArray(claim.encodedRequest)
+                val writes = mutableListOf<ServerAgentDerivedWrite>()
+                val completed = withTimeoutOrNull(agentTimeoutMs) {
+                request.changes.forEachIndexed { index, change ->
+                    val effect = SHA256.digest(claim.effectKey + java.nio.ByteBuffer.allocate(4).putInt(index).array())
+                    for (write in processAgent(effect, RoomId(claim.roomId), requireNotNull(change.lockerId), requireNotNull(change.locker))) {
+                        requireAgentOutput(ProtocolValidation.locker(write.lockerId) && LockerWireValidation.valid(write.locker.toByteArray()), "Invalid derived locker")
+                        writes.add(ServerAgentDerivedWrite(write.lockerId.rawValue, write.lockerId.keyspace?.value ?: 0, write.locker.toByteArray()))
+                        requireAgentOutput(writes.size <= 64 && writes.sumOf { it.encodedLocker.size.toLong() } <= minOf(8L * 1024 * 1024, config.maxLockerPayloadBytes.toLong()), "Agent output limit exceeded")
                     }
                 }
-                val complete = pending!!.copy(agentPending = false)
-                trace.phase("derived_commit") { outbox.commit(room, recipients, derivedEvents) {
-                    recipients.clear()
-                    recipients.addAll(subscriptionStore.getAllSessions(ServerRoomId(room.rawValue)).map { SessionId(it.rawValue) })
-                    lockerStore.updateLockers(writes.values.toList())
-                    outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
-                        request.writeRequestId, ServerRoomId(room.rawValue), digest, complete.toByteArray()))
+                true
                 }
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
-            catch (e: Exception) {
-                failed = true
-                agentFailureCounter.increment()
-                logger.error("agent processing failed after batch commit", e)
-                outbox.atomic { outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
-                    request.writeRequestId, ServerRoomId(room.rawValue), digest, pending!!.copy(agentPending = false, agentFailed = true).toByteArray())) }
+                if (completed != true) throw java.util.concurrent.TimeoutException("Agent execution deadline exceeded")
+                ready = outbox.agentWork.result(claim, writes) ?: return@coroutineScope
             }
-            pending!!.copy(agentPending = false, agentFailed = failed)
+            applyAgentResult(ready, fence)
+        } catch (cancelled: CancellationException) {
+            withContext(NonCancellable) { outbox.agentWork.interrupt(claim, "Execution cancelled") }
+            throw cancelled
+        } catch (lost: RoomOwnershipLost) {
+            roomOwnership.invalidate(RoomId(claim.roomId))
+            outbox.agentWork.interrupt(claim, "Room authority changed")
+        } catch (error: Exception) {
+            val current = outbox.agentWork.find(RoomId(claim.roomId), claim.writeRequestId)
+            if (current?.state == AgentWorkState.READY && error !is AgentOutputRejected) {
+                outbox.agentWork.interrupt(claim, "Derived commit interrupted")
+                return@coroutineScope
+            }
+            if (claim.agentVersion.isNotEmpty() && error !is AgentOutputRejected && claim.attempts < agentMaxAttempts) {
+                outbox.agentWork.retry(claim, error.message ?: "Agent execution failed")
+                return@coroutineScope
+            }
+            agentFailureCounter.increment(); logger.error("Agent execution failed after source commit", error)
+            // An arbitrary extension can throw after applying a non-idempotent external effect.
+            val state = if (claim.agentVersion.isEmpty() && current?.state != AgentWorkState.READY) AgentWorkState.INDETERMINATE else AgentWorkState.FAILED
+            val response = responseForWork(claim).copy(agentPending = false, agentFailed = state == AgentWorkState.FAILED, agentIndeterminate = state == AgentWorkState.INDETERMINATE)
+            outbox.agentWork.complete(claim, state, response) {
+                val receipt = outbox.receipt(RoomId(claim.roomId), claim.writeRequestId)!!
+                outbox.saveReceipt(receipt.copy(encodedOutcome = response.toByteArray()))
+            }
+        } finally { withContext(NonCancellable) { heartbeat.cancelAndJoin() } }
+    }
+
+    private suspend fun applyAgentResult(ready: ServerAgentWork, fence: RoomMutationFence) {
+        val room = RoomId(ready.roomId); val outbox = requireNotNull(deliveryOutbox)
+        withContext(fence) {
+            dispatchers.runOnDispatcher(room) {
+                val events = mutableListOf<Event>(); val recipients = mutableListOf<SessionId>()
+                outbox.commit(room, recipients, events) {
+                    val complete = responseForWork(ready).copy(agentPending = false, agentFailed = false, agentIndeterminate = false)
+                    outbox.agentWork.complete(ready, AgentWorkState.APPLIED, complete) {
+                        recipients.addAll(subscriptionStore.getAllSessions(ServerRoomId(room.rawValue)).map { SessionId(it.rawValue) })
+                        val writes = linkedMapOf<LockerId, ServerLocker>()
+                        for (write in ready.writes) {
+                            val id = LockerId(write.lockerId, LockerKeyspace(write.keyspace))
+                            val old = writes[id] ?: lockerStore.getLocker(ServerRoomId(room.rawValue), write.keyspace, ServerLockerId(write.lockerId))
+                            val version = old?.version ?: 0
+                            requireAgentOutput(version in 0 until Long.MAX_VALUE, "Derived locker version exhausted")
+                            writes[id] = ServerLocker(ServerRoomId(room.rawValue), write.keyspace, ServerLockerId(write.lockerId), write.encodedLocker, version + 1)
+                            val event = Event(roomId = room, eventId = EventId(Random.nextBytes(32)), locker = IdentifiedLocker(id, Locker.fromByteArray(write.encodedLocker), version + 1))
+                            requireAgentOutput(ProtocolValidation.event(event.copy(roomSequence = Long.MAX_VALUE)), "Derived delivery event exceeds protocol bounds")
+                            events.add(event)
+                        }
+                        lockerStore.updateLockers(writes.values.toList())
+                        val receipt = requireNotNull(outbox.receipt(room, ready.writeRequestId))
+                        outbox.saveReceipt(receipt.copy(encodedOutcome = complete.toByteArray()))
+                    }
+                }
+            }
         }
+    }
+
+    /** Trusted reconciliation hook. It never invokes the external effect again. */
+    suspend fun reconcileWriteOutcome(roomInput: RoomId, writeRequestIdInput: ByteArray, expectedEffectKeyInput: ByteArray,
+        writesInput: List<LockerAgentRegistry.LockerWrite> = emptyList(), failed: Boolean = false): Boolean {
+        val room = RoomId.fromByteArray(roomInput.toByteArray())
+        val writeRequestId = writeRequestIdInput.copyOf(); val expectedEffectKey = expectedEffectKeyInput.copyOf()
+        val writes = writesInput.map { LockerAgentRegistry.LockerWrite(LockerId.fromByteArray(it.lockerId.toByteArray()), Locker.fromByteArray(it.locker.toByteArray())) }
+        require(ProtocolValidation.room(room) && writeRequestId.size in 16..64 && expectedEffectKey.size == 32)
+        require(writes.size <= 64 && writes.all { ProtocolValidation.locker(it.lockerId) && LockerEnvelope.isSupported(it.locker) && LockerWireValidation.valid(it.locker.toByteArray()) } &&
+            writes.sumOf { it.locker.toByteArray().size.toLong() } <= minOf(8L * 1024 * 1024, config.maxLockerPayloadBytes.toLong()))
+        val fence = roomOwnership.mutationFence(0, room)
+        val outbox = requireNotNull(deliveryOutbox)
+        val result = withContext(fence) { outbox.atomic(room) {
+            outbox.agentWork.reconcile(room, writeRequestId, expectedEffectKey,
+                writes.map { ServerAgentDerivedWrite(it.lockerId.rawValue, it.lockerId.keyspace?.value ?: 0, it.locker.toByteArray()) }, failed)?.also { row ->
+                if (failed) {
+                    val receipt = requireNotNull(outbox.receipt(room, writeRequestId))
+                    outbox.saveReceipt(receipt.copy(encodedOutcome = responseForWork(row).toByteArray()))
+                }
+            }
+        } } ?: return false
+        if (!failed) {
+            val claim = outbox.agentWork.claim(room, writeRequestId, result.agentVersion, System.currentTimeMillis()) ?: return true
+            applyAgentResult(claim, fence)
+        }
+        return true
     }
 
     override suspend fun subscription(
@@ -543,7 +689,8 @@ class RoomServiceImpl(
                 return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.NOT_AUTHORIZED)
             val batch = postLockerChanges(context, PostLockerChangesRequest(roomId = request.roomId,
                 changes = listOf(request.copy(writeRequestId = byteArrayOf())), writeRequestId = request.writeRequestId.takeIf { it.isNotEmpty() } ?: Random.nextBytes(32)))
-            return@trackResponse batch.changes.firstOrNull()?.copy(agentFailed = batch.agentFailed, agentPending = batch.agentPending)
+            return@trackResponse batch.changes.firstOrNull()?.copy(agentFailed = batch.agentFailed, agentPending = batch.agentPending, agentIndeterminate = batch.agentIndeterminate,
+                writeRequestId = batch.writeRequestId, sourceVersions = batch.sourceVersions)
                 ?: PostLockerChangeResponse(result = if (batch.result is PostLockerChangesResponse.Result.NOT_OWNER)
                     PostLockerChangeResponse.Result.NOT_OWNER else PostLockerChangeResponse.Result.UNKNOWN_ERROR, redirect = batch.redirect)
     }
@@ -827,6 +974,7 @@ class RoomServiceImpl(
     fun start() {
         check(!lifecycleClosed.get() && lifecycleStarted.compareAndSet(false, true)) { "Service already started or closed" }
         deliveryWorker?.start()
+        agentWorkflow.start()
     }
     suspend fun closeAndJoin() {
         ServiceLifecycle.requireExternalClose()
@@ -836,6 +984,7 @@ class RoomServiceImpl(
             suspend fun cleanup(block: suspend () -> Unit) {
                 try { block() } catch (failure: Throwable) { if (failed == null) failed = failure else failed!!.addSuppressed(failure) }
             }
+            cleanup { agentWorkflow.closeAndJoin() }
             cleanup { forwardConnections.closeAndJoin() }
             cleanup { deliveryWorker?.closeAndJoin() }
             cleanup { dispatchers.closeAndJoin() }

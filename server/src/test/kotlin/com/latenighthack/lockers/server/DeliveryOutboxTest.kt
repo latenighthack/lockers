@@ -149,6 +149,7 @@ class DeliveryOutboxTest {
             override suspend fun resolve(keyspace: Long, roomId: RoomId) = RoomOwner.Local()
         }, agent, SimpleMeterRegistry(), LockersConfig.defaults().copy(deliveryOutboxEnabled = true, deliveryWorkerEnabled = false), outbox)
         val rpc = LocalRoomServiceRpc(service)
+        service.start()
         try {
             fun change(id: Int, version: Long = 0) = PostLockerChangeRequest(roomId = room, lockerId = LockerId(byteArrayOf(id.toByte()), LockerKeyspace(1)),
                 locker = Locker { open { encodedPayload = byteArrayOf(42) } }, parentVersion = version)

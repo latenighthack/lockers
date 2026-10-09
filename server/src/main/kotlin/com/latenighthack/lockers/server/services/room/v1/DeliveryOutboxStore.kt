@@ -2,6 +2,7 @@ package com.latenighthack.lockers.server.services.room.v1
 
 import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.common.v1.*
+import com.latenighthack.lockers.room.v1.fromByteArray
 import com.latenighthack.lockers.server.storage.v1.*
 import com.latenighthack.lockers.server.storage.v2.*
 import kotlinx.coroutines.sync.Mutex
@@ -33,9 +34,33 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
     private val migration = Mutex()
     private var indexed = false
     private var migrationAfter: LocalContinuation? = null
-    suspend fun prepareStores() { prepare(); sequences.prepare(); receipts.prepare(); entries.prepare(); heads.prepare() }
+    val agentWork = AgentWorkStore(delegate, clock = clock)
+    suspend fun prepareStores() { prepare(); sequences.prepare(); receipts.prepare(); entries.prepare(); heads.prepare(); agentWork.prepare() }
+    suspend fun pruneAgentReceipts() = agentWork.prune { room, id -> receipts.remove(ServerRoomId(room.rawValue), id) }
     suspend fun receipt(room: RoomId, id: ByteArray) = receipts.find(ServerRoomId(room.rawValue), id)
-    suspend fun saveReceipt(receipt: ServerWriteReceipt) = receipts.put(receipt)
+    suspend fun saveReceipt(receipt: ServerWriteReceipt) {
+        receipts.put(receipt)
+        val response = com.latenighthack.lockers.room.v1.PostLockerChangesResponse.fromByteArray(receipt.encodedOutcome)
+        if (!response.agentPending && !response.agentIndeterminate) agentWork.adopt(receipt)
+    }
+    private val receiptMigration = Mutex()
+    private var receiptAfter: LocalContinuation? = null
+    private var receiptsIndexed = false
+    suspend fun initializeAgentReceipts() = receiptMigration.withLock {
+        while (!receiptsIndexed) {
+            val definition = WriteReceiptsDefinitionV1(prefix)
+            val page = delegate.query(definition.storeName, definition.request.query(128, after = receiptAfter))
+            for (raw in page.records) {
+                val snapshot = if (raw is ServerWriteReceipt) raw else ServerWriteReceipt.fromByteArray(raw as ByteArray)
+                val room = RoomId(requireNotNull(snapshot.roomId).rawValue)
+                atomic(room) {
+                    val current = receipt(room, snapshot.requestId)
+                    if (current != null && agentWork.find(room, snapshot.requestId) == null) agentWork.adopt(current)
+                }
+            }
+            receiptAfter = page.continuation; receiptsIndexed = receiptAfter == null
+        }
+    }
     suspend fun <T> atomic(block: suspend () -> T): T = delegate.transaction(LOCK, block)
     suspend fun <T> atomic(roomId: RoomId, block: suspend () -> T): T = delegate.transaction(roomMutationKey(ServerRoomId(roomId.rawValue)), block)
     private suspend fun <T> mutateRoom(roomId: RoomId, block: suspend () -> T): T =
@@ -215,6 +240,7 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
         suspend fun find(roomId: ServerRoomId, requestId: ByteArray) = get(key.eq(listOf(
             BoundStoreKey.SerializedKey(room.name.value, roomId.toByteArray()), BoundStoreKey.SerializedKey(request.name.value, requestId))))
         suspend fun put(receipt: ServerWriteReceipt) = save(receipt)
+        suspend fun remove(roomId: ServerRoomId, requestId: ByteArray) = delete(key.eq(listOf(BoundStoreKey.SerializedKey(room.name.value, roomId.toByteArray()), BoundStoreKey.SerializedKey(request.name.value, requestId))))
     }
     private class RoomSequences(delegate: Database, prefix: String) : Store<ServerRoomSequence>(delegate, RoomSequencesDefinitionV1(prefix)) {
         private val room = RoomSequencesDefinitionV1(prefix).room
