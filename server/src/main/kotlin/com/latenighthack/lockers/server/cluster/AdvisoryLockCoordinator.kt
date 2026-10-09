@@ -10,8 +10,8 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.ensureActive
 import java.sql.Connection
-import java.sql.DriverManager
 
 /**
  * Postgres advisory locks as the cluster-wide fencing coordinator. `pg_try_advisory_lock(key)`
@@ -122,7 +122,7 @@ class JdbcAdvisoryLockGateway(private val jdbcUrl: String) : AdvisoryLockGateway
         var allocated: Connection? = null
         try {
             val session = withContext(Dispatchers.IO) {
-                val conn = DriverManager.getConnection(jdbcUrl).also { allocated = it }
+                val conn = com.latenighthack.lockers.server.tools.openPostgresConnection(jdbcUrl).also { allocated = it }
                 val acquired = conn.prepareStatement("SELECT pg_try_advisory_lock(?)").use { st ->
                     st.setLong(1, key)
                     st.executeQuery().use { rs -> rs.next() && rs.getBoolean(1) }
@@ -147,6 +147,7 @@ class JdbcAdvisoryLockGateway(private val jdbcUrl: String) : AdvisoryLockGateway
                 try { withContext(NonCancellable + Dispatchers.IO) { connection.close() } }
                 catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
             }
+            kotlin.coroutines.coroutineContext.ensureActive()
             throw failure
         }
     }

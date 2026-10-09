@@ -10,7 +10,6 @@ import com.latenighthack.lockers.sharding.spi.Membership
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.sql.DriverManager
 
 /**
  * Room + session shard counts folded into one [ShardCounts]. The session ring routes under the
@@ -125,6 +124,6 @@ object BlueprintV {
 
     /** Cheap DB liveness probe for `/readyz` (a valid session within 1s). */
     private suspend fun pingDb(jdbcUrl: String): Boolean = withContext(Dispatchers.IO) {
-        runCatching { DriverManager.getConnection(jdbcUrl).use { it.isValid(1) } }.getOrDefault(false)
+        runCatching { com.latenighthack.lockers.server.tools.openPostgresConnection(jdbcUrl).use { it.isValid(1) } }.getOrDefault(false)
     }
 }

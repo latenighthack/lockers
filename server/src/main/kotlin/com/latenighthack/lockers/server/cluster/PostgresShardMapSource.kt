@@ -23,7 +23,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.sql.Connection
-import java.sql.DriverManager
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -198,7 +197,7 @@ class JdbcShardMapGateway(private val jdbcUrl: String) : ShardMapGateway {
         }
     }
 
-    private fun connect(): Connection = DriverManager.getConnection(jdbcUrl)
+    private fun connect(): Connection = com.latenighthack.lockers.server.tools.openPostgresConnection(jdbcUrl)
 
     companion object {
         const val TABLE_DDL = """
