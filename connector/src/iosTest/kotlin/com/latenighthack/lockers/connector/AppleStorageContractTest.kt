@@ -19,4 +19,10 @@ class AppleStorageContractTest {
         }
     }
 
+    @Test fun sdkMutationsCommitRollbackAndReopenSqlite() = runTest {
+        val location = NSTemporaryDirectory() + "lockers-mutations-${Random.nextLong()}.db"
+        val configuration = ConnectorStorage.configuration(location)
+        verifyPersistentConnectorMutations { createDatabase(configuration, location) }
+    }
+
 }

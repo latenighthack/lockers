@@ -25,8 +25,11 @@ V1 byte and leave any already-copied V2 rows unusable through the archive API.
 Actual SQLite regressions cover V3/V4/V5 close/reopen to V6, pending/archive byte
 preservation, unknown scope/keyspace aliases, lower-epoch higher-source-version
 ordering, cursor cancellation after four rows and reopen, no post-completion rescan,
-partial-copy conflicts across reopen, and wrong private keys. Existing ratchet,
-receipt-expiry and retention tests remain green (21 executed, zero failures/skips).
+partial-copy conflicts across reopen, and wrong private keys. The fixtures also preserve legacy non-null authority
+states with absent scope/epoch zero and valid terminal Long.MAX_VALUE authority
+epochs. Put/remove/query inputs are detached before migration can suspend, with
+caller-array mutation while the second page is blocked covered by a regression. Existing ratchet,
+receipt-expiry and retention tests remain green (23 executed, zero failures/skips).
 The actual browser IndexedDB, Android SQLite and Apple SQLite fixtures run the same
 historical migration contract; those platform gates are in progress and will be
 recorded before final integration/publication. Baseline red/green logs are
@@ -35,3 +38,10 @@ recorded before final integration/publication. Baseline red/green logs are
 This commit does not infer that an archived authority certifies a particular source
 write. F11 keeps those outcomes separate. Publication stays held for the final
 subscription-intent ordering and platform gates.
+
+The real IndexedDB gate exposed a paired ktstore defect: logical owners were rejected
+as unsupported advisory locks. Upstream f5e9eaa now serializes all registered data
+stores in one native IndexedDB READ_WRITE transaction;45 actual browser tests pass.
+A new unique private dependency pin is being published. The SDK persistent mutation
+contract verifies nested event acceptance/cache/journal/ACK rollback and reopen,
+ratchet expectation persistence, and push intent confirmation on each real driver.

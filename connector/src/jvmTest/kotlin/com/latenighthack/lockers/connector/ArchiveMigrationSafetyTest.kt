@@ -41,10 +41,11 @@ class ArchiveMigrationSafetyTest {
         override suspend fun deleteBatch(tableName: String, query: IndexedQuery, identity: String, version: Int) =
             source.deleteBatch(tableName, query, identity, version)
         val secondPage = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
         private var reads = 0
         override suspend fun query(tableName: String, query: IndexedQuery, identity: String, version: Int): QueryPage {
             if (tableName == RatchetArchiveDefinitionV1.storeName.value && ++reads == 2) {
-                secondPage.complete(Unit); awaitCancellation()
+                secondPage.complete(Unit); release.await()
             }
             return source.query(tableName, query, identity, version)
         }
@@ -118,4 +119,44 @@ class ArchiveMigrationSafetyTest {
             } finally { db.close() }
         } finally { file.delete() }
     }
+    @Test fun mutableOperationArgumentsAreFrozenBeforeMigrationSuspends() = runTest {
+        for (operation in listOf("put", "remove", "hasRoom", "matching")) {
+            val file = File.createTempFile("archive-freeze-$operation", ".db")
+            try {
+                val key = Secp256r1KeyPair.generate()
+                val rows = (1..9).map { archive(it, it, it.toLong(), key) }
+                val target = seed(file, rows)
+                val paused = PausingDelegate(SqlStoreDelegate(JdbcDriver(file.absolutePath, "sqlite"), "BLOB", target))
+                val db = Database(target, paused); db.open()
+                try {
+                    val store = LockerStoreImpl(db)
+                    val candidate = if (operation == "put") archive(20, 20, 20, key) else rows[4]
+                    val room = RoomId(byteArrayOf(1)); val public = key.publicKey.encode()
+                    val originalPrivate = candidate.pending.privateKey.copyOf()
+                    val call = async { when (operation) {
+                        "put" -> { store.archiveRatchet(candidate); true }
+                        "remove" -> { store.forgetArchivedRatchet(candidate); true }
+                        "hasRoom" -> store.hasArchivedRatchet(room)
+                        else -> RatchetArchive(db).matching(room, public) != null
+                    } }
+                    paused.secondPage.await()
+                    candidate.pending.request.roomId!!.rawValue[0] = 99
+                    candidate.pending.privateKey[0] = (candidate.pending.privateKey[0].toInt() xor 1).toByte()
+                    candidate.publicKey[0] = 0
+                    candidate.state!!.scope!!.lockerRawValue[0] = 99
+                    room.rawValue[0] = 99; public[0] = 0
+                    paused.release.complete(Unit)
+                    assertTrue(call.await())
+                    val adopted = store.archivedRatchets()
+                    if (operation == "put") assertContentEquals(originalPrivate,
+                        adopted.single { it.scope.lockerRawValue.contentEquals(byteArrayOf(20)) }.pending.privateKey)
+                    if (operation == "remove") {
+                        assertEquals(8, adopted.size)
+                        assertFalse(adopted.any { it.scope.lockerRawValue.contentEquals(byteArrayOf(5)) })
+                    }
+                } finally { db.close() }
+            } finally { file.delete() }
+        }
+    }
+
 }

@@ -13,4 +13,11 @@ class ArchiveMigrationTest {
             finally { file.delete() }
         }
     }
+    @Test fun sdkMutationsCommitRollbackAndReopenSqlite() = runTest {
+        val file = File.createTempFile("connector-mutations", ".db")
+        val configuration = ConnectorStorage.configuration(file.name)
+        try { verifyPersistentConnectorMutations { createDatabase(configuration, file.absolutePath) } }
+        finally { file.delete() }
+    }
+
 }

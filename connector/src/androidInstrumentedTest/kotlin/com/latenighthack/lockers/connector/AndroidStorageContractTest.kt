@@ -23,4 +23,12 @@ class AndroidStorageContractTest {
         }
     }
 
+    @Test fun sdkMutationsCommitRollbackAndReopenSqlite() = runTest {
+        val file = File.createTempFile("lockers-mutations", ".db",
+            InstrumentationRegistry.getInstrumentation().targetContext.cacheDir)
+        val configuration = ConnectorStorage.configuration(file.name)
+        try { verifyPersistentConnectorMutations { createDatabase(configuration, file.absolutePath) } }
+        finally { file.delete() }
+    }
+
 }

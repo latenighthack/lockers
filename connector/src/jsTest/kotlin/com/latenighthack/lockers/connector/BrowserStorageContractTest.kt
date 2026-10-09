@@ -20,4 +20,9 @@ class BrowserStorageContractTest {
         }
     } }
 
+    @Test fun sdkMutationsCommitRollbackAndReopenIndexedDb() = runTest { withContext(Dispatchers.Default) {
+        val configuration = ConnectorStorage.configuration("lockers-mutations-${Random.nextLong()}")
+        verifyPersistentConnectorMutations { createDatabase(configuration, null) }
+    } }
+
 }

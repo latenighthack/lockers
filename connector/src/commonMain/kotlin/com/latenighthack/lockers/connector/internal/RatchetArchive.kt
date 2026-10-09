@@ -96,7 +96,8 @@ internal class RatchetArchive(private val database: Database) : Store<ArchiveRec
         require(value.room.rawValue.isNotEmpty()) // Legacy authority archives may predate write IDs.
         record.scopeKey // Reject unknown scope kinds before deriving a key.
         value.state?.let { state ->
-            require(state.locked && state.scope != null && state.lockVersion in 1 until Long.MAX_VALUE)
+            require(state.locked && ((state.scope == null && state.lockVersion == 0L) ||
+                (state.scope != null && state.lockVersion >= 1L))) { "Contradictory private archive authority metadata" }
             require(state.publicKey?.rawValue.contentEquals(value.publicKey)) { "Private archive authority mismatch" }
         }
         val key = requireNotNull(Secp256r1KeyPair.fromPrivateKey(value.pending.privateKey)) { "Invalid archived private key" }
@@ -186,23 +187,25 @@ internal class RatchetArchive(private val database: Database) : Store<ArchiveRec
     }
     suspend fun archives(): List<ArchivedRatchet> = entries().toList()
     suspend fun hasRoom(room: RoomId): Boolean {
-        prepareCurrent(); return get(RatchetArchiveDefinitionV2.room.eq(room.rawValue)) != null
+        val roomBytes = room.rawValue.copyOf()
+        prepareCurrent(); return get(RatchetArchiveDefinitionV2.room.eq(roomBytes)) != null
     }
     suspend fun put(value: ArchivedRatchet) {
-        prepareCurrent()
-        val record = ArchiveRecordV2(encodeArchive(value)); validated(record)
+        val record = ArchiveRecordV2(encodeArchive(value))
+        prepareCurrent(); validated(record)
         database.transaction("connector-ratchet") { merge(record) }
     }
     suspend fun matching(room: RoomId, publicKey: ByteArray): ArchivedRatchet? {
+        val roomBytes = room.rawValue.copyOf(); val publicKeyBytes = publicKey.copyOf()
         prepareCurrent()
         val record = get(RatchetArchiveDefinitionV2.roomPublicKey.eq(listOf(
-            BoundStoreKey.SerializedKey(RatchetArchiveDefinitionV2.room.name.value, room.rawValue),
-            BoundStoreKey.SerializedKey(RatchetArchiveDefinitionV2.publicKey.name.value, publicKey)))) ?: return null
+            BoundStoreKey.SerializedKey(RatchetArchiveDefinitionV2.room.name.value, roomBytes),
+            BoundStoreKey.SerializedKey(RatchetArchiveDefinitionV2.publicKey.name.value, publicKeyBytes)))) ?: return null
         return validated(detached(record))
     }
     suspend fun remove(value: ArchivedRatchet) {
-        prepareCurrent()
         val record = ArchiveRecordV2(encodeArchive(value))
+        prepareCurrent()
         database.transaction("connector-ratchet") {
             val current = get(identity(record)) ?: return@transaction
             if (encodeArchive(current.archive).contentEquals(record.bytes)) delete(identity(record))
