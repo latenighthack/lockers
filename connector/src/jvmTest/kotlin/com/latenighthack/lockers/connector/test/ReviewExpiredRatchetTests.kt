@@ -285,5 +285,82 @@ class ReviewExpiredRatchetTests {
         } finally { first.closeAndJoin(); other.closeAndJoin(); replacement?.closeAndJoin(); database.close() }
     } }
 
+    @Test(timeout = 20_000)
+    fun `a different source write reaching the exact expected key epoch remains source unknown`() = runOwnedTestWithServer({
+        attachTestServices()
+    }) { server, _ -> withContext(Dispatchers.Default) {
+        val room = RoomId(byteArrayOf(71)); val id = LockerId(byteArrayOf(72), LockerKeyspace(0))
+        val root = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM)
+        val scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_LOCKER, keyspace = id.keyspace, lockerRawValue = id.rawValue)
+        val old = Secp256r1KeyPair.generate(); var active = old
+        val source = object : LockKeySource {
+            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = active
+            override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) { active = newKeyPair }
+        }
+        val proposed = CompletableDeferred<PostLockerChangeRequest>()
+        val gated = object : RpcClient by server.ownedRpcClient {
+            override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray): RpcResponse {
+                if (method.methodName == "PostLockerChange") {
+                    val intent = PostLockerChangeRequest.fromByteArray(request)
+                    if (intent.ratchet != null) { proposed.complete(intent); awaitCancellation() } // This source never reaches the server.
+                }
+                return server.ownedRpcClient.unaryCall(method, headers, request)
+            }
+        }
+        val database = ConnectorStorage.inMemory()
+        val first = reviewClient(gated, source, database)
+        val other = reviewClient(server.ownedRpcClient, object : LockKeySource {
+            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = old
+        })
+        var replacement: LockerClient? = null
+        try {
+            assertTrue(first.lockLocker(room, root, old).result.isOk())
+            assertTrue(first.lockLocker(room, scope, old, old).result.isOk())
+            first.updateLocker(room, id) { byteArrayOf(1) }
+            val write = launch { first.updateLocker(room, id, ratchet = true) { byteArrayOf(3) } }
+            val intent = withTimeout(5_000) { proposed.await() }; write.cancelAndJoin(); first.closeAndJoin()
+            val pub = intent.ratchet!!.newPublicKey!! // No proposed private key is available to this old-key holder.
+            val hash = SHA256.digest(byteArrayOf(9))
+            val writeSignature = Signature(publicKey = Secp256R1Key.PublicKey(old.publicKey.encode()), signingVersion = 2,
+                signature = old.privateKey.sign(LockerSigning.writeContextV2(room, id, 1, 1, hash, null)))
+            val unrelated = PostLockerChangeRequest(roomId = room, lockerId = id, parentVersion = 1,
+                writeRequestId = ByteArray(32) { 99 }, writeSignature = writeSignature, locker = Locker { sealed { payload {
+                    checksum = hash; enclosure { signature = writeSignature; innerPayload = byteArrayOf(9) }
+                } } }, ratchet = PostLockerChangeRequest.Ratchet(newPublicKey = pub, signature = Signature(
+                    publicKey = Secp256R1Key.PublicKey(old.publicKey.encode()), signingVersion = 2,
+                    signature = old.privateKey.sign(LockerSigning.ratchetContextV2(room, id, 1, 1, pub.rawValue, emptyList())))))
+            val otherReceipt = ShardedRoomServiceRpc(server.ownedRpcClient).postLockerChange(unrelated)
+            assertTrue(otherReceipt.result.isOk()); assertEquals(2L, otherReceipt.version); assertEquals(2L, otherReceipt.lockState!!.lockVersion)
+            val originalPosts = java.util.concurrent.atomic.AtomicInteger()
+            val recoveringRpc = object : RpcClient by server.ownedRpcClient {
+                override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray): RpcResponse {
+                    if (method.methodName == "PostLockerChange" && PostLockerChangeRequest.fromByteArray(request).writeRequestId.contentEquals(intent.writeRequestId)) originalPosts.incrementAndGet()
+                    return server.ownedRpcClient.unaryCall(method, headers, request)
+                }
+            }
+            val recovered = reviewClient(recoveringRpc, source, database).also { replacement = it }
+            recovered.start()
+            withTimeout(5_000) { while (recovered.ratchetRecoveryFailures.value.isEmpty()) delay(10) }
+            assertContentEquals(pub.rawValue, active.publicKey.encode(), "exact current authority may safely restore the private key")
+            assertEquals(1, LockerStoreImpl(database).pendingRatchets().size, "an unrelated grant must not erase source uncertainty")
+            assertTrue(LockerStoreImpl(database).archivedRatchets().isEmpty())
+            var transforms = 0
+            val unknown = assertFailsWith<RatchetRecoveryUnresolvedException> { recovered.updateLocker(room, id) { transforms++; byteArrayOf(10) } }
+            assertTrue(unknown.authorityRecovered); assertEquals(2L, unknown.observedVersion); assertEquals(0, transforms)
+            assertFalse((unknown as Throwable) is LockerSourceCommittedException)
+            assertContentEquals(byteArrayOf(9), recovered.getAllKnownLockers().single().payload)
+            recovered.acknowledgeRatchetSourceUncertainty(room, id, intent.writeRequestId)
+            val before = originalPosts.get()
+            recovered.updateLocker(room, id) { assertContentEquals(byteArrayOf(9), it); byteArrayOf(10) }
+            recovered.closeAndJoin(); active = old
+            val reopened = reviewClient(recoveringRpc, source, database).also { replacement = it }; reopened.start()
+            withTimeout(5_000) { while (!active.publicKey.encode().contentEquals(pub.rawValue)) delay(10) }
+            assertEquals(before, originalPosts.get(), "ACKed source must never replay, including after volatile provider reset")
+            assertEquals(1, LockerStoreImpl(database).pendingRatchets().size)
+            assertTrue(LockerStoreImpl(database).archivedRatchets().isEmpty())
+            assertContentEquals(byteArrayOf(10), reopened.getAllKnownLockers().single().payload)
+        } finally { first.closeAndJoin(); other.closeAndJoin(); replacement?.closeAndJoin(); database.close() }
+    } }
+
     private var serverDatabase: Database? = null
 }
