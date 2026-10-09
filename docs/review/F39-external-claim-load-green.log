@@ -1,0 +1,19 @@
+== building server distribution ==
+== phase 1: 2-node claim cluster ==
+== claim 2-node (2 node(s), 100 rooms) ==
+writes=601 errors=0 redirectsFollowed=0
+latency p50=32.58ms p99=826.73ms max=1102.50ms
+
+127.0.0.1:18091 renew.max=147.4ms
+127.0.0.1:18093 renew.max=37.0ms
+room_claim permanent rows=100 (before=0, exercised rooms=100)
+
+== draining claim nodes ==
+== phase 2: monolith baseline ==
+== monolith baseline (1 node(s), 100 rooms) ==
+writes=616 errors=0 redirectsFollowed=0
+latency p50=41.32ms p99=435.87ms max=602.47ms
+
+127.0.0.1:18095 renew.max=0.0ms
+
+== done; server logs in /tmp/claim-load.zaIwqx ==

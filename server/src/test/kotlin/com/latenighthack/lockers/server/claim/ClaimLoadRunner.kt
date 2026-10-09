@@ -52,8 +52,8 @@ class ClaimLoadRunner(
         }
     }
 
-    // Schemeless on purpose: HttpRpcClient prepends "http://" itself for non-https paths.
-    private val clients = targetAddrs.associateWith { RoomServiceRpc(HttpRpcClient(it)) }
+    private val transports = targetAddrs.associateWith { HttpRpcClient(it) }
+    private val clients = transports.mapValues { RoomServiceRpc(it.value) }
     private val ownerCache = ConcurrentHashMap<Int, String>()
     private val latenciesNanos = ConcurrentLinkedQueue<Long>()
     private val errorKinds = ConcurrentHashMap<String, AtomicInteger>()
@@ -64,7 +64,7 @@ class ClaimLoadRunner(
     suspend fun run(): Result {
         val perWriterIntervalMs = (1000L * writers / writesPerSecond).coerceAtLeast(1)
         val deadlineNanos = System.nanoTime() + duration.inWholeNanoseconds
-        coroutineScope {
+        try { coroutineScope {
             repeat(writers) { w ->
                 launch {
                     var i = w
@@ -76,6 +76,9 @@ class ClaimLoadRunner(
                 }
             }
         }
+        } finally { kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+            transports.values.forEach { it.closeAndJoin() }
+        } }
         val sorted = latenciesNanos.toLongArray().also { it.sort() }
         fun pct(p: Double): Double =
             if (sorted.isEmpty()) 0.0
@@ -132,7 +135,8 @@ class ClaimLoadRunner(
             if (response.result !is PostLockerChangeResponse.Result.OK) {
                 countError("result:${response.result?.let { it::class.simpleName } ?: "null"}")
             }
-        } catch (t: Exception) {
+        } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+        catch (t: Exception) {
             countError("exception:${t::class.simpleName}:${t.message?.take(80)}")
         }
     }
