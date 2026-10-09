@@ -158,6 +158,11 @@ room, keyspace and locker locks; public-key room IDs establish room authority,
 while opaque unclaimed rooms use first-writer establishment. Locks authorize
 mutation, not reads: subscribe/read access is open unless an application supplies
 a separate read-access policy. Session capabilities are identifiers, not secrets.
+Signed `sealed` envelopes provide integrity; their contents remain readable.
+Encrypt sensitive payloads before writing them and keep decryption keys outside
+those records, or enforce an application read-access policy on every read and
+subscription route. A room described as private by an application needs that
+additional confidentiality protection.
 Server agents and private peer gateways are trusted extensions; applications must
 install intentional agents rather than treating untrusted callbacks as sandboxed.
 
