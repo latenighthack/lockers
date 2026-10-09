@@ -266,12 +266,12 @@ class RoomServiceImpl(
     }
 
     private val gatewayLookupFailureCounter = meterRegistry.counter("lockers.room.gateway.lookup.failures")
-    private val oversizeRejectedCounter = meterRegistry.counter("lockers.room.locker.rejected.oversize")
+    init { meterRegistry.counter("lockers.room.locker.rejected.oversize") }
     private val rateLimitedCounter = meterRegistry.counter("lockers.room.locker.rejected.ratelimited")
-    private val postEventSuccessCounter = meterRegistry.counter("lockers.room.events.post.success")
-    private val postEventFailureCounter = meterRegistry.counter("lockers.room.events.post.failure")
+    init { meterRegistry.counter("lockers.room.events.post.success") }
+    init { meterRegistry.counter("lockers.room.events.post.failure") }
     private val agentFailureCounter = meterRegistry.counter("lockers.room.agent.failures")
-    private val cacheHitCounter = meterRegistry.counter("lockers.room.cache.hits")
+    init { meterRegistry.counter("lockers.room.cache.hits") }
     private val cacheMissCounter = meterRegistry.counter("lockers.room.cache.misses")
 
     // Reshard observability (§7). A cache miss on the room→session set is the lazy-rebuild path a
@@ -282,8 +282,8 @@ class RoomServiceImpl(
     private val reshardCasConflictsCounter = meterRegistry.counter("lockers.reshard.cas.conflicts")
     private val dispatcherWaitTimer = meterRegistry.timer("lockers.room.dispatcher.time")
     private val getLockerTimer = meterRegistry.timer("lockers.room.locker.get.time")
-    private val getAllLockersTimer = meterRegistry.timer("lockers.room.locker.getall.time")
-    private val lockersReturnedSummary = meterRegistry.summary("lockers.room.locker.count")
+    init { meterRegistry.timer("lockers.room.locker.getall.time") }
+    init { meterRegistry.summary("lockers.room.locker.count") }
 
     private val roomToSessionCache = Cache.Builder<RoomId, Set<SessionId>>()
         .eventListener { event ->
@@ -873,22 +873,6 @@ class RoomServiceImpl(
             requireNotNull(pendingWrites).add(serverLocker)
             requireNotNull(pendingEvents).add(sourceEvent)
             return PostLockerChangeResponse(result = PostLockerChangeResponse.Result.OK, version = updatedLockerVersion, lockState = effectiveState)
-    }
-
-    private suspend fun deliver(events: List<Event>, sessionIds: List<SessionId>) {
-        val groups = sessionGatewayDiscovery.resolveGroups(sessionIds)
-        for (event in events) kotlinx.coroutines.coroutineScope {
-            val permits = kotlinx.coroutines.sync.Semaphore(4)
-            groups.map { group -> async {
-                permits.acquire()
-                try {
-                    val response = group.service.postEvent(PostEventRequest(group.sessionIds, event))
-                    if (response.result.isOk()) postEventSuccessCounter.increment() else postEventFailureCounter.increment()
-                } catch (e: kotlinx.coroutines.CancellationException) { throw e }
-                catch (e: Exception) { postEventFailureCounter.increment(); logger.warn("gateway delivery failed", e) }
-                finally { permits.release() }
-            } }.forEach { it.await() }
-        }
     }
 
     override suspend fun deleteLocker(
