@@ -56,7 +56,7 @@ class DeliveryLatencyTest {
             }
             val service = RoomServiceImpl(subs, lockers, locks, discovery, object : RoomOwnership {
                 override suspend fun resolve(keyspace: Long, roomId: RoomId) = RoomOwner.Local()
-            }, agent, SimpleMeterRegistry(), LockersConfig.defaults().copy(deliveryOutboxEnabled = outboxEnabled), outbox)
+            }, agent, SimpleMeterRegistry(), LockersConfig.defaults().copy(deliveryOutboxEnabled = outboxEnabled, maxLockerPayloadBytes = 2 * 1024 * 1024), outbox)
             service.start()
             val rpc = LocalRoomServiceRpc(service)
             val acknowledgements = mutableListOf<Double>(); val deliveries = mutableListOf<Double>(); val overhead = mutableListOf<Double>()

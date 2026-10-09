@@ -9,6 +9,8 @@ import com.latenighthack.lockers.server.storage.v1.*
 import com.latenighthack.lockers.session.v1.SessionGatewayService
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 import kotlin.test.*
 
 class PersistedEnvelopeValidationTest {
@@ -21,6 +23,7 @@ class PersistedEnvelopeValidationTest {
         val service = RoomServiceImpl(SubscriptionStoreImpl(db), lockers, LockStoreImpl(db), object : SessionGatewayDiscovery {
             override suspend fun findServer(sessionId: SessionId): SessionGatewayService? = null
         }, LocalRoomOwnership(), agent, SimpleMeterRegistry(), LockersConfig.defaults().copy(deliveryWorkerEnabled = false))
+        service.start()
         return Triple(db, lockers, service)
     }
     @Test fun corruptAndAmbiguousReadsReturnRepairIdentityAndVersion() = runBlocking {
@@ -43,7 +46,7 @@ class PersistedEnvelopeValidationTest {
                 assertEquals(2, snapshot.result.value)
                 assertEquals(7, snapshot.lockers.single().version)
             }
-        } finally { service.close(); db.close() }
+        } finally { service.closeAndJoin(); db.close() }
     }
     @Test fun ambiguousAgentOutputNeverCommitsDerivedRowsOrDelivery() = runBlocking {
         val derived = LockerId(byteArrayOf(3))
@@ -56,9 +59,10 @@ class PersistedEnvelopeValidationTest {
             val response = LocalRoomServiceRpc(service).postLockerChanges(PostLockerChangesRequest(roomId = room,
                 writeRequestId = ByteArray(16) { 8 }, changes = listOf(PostLockerChangeRequest(roomId = room, lockerId = id, locker = open()))))
             assertTrue(response.result.isOk())
-            assertTrue(response.agentFailed)
+            val outcome = withTimeout(5000) { service.writeOutcomeFlow(room, ByteArray(16) { 8 }).first { it.agentState.value >= 2 } }
+            assertEquals(WriteOutcome.AgentState.INDETERMINATE, outcome.agentState)
             assertNotNull(lockers.getLocker(ServerRoomId(room.rawValue), 0, ServerLockerId(id.rawValue)))
             assertNull(lockers.getLocker(ServerRoomId(room.rawValue), 0, ServerLockerId(derived.rawValue)))
-        } finally { service.close(); db.close() }
+        } finally { service.closeAndJoin(); db.close() }
     }
 }

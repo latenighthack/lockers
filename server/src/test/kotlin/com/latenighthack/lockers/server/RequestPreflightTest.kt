@@ -8,6 +8,8 @@ import com.latenighthack.lockers.server.services.session.v1.SessionGatewayDiscov
 import com.latenighthack.lockers.session.v1.SessionGatewayService
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.runBlocking
+import com.latenighthack.ktbuf.net.RpcResponseException
+import com.latenighthack.ktbuf.proto.Codes
 import kotlin.test.*
 
 class RequestPreflightTest {
@@ -29,9 +31,13 @@ class RequestPreflightTest {
     }
     @Test fun malformedAuthorityPacketsDoNotReachRoomAdmission(): Unit = runBlocking {
         fixture { calls, rpc ->
-            rpc.lockLocker(LockLockerRequest(roomId = room, grant = LockGrant(scope = LockScope(), publicKey = Secp256R1Key.PublicKey(byteArrayOf(1)))))
+            assertEquals(Codes.INVALID_ARGUMENT, assertFailsWith<RpcResponseException> {
+                rpc.lockLocker(LockLockerRequest(roomId = room, grant = LockGrant(scope = LockScope(), publicKey = Secp256R1Key.PublicKey(byteArrayOf(1)))))
+            }.code)
             assertEquals(0, calls())
-            rpc.unlockLocker(UnlockLockerRequest(roomId = room, scope = LockScope(), signature = Signature(signature = ByteArray(1024))))
+            assertEquals(Codes.INVALID_ARGUMENT, assertFailsWith<RpcResponseException> {
+                rpc.unlockLocker(UnlockLockerRequest(roomId = room, scope = LockScope(), signature = Signature(signature = ByteArray(1024))))
+            }.code)
             assertEquals(0, calls())
             rpc.deleteLocker(DeleteLockerRequest(roomId = room, lockerId = id, writeSignature = Signature(signature = ByteArray(1024))))
             assertEquals(0, calls())
