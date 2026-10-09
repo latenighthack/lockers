@@ -1352,7 +1352,7 @@ class LockerClient(
         if (current?.contentEquals(archive.publicKey) == true) return
         val old = archive.pending.request.writeSignature?.publicKey?.rawValue
         // Never replace a provider's unrelated/newer key with an old completed transition.
-        if (current != null && old != null && !current.contentEquals(old)) throw adoptionPending(archive)
+        if (current != null && (old == null || !current.contentEquals(old))) throw adoptionPending(archive)
         try { source.onRatcheted(room, target, newKey) }
         catch (cancelled: CancellationException) { throw cancelled }
         catch (failure: Exception) { throw adoptionPending(archive, failure) }
@@ -1363,11 +1363,15 @@ class LockerClient(
     private suspend fun restoreArchivedRatchet(archive: ArchivedRatchet, target: LockerId = requireNotNull(archive.pending.request.lockerId)) {
         ratchetAdoption.withLock {
             val caps = capabilities()
-            val current = if (caps.authorityV2) getLockScope(archive.room, archive.scope).scopeState else
-                sync.network { roomService.getLocker(GetLockerRequest(archive.room, target.canonical())) }.locker?.lockState
+            // Legacy archives identify the source locker, but do not record which ancestor
+            // supplied its authority. Their synthetic index scope is not authority history.
+            val exactHistory = caps.authorityV2 && archive.state?.scope != null && archive.state.lockVersion > 0
+            val current = if (exactHistory) getLockScope(archive.room, archive.scope).scopeState else
+                currentAuthorityState(archive.room, target.canonical())
             if (current?.publicKey?.rawValue?.contentEquals(archive.publicKey) != true) {
                 // Exact V2 scope history proves this key obsolete; an overridden legacy locker does not.
-                if (caps.authorityV2 && current != null && current.lockVersion >= (archive.state?.lockVersion ?: 0)) lockerStore.forgetArchivedRatchet(archive)
+                if (exactHistory && current != null && current.lockVersion >= requireNotNull(archive.state).lockVersion)
+                    lockerStore.forgetArchivedRatchet(archive)
                 return
             }
             adoptKey(archive, target)

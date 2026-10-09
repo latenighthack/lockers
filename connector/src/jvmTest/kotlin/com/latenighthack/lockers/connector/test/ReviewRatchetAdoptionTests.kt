@@ -9,6 +9,79 @@ import kotlinx.coroutines.*
 import kotlin.test.*
 
 class ReviewRatchetAdoptionTests {
+    @Test fun `legacy archive restores an active ancestor key after authority protocol upgrade`() = runBlocking {
+        val db = ConnectorStorage.inMemory()
+        db.open()
+        val old = Secp256r1KeyPair.generate()
+        val rotated = Secp256r1KeyPair.generate()
+        val room = RoomId(byteArrayOf(1)); val id = LockerId(byteArrayOf(2), LockerKeyspace(0))
+        val request = PostLockerChangeRequest(roomId = room, lockerId = id,
+            writeSignature = Signature(publicKey = Secp256R1Key.PublicKey(old.publicKey.encode())),
+            ratchet = PostLockerChangeRequest.Ratchet(newPublicKey = Secp256R1Key.PublicKey(rotated.publicKey.encode())))
+        val legacy = LockState(locked = true, publicKey = request.ratchet!!.newPublicKey)
+        val store = LockerStoreImpl(db)
+        store.archiveRatchet(ArchivedRatchet(PendingRatchet(request, rotated.privateKey.encode()), legacy, 5))
+        val adopted = CompletableDeferred<Unit>()
+        var active = old
+        var exactQueries = 0
+        val rpc = ReviewRpc { method, _ -> when (method.methodName) {
+            "Capabilities" -> CapabilitiesResponse(authorityV2 = true).toByteArray()
+            "GetLockScope" -> { exactQueries++; GetLockScopeResponse(scopeState = LockState()).toByteArray() }
+            "GetLocker" -> GetLockerResponse(locker = IdentifiedLocker(id, version = 5,
+                lockState = legacy.copy(scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM), lockVersion = 2))).toByteArray()
+            else -> error(method.methodName)
+        } }
+        val client = reviewClient(rpc, object : LockKeySource {
+            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = active
+            override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) {
+                active = newKeyPair; adopted.complete(Unit)
+            }
+        }, db)
+        try {
+            client.start()
+            withTimeout(2_000) { while (!adopted.isCompleted && store.archivedRatchets().isNotEmpty()) delay(10) }
+            assertTrue(adopted.isCompleted, "Still-active ancestor key must be restored")
+            assertContentEquals(rotated.publicKey.encode(), active.publicKey.encode())
+            assertEquals(1, store.archivedRatchets().size)
+            assertEquals(0, exactQueries)
+        } finally { client.closeAndJoin(); db.close() }
+    }
+
+    @Test fun `archive without previous signing identity cannot replace an unrelated provider key`() = runBlocking {
+        val db = ConnectorStorage.inMemory()
+        db.open()
+        val rotated = Secp256r1KeyPair.generate()
+        val unrelated = Secp256r1KeyPair.generate()
+        val room = RoomId(byteArrayOf(1)); val id = LockerId(byteArrayOf(2), LockerKeyspace(0))
+        val scope = LockScope(kind = LockScopeKind.LOCK_SCOPE_ROOM)
+        val state = LockState(locked = true, scope = scope, lockVersion = 2,
+            publicKey = Secp256R1Key.PublicKey(rotated.publicKey.encode()))
+        val request = PostLockerChangeRequest(roomId = room, lockerId = id,
+            ratchet = PostLockerChangeRequest.Ratchet(newPublicKey = state.publicKey))
+        LockerStoreImpl(db).archiveRatchet(ArchivedRatchet(PendingRatchet(request, rotated.privateKey.encode()), state, 5))
+        var active = unrelated
+        var callbacks = 0
+        val rpc = ReviewRpc { method, _ -> when (method.methodName) {
+            "Capabilities" -> CapabilitiesResponse(authorityV2 = true, writeReceipts = true).toByteArray()
+            "GetLocker" -> GetLockerResponse(locker = IdentifiedLocker(id, version = 5, lockState = state)).toByteArray()
+            "GetLockScope" -> GetLockScopeResponse(scopeState = state).toByteArray()
+            else -> error("Unexpected new source: ${method.methodName}")
+        } }
+        val client = reviewClient(rpc, object : LockKeySource {
+            override suspend fun writeKeyFor(roomId: RoomId, lockerId: LockerId) = active
+            override suspend fun onRatcheted(roomId: RoomId, lockerId: LockerId, newKeyPair: Secp256r1KeyPair) {
+                callbacks++; active = newKeyPair
+            }
+        }, db)
+        try {
+            val failure = runCatching { client.updateLocker(room, id) { byteArrayOf(9) } }.exceptionOrNull()
+            assertEquals(0, callbacks)
+            assertIs<RatchetAdoptionPendingException>(failure)
+            assertContentEquals(unrelated.publicKey.encode(), active.publicKey.encode())
+            assertEquals(1, LockerStoreImpl(db).archivedRatchets().size)
+        } finally { client.closeAndJoin(); db.close() }
+    }
+
     @Test fun `shared scope adoption failure identifies the original committed source`() = runBlocking {
         val db = ConnectorStorage.inMemory()
         db.open()
