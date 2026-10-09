@@ -1,0 +1,47 @@
+diff --git a/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewAuthorityDriftTests.kt b/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewAuthorityDriftTests.kt
+index 67c9071..1308c49 100644
+--- a/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewAuthorityDriftTests.kt
++++ b/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewAuthorityDriftTests.kt
+@@ -13,13 +13,18 @@ import kotlinx.coroutines.*
+ import kotlin.test.*
+ 
+ class ReviewAuthorityDriftTests {
++    @Test(timeout = 20_000) fun `pre-discovery capability failure is reported instead of a gate timeout`() = race(LockScopeKind.LOCK_SCOPE_KEYSPACE, earlyFailure = true)
++    private suspend fun <T> awaitDiscovery(discovered: Deferred<Unit>, outcome: Deferred<Result<T>>) {
++        discovered.await()
++    }
++
+     @Test(timeout = 20_000) fun `new room authority re-signs a definitively rejected frozen write`() = race(LockScopeKind.LOCK_SCOPE_ROOM)
+     @Test(timeout = 20_000) fun `new keyspace authority re-signs a definitively rejected frozen write`() = race(LockScopeKind.LOCK_SCOPE_KEYSPACE)
+     @Test(timeout = 20_000) fun `child authority counters do not compare against the ancestor counter`() = race(LockScopeKind.LOCK_SCOPE_KEYSPACE, withRoomHistory = true)
+     @Test(timeout = 20_000) fun `different authority key remains a permanent rejection`() = race(LockScopeKind.LOCK_SCOPE_ROOM, differentKey = true)
+     @Test(timeout = 20_000) fun `lost rejection reply never permits re-signing an ambiguous request`() = race(LockScopeKind.LOCK_SCOPE_ROOM, ambiguous = true)
+ 
+-    private fun race(kind: LockScopeKind, differentKey: Boolean = false, ambiguous: Boolean = false, withRoomHistory: Boolean = false) =
++    private fun race(kind: LockScopeKind, differentKey: Boolean = false, ambiguous: Boolean = false, withRoomHistory: Boolean = false, earlyFailure: Boolean = false) =
+         runOwnedTestWithServer({ attachTestServices() }) { server, _ -> withContext(Dispatchers.Default) {
+             val key = Secp256r1KeyPair.generate()
+             val authorityKey = if (differentKey) Secp256r1KeyPair.generate() else key
+@@ -30,6 +35,8 @@ class ReviewAuthorityDriftTests {
+             val requests = java.util.concurrent.CopyOnWriteArrayList<PostLockerChangeRequest>()
+             val checked = object : RpcClient by server.ownedRpcClient {
+                 override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>, request: ByteArray): RpcResponse {
++                    if (earlyFailure && method.methodName == "Capabilities")
++                        throw RpcResponseException("test", "POST", Codes.INVALID_ARGUMENT, "Injected pre-discovery capability failure")
+                     if (method.methodName == "PostLockerChange") requests += PostLockerChangeRequest.fromByteArray(request)
+                     val response = server.ownedRpcClient.unaryCall(method, headers, request)
+                     if (method.methodName == "GetLocker" && !held) {
+@@ -65,7 +72,12 @@ class ReviewAuthorityDriftTests {
+                     }
+                 }
+                 val outcome = async { runCatching { client.updateLocker(room, id, { payload { rawValue = byteArrayOf(9) } }) { transforms++; byteArrayOf(3) } } }
+-                withTimeout(5_000) { discovered.await() }
++                if (earlyFailure) {
++                    val cause = assertFailsWith<RpcResponseException> { withTimeout(5_000) { awaitDiscovery(discovered, outcome) } }
++                    assertEquals(Codes.INVALID_ARGUMENT, cause.code)
++                    return@withContext Unit
++                }
++                withTimeout(5_000) { awaitDiscovery(discovered, outcome) }
+                 val scope = LockScope(kind = kind, keyspace = if (kind == LockScopeKind.LOCK_SCOPE_KEYSPACE) id.keyspace else null)
+                 assertTrue(concurrent.lockLocker(room, scope, authorityKey, key).result.isOk())
+                 release.complete(Unit)

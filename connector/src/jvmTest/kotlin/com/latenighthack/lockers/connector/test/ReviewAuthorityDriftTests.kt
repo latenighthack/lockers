@@ -10,9 +10,21 @@ import com.latenighthack.lockers.connector.*
 import com.latenighthack.lockers.room.v1.*
 import com.latenighthack.lockers.server.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.selects.select
 import kotlin.test.*
 
 class ReviewAuthorityDriftTests {
+    // An early worker failure must retain its cause instead of masquerading as a discovery timeout.
+    private suspend fun <T> awaitDiscovery(discovered: Deferred<Unit>, outcome: Deferred<Result<T>>) {
+        select<Unit> {
+            discovered.onAwait { }
+            outcome.onAwait { result ->
+                result.getOrThrow()
+                error("Write completed before reaching the authority discovery gate")
+            }
+        }
+    }
+
     @Test(timeout = 20_000) fun `new room authority re-signs a definitively rejected frozen write`() = race(LockScopeKind.LOCK_SCOPE_ROOM)
     @Test(timeout = 20_000) fun `new keyspace authority re-signs a definitively rejected frozen write`() = race(LockScopeKind.LOCK_SCOPE_KEYSPACE)
     @Test(timeout = 20_000) fun `child authority counters do not compare against the ancestor counter`() = race(LockScopeKind.LOCK_SCOPE_KEYSPACE, withRoomHistory = true)
@@ -65,7 +77,7 @@ class ReviewAuthorityDriftTests {
                     }
                 }
                 val outcome = async { runCatching { client.updateLocker(room, id, { payload { rawValue = byteArrayOf(9) } }) { transforms++; byteArrayOf(3) } } }
-                withTimeout(5_000) { discovered.await() }
+                withTimeout(5_000) { awaitDiscovery(discovered, outcome) }
                 val scope = LockScope(kind = kind, keyspace = if (kind == LockScopeKind.LOCK_SCOPE_KEYSPACE) id.keyspace else null)
                 assertTrue(concurrent.lockLocker(room, scope, authorityKey, key).result.isOk())
                 release.complete(Unit)

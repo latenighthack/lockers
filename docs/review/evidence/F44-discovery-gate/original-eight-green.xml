@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewAuthorityDriftTests[jvm]" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-09T05:11:48.542Z" hostname="Mikes-MacBook-Pro.local" time="1.89">
+  <properties/>
+  <testcase name="lost rejection reply never permits re-signing an ambiguous request[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.769"/>
+  <testcase name="child authority counters do not compare against the ancestor counter[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.209"/>
+  <testcase name="different authority key remains a permanent rejection[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.019"/>
+  <testcase name="authority-only drift retries have a finite independent budget[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.58"/>
+  <testcase name="new room authority re-signs a definitively rejected frozen write[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.174"/>
+  <testcase name="an unrelated reported keyspace cannot trigger authority repair[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.001"/>
+  <testcase name="unchanged authority epoch invalid signature remains permanent[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.003"/>
+  <testcase name="new keyspace authority re-signs a definitively rejected frozen write[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewAuthorityDriftTests" time="0.133"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>
