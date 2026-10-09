@@ -22,9 +22,9 @@ interface RoomClaimStore {
     /**
      * Atomic insert-or-steal-if-expired-or-renew-own, in one round trip. Always returns the
      * current owner's row: `nodeId == [nodeId]` means this node owns the room at `epoch`; any other
-     * value is a valid owner to redirect to. The epoch bumps only on a takeover (insert after
-     * expiry or steal), never on the owner's own re-claim, so it is a monotonic fencing token whose
-     * increments count ownership changes.
+     * value is a valid owner to redirect to. The epoch advances after expiry, release or a steal, including a reclaim by
+     * the same process. An unexpired self-renew retains its epoch. Released rows remain
+     * present so no previous fencing token can become current again.
      */
     suspend fun claim(roomId: RoomId, nodeId: String, nodeAddr: String, ttlMs: Long): RoomClaimRow
 
@@ -35,10 +35,10 @@ interface RoomClaimStore {
      */
     suspend fun renewAll(nodeId: String, ttlMs: Long): Set<RoomId>
 
-    /** Deletes the claim only if [nodeId] still owns it (release-after-steal is a no-op). */
+    /** Expires the claim, preserving its epoch, only if [nodeId] still owns it (release-after-steal is a no-op). */
     suspend fun release(roomId: RoomId, nodeId: String)
 
-    /** Graceful drain: deletes every claim held by [nodeId] so successors need not wait out a TTL. */
+    /** Graceful drain: expires every claim held by [nodeId] so successors need not wait out a TTL. */
     suspend fun releaseAll(nodeId: String)
 
     /** The raw row, including an expired one (the caller decides what expiry means), or null. */

@@ -44,6 +44,7 @@ class RuntimeCancellationTest {
             override suspend fun getSessionById(sessionId: ServerSessionId): ServerSession? = null
             override suspend fun getAllSessions(): List<ServerSession> = emptyList()
             override suspend fun updateSession(session: ServerSession) {}
+            override suspend fun isRevoked(sessionId: ServerSessionId) = false
             override suspend fun destroySession(sessionId: ServerSessionId) {}
             override suspend fun createIfAbsent(session: ServerSession): Boolean = throw CancellationException("cancelled storage")
         }

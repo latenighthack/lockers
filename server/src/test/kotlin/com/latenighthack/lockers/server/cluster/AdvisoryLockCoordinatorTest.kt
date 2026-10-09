@@ -102,7 +102,8 @@ class AdvisoryLockCoordinatorTest {
         assertThat(lease.keyspace).isEqualTo(Keyspace(5))
         assertThat(lease.shard).isEqualTo(ShardId(9))
         assertThat(lease.epoch).isEqualTo(Epoch(42))
-        assertThat(lease.fencingToken).isEqualTo(AdvisoryLockCoordinator.advisoryKey(Keyspace(5), ShardId(9)))
+        assertThat(lease.fencingKey).isEqualTo(AdvisoryLockCoordinator.advisoryKey(Keyspace(5), ShardId(9)))
+        kotlin.test.assertTrue(lease.fencingToken > 0)
     }
 }
 

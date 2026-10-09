@@ -7,7 +7,7 @@ import kotlinx.coroutines.sync.withLock
 
 /**
  * In-memory [RoomClaimStore] with the exact conditional semantics of [JdbcRoomClaimStore] (steal
- * only if expired; epoch bumps only on takeover; release guarded by owner). Lives in the main
+ * only if expired; epochs advance after expiry and survive release; release guarded by owner). Lives in the main
  * source set — like [com.latenighthack.lockers.server.services.room.v1.LocalRoomOwnership] — so
  * both the server tests and embedders can wire claim mode without a database. The injectable
  * [clock] stands in for the DB's `now()` as the single clock authority.

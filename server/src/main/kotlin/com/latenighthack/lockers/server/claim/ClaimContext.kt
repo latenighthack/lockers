@@ -11,6 +11,7 @@ import io.micrometer.core.instrument.MeterRegistry
  * [fromConfig] (production, JDBC stores) or directly by the test harness (in-memory stores).
  */
 class ClaimContext(
+    /** Unique process incarnation; direct embedders must never share this value across live processes. */
     val nodeId: String,
     val advertiseAddr: String,
     val roomClaims: RoomClaimStore,
