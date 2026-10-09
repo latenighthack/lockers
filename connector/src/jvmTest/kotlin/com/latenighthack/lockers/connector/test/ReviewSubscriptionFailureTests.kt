@@ -31,7 +31,7 @@ class ReviewSubscriptionFailureTests {
                 try { withContext(NonCancellable) { release.await() } } finally { active.decrementAndGet() }
             }
             SubscriptionResponse().toByteArray()
-        }, subscriptions, sessions, source, coroutineContext = currentCoroutineContext())
+        }, subscriptions, sessions, source, coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         try {
             controller.subscribe(heldRoom); controller.subscribe(healthyRoom)
             assertEquals(1, withTimeout(2_000) { entered.receive() })
@@ -46,7 +46,7 @@ class ReviewSubscriptionFailureTests {
             release.complete(Unit)
             withTimeout(2_000) { controller.awaitSubscription(heldRoom) }
             assertEquals(20, withTimeout(2_000) { entered.receive() }, "completion must run only the latest deferred session")
-        } finally { release.complete(Unit); controller.closeAndJoin(); assertEquals(0, active.get()); db.close() }
+        } finally { release.complete(Unit); controller.closeAndJoin(); assertEquals(0, active.get()); assertEquals(0, controller.work.value.occupiedEffects); assertTrue(controller.work.value.queuedRooms.isEmpty()); db.close() }
     } }
 
     @Test fun `removed room identities retain their global work budget until actual cleanup completes`() = runBlocking { withContext(Dispatchers.Default) {
@@ -62,7 +62,7 @@ class ReviewSubscriptionFailureTests {
                 try { withContext(NonCancellable) { release.await() } } finally { active.decrementAndGet() }
             }
             SubscriptionResponse().toByteArray()
-        }, subscriptions, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), coroutineContext = currentCoroutineContext())
+        }, subscriptions, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         try {
             val first = RoomId(byteArrayOf(2)); val second = RoomId(byteArrayOf(3))
             controller.subscribe(first); withTimeout(1_500) { entered.receive() }; controller.unsubscribe(first)
@@ -82,7 +82,7 @@ class ReviewSubscriptionFailureTests {
             release.complete(Unit)
             withTimeout(1_500) { while (subscriptions.getAllSubscriptions().isNotEmpty()) delay(10) }
             controller.subscribe(RoomId(byteArrayOf(4))); withTimeout(1_500) { controller.awaitSubscription(RoomId(byteArrayOf(4))) }
-        } finally { release.complete(Unit); controller.closeAndJoin(); assertEquals(0, active.get()); db.close() }
+        } finally { release.complete(Unit); controller.closeAndJoin(); assertEquals(0, active.get()); assertEquals(0, controller.work.value.occupiedEffects); assertTrue(controller.work.value.queuedRooms.isEmpty()); db.close() }
     } }
 
     @Test fun `one permanent subscription failure is observable and does not stop another room`() = runBlocking { withContext(Dispatchers.Default) {
@@ -97,7 +97,7 @@ class ReviewSubscriptionFailureTests {
             calls.computeIfAbsent(room) { AtomicInteger() }.incrementAndGet()
             if (room == 2 && reject) throw RpcResponseException("test", "POST", Codes.FAILED_PRECONDITION, "permanent room namespace ceiling")
             SubscriptionResponse().toByteArray()
-        }, subscriptions, sessions, session, coroutineContext = currentCoroutineContext())
+        }, subscriptions, sessions, session, coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         try {
             controller.startWatchingSubscriptions(); controller.subscribe(RoomId(byteArrayOf(2)))
             val failure = assertFailsWith<RpcResponseException> { withTimeout(1_500) { controller.awaitSubscription(RoomId(byteArrayOf(2))) } }
@@ -127,7 +127,7 @@ class ReviewSubscriptionFailureTests {
             }
             if (calls.get() == 2) throw RpcResponseException("test", "POST", Codes.RESOURCE_EXHAUSTED, "temporary quota")
             SubscriptionResponse().toByteArray()
-        }, subscriptions, sessions, source, coroutineContext = currentCoroutineContext())
+        }, subscriptions, sessions, source, coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         val room = RoomId(byteArrayOf(2))
         try {
             controller.startWatchingSubscriptions(); controller.subscribe(room); withTimeout(1_500) { entered.await() }
@@ -146,7 +146,7 @@ class ReviewSubscriptionFailureTests {
         val failure = IllegalStateException("subscription read failed")
         val controller = SubscriptionController(ReviewRpc { _, _ -> error("startup must not reach network") }, object : SubscriptionStore by actual {
             override suspend fun getAllSubscriptions(): List<StoredSubscription> = throw failure
-        }, sessions, MutableStateFlow(SessionId(byteArrayOf(1))))
+        }, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), supportsRevisions = { true })
         try {
             assertEquals(failure.message, assertFailsWith<IllegalStateException> { controller.startWatchingSubscriptions() }.message)
             assertEquals(failure.message, assertFailsWith<IllegalStateException> { withTimeout(1_500) { controller.awaitSubscription(RoomId(byteArrayOf(2))) } }.message)
@@ -168,7 +168,7 @@ class ReviewSubscriptionFailureTests {
                 if (!subscription.isPendingAdd && !subscription.isPendingRemove) throw failure
                 actual.updateSubscription(subscription)
             }
-        }, sessions, source, coroutineContext = currentCoroutineContext() + CoroutineExceptionHandler { _, error -> uncaught.trySend(error) })
+        }, sessions, source, coroutineContext = currentCoroutineContext() + CoroutineExceptionHandler { _, error -> uncaught.trySend(error) }, supportsRevisions = { true })
         val room = RoomId(byteArrayOf(2))
         try {
             controller.startWatchingSubscriptions(); controller.subscribe(room)
@@ -177,7 +177,7 @@ class ReviewSubscriptionFailureTests {
             assertTrue(uncaught.tryReceive().isFailure)
             assertTrue(actual.getSubscription(room)!!.isPendingAdd)
         } finally { controller.closeAndJoin() }
-        val replacement = SubscriptionController(rpc, actual, sessions, source, coroutineContext = currentCoroutineContext())
+        val replacement = SubscriptionController(rpc, actual, sessions, source, coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         try {
             replacement.startWatchingSubscriptions(); withTimeout(1_500) { replacement.awaitSubscription(room) }
             assertFalse(actual.getSubscription(room)!!.isPendingAdd)
@@ -194,7 +194,7 @@ class ReviewSubscriptionFailureTests {
         val source = MutableStateFlow<SessionId?>(SessionId(byteArrayOf(1)))
         val controller = SubscriptionController(rpc, object : SubscriptionStore by actual {
             override suspend fun deleteSubscription(roomId: RoomId) { throw failure }
-        }, sessions, source, coroutineContext = currentCoroutineContext() + CoroutineExceptionHandler { _, error -> uncaught.trySend(error) })
+        }, sessions, source, coroutineContext = currentCoroutineContext() + CoroutineExceptionHandler { _, error -> uncaught.trySend(error) }, supportsRevisions = { true })
         val room = RoomId(byteArrayOf(2))
         try {
             controller.startWatchingSubscriptions(); controller.subscribe(room); withTimeout(1_500) { controller.awaitSubscription(room) }
@@ -204,7 +204,7 @@ class ReviewSubscriptionFailureTests {
             assertTrue(uncaught.tryReceive().isFailure)
             assertTrue(actual.getSubscription(room)!!.isPendingRemove)
         } finally { controller.closeAndJoin() }
-        val replacement = SubscriptionController(rpc, actual, sessions, source, coroutineContext = currentCoroutineContext())
+        val replacement = SubscriptionController(rpc, actual, sessions, source, coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         try {
             replacement.startWatchingSubscriptions(); withTimeout(1_500) { while (actual.getSubscription(room) != null) delay(10) }
         } finally { replacement.closeAndJoin(); db.close() }
@@ -216,11 +216,11 @@ class ReviewSubscriptionFailureTests {
         val actual = SubscriptionStoreImpl(db).also { it.prepare() }
         val failure = IllegalStateException("new intent cannot persist")
         val controller = SubscriptionController(ReviewRpc { _, _ -> SubscriptionResponse().toByteArray() }, object : SubscriptionStore by actual {
-            override suspend fun updateSubscription(subscription: StoredSubscription) {
-                if (subscription.roomIdRawValue[0] == 2.toByte()) throw failure
-                actual.updateSubscription(subscription)
+            override suspend fun commitIntent(room: RoomId, subscribed: Boolean, expectedRevision: Long?, minimumRevision: Long): Long {
+                if (room.rawValue[0] == 2.toByte()) throw failure
+                return actual.commitIntent(room, subscribed, expectedRevision, minimumRevision)
             }
-        }, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), coroutineContext = currentCoroutineContext())
+        }, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         try {
             assertEquals(failure.message, assertFailsWith<IllegalStateException> { withTimeout(1_500) { controller.subscribe(RoomId(byteArrayOf(2))) } }.message)
             assertNull(actual.getSubscription(RoomId(byteArrayOf(2))))
@@ -237,7 +237,7 @@ class ReviewSubscriptionFailureTests {
             val request = SubscriptionRequest.fromByteArray(bytes)
             if (request.kind is SubscriptionRequest.OneOfKind.subscribe) throw RpcResponseException("test", "POST", Codes.FAILED_PRECONDITION, "permanent quota")
             SubscriptionResponse().toByteArray()
-        }, store, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), coroutineContext = currentCoroutineContext())
+        }, store, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
         try {
             repeat(10) { index ->
                 val room = RoomId(byteArrayOf((index + 2).toByte()))
@@ -261,7 +261,7 @@ class ReviewSubscriptionFailureTests {
         val sessions = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), db).also { it.prepare() }
         val store = SubscriptionStoreImpl(db).also { it.prepare() }
         val controller = SubscriptionController(ReviewRpc { _, _ -> throw RpcResponseException("test", "POST", Codes.OUT_OF_RANGE, "x".repeat(10_000)) },
-            store, sessions, MutableStateFlow(SessionId(byteArrayOf(1))))
+            store, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), supportsRevisions = { true })
         val room = RoomId(byteArrayOf(2))
         try {
             controller.subscribe(room)

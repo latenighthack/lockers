@@ -61,7 +61,7 @@ class ReviewPublicObservationIsolationTests {
         val sessions = SessionStoreImpl(KeyValueStore(InMemoryKeyValueStoreDelegate()), db).also { it.prepare() }
         val subscriptions = SubscriptionStoreImpl(db).also { it.prepare() }; var calls = 0
         val controller = SubscriptionController(ReviewRpc { _, _ -> calls++; SubscriptionResponse().toByteArray() },
-            subscriptions, sessions, MutableStateFlow(SessionId(byteArrayOf(1))))
+            subscriptions, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), supportsRevisions = { true })
         try {
             val first = async(start = CoroutineStart.UNDISPATCHED) { controller.watchNewSubscriptions().first() }
             val second = async(start = CoroutineStart.UNDISPATCHED) { controller.watchNewSubscriptions().first() }

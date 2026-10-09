@@ -111,21 +111,23 @@ class SessionStoreImpl(private val keyValueStore: KeyValueStore, private val dat
         } while (continuation != null)
     }
     override suspend fun getPendingAcks(): List<StoredAck> = pendingAckBatches().toList().flatten()
-    override suspend fun hasReceived(ack: StoredAck): Boolean = get(roomIdEventIdKey.eq(listOf(
-        BoundStoreKey.SerializedKey(roomIdKey.name.value, ack.roomIdRawValue),
-        BoundStoreKey.SerializedKey(eventIdKey.name.value, ack.eventIdRawValue)
-    ))) != null
+    override suspend fun hasReceived(ack: StoredAck): Boolean {
+        val room = ack.roomIdRawValue.copyOf(); val event = ack.eventIdRawValue.copyOf()
+        return get(roomIdEventIdKey.eq(listOf(BoundStoreKey.SerializedKey(roomIdKey.name.value, room),
+            BoundStoreKey.SerializedKey(eventIdKey.name.value, event)))) != null
+    }
 
     override suspend fun addAck(ack: StoredAck) {
         val ack = StoredAck.fromByteArray(ack.toByteArray())
         prepare(); database.transaction("connector-accept") {
             if (!hasReceived(ack) && database.count(SessionStoreImplDefinitionV2.storeName, IndexedQuery(SessionStoreImplDefinitionV2.confirmed.key, 1)) >= retentionPolicy.maxAcknowledgements)
                 throw ConnectorRetentionExceededException("ACK deduplication store is full; prune confirmations beyond the server replay horizon")
-            save(StoredAck.fromByteArray(ack.toByteArray()))
+            save(ack)
         }
     }
     override suspend fun addAcks(acks: List<StoredAck>) { acks.forEach { addAck(it) } }
     override suspend fun clearAck(ack: StoredAck) {
+        val ack = StoredAck.fromByteArray(ack.toByteArray())
         prepare(); ackAges.prepare(); database.transaction("connector-accept") {
             val original = get(roomIdEventIdKey.eq(listOf(BoundStoreKey.SerializedKey(roomIdKey.name.value, ack.roomIdRawValue), BoundStoreKey.SerializedKey(eventIdKey.name.value, ack.eventIdRawValue))))
             if (original != null && !original.confirmed) {
@@ -181,6 +183,9 @@ class SubscriptionCapacityException : IllegalStateException("Subscription intent
 
 interface SubscriptionStore {
     val maxSubscriptions: Int get() = 1_024
+    suspend fun ensureIntentRevision(room: RoomId, subscribed: Boolean): Long = throw UnsupportedOperationException("Durable subscription intent revisions required")
+    suspend fun commitIntent(room: RoomId, subscribed: Boolean, expectedRevision: Long? = null, minimumRevision: Long = 0): Long = throw UnsupportedOperationException("Durable subscription intent revisions required")
+    suspend fun intentRevision(room: RoomId): SubscriptionIntentRevision? = throw UnsupportedOperationException("Durable subscription intent revisions required")
     suspend fun getAllSubscriptions(): List<StoredSubscription>
     suspend fun updateSubscription(subscription: StoredSubscription)
     suspend fun getSubscription(roomId: RoomId): StoredSubscription?
@@ -190,6 +195,38 @@ interface SubscriptionStore {
 class SubscriptionStoreImpl(private val database: Database, private val retentionPolicy: ConnectorRetentionPolicy = ConnectorRetentionPolicy()) : SubscriptionStore, Store<StoredSubscription>(database, SubscriptionStoreImplDefinitionV1) {
     override val maxSubscriptions: Int get() = retentionPolicy.maxSubscriptions
     private val roomIdKey = SubscriptionStoreImplDefinitionV1.roomIdKey
+    private val revisions = SubscriptionIntentRevisions(database, retentionPolicy.maxSubscriptionHistories)
+    override suspend fun intentRevision(room: RoomId): SubscriptionIntentRevision? {
+        val room = room.canonical(); prepare(); revisions.prepare(); return revisions.find(room.rawValue)
+    }
+    override suspend fun ensureIntentRevision(room: RoomId, subscribed: Boolean): Long {
+        val room = room.canonical(); prepare(); revisions.prepare()
+        return database.transaction("connector-subscriptions") {
+            val current = revisions.find(room.rawValue)
+            if (current != null && current.subscribed == subscribed) current.revision
+            else {
+                val previous = current?.revision ?: 0L
+                if (previous == Long.MAX_VALUE) throw SubscriptionHistoryCapacityException()
+                (previous + 1).also { revisions.put(SubscriptionIntentRevision(room.rawValue, it, subscribed)) }
+            }
+        }
+    }
+    override suspend fun commitIntent(room: RoomId, subscribed: Boolean, expectedRevision: Long?, minimumRevision: Long): Long {
+        val room = room.canonical(); require(minimumRevision >= 0); prepare(); revisions.prepare()
+        return database.transaction("connector-subscriptions") {
+            val current = revisions.find(room.rawValue)
+            if (expectedRevision != null && (current?.revision != expectedRevision || current.subscribed != subscribed))
+                throw SubscriptionRevisionConflictException(current?.revision ?: 0)
+            val previous = maxOf(current?.revision ?: 0, minimumRevision)
+            if (previous == Long.MAX_VALUE) throw SubscriptionHistoryCapacityException()
+            val next = previous + 1
+            val original = getSubscription(room)
+            updateSubscription(original?.copy(roomIdRawValue = room.rawValue, isPendingAdd = subscribed, isPendingRemove = !subscribed)
+                ?: StoredSubscription(roomIdRawValue = room.rawValue, isPendingAdd = subscribed, isPendingRemove = !subscribed))
+            revisions.put(SubscriptionIntentRevision(room.rawValue, next, subscribed))
+            next
+        }
+    }
 
     override suspend fun getAllSubscriptions(): List<StoredSubscription> {
         prepare()
@@ -205,15 +242,18 @@ class SubscriptionStoreImpl(private val database: Database, private val retentio
         database.transaction("connector-subscriptions") {
             if (getSubscription(RoomId(subscription.roomIdRawValue)) == null &&
                 database.count(SubscriptionStoreImplDefinitionV1.storeName, roomIdKey.query(1)) >= maxSubscriptions) throw SubscriptionCapacityException()
-            save(StoredSubscription.fromByteArray(subscription.toByteArray()))
+            save(subscription)
         }
     }
 
     override suspend fun getSubscription(roomId: RoomId): StoredSubscription? {
-        prepare(); return get(roomIdKey.eq(roomId.rawValue))?.let { StoredSubscription.fromByteArray(it.toByteArray()) }
+        val roomId = roomId.canonical(); prepare(); return get(roomIdKey.eq(roomId.rawValue))?.let { StoredSubscription.fromByteArray(it.toByteArray()) }
     }
 
-    override suspend fun deleteSubscription(roomId: RoomId) = database.transaction("connector-subscriptions") { delete(roomIdKey.eq(roomId.rawValue)) }
+    override suspend fun deleteSubscription(roomId: RoomId) {
+        val roomId = roomId.canonical(); prepare()
+        database.transaction("connector-subscriptions") { delete(roomIdKey.eq(roomId.rawValue)) }
+    }
 }
 
 /** Occupied slots include canceled effects until their actual completion. Queued work is latest desired intent. */
@@ -230,6 +270,7 @@ class SubscriptionController(
     coroutineContext: kotlin.coroutines.CoroutineContext = Dispatchers.Default,
     private val connectionSource: StateFlow<StreamConnectionState>? = null,
     private val signRequest: (suspend (String, SessionId, ByteArray) -> SessionProof)? = null,
+    supportsRevisions: (suspend () -> Boolean)? = null,
 ) {
     private val sessionIdSource = sessionIdSource.map { it?.canonical() }.distinctUntilChanged()
     private val controllerJob = SupervisorJob(coroutineContext[Job])
@@ -237,7 +278,20 @@ class SubscriptionController(
     private val started = MutableStateFlow(false)
     private val roomService = ShardedRoomServiceRpc(rpcClient)
 
-    internal var hydrateSubscription: (suspend (RoomId, SessionId) -> Unit)? = null
+    internal var hydrateSubscription: (suspend (RoomId, SessionId, Long) -> Unit)? = null
+    internal var revisionSupport: (suspend () -> Boolean)? = supportsRevisions
+    private val supportMutex = kotlinx.coroutines.sync.Mutex()
+    private var supported = false
+    private suspend fun requireRevisionSupport() = supportMutex.withLock {
+        if (supported) return@withLock
+        val available = revisionSupport?.invoke() ?: try {
+            roomService.capabilities(CapabilitiesRequest()).subscriptionRevisions
+        } catch (failure: com.latenighthack.ktbuf.net.RpcResponseException) {
+            if (failure.code == com.latenighthack.ktbuf.proto.Codes.UNIMPLEMENTED) false else throw failure
+        }
+        if (!available) throw SubscriptionOrderingUnsupportedException()
+        supported = true
+    }
 
     // Persisted subscriptions describe intent, not confirmation for a particular session.
     // Serialize intent, session changes and acknowledgments so a late RPC cannot confirm
@@ -249,6 +303,7 @@ class SubscriptionController(
         data class Finished(val generation: Long) : Change
         data class Confirmed(val roomId: RoomId, val sessionId: SessionId,
                              val generation: Long, val subscribed: Boolean) : Change
+        data class Stale(val roomId: RoomId, val sessionId: SessionId, val generation: Long, val revision: Long, val currentRevision: Long) : Change
         data class Failed(val roomId: RoomId, val sessionId: SessionId, val generation: Long, val cause: Throwable) : Change
     }
 
@@ -267,7 +322,10 @@ class SubscriptionController(
     }
     /** Storage/startup failures that prevent the reducer from running. */
     val failure: StateFlow<Throwable?> = controllerFailure.asStateFlow()
-    init { controllerJob.invokeOnCompletion { closed.value = true; changes.close(StreamClosedException()) } }
+    init { controllerJob.invokeOnCompletion {
+        workState.value = SubscriptionWorkState(maxEffects = workState.value.maxEffects)
+        closed.value = true; changes.close(StreamClosedException())
+    } }
     private val newSubscriptions = MutableSharedFlow<RoomId>(extraBufferCapacity = 64, onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST)
 
     suspend fun resendSubscriptions() { changes.send(Change.Refresh) }
@@ -285,11 +343,17 @@ class SubscriptionController(
         } catch (cancelled: CancellationException) { stop(); throw cancelled }
         catch (failure: Exception) { controllerFailure.value = retainedProtocolFailure(failure); stop(); throw failure }
 
+        val revisions = try {
+            desired.mapValues { (room, subscribed) -> subscriptionStore.ensureIntentRevision(room, subscribed) }.toMutableMap()
+        } catch (exhausted: RetryLimitExceeded) { currentCoroutineContext().ensureActive(); controllerFailure.value = exhausted; stop(); throw exhausted }
+        catch (cancelled: CancellationException) { stop(); throw cancelled }
+        catch (failure: Exception) { controllerFailure.value = failure; stop(); throw failure }
         controllerScope.launch {
             var sessionId: SessionId? = null
             var nextGeneration = 0L
             val generations = mutableMapOf<RoomId, Long>()
-            data class Target(val room: RoomId, val session: SessionId, val generation: Long, val subscribed: Boolean)
+            data class Target(val room: RoomId, val session: SessionId, val generation: Long, val subscribed: Boolean, val revision: Long)
+            val repairs = mutableMapOf<RoomId, Int>()
             val maxWork = subscriptionStore.maxSubscriptions.coerceIn(1, 100_000) * 2
             val jobs = mutableMapOf<Long, Pair<RoomId, Job>>() // Includes retiring canceled work until actual completion.
             val active = mutableMapOf<RoomId, Long>()
@@ -299,20 +363,22 @@ class SubscriptionController(
 
             fun launchTarget(target: Target) {
                 val roomId = target.room; val subscribed = target.subscribed
-                val generation = target.generation; val targetSession = target.session
+                val generation = target.generation; val targetSession = target.session; val revision = target.revision
                 val worker = controllerScope.launch(start = CoroutineStart.LAZY) {
                     try {
                         repeatWithBackoff(exceptionHandler = ::isRetryableProtocolFailure) {
+                            requireRevisionSupport()
                             telemetry.observe(TelemetryOperation.CONNECTOR_SUBSCRIBE) {
                                 val hydrate = hydrateSubscription
-                                if (subscribed && hydrate != null) hydrate(roomId, targetSession)
+                                if (subscribed && hydrate != null) hydrate(roomId, targetSession, revision)
                                 else {
                                     val unsigned = SubscriptionRequest {
-                                        this.sessionId = targetSession; this.roomId = roomId
+                                        this.sessionId = targetSession; this.roomId = roomId; intentRevision = revision
                                         if (subscribed) kind.subscribe { } else kind.unsubscribe { }
                                     }
                                     val signed = unsigned.copy(proof = signRequest?.invoke(SessionSigning.SUBSCRIPTION, targetSession, unsigned.toByteArray()))
                                     val response = roomService.subscription(signed)
+                                    if (response.result is SubscriptionResponse.Result.STALE_INTENT) throw SubscriptionIntentStaleException(response.currentRevision)
                                     require(response.result !is SubscriptionResponse.Result.INVALID_DATA) { "Subscription has invalid stored data; owner repair required" }
                                     check(response.result.isOk()) { "subscription rejected: ${response.result}" }
                                 }
@@ -320,6 +386,9 @@ class SubscriptionController(
                         }
                         currentCoroutineContext().ensureActive()
                         changes.send(Change.Confirmed(roomId, targetSession, generation, subscribed))
+                    } catch (stale: SubscriptionIntentStaleException) {
+                        currentCoroutineContext().ensureActive()
+                        changes.send(Change.Stale(roomId, targetSession, generation, revision, stale.currentRevision))
                     } catch (exhausted: RetryLimitExceeded) {
                         currentCoroutineContext().ensureActive()
                         changes.send(Change.Failed(roomId, targetSession, generation, exhausted))
@@ -352,15 +421,15 @@ class SubscriptionController(
                 publishWork()
             }
             fun cancelActive(room: RoomId) { active.remove(room)?.let { jobs[it]?.second?.cancel() } }
-            fun reconcile(roomId: RoomId, subscribed: Boolean) {
+            fun reconcile(roomId: RoomId, subscribed: Boolean, launch: Boolean = true) {
                 cancelActive(roomId)
                 check(nextGeneration < Long.MAX_VALUE) { "Subscription generation exhausted" }
                 val generation = ++nextGeneration
                 generations[roomId] = generation
                 val targetSession = sessionId
                 if (targetSession == null) pending.remove(roomId)
-                else pending[roomId] = Target(roomId, targetSession, generation, subscribed)
-                drain()
+                else pending[roomId] = Target(roomId, targetSession, generation, subscribed, requireNotNull(revisions[roomId]))
+                if (launch) drain()
             }
 
             try {
@@ -377,10 +446,8 @@ class SubscriptionController(
                                 }
                                 // Durable intent precedes reducer changes; a storage rejection cannot erase the previous intent.
                                 if (change.roomId !in desired && desired.size >= subscriptionStore.maxSubscriptions) throw SubscriptionCapacityException()
-                                subscriptionStore.updateSubscription(StoredSubscription {
-                                    roomIdRawValue = change.roomId.rawValue
-                                    isPendingAdd = change.subscribed; isPendingRemove = !change.subscribed
-                                })
+                                val revision = subscriptionStore.commitIntent(change.roomId, change.subscribed)
+                                revisions[change.roomId] = revision; repairs.remove(change.roomId)
                                 desired[change.roomId] = change.subscribed
                                 confirmations.update { it.copy(rooms = it.rooms - change.roomId, failures = it.failures - change.roomId) }
                                 reconcile(change.roomId, change.subscribed)
@@ -391,20 +458,23 @@ class SubscriptionController(
                                     if (sessionId == change.sessionId) continue
                                     sessionId = change.sessionId
                                 }
-                                confirmations.value = Confirmations(sessionId)
+                                confirmations.value = Confirmations(sessionId); repairs.clear()
                                 jobs.values.forEach { it.second.cancel() }; active.clear(); pending.clear()
-                                desired.forEach { (room, subscribed) -> reconcile(room, subscribed) }
+                                desired.forEach { (room, subscribed) -> reconcile(room, subscribed, launch = false) }
+                                drain()
                             }
                             is Change.Confirmed -> {
                                 if (change.sessionId != sessionId || generations[change.roomId] != change.generation) continue
                                 active.remove(change.roomId)
                                 if (change.subscribed) {
-                                    subscriptionStore.updateSubscription(StoredSubscription { roomIdRawValue = change.roomId.rawValue })
+                                    val original = subscriptionStore.getSubscription(change.roomId)
+                                    subscriptionStore.updateSubscription(original?.copy(isPendingAdd = false, isPendingRemove = false)
+                                        ?: StoredSubscription(roomIdRawValue = change.roomId.rawValue))
                                     confirmations.update { it.copy(rooms = it.rooms + change.roomId, failures = it.failures - change.roomId) }
                                     newSubscriptions.tryEmit(change.roomId)
                                 } else {
                                     subscriptionStore.deleteSubscription(change.roomId)
-                                    desired.remove(change.roomId); generations.remove(change.roomId); pending.remove(change.roomId)
+                                    desired.remove(change.roomId); generations.remove(change.roomId); pending.remove(change.roomId); revisions.remove(change.roomId); repairs.remove(change.roomId)
                                     confirmations.update { it.copy(failures = it.failures - change.roomId) }
                                 }
                             }
@@ -412,6 +482,15 @@ class SubscriptionController(
                                 if (change.sessionId != sessionId || generations[change.roomId] != change.generation) continue
                                 active.remove(change.roomId); pending.remove(change.roomId)
                                 confirmations.update { it.copy(failures = it.failures + (change.roomId to change.cause)) }
+                            }
+                            is Change.Stale -> {
+                                if (change.sessionId != sessionId || generations[change.roomId] != change.generation || revisions[change.roomId] != change.revision) continue
+                                val subscribed = desired[change.roomId] ?: continue
+                                val attempted = (repairs[change.roomId] ?: 0) + 1; repairs[change.roomId] = attempted
+                                if (attempted > 3 || change.currentRevision < change.revision) throw SubscriptionRevisionConflictException(change.currentRevision)
+                                revisions[change.roomId] = subscriptionStore.commitIntent(change.roomId, subscribed, change.revision, change.currentRevision)
+                                confirmations.update { it.copy(rooms = it.rooms - change.roomId, failures = it.failures - change.roomId) }
+                                reconcile(change.roomId, subscribed)
                             }
                             is Change.Finished -> {
                                 val retired = jobs.remove(change.generation)
@@ -434,6 +513,7 @@ class SubscriptionController(
                             is Change.Desired -> change.roomId.also { change.applied.completeExceptionally(failure) }
                             is Change.Confirmed -> change.roomId
                             is Change.Failed -> change.roomId
+                            is Change.Stale -> change.roomId
                             else -> null
                         }
                         if (room != null) {
@@ -477,10 +557,17 @@ class SubscriptionController(
         try { changes.send(Change.Desired(room.canonical(), subscribed, applied)); applied.await() }
         finally { completion.dispose() }
     }
+    suspend fun ensureSubscribedRevision(roomId: RoomId): Long {
+        val room = roomId.canonical(); desired(room, true)
+        return requireNotNull(subscriptionStore.intentRevision(room)?.takeIf { it.subscribed }).revision
+    }
     suspend fun subscribe(roomId: RoomId) = desired(roomId, true)
     suspend fun unsubscribe(roomId: RoomId) = desired(roomId, false)
     suspend fun closeAndJoin() { stop(); controllerJob.join() }
-    fun stop() { controllerJob.cancel(); changes.close() }
+    fun stop() {
+        workState.update { it.copy(retiringEffects = it.occupiedEffects, queuedRooms = emptySet()) }
+        controllerJob.cancel(); changes.close()
+    }
 
 }
 
@@ -547,7 +634,7 @@ class Stream(
     private val subscriptionController = SubscriptionController(rpcClient, subscriptionStore, sessionStore, sessionIdSource, telemetry = telemetry, coroutineContext = streamScope.coroutineContext, connectionSource = connectionState, signRequest = ::signSessionRequest)
     private val outgoingAcks = MutableSharedFlow<List<StoredAck>>()
 
-    internal var hydrateSubscription: (suspend (RoomId, SessionId) -> Unit)?
+    internal var hydrateSubscription: (suspend (RoomId, SessionId, Long) -> Unit)?
         get() = subscriptionController.hydrateSubscription
         set(value) { subscriptionController.hydrateSubscription = value }
     internal var acceptEvent: (suspend (Event) -> Boolean)? = null
@@ -659,6 +746,10 @@ class Stream(
         return subscriptionController.watchNewSubscriptions()
     }
 
+    internal var subscriptionRevisionSupport: (suspend () -> Boolean)?
+        get() = subscriptionController.revisionSupport
+        set(value) { subscriptionController.revisionSupport = value }
+    internal suspend fun ensureSubscribedRevision(room: RoomId): Long = subscriptionController.ensureSubscribedRevision(room)
     val subscriptionWork: StateFlow<SubscriptionWorkState> get() = subscriptionController.work
     val subscriptionFailures: StateFlow<Map<RoomId, Throwable>> get() = subscriptionController.failures
     val subscriptionFailure: StateFlow<Throwable?> get() = subscriptionController.failure

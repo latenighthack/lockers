@@ -19,7 +19,7 @@ class ReviewControllerBudgetTests {
         var calls = 0
         val controller = SubscriptionController(ReviewRpc { _, _ -> requireNotNull(repeatWithBackoff<ByteArray>(retryLimit = 2, jitter = 0f) {
             calls++; throw RpcResponseException("test", "POST", Codes.RESOURCE_EXHAUSTED, "temporary quota")
-        }) }, subscriptions, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), coroutineContext = coroutineContext)
+        }) }, subscriptions, sessions, MutableStateFlow(SessionId(byteArrayOf(1))), coroutineContext = coroutineContext, supportsRevisions = { true })
         try {
             controller.subscribe(RoomId(byteArrayOf(2)))
             assertFailsWith<RetryLimitExceeded> { withTimeout(5_000) { controller.awaitSubscription(RoomId(byteArrayOf(2))) } }

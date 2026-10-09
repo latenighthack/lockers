@@ -501,7 +501,8 @@ class LockerClient(
         stream.acceptEvent = { processEvent(it) }
         stream.acceptanceBoundary = { action -> withAcceptance { action() } }
 
-        stream.hydrateSubscription = { room, session -> hydrateRoom(room, session) }
+        stream.subscriptionRevisionSupport = { capabilities().subscriptionRevisions }
+        stream.hydrateSubscription = { room, session, revision -> hydrateRoom(room, session, revision) }
         processingScope.launch {
             repeatWithBackoff(exceptionHandler = { it !is CancellationException }) {
                 val failures = mutableListOf<RatchetRecoveryFailure>()
@@ -539,19 +540,25 @@ class LockerClient(
         }
     }
 
-    private suspend fun hydrateRoom(room: RoomId, session: SessionId? = stream.sessionId.value): List<IdentifiedLocker> {
+    private suspend fun hydrateRoom(room: RoomId, session: SessionId? = stream.sessionId.value, intentRevision: Long? = null): List<IdentifiedLocker> {
         val room = room.canonical(); val session = session?.canonical()
         val capabilities = capabilities()
+        val revision = if (session != null) {
+            val revision = intentRevision ?: stream.ensureSubscribedRevision(room)
+            if (!capabilities.subscriptionRevisions) throw SubscriptionOrderingUnsupportedException()
+            revision
+        } else 0L
         // A replacement session must register itself even while an older hydration is in flight.
-        return sync.read(room to session) {
+        return sync.read(Triple(room, session, revision)) {
         val before = lockerStore.getAllLockers(room)
         var watermark: Long? = null
         val lockers = mutableListOf<IdentifiedLocker>()
         var token = byteArrayOf()
         val seenTokens = mutableSetOf<String>()
         if (!capabilities.subscribeAndSnapshot && session != null) {
-            val unsigned = SubscriptionRequest(roomId = room, sessionId = session, kind = SubscriptionRequest.OneOfKind.subscribe(SubscriptionRequest.Subscribe()))
+            val unsigned = SubscriptionRequest(roomId = room, sessionId = session, intentRevision = revision, kind = SubscriptionRequest.OneOfKind.subscribe(SubscriptionRequest.Subscribe()))
             val response = roomService.subscription(unsigned.copy(proof = stream.signSessionRequest(SessionSigning.SUBSCRIPTION, session, unsigned.toByteArray())))
+            if (response.result is SubscriptionResponse.Result.STALE_INTENT) throw SubscriptionIntentStaleException(response.currentRevision)
             require(response.result !is SubscriptionResponse.Result.INVALID_DATA) { "Subscription has invalid stored data; owner repair required" }
             check(response.result.isOk()) { "Subscription rejected" }
         }
@@ -561,8 +568,9 @@ class LockerClient(
             val next: ByteArray
             if (capabilities.subscribeAndSnapshot && session != null) {
                 val unsigned = SubscribeAndSnapshotRequest(roomId = room, sessionId = session,
-                    pageSize = if (capabilities.snapshotPaging) 64 else 0, pageToken = token)
+                    pageSize = if (capabilities.snapshotPaging) 64 else 0, pageToken = token, intentRevision = revision)
                 val response = roomService.subscribeAndSnapshot(unsigned.copy(proof = stream.signSessionRequest(SessionSigning.SNAPSHOT, session, unsigned.toByteArray())))
+                if (response.result is SubscriptionResponse.Result.STALE_INTENT) throw SubscriptionIntentStaleException(response.currentRevision)
                 require(response.result !is SubscriptionResponse.Result.INVALID_DATA) { "Snapshot has invalid stored data; owner repair required" }
                 check(response.result.isOk()) { "Subscribe and snapshot rejected" }
                 page = response.lockers; sequence = response.roomSequence; next = response.nextPageToken

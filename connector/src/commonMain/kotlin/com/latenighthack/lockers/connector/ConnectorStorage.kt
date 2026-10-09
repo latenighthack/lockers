@@ -30,13 +30,14 @@ object ConnectorStorage {
         com.latenighthack.lockers.connector.internal.RatchetArchiveDefinitionV2,
         com.latenighthack.lockers.connector.internal.ArchiveMigrationDefinitionV2,
     )
-    val definitions: List<StoreDefinition<*>> = definitionsV6
+    val definitions: List<StoreDefinition<*>> = definitionsV6 + SubscriptionIntentRevisionDefinitionV1
     fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()): DatabaseConfiguration {
         val historical = definitionDatabaseConfiguration(identity, definitionsV3 + additional)
         val previous = (definitionsV4 + additional).map { it.declaration }
         val recovery = (definitionsV5 + additional).map { it.declaration }
+        val archives = (definitionsV6 + additional).map { it.declaration }
         val target = (definitions + additional).map { it.declaration }
-        return historical.copy(version = 6, stores = target, migrations = historical.migrations +
+        return historical.copy(version = 7, stores = target, migrations = historical.migrations +
             DatabaseMigration.configured(3, 4, historical.stores, previous) {
                 rebuildStore(SessionStoreImplDefinitionV1.storeName, SessionStoreImplDefinitionV2.declaration) { bytes ->
                     val row = SessionStoreImplDefinitionV2.encodeRow(SessionStoreImplDefinitionV1.decode(bytes))
@@ -47,9 +48,11 @@ object ConnectorStorage {
                 }
             } + DatabaseMigration.configured(4, 5, previous, recovery) {
                 createStore(com.latenighthack.lockers.connector.internal.RatchetExpectationDefinitionV2.declaration)
-            } + DatabaseMigration.configured(5, 6, recovery, target) {
+            } + DatabaseMigration.configured(5, 6, recovery, archives) {
                 createStore(com.latenighthack.lockers.connector.internal.RatchetArchiveDefinitionV2.declaration)
                 createStore(com.latenighthack.lockers.connector.internal.ArchiveMigrationDefinitionV2.declaration)
+            } + DatabaseMigration.configured(6, 7, archives, target) {
+                createStore(SubscriptionIntentRevisionDefinitionV1.declaration)
             })
     }
     fun inMemory(identity: String = "ConnectorStorage-test") =

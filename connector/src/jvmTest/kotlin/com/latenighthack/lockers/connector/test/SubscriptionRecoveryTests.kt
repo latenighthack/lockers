@@ -35,7 +35,7 @@ class SubscriptionRecoveryTests {
             sessions.prepare(); subscriptions.prepare(); store.open()
             val source = MutableStateFlow<SessionId?>(SessionId(byteArrayOf(1)))
             val rpc = GatedClient()
-            val controller = SubscriptionController(rpc, subscriptions, sessions, source, coroutineContext = currentCoroutineContext())
+            val controller = SubscriptionController(rpc, subscriptions, sessions, source, coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
             val room = RoomId(byteArrayOf(2))
             controller.startWatchingSubscriptions()
             try {
@@ -65,7 +65,7 @@ class SubscriptionRecoveryTests {
             sessions.prepare(); subscriptions.prepare(); store.open()
             val source = MutableStateFlow<SessionId?>(SessionId(byteArrayOf(4)))
             val rpc = GatedClient()
-            val controller = SubscriptionController(rpc, subscriptions, sessions, source, coroutineContext = currentCoroutineContext())
+            val controller = SubscriptionController(rpc, subscriptions, sessions, source, coroutineContext = currentCoroutineContext(), supportsRevisions = { true })
             val room = RoomId(byteArrayOf(5))
             controller.startWatchingSubscriptions()
             try {
