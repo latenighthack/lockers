@@ -159,6 +159,8 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
         val candidates = delegate.query(headsDefinition.storeName, headsDefinition.due.query(limit,
             lower = OrderedKeyEncoding.long(0), upper = OrderedKeyEncoding.long(now))).records
             .map { if (it is ServerOutboxHead) it else ServerOutboxHead.fromByteArray(it as ByteArray) }
+        var claimedBytes = 0L
+        val byteLimit = 16L * 1024 * 1024
         return candidates.flatMap { head -> mutateRoom(RoomId(head.roomId)) {
             val claimed = mutableListOf<ServerDeliveryIntent>()
             for (entry in active(head.roomId, eventsPerRoom)) {
@@ -168,7 +170,10 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
                 if (now >= entry.deadline) { park(current, "Automatic retry deadline exceeded"); continue }
                 if (current.attempts == Int.MAX_VALUE) { park(current, "Attempt counter exhausted"); continue }
                 val next = current.copy(leaseOwner = "$owner:${java.util.UUID.randomUUID()}", leaseUntil = now + leaseMs, attempts = current.attempts + 1)
-                save(next); claimed.add(next)
+                val bytes = next.toByteArray().size.toLong()
+                if (bytes > byteLimit) { park(current, "Delivery intent exceeds the supported claim byte budget"); continue }
+                if (claimedBytes > byteLimit - bytes) break
+                save(next); claimed.add(next); claimedBytes += bytes
             }
             refreshHead(head.roomId)
             claimed
