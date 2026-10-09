@@ -24,7 +24,7 @@ class NamespaceAdmissionPgTest {
             val accepted = coroutineScope { (1..12).map { n -> async(Dispatchers.Default) {
                 try {
                     stores[n % 2].updateLocker(ServerLocker(ServerRoomId(byteArrayOf(n.toByte())), 0, ServerLockerId(byteArrayOf(1)), version = 1)); true
-                } catch (e: RpcResponseException) { assertEquals(Codes.RESOURCE_EXHAUSTED, e.code); false }
+                } catch (e: RpcResponseException) { assertEquals(Codes.FAILED_PRECONDITION, e.code); false }
             } }.awaitAll() }
             assertEquals(3, accepted.count { it })
             val locks = listOf(LockStoreImpl(a, limits), LockStoreImpl(b, limits))
@@ -32,7 +32,7 @@ class NamespaceAdmissionPgTest {
                 try {
                     locks[n % 2].saveLock(ServerLock(roomId = ServerRoomId(byteArrayOf(n.toByte())), scopeKind = 1,
                         lockerId = ServerLockerId(byteArrayOf()), lockState = LockState(locked = true, lockVersion = 1).toByteArray())); true
-                } catch (e: RpcResponseException) { assertEquals(Codes.RESOURCE_EXHAUSTED, e.code); false }
+                } catch (e: RpcResponseException) { assertEquals(Codes.FAILED_PRECONDITION, e.code); false }
             } }.awaitAll() }
             assertEquals(3, admittedLocks.count { it })
         } finally {

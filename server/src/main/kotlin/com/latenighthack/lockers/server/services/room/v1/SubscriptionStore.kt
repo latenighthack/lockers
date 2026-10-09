@@ -20,7 +20,7 @@ class SubscriptionStoreImpl(private val database: Database, private val limits: 
 
     private suspend fun boundedRows(index: TypedIndex<ServerSubscription, ByteArray>, value: ByteArray, limit: Int): List<ServerSubscription> {
         val page = database.query(SubscriptionStoreImplDefinitionV1.storeName, index.query(limit + 1, lower = value, upper = value))
-        if (page.records.size > limit) namespaceExhausted("Historical subscription set exceeds finite capacity")
+        if (page.records.size > limit) protocolCapacityExceeded("Historical subscription set exceeds finite capacity")
         return page.records.map { when (it) { is ServerSubscription -> it; is ByteArray -> SubscriptionStoreImplDefinitionV1.decode(it); else -> error("Invalid subscription row") } }
     }
     override suspend fun getAllSubscriptions(sessionId: ServerSessionId): List<ServerRoomId> =
@@ -38,7 +38,7 @@ class SubscriptionStoreImpl(private val database: Database, private val limits: 
                 val session = database.count(definition.storeName, sessionIdKey.query(1, lower = sessionId.toByteArray(), upper = sessionId.toByteArray()))
                 val room = database.count(definition.storeName, roomIdKey.query(1, lower = roomId.toByteArray(), upper = roomId.toByteArray()))
                 if (total >= limits.maxSubscriptions || session >= limits.maxSubscriptionsPerSession || room >= limits.maxSubscriptionsPerRoom)
-                    namespaceExhausted("Subscription namespace exhausted")
+                    resourceExhausted("Subscription capacity exhausted")
             }
             save(ServerSubscription(sessionId, roomId))
         }

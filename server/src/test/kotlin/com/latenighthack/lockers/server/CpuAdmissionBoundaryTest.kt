@@ -49,7 +49,7 @@ class CpuAdmissionBoundaryTest {
         val db = ServerStorage.inMemory(); db.open(); val sessions = SessionStoreImpl(db)
         val verifier = SessionProofVerifier(db, sessions, limits = limits(12))
         try {
-            assertEquals(Codes.RESOURCE_EXHAUSTED, assertFailsWith<RpcResponseException> {
+            assertEquals(Codes.OUT_OF_RANGE, assertFailsWith<RpcResponseException> {
                 verifier.authorize(SessionSigning.SUBSCRIPTION, SessionId(byteArrayOf(1)),
                     SessionProof(System.currentTimeMillis(), ByteArray(32), Signature(signature = ByteArray(64), signingVersion = 2)),
                     ByteArray(1024 * 1024), { false }) { error("No mutation without admission") }

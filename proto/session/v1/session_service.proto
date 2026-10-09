@@ -63,6 +63,8 @@ message WatchSessionResponse {
             EPOCH_STALE = 8;
             RESOURCE_EXHAUSTED = 9;
             INVALID_REQUEST = 11;
+            // Permanent reserved-ID namespace capacity; retrying cannot admit a new identity.
+            NAMESPACE_EXHAUSTED = 12;
             UNKNOWN_ERROR = 10;
         }
 

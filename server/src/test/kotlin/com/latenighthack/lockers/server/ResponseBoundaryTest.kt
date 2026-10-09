@@ -28,10 +28,10 @@ class ResponseBoundaryTest {
         try {
             val large = Locker { open { encodedPayload = ByteArray(1024 * 1024) } }
             store.updateLockers(ids.map { ServerLocker(ServerRoomId(room.rawValue), 0, ServerLockerId(it.rawValue), large.toByteArray(), 1) })
-            assertEquals(Codes.RESOURCE_EXHAUSTED, assertFailsWith<RpcResponseException> { rpc.getLockers(GetLockersRequest(room, ids)) }.code)
-            assertEquals(Codes.RESOURCE_EXHAUSTED, assertFailsWith<RpcResponseException> { rpc.getAllLockers(GetAllLockersRequest(room)) }.code)
+            assertEquals(Codes.OUT_OF_RANGE, assertFailsWith<RpcResponseException> { rpc.getLockers(GetLockersRequest(room, ids)) }.code)
+            assertEquals(Codes.OUT_OF_RANGE, assertFailsWith<RpcResponseException> { rpc.getAllLockers(GetAllLockersRequest(room)) }.code)
             val change = Locker { open { encodedPayload = byteArrayOf(1) } }
-            assertEquals(Codes.RESOURCE_EXHAUSTED, assertFailsWith<RpcResponseException> {
+            assertEquals(Codes.OUT_OF_RANGE, assertFailsWith<RpcResponseException> {
                 rpc.postLockerChanges(PostLockerChangesRequest(roomId = room, writeRequestId = ByteArray(16) { 2 },
                     changes = ids.map { PostLockerChangeRequest(roomId = room, lockerId = it, locker = change) }))
             }.code)
@@ -51,7 +51,7 @@ class ResponseBoundaryTest {
         })
         val rpc = LocalRoomServiceRpc(service); val room = RoomId(byteArrayOf(1)); val id = LockerId(byteArrayOf(2))
         try {
-            assertEquals(Codes.RESOURCE_EXHAUSTED, assertFailsWith<RpcResponseException> {
+            assertEquals(Codes.FAILED_PRECONDITION, assertFailsWith<RpcResponseException> {
                 rpc.postLockerChanges(PostLockerChangesRequest(roomId = room, writeRequestId = ByteArray(16) { 3 },
                     changes = listOf(PostLockerChangeRequest(roomId = room, lockerId = id, locker = Locker { open { encodedPayload = byteArrayOf(1) } }))))
             }.code)

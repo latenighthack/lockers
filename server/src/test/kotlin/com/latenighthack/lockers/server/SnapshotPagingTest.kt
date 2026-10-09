@@ -45,7 +45,7 @@ class SnapshotPagingTest {
                 assertEquals(Codes.INVALID_ARGUMENT, assertFailsWith<RpcResponseException> { read() }.code)
             }
             assertEquals(Codes.RESOURCE_EXHAUSTED, assertFailsWith<RpcResponseException> { snapshots.create(1, room, session, setOf(0), 64, 20, records) }.code)
-            assertEquals(Codes.RESOURCE_EXHAUSTED, assertFailsWith<RpcResponseException> { snapshots.create(0, room, null, emptySet(), 0, 0, records) }.code)
+            assertEquals(Codes.OUT_OF_RANGE, assertFailsWith<RpcResponseException> { snapshots.create(0, room, null, emptySet(), 0, 0, records) }.code)
             now += limits.snapshotLeaseMillis
             assertEquals(Codes.INVALID_ARGUMENT, assertFailsWith<RpcResponseException> { snapshots.next(1, room, session, setOf(0), 64, first.nextPageToken) }.code)
             assertEquals(64, snapshots.create(1, room, session, setOf(0), 64, 20, records).lockers.size)

@@ -4,7 +4,7 @@ import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.server.storage.v1.*
 import com.latenighthack.lockers.server.ServerResourceLimits
 
-enum class SessionAdmission { CREATED, EXISTS, EXHAUSTED }
+enum class SessionAdmission { CREATED, EXISTS, EXHAUSTED, NAMESPACE_EXHAUSTED }
 
 interface SessionStore {
     suspend fun admitIfAbsent(session: ServerSession, limits: ServerResourceLimits): SessionAdmission =
@@ -57,7 +57,8 @@ class SessionStoreImpl(private val database: Database) : SessionStore, Store<Ser
             if (isRevoked(id) || getSessionById(id) != null) return@atomic SessionAdmission.EXISTS
             val active = database.count(SessionStoreImplDefinitionV1.storeName, SessionStoreImplDefinitionV1.sessionIdKey.query(1))
             val revoked = database.count(RevokedSessionDefinitionV2.storeName, RevokedSessionDefinitionV2.sessionId.query(1))
-            if (active >= limits.maxSessions || active + revoked >= limits.maxReservedSessionIds) SessionAdmission.EXHAUSTED
+            if (active + revoked >= limits.maxReservedSessionIds) SessionAdmission.NAMESPACE_EXHAUSTED
+            else if (active >= limits.maxSessions) SessionAdmission.EXHAUSTED
             else if (createIfAbsent(session)) SessionAdmission.CREATED else SessionAdmission.EXISTS
         }
 

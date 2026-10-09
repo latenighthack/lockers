@@ -16,7 +16,7 @@ class NamespaceAdmissionTest {
         try {
             val successes = coroutineScope { (1..10).map { n -> async {
                 try { core.lockerStore.updateLocker(row(n)); n }
-                catch (e: RpcResponseException) { assertEquals(Codes.RESOURCE_EXHAUSTED, e.code); null }
+                catch (e: RpcResponseException) { assertEquals(Codes.FAILED_PRECONDITION, e.code); null }
             } }.awaitAll().filterNotNull() }
             assertEquals(3, successes.size)
             val n = successes.first(); val id = ServerLockerId(byteArrayOf(n.toByte())); val room = ServerRoomId(byteArrayOf(n.toByte()))
@@ -24,7 +24,7 @@ class NamespaceAdmissionTest {
             core.lockerStore.deleteLocker(room, 0, id)
             assertEquals(3, core.lockerStore.getLocker(room, 0, id)?.version)
             assertTrue(core.lockerStore.getLocker(room, 0, id)!!.deleted)
-            assertEquals(Codes.RESOURCE_EXHAUSTED, assertFailsWith<RpcResponseException> { core.lockerStore.updateLocker(row(20)) }.code)
+            assertEquals(Codes.FAILED_PRECONDITION, assertFailsWith<RpcResponseException> { core.lockerStore.updateLocker(row(20)) }.code)
             assertFailsWith<RpcResponseException> { core.lockerStore.updateLockers(listOf(row(n).copy(version = 999), row(20))) }
             assertEquals(3, core.lockerStore.getLocker(room, 0, id)?.version)
         } finally { db.close() }

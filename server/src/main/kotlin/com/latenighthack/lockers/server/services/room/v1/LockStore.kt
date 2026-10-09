@@ -46,7 +46,7 @@ class LockStoreImpl(private val database: Database, private val limits: com.late
 
     override suspend fun getAllLocksInRoom(roomId: ServerRoomId): List<ServerLock> = atomic(roomId) {
         val count = database.count(LockStoreImplDefinitionV1.storeName, roomIdKey.query(1, lower = roomId.toByteArray(), upper = roomId.toByteArray()))
-        if (count > limits.maxLocksPerRoom) namespaceExhausted("Historical room lock set exceeds finite capacity")
+        if (count > limits.maxLocksPerRoom) protocolCapacityExceeded("Historical room lock set exceeds finite capacity")
         getAll(roomIdKey.eq(roomId.toByteArray()))
     }
 
@@ -72,4 +72,7 @@ class LockStoreImpl(private val database: Database, private val limits: com.late
 
 fun roomMutationKey(roomId: ServerRoomId): String = "lockers.room." + roomId.rawValue.joinToString("") { "%02x".format(it) }
 
-internal fun namespaceExhausted(message: String): Nothing = throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.RESOURCE_EXHAUSTED, message)
+internal fun namespaceExhausted(message: String): Nothing = throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.FAILED_PRECONDITION, message)
+
+internal fun protocolCapacityExceeded(message: String): Nothing = throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.OUT_OF_RANGE, message)
+internal fun resourceExhausted(message: String): Nothing = throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.RESOURCE_EXHAUSTED, message)

@@ -73,7 +73,7 @@ class SnapshotStore(private val database: Database, private val limits: ServerRe
         for (locker in lockers) {
             val size = locker.toByteArray().size + 16; total += size
             if (size + 1024 > ProtocolValidation.MAX_ENVELOPE_BYTES || total > limits.maxSnapshotBytes || lockers.size > limits.maxSnapshotLockers)
-                exhausted("Snapshot exceeds capture capacity")
+                protocolCapacityExceeded("Snapshot exceeds capture capacity")
             if (pageSize > 0 && (chunk.size == pageSize || chunkBytes + size > ProtocolValidation.MAX_ENVELOPE_BYTES)) {
                 chunks.add(chunk.toList()); chunk = mutableListOf(); chunkBytes = 1024
             }
@@ -81,7 +81,7 @@ class SnapshotStore(private val database: Database, private val limits: ServerRe
         }
         if (pageSize == 0) {
             if (lockers.size > limits.maxLegacySnapshotLockers || chunkBytes > ProtocolValidation.MAX_ENVELOPE_BYTES)
-                exhausted("Complete legacy snapshot exceeds envelope; select paging")
+                protocolCapacityExceeded("Complete legacy snapshot exceeds envelope; select paging")
             return@transaction GetAllLockersResponse(lockers = lockers, roomSequence = sequence)
         }
         if (chunk.isNotEmpty() || chunks.isEmpty()) chunks.add(chunk.toList())

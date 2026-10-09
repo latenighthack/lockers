@@ -617,6 +617,10 @@ class SessionServiceImpl(
             return null
         }
 
+        if (!cpuAdmission.fits(open.toByteArray().size, 3)) {
+            result = WatchSessionResponse.Open.Result.INVALID_REQUEST
+            return null
+        }
         if (!cpuAdmission.tryAcquire(open.toByteArray().size, 3)) {
             result = WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED
             return null
@@ -705,6 +709,10 @@ class SessionServiceImpl(
             result = WatchSessionResponse.Open.Result.INVALID_PUBLIC_KEY
             return null
         }
+        if (!cpuAdmission.fits(create.toByteArray().size, 1)) {
+            result = WatchSessionResponse.Open.Result.INVALID_REQUEST
+            return null
+        }
         if (!cpuAdmission.tryAcquire(create.toByteArray().size, 1)) {
             result = WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED
             return null
@@ -731,6 +739,7 @@ class SessionServiceImpl(
             }
             when (sessionStore.admitIfAbsent(updatedSession, config.resourceLimits)) {
                 SessionAdmission.EXHAUSTED -> { result = WatchSessionResponse.Open.Result.RESOURCE_EXHAUSTED; return null }
+                SessionAdmission.NAMESPACE_EXHAUSTED -> { result = WatchSessionResponse.Open.Result.NAMESPACE_EXHAUSTED; return null }
                 SessionAdmission.EXISTS -> {
                 result = WatchSessionResponse.Open.Result.SESSION_EXISTS
                 meterRegistry.counter("lockers.session.creates", "result", "SESSION_EXISTS").increment()

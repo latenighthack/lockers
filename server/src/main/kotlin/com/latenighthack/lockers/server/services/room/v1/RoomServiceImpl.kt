@@ -129,7 +129,7 @@ class RoomServiceImpl(
         effectiveLockOrNull(roomId, lockerId)?.let { lockVerifier.stateOf(it) }
 
     private inline fun <T> boundedResponse(response: T, encode: (T) -> ByteArray): T {
-        if (encode(response).size > ProtocolValidation.MAX_ENVELOPE_BYTES) namespaceExhausted("Complete response exceeds transport envelope")
+        if (encode(response).size > ProtocolValidation.MAX_ENVELOPE_BYTES) protocolCapacityExceeded("Complete response exceeds transport envelope")
         return response
     }
 
@@ -669,7 +669,7 @@ class RoomServiceImpl(
                 val read = storedRead(room, stored)
                 bytes += read.value.toByteArray().size + 16
                 if (reads.size == config.resourceLimits.maxSnapshotLockers || bytes > config.resourceLimits.maxSnapshotBytes)
-                    throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.RESOURCE_EXHAUSTED, "Snapshot capture capacity exhausted")
+                    throw com.latenighthack.ktbuf.net.RpcResponseException("", "RPC", com.latenighthack.ktbuf.proto.Codes.OUT_OF_RANGE, "Snapshot capture capacity exhausted")
                 reads.add(read)
             }
         }

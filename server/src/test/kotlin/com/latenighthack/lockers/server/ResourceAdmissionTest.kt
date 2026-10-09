@@ -16,11 +16,11 @@ class ResourceAdmissionTest {
                 store.admitIfAbsent(ServerSession(ServerSessionId(byteArrayOf(id.toByte()))), limits)
             } }.awaitAll() }
             assertEquals(3, results.count { it == SessionAdmission.CREATED })
-            assertEquals(7, results.count { it == SessionAdmission.EXHAUSTED })
+            assertEquals(7, results.count { it == SessionAdmission.NAMESPACE_EXHAUSTED })
             val sid = store.getAllSessions().first().sessionId!!
             store.destroySession(sid)
             assertEquals(SessionAdmission.EXISTS, store.admitIfAbsent(ServerSession(sid), limits))
-            assertEquals(SessionAdmission.EXHAUSTED, store.admitIfAbsent(ServerSession(ServerSessionId(byteArrayOf(20))), limits))
+            assertEquals(SessionAdmission.NAMESPACE_EXHAUSTED, store.admitIfAbsent(ServerSession(ServerSessionId(byteArrayOf(20))), limits))
             assertEquals(2, store.getAllSessions().size)
         } finally { db.close() }
     }

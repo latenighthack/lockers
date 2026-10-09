@@ -18,7 +18,12 @@ class CpuAdmission(private val limits: ServerResourceLimits, private val nanoTim
         tokens -= cost
         return true
     }
+    fun fits(encodedBytes: Int, cryptoOperations: Int): Boolean {
+        require(encodedBytes in 0..ProtocolValidation.MAX_ENVELOPE_BYTES && cryptoOperations in 1..1024)
+        return cryptoOperations + (encodedBytes.toLong() + BYTE_UNIT - 1) / BYTE_UNIT <= limits.globalCpuBurst
+    }
     fun require(encodedBytes: Int, cryptoOperations: Int) {
+        if (!fits(encodedBytes, cryptoOperations)) throw RpcResponseException("", "RPC", Codes.OUT_OF_RANGE, "Request exceeds configured verification work capacity")
         if (!tryAcquire(encodedBytes, cryptoOperations)) throw RpcResponseException("", "RPC", Codes.RESOURCE_EXHAUSTED, "Global verification work admission exhausted")
     }
     companion object {
