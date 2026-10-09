@@ -29,6 +29,7 @@ class SubscriptionFreshnessTest {
         }
         val config = LockersConfig.defaults().copy(deliveryOutboxEnabled = false)
         val nodes = List(2) { RoomServiceImpl(subscriptions, lockers, locks, discovery, LocalRoomOwnership(), LockerAgentRegistry.None, SimpleMeterRegistry(), config) }
+        nodes.forEach { it.start() }
         val room = RoomId(byteArrayOf(1))
         val sid = SessionId(byteArrayOf(2))
         fun request(id: Byte) = PostLockerChangeRequest(roomId = room, lockerId = LockerId(byteArrayOf(id)), locker = Locker { open { encodedPayload = byteArrayOf(1) } })

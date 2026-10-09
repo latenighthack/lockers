@@ -3,6 +3,12 @@ package com.latenighthack.lockers.server
 import com.latenighthack.ktbuf.server.serveAll
 import com.latenighthack.ktbuf.server.serveUnary
 import io.ktor.server.routing.Routing
+import io.ktor.server.routing.application
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 /** Public monolith routing; privileged peers and admin services require separate listeners. */
 fun Routing.monolith(component: MonolithComponent) = monolithClient(component)
@@ -53,5 +59,12 @@ private fun Routing.serveServices(services: List<com.latenighthack.lockers.serve
     }
 }
 
-/** Convenience overload that builds a fresh [MonolithComponent] and mounts it. */
-fun Routing.monolith(serverCore: ServerCore) = monolith(MonolithComponent(serverCore))
+/** Public convenience routing with component lifetime owned by the host application. */
+fun Routing.monolith(serverCore: ServerCore) {
+    val component = MonolithComponent(serverCore)
+    application.launch(start = CoroutineStart.UNDISPATCHED) {
+        try { component.start(); awaitCancellation() }
+        finally { withContext(NonCancellable) { component.closeAndJoin() } }
+    }
+    monolithClient(component)
+}

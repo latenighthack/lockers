@@ -46,7 +46,7 @@ class RuntimeCancellationTest {
             override suspend fun updateSession(session: ServerSession) {}
             override suspend fun isRevoked(sessionId: ServerSessionId) = false
             override suspend fun destroySession(sessionId: ServerSessionId) {}
-            override suspend fun createIfAbsent(session: ServerSession): Boolean = throw CancellationException("cancelled storage")
+            override suspend fun admitIfAbsent(session: ServerSession, limits: ServerResourceLimits): SessionAdmission = throw CancellationException("cancelled storage")
         }
         val service = SessionServiceImpl(sessions, inbox, SimpleMeterRegistry(), object : PushGatewayDiscovery {
             override suspend fun findServer(sessionId: SessionId): PushGatewayService? = null

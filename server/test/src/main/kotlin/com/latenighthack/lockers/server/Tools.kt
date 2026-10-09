@@ -14,6 +14,11 @@ import com.latenighthack.lockers.server.services.push.v1.providers.PushResult
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.CopyOnWriteArrayList
@@ -29,13 +34,7 @@ suspend fun Application.attachTestServices() = attachTestServicesWithConfig(Lock
 suspend fun Application.attachFastpathTestServices() = attachTestServicesWithConfig(LockersConfig.defaults().copy(deliveryOutboxEnabled = true))
 
 suspend fun Application.attachTestServicesWithConfig(config: LockersConfig) {
-    val core = ServerCore::class.create(config, com.latenighthack.lockers.server.ServerStorage.inMemory())
-
-    core.setup()
-
-    routing {
-        trustedTestMonolith(MonolithComponent(core))
-    }
+    attachOwnedTestServices(config) {}
 }
 
 /**
@@ -44,18 +43,34 @@ suspend fun Application.attachTestServicesWithConfig(config: LockersConfig) {
  * processor drains its queue. Returns the started [MonolithComponent].
  */
 suspend fun Application.attachTestServicesWith(configureCore: (ServerCore) -> Unit): MonolithComponent {
-    val core = ServerCore::class.create(LockersConfig.defaults(), com.latenighthack.lockers.server.ServerStorage.inMemory())
-    configureCore(core)
-    core.setup()
+    return attachOwnedTestServices(LockersConfig.defaults(), configureCore)
+}
 
-    val component = MonolithComponent(core)
-    component.start()
-
-    routing {
-        trustedTestMonolith(component)
+private suspend fun Application.attachOwnedTestServices(config: LockersConfig, configureCore: (ServerCore) -> Unit): MonolithComponent {
+    val database = ServerStorage.inMemory()
+    var core: ServerCore? = null
+    var component: MonolithComponent? = null
+    try {
+        val createdCore = ServerCore::class.create(config, database)
+        core = createdCore
+        createdCore.overrideCoroutineContext = coroutineContext
+        configureCore(createdCore)
+        createdCore.setup()
+        val createdComponent = MonolithComponent(createdCore)
+        component = createdComponent
+        createdComponent.start()
+        ownTestComponent(createdComponent, database)
+        routing { trustedTestMonolith(createdComponent) }
+        return createdComponent
+    } catch (failure: Throwable) {
+        withContext(NonCancellable) {
+            try { component?.closeAndJoin() ?: core?.closeAndJoin() }
+            catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+            try { database.close() }
+            catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+        }
+        throw failure
     }
-
-    return component
 }
 
 val TestServer.rpcClient: RpcClient get() = HttpRpcClient(serverUrl)
@@ -117,4 +132,12 @@ class RecordingPushProvider(
 fun Routing.trustedTestMonolith(component: MonolithComponent) {
     for (service in component.allServices) serveAll(service.server as Any, service.descriptor)
     for (extension in component.extensions) extension.install(this)
+}
+
+/** The application owns this cleanup child independently of the service's child lifetime. */
+private fun Application.ownTestComponent(component: MonolithComponent, database: Database) {
+    launch(start = CoroutineStart.UNDISPATCHED) {
+        try { awaitCancellation() }
+        finally { withContext(NonCancellable) { try { component.closeAndJoin() } finally { database.close() } } }
+    }
 }
