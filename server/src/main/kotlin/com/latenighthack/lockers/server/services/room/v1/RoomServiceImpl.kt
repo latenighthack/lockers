@@ -102,6 +102,11 @@ class RoomServiceImpl(
     private suspend fun lockStateFor(roomId: RoomId, lockerId: LockerId): LockState? =
         effectiveLockOrNull(roomId, lockerId)?.let { lockVerifier.stateOf(it) }
 
+    private inline fun <T> boundedResponse(response: T, encode: (T) -> ByteArray): T {
+        if (encode(response).size > ProtocolValidation.MAX_ENVELOPE_BYTES) namespaceExhausted("Complete response exceeds transport envelope")
+        return response
+    }
+
     private data class StoredRead(val value: IdentifiedLocker, val valid: Boolean)
     private suspend fun storedRead(room: RoomId, stored: ServerLocker): StoredRead {
         val id = LockerId(requireNotNull(stored.lockerId).rawValue, LockerKeyspace(stored.keyspace))
@@ -119,7 +124,7 @@ class RoomServiceImpl(
      * on the owner (and in a monolith) it returns null and the write proceeds. Reads and the
      * per-room subscription registry stay ungated — they run against the shared store.
      */
-    private suspend fun redirectIfNotOwner(keyspace: Long, roomId: RoomId): ShardRedirect? =
+    private suspend fun redirectIfNotOwner(keyspace: Long, roomId: RoomId): ShardRedirect? = try {
         when (val owner = roomOwnership.resolve(keyspace, roomId)) {
             is RoomOwner.Local -> null
             is RoomOwner.Remote -> ShardRedirect {
@@ -127,6 +132,9 @@ class RoomServiceImpl(
                 epoch = owner.epoch
             }
         }
+    } catch (_: com.latenighthack.lockers.server.claim.RoomClaimCapacityExceeded) {
+        namespaceExhausted("Permanent room claim namespace exhausted")
+    }
 
     // East-west write forwarding: public clients sit behind one domain (plain HttpRpcClient) and
     // cannot dial a redirect's cluster-internal owner address, so a NOT_OWNER answer strands any
@@ -172,6 +180,7 @@ class RoomServiceImpl(
             val fence = roomOwnership.mutationFence(0, room)
             kotlinx.coroutines.withContext(fence) { dispatchers.runOnDispatcher(room, block) }
         } catch (lost: RoomOwnershipLost) { roomOwnership.invalidate(room); onLost() }
+        catch (_: com.latenighthack.lockers.server.claim.RoomClaimCapacityExceeded) { namespaceExhausted("Permanent room claim namespace exhausted") }
     }
 
     private val gatewayLookupFailureCounter = meterRegistry.counter("lockers.room.gateway.lookup.failures")
@@ -256,7 +265,7 @@ class RoomServiceImpl(
         val scope = request.scope ?: return GetLockScopeResponse(GetLockScopeResponse.Result.INVALID)
         if (!ProtocolValidation.scope(scope)) return GetLockScopeResponse(GetLockScopeResponse.Result.INVALID)
         validateRead(room)
-        return GetLockScopeResponse(scopeState = lockVerifier.scopeState(room, scope), parentState = lockVerifier.parentState(room, scope))
+        return boundedResponse(GetLockScopeResponse(scopeState = lockVerifier.scopeState(room, scope), parentState = lockVerifier.parentState(room, scope)), GetLockScopeResponse::toByteArray)
     }
 
     override suspend fun getLockers(context: GrpcRequestContext, request: GetLockersRequest): GetLockersResponse = meterRegistry.trackRpc(TelemetryOperation.ROOM_GET_MANY, telemetry) { observedGetLockers(context, request) }
@@ -269,14 +278,14 @@ class RoomServiceImpl(
         val all = lockerStore.getLockers(ServerRoomId(room.rawValue), request.lockerIds.map { (it.keyspace?.value ?: 0L) to ServerLockerId(it.rawValue) }).associateBy {
             LockerId(requireNotNull(it.lockerId).rawValue, LockerKeyspace(it.keyspace))
         }
-        return GetLockersResponse(request.lockerIds.map { id ->
+        return boundedResponse(GetLockersResponse(request.lockerIds.map { id ->
             all[canonicalLockerId(id)]?.let { stored ->
                 val read = storedRead(room, stored)
                 GetLockerResponse(result = if (read.valid) GetLockerResponse.Result.OK else GetLockerResponse.Result.INVALID_DATA,
                     locker = read.value)
             }
                 ?: GetLockerResponse(result = GetLockerResponse.Result.UNKNOWN_ERROR)
-        })
+        }), GetLockersResponse::toByteArray)
     }
 
     override suspend fun subscribeAndSnapshot(context: GrpcRequestContext, request: SubscribeAndSnapshotRequest): SubscribeAndSnapshotResponse = meterRegistry.trackRpc(TelemetryOperation.ROOM_SNAPSHOT, telemetry, { rpcOutcome(it.result.toString()) }) { observedSubscribeAndSnapshot(context, request) }
@@ -297,7 +306,7 @@ class RoomServiceImpl(
         return requireNotNull(deliveryOutbox).atomic(room) {
             val reads = captureSnapshot(room, spaces)
             if (reads.any { !it.valid }) return@atomic SubscribeAndSnapshotResponse(result = SubscriptionResponse.Result.INVALID_DATA,
-                lockers = reads.filter { !it.valid }.map { it.value })
+                lockers = listOf(reads.first { !it.valid }.value))
             val page = snapshots.create(1, room, session, spaces, request.pageSize,
                 requireNotNull(deliveryOutbox).watermark(room), reads.map { it.value })
             subscriptionStore.addSubscription(ServerSessionId(session.rawValue), ServerRoomId(room.rawValue))
@@ -378,11 +387,11 @@ class RoomServiceImpl(
                         performLockerChange(change, events, sourceWrites, existing[canonicalLockerId(id)], effective,
                             prefetchLocks = normalized.none { it.ratchet != null })
                     }
-                    if (results.any { !it.result.isOk() }) throw BatchRejected(PostLockerChangesResponse(
-                        result = PostLockerChangesResponse.Result.CONFLICT, changes = results, lockState = lockState))
+                    if (results.any { !it.result.isOk() }) throw BatchRejected(boundedResponse(PostLockerChangesResponse(
+                        result = PostLockerChangesResponse.Result.CONFLICT, changes = results, lockState = lockState), PostLockerChangesResponse::toByteArray))
                     lockerStore.updateLockers(sourceWrites)
-                    pending = PostLockerChangesResponse(result = PostLockerChangesResponse.Result.OK, changes = results,
-                        lockState = lockState, agentPending = true)
+                    pending = boundedResponse(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.OK, changes = results,
+                        lockState = lockState, agentPending = true), PostLockerChangesResponse::toByteArray)
                     outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
                         request.writeRequestId, ServerRoomId(room.rawValue), digest, pending!!.toByteArray()))
                 }
@@ -484,13 +493,13 @@ class RoomServiceImpl(
         
         if (storedLocker == null) {
             getLockerTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
-            return@trackResponse GetLockerResponse(result = GetLockerResponse.Result.OK, locker = IdentifiedLocker(lockerId, version = 0, lockState = lockStateFor(roomId, lockerId)))
+            return@trackResponse boundedResponse(GetLockerResponse(result = GetLockerResponse.Result.OK, locker = IdentifiedLocker(lockerId, version = 0, lockState = lockStateFor(roomId, lockerId))), GetLockerResponse::toByteArray)
         }
 
         getLockerTimer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS)
         val read = storedRead(roomId, storedLocker)
-        GetLockerResponse(result = if (read.valid) GetLockerResponse.Result.OK else GetLockerResponse.Result.INVALID_DATA,
-            locker = read.value)
+        boundedResponse(GetLockerResponse(result = if (read.valid) GetLockerResponse.Result.OK else GetLockerResponse.Result.INVALID_DATA,
+            locker = read.value), GetLockerResponse::toByteArray)
     }
 
     private suspend fun captureSnapshot(room: RoomId, spaces: Set<Long>): List<StoredRead> {
@@ -519,7 +528,7 @@ class RoomServiceImpl(
         lockStore.atomic(ServerRoomId(roomId.rawValue)) {
             val reads = captureSnapshot(roomId, spaces)
             if (reads.any { !it.valid }) return@atomic GetAllLockersResponse(result = GetAllLockersResponse.Result.INVALID_DATA,
-                lockers = reads.filter { !it.valid }.map { it.value })
+                lockers = listOf(reads.first { !it.valid }.value))
             snapshots.create(0, roomId, null, spaces, request.pageSize, deliveryOutbox?.watermark(roomId) ?: 0, reads.map { it.value })
         }
     }
@@ -655,7 +664,7 @@ class RoomServiceImpl(
     override suspend fun deleteLocker(
         context: GrpcRequestContext,
         request: DeleteLockerRequest
-    ) = meterRegistry.trackResponse("lockers.room.locker.deletelocker", DeleteLockerResponse::result, telemetry) {
+    ) = boundedResponse(meterRegistry.trackResponse("lockers.room.locker.deletelocker", DeleteLockerResponse::result, telemetry) {
         val room = request.roomId
         val id = request.lockerId
         if (room == null || !ProtocolValidation.room(room) || !ProtocolValidation.locker(id) ||
@@ -726,12 +735,12 @@ class RoomServiceImpl(
                 DeleteLockerResponse(result = DeleteLockerResponse.Result.OK, version = version, lockState = state, writeRequestId = request.writeRequestId)
             }
         }
-    }
+    }, DeleteLockerResponse::toByteArray)
 
     override suspend fun lockLocker(
         context: GrpcRequestContext,
         request: LockLockerRequest
-    ) = meterRegistry.trackResponse("lockers.room.locker.lock", LockLockerResponse::result, telemetry) {
+    ) = boundedResponse(meterRegistry.trackResponse("lockers.room.locker.lock", LockLockerResponse::result, telemetry) {
         val requestRoomId = request.roomId ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)
         val grant = request.grant ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)
         if (!ProtocolValidation.room(requestRoomId) || !ProtocolValidation.grant(grant) || request.parentLockVersion < 0)
@@ -764,7 +773,7 @@ class RoomServiceImpl(
                 is LockVerifier.LockOutcome.NotAuthorized -> LockLockerResponse(result = LockLockerResponse.Result.NOT_AUTHORIZED)
             }
         } }
-    }
+    }, LockLockerResponse::toByteArray)
 
     override suspend fun unlockLocker(
         context: GrpcRequestContext,

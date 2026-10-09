@@ -22,9 +22,10 @@ class ReadAdmission(private val limits: ServerResourceLimits, private val nanoTi
     fun tryAcquire(room: RoomId): Boolean = synchronized(this) {
         val now = nanoTime()
         if (!global.consume(now, limits.globalReadsPerSecond, limits.globalReadBurst)) return@synchronized false
-        val bucket = rooms[room] ?: Bucket(limits.roomReadBurst.toDouble(), now).also {
+        val canonical = RoomId(room.rawValue.copyOf())
+        val bucket = rooms[canonical] ?: Bucket(limits.roomReadBurst.toDouble(), now).also {
             if (rooms.size == limits.maxTrackedReadRooms) rooms.remove(rooms.keys.first())
-            rooms[RoomId(room.rawValue.copyOf())] = it
+            rooms[canonical] = it
         }
         bucket.consume(now, limits.roomReadsPerSecond, limits.roomReadBurst)
     }
