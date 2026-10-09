@@ -132,3 +132,20 @@ stub or coroutine-correctness findings. The final ten-module detekt gate passes.
 Exact inventory and raw reproduction/confirmation logs are in
 `evidence/F42/final-static-*`. Functional regressions and the immutable consumer
 matrix remain separate evidence from static analysis.
+
+
+## Authority recovery consumer follow-up
+
+The independent `95ede87` checkpoint includes F44's finite recovery of an otherwise
+valid prepared V2 body after a definitive authority rejection. Its first aggregate
+static run found 70 new IDs: 43 line lengths, 21 test wildcard imports, two complex
+conditions, two cyclomatic-complexity findings and two return-count findings.
+The six complexity IDs belong to `repairAuthorityWrite` and `authorityScopeFor`.
+Their early-return guards reject unsupported/mismatched scope and epoch metadata,
+foreign verification keys, invalid original signatures, bad checksums, ambiguous
+transmission and ratchets. These checks were reviewed as fail-closed security
+boundaries; the baseline records readability debt rather than removing the guards.
+There are no new exception, cancellation, coroutine or unused-source exclusions.
+All ten handwritten-source modules pass detekt. Exact IDs and raw red/green logs
+are in `evidence/F42/authority-recovery-static-*`. Runtime and consumer gates
+remain required separately.
