@@ -8,6 +8,10 @@ import assertk.assertions.isTrue
 import com.latenighthack.ktstore.Database
 import com.latenighthack.lockers.common.v1.LockGrant
 import com.latenighthack.lockers.common.v1.LockScope
+import com.latenighthack.lockers.common.v1.LockScopeKind
+import com.latenighthack.lockers.common.v1.Signature
+import com.latenighthack.ktcrypto.*
+import com.latenighthack.lockers.server.services.room.v1.publicKeyOf
 import com.latenighthack.lockers.common.v1.Locker
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.LockerKeyspace
@@ -89,14 +93,15 @@ class RoomOwnershipTest {
         // Room-wide scope carries no keyspace, so it pins to keyspace 0 and still redirects.
         val lock = client.lockLocker(LockLockerRequest {
             roomId = RoomId(byteArrayOf(1, 2, 3))
-            grant = LockGrant { scope = LockScope { } }
+            grant = LockGrant { scope = LockScope { kind = LockScopeKind.LOCK_SCOPE_ROOM }; publicKey = publicKeyOf(Secp256r1KeyPair.generate().publicKey.encode()) }
         })
         assertThat(lock.result is LockLockerResponse.Result.NOT_OWNER).isTrue()
         assertThat(lock.redirect?.ownerAddress).isEqualTo("peer-c:8080")
 
         val unlock = client.unlockLocker(UnlockLockerRequest {
             roomId = RoomId(byteArrayOf(1, 2, 3))
-            scope = LockScope { }
+            scope = LockScope { kind = LockScopeKind.LOCK_SCOPE_ROOM }
+            signature = Signature(signature = ByteArray(64))
         })
         assertThat(unlock.result is UnlockLockerResponse.Result.NOT_OWNER).isTrue()
         assertThat(unlock.redirect?.ownerAddress).isEqualTo("peer-c:8080")

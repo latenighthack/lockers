@@ -327,6 +327,10 @@ class RoomServiceImpl(
             request.toByteArray().size > minOf(8 * 1024 * 1024, config.maxLockerPayloadBytes)) {
             return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.INVALID)
         }
+        if (!ProtocolValidation.room(room) || request.parentLockVersion < 0 ||
+            request.initialLock?.let { !ProtocolValidation.grant(it) } == true ||
+            changes.any { !ProtocolValidation.change(it, room) })
+            return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.INVALID)
         for (space in changes.map { it.lockerId?.keyspace?.value ?: 0L }.distinct()) {
             trace.phase("ownership") { redirectIfNotOwner(space, room) }?.let { redirect ->
                 trace.phase("forward") { forwardToOwnerOrNull(context, redirect) { it.postLockerChanges(request) } }?.let { return it }
@@ -524,6 +528,10 @@ class RoomServiceImpl(
         context: GrpcRequestContext,
         request: PostLockerChangeRequest
     ) = meterRegistry.trackResponse("lockers.room.locker.postlockerchange", PostLockerChangeResponse::result, telemetry) {
+            val room = request.roomId
+            if (room == null || !ProtocolValidation.room(room) || !ProtocolValidation.change(request, room) ||
+                request.writeRequestId.isNotEmpty() && request.writeRequestId.size !in 16..64)
+                return@trackResponse PostLockerChangeResponse(result = PostLockerChangeResponse.Result.NOT_AUTHORIZED)
             val batch = postLockerChanges(context, PostLockerChangesRequest(roomId = request.roomId,
                 changes = listOf(request.copy(writeRequestId = byteArrayOf())), writeRequestId = request.writeRequestId.takeIf { it.isNotEmpty() } ?: Random.nextBytes(32)))
             return@trackResponse batch.changes.firstOrNull()?.copy(agentFailed = batch.agentFailed, agentPending = batch.agentPending)
@@ -652,6 +660,7 @@ class RoomServiceImpl(
         val id = request.lockerId
         if (room == null || !ProtocolValidation.room(room) || !ProtocolValidation.locker(id) ||
             request.parentVersion < 0 || !ProtocolValidation.notification(request.notification) ||
+            !ProtocolValidation.signature(request.writeSignature) ||
             (request.writeRequestId.isNotEmpty() && request.writeRequestId.size !in 16..64))
             return@trackResponse DeleteLockerResponse(result = DeleteLockerResponse.Result.UNKNOWN_ERROR)
         val lockerId = requireNotNull(id)
@@ -725,6 +734,8 @@ class RoomServiceImpl(
     ) = meterRegistry.trackResponse("lockers.room.locker.lock", LockLockerResponse::result, telemetry) {
         val requestRoomId = request.roomId ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)
         val grant = request.grant ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)
+        if (!ProtocolValidation.room(requestRoomId) || !ProtocolValidation.grant(grant) || request.parentLockVersion < 0)
+            return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.NOT_AUTHORIZED)
 
         // A lock and the lockers it governs must be coordinated on the same shard, so gate by the
         // scope's keyspace; a room-wide scope carries no keyspace and pins to keyspace 0.
@@ -761,6 +772,9 @@ class RoomServiceImpl(
     ) = meterRegistry.trackResponse("lockers.room.locker.unlock", UnlockLockerResponse::result, telemetry) {
         val requestRoomId = request.roomId ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)
         val scope = request.scope ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)
+        if (!ProtocolValidation.room(requestRoomId) || !ProtocolValidation.scope(scope) || request.parentLockVersion < 0 ||
+            !ProtocolValidation.signature(request.signature, required = true))
+            return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.SIGNATURE_INVALID)
 
         redirectIfNotOwner(scope.keyspace?.value ?: 0L, requestRoomId)?.let { redirect ->
             forwardToOwnerOrNull(context, redirect) { it.unlockLocker(request) }?.let {

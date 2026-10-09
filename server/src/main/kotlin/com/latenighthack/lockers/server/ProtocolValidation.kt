@@ -23,6 +23,28 @@ object ProtocolValidation {
         2 -> scope.lockerRawValue.isEmpty() && (scope.keyspace?.value ?: 0L) == 0L
         else -> false
     }
+    suspend fun signature(value: Signature?, required: Boolean = false): Boolean {
+        if (value == null) return !required
+        return value.toByteArray().size <= 256 && value.signingVersion in 0..2 &&
+            (value.signature.isEmpty() && !required || value.signature.size == 64) &&
+            (value.publicKey == null || publicKey(value.publicKey?.rawValue))
+    }
+    suspend fun grant(value: LockGrant?): Boolean = value != null && scope(value.scope) &&
+        value.toByteArray().size <= 1024 && publicKey(value.publicKey?.rawValue) &&
+        signature(value.parentSignature) && value.authorityVersion >= 0 && value.scopeVersion >= 0
+
+    suspend fun change(value: com.latenighthack.lockers.room.v1.PostLockerChangeRequest, expectedRoom: RoomId): Boolean {
+        val body = value.locker ?: return false
+        if (value.roomId?.let { !it.rawValue.contentEquals(expectedRoom.rawValue) } == true) return false
+        if (!locker(value.lockerId) || value.parentVersion < 0 || !LockerEnvelope.isSupported(body) ||
+            !notification(value.notification) || !signature(value.writeSignature)) return false
+        val payload = body.sealed?.payload
+        if (payload != null && (payload.checksum.isNotEmpty() && payload.checksum.size != 32 ||
+                !signature(payload.enclosure?.signature))) return false
+        val ratchet = value.ratchet
+        return ratchet == null || publicKey(ratchet.newPublicKey?.rawValue) &&
+            sharedKeys(ratchet.newSharedKeys) && signature(ratchet.signature, required = true)
+    }
     suspend fun room(room: RoomId?): Boolean {
         if (!identity(room?.rawValue)) return false
         val authority = RoomKeying.authorityKey(requireNotNull(room)) ?: return true
