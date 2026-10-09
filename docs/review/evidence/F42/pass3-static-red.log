@@ -1,0 +1,131 @@
+Type-safe project accessors is an incubating feature.
+> Task :api:detekt
+
+> Task :connector:detekt FAILED
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:24:59: This empty block of code can be removed. [EmptyFunctionBlock]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:25:47: This empty block of code can be removed. [EmptyFunctionBlock]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:37:59: This empty block of code can be removed. [EmptyFunctionBlock]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:38:47: This empty block of code can be removed. [EmptyFunctionBlock]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:3:1: com.latenighthack.ktbuf.net.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:4:1: com.latenighthack.ktcrypto.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:5:1: com.latenighthack.ktstore.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:7:1: com.latenighthack.lockers.common.v1.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:8:1: com.latenighthack.lockers.connector.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:9:1: com.latenighthack.lockers.room.v1.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:11:1: kotlinx.coroutines.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:12:1: kotlinx.coroutines.flow.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:14:1: kotlin.test.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:17:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:18:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:19:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:31:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:33:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:46:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:47:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:53:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:57:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:63:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionConfirmationCasTests.kt:64:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionFailureTests.kt:164:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionFailureTests.kt:193:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewRatchetAdoptionTests.kt:20:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewRatchetAdoptionTests.kt:31:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewRatchetAdoptionTests.kt:66:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/SubscriptionRecoveryTests.kt:23:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewJournalCancellationTests.kt:5:1: kotlinx.coroutines.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewJournalCancellationTests.kt:7:1: kotlin.test.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewJournalCancellationTests.kt:10:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:3:1: com.latenighthack.ktstore.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:4:1: com.latenighthack.lockers.common.v1.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:5:1: com.latenighthack.lockers.connector.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:7:1: com.latenighthack.lockers.room.v1.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:8:1: kotlinx.coroutines.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:9:1: kotlinx.coroutines.flow.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:10:1: kotlin.test.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:13:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:36:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:40:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:41:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:45:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionStartupCasTests.kt:46:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:3:1: com.latenighthack.ktbuf.net.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:4:1: com.latenighthack.ktcrypto.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:5:1: com.latenighthack.ktstore.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:6:1: com.latenighthack.lockers.common.v1.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:7:1: com.latenighthack.lockers.connector.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:8:1: com.latenighthack.lockers.room.v1.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:10:1: kotlinx.coroutines.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:11:1: kotlinx.coroutines.flow.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:12:1: kotlin.test.* is a wildcard import. Replace it with fully qualified imports. [WildcardImport]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:26:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:30:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:42:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:45:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionEchoTests.kt:53:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewSubscriptionRevisionTests.kt:21:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewPublicObservationIsolationTests.kt:63:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewAuthorityV2Tests.kt:56:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/jvmTest/kotlin/com/latenighthack/lockers/connector/test/ReviewConnectorTests.kt:90:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:564:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:577:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/LockerClient.kt:793:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:186:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:187:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:208:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:215:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:218:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:401:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/connector/src/commonMain/kotlin/com/latenighthack/lockers/connector/Stream.kt:487:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+
+
+> Task :keymaster:detekt
+> Task :observability-api:detekt
+> Task :observability-connector:detekt
+> Task :observability-server:detekt
+
+> Task :server:detekt FAILED
+/Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:691:1: Line detected, which is longer than the defined maximum line length in the code style. [MaxLineLength]
+
+
+> Task :sharding-core:detekt
+> Task :server:run:detekt
+> Task :server:test:detekt
+
+[Incubating] Problems report is available at: file:///Users/mikeroberts/workspace/latenighthack/.worktrees/lockers-review-static-pass3/build/reports/problems/problems-report.html
+
+FAILURE: Build completed with 2 failures.
+
+1: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':connector:detekt' (registered by plugin 'io.gitlab.arturbosch.detekt').
+> Analysis failed with 74 weighted issues.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+2: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':server:detekt' (registered by plugin 'io.gitlab.arturbosch.detekt').
+> Analysis failed with 1 weighted issues.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 5s
+10 actionable tasks: 10 executed

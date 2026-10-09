@@ -106,3 +106,17 @@ warnings, and the aggregate ten-module detekt gate passes. The three remaining
 LockerClient redundancies belong to its active source owner; four generated
 protobuf-descriptor conversion warnings are visible and were not edited in generated
 bindings. Raw audit and follow-up logs are retained alongside the ID inventory.
+
+
+## Integrated recovery and subscription rerun
+
+The fresh `6c41d57` source checkpoint includes the subscription startup, conditional
+confirmation and exact-echo fixes, plus recovery of a genuine legacy archive without
+inventing an authority epoch. Its first aggregate static run reported 75 occurrences:
+44 line lengths, 27 test wildcard imports and four required empty test stubs. These
+collapse to 72 additional formatting IDs; 12 stale line-length IDs were removed.
+No new complexity, exception-boundary or coroutine findings were suppressed. The
+exact inventory and red/green logs are `evidence/F42/pass3-static-*`.
+The aggregate ten-module static gate passes. Publication still waits for the
+independently reproduced server subscription dispatcher/transaction deadlock fix;
+its final source diff requires another static check.

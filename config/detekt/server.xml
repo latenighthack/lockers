@@ -999,7 +999,6 @@
     <ID>MaxLineLength:RemoteGateway.kt$PeerConnectionPool$if (client.closeStarted.compareAndSet(false, true)) try { closeClient(client.value) } catch (failure: Throwable) { client.closeFailure = failure }</ID>
     <ID>MaxLineLength:RemoteGateway.kt$PeerConnectionPool$private val closeClient: (RpcClient) -&gt; Unit = { if (it is HttpRpcClient) it.close() else if (it is AutoCloseable) it.close() }</ID>
     <ID>MaxLineLength:RemoteGateway.kt$PeerConnectionPool$require(uri.scheme in listOf("http", "https") &amp;&amp; !uri.host.isNullOrBlank() &amp;&amp; uri.userInfo == null &amp;&amp; uri.query == null &amp;&amp; uri.fragment == null) { "Invalid peer endpoint" }</ID>
-    <ID>MaxLineLength:RemoteGateway.kt$PeerConnectionPool$resources.forEach { try { dispose(it) } catch (failure: Throwable) { if (failed == null) failed = failure else failed!!.addSuppressed(failure) } }</ID>
     <ID>MaxLineLength:RemoteGateway.kt$PeerConnectionPool$try { joinClient(client.value) } catch (error: Throwable) { if (failure == null) failure = error else failure.addSuppressed(error) }</ID>
     <ID>MaxLineLength:RemoteGateway.kt$PeerConnectionPool$val idle = clients.entries.filter { it.value.users == 0 }.minByOrNull { it.value.touched } ?: throw PeerConnectionCapacityException()</ID>
     <ID>MaxLineLength:RemoteGateway.kt$PeerConnectionPool$val resources = synchronized(monitor) { (clients.values + retiring).distinct().also { clients.clear(); retiring.addAll(it) } }</ID>
@@ -1137,6 +1136,7 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$lockState = lockState</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$locker = IdentifiedLocker(lockerId, version = version, lockState = state)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$locker { locker = updatedLocker; lockerId = requestLockerId; version = updatedLockerVersion; lockState = effectiveState }</ID>
+    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$meterRegistry.counter("lockers.room.subscriptions", "operation", "unknown", "result", "ERROR").increment()</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$meterRegistry.counter("lockers.room.subscriptions", "operation", if (subscribed) "subscribe" else "unsubscribe", "result", "OK").increment()</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$meterRegistry.timer("lockers.write.phase", "phase", "room_queue").record(System.nanoTime() - queuedAt, java.util.concurrent.TimeUnit.NANOSECONDS)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$outcome = "ok"</ID>
@@ -1630,7 +1630,6 @@
     <ID>MaxLineLength:WriteTrace.kt$MeasuredStoreDelegate$override suspend fun saveAll(tableName: String, rows: List&lt;StoreRow&gt;)</ID>
     <ID>MaxLineLength:WriteTrace.kt$MeasuredStoreDelegate$return</ID>
     <ID>MaxLineLength:WriteTrace.kt$MeasuredStoreDelegate$val known = table != null &amp;&amp; com.latenighthack.lockers.server.ServerStorage.definitions.any { it.storeName.value == table }</ID>
-    <ID>MaxLineLength:WriteTrace.kt$MeasuredStoreDelegate$val tags = arrayOf("store", table!!, "operation", if (name == "db_read") "read" else "write", "outcome", outcome)</ID>
     <ID>MaxLineLength:WriteTrace.kt$WriteTrace$"locker_write request={} elapsed_ms={} db_ops={} db_bytes={} recipients={} phases_ms={} result={} request_bytes={}"</ID>
     <ID>MaxLineLength:WriteTrace.kt$WriteTrace$class</ID>
     <ID>ReturnCount:ApnsPushProvider.kt$ApnsPushProvider$override suspend fun send(registration: PushRegistration, push: Push): PushResult</ID>
