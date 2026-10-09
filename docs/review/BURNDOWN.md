@@ -14,7 +14,7 @@ Each row is complete only after its reproduction, regression, fix, commit and in
 | F08 | P1 | The default mutation path has no database version CAS or commit fence | partial | ca6e060c, 56ba7047 |
 | F09 | P1 | The default example agent can overwrite an independently locked keyspace | partial | f28f0afc |
 | F10 | P1 | A legacy ratchet can commit before its associated content write fails | partial | 984e2f03, 238cc852, 55f8733e, 50f5a42f, a6d21566, abe4311f |
-| F11 | P1 | The client can discard a successfully committed ratchet key | partial | f41db2c4, f1fe0fe1, 81372047, 076f5a14, d0a45c15, 8bdf808e, 4e66a0d0, 0dd7a49e, 119cfb31, 1011735c, 24c8d8b8 |
+| F11 | P1 | The client can discard a successfully committed ratchet key | partial | f41db2c4, f1fe0fe1, 81372047, 076f5a14, d0a45c15, 8bdf808e, 4e66a0d0, 0dd7a49e, 119cfb31, 1011735c, 24c8d8b6 |
 | F12 | P2 | Session creation and challenge rotation are not atomic | partial | b7768ab3 |
 | F13 | P2 | Creating a locker does not advance its version | partial | 987e85bc, 1b749f20 |
 | F14 | P2 | Null and zero keyspace aliases bypass duplicate and serialization checks | partial | a15c0ac4, 14b4a323, c268b2a7, 3aa145b4, 1cc3f671, 40026b51, f9af60db |

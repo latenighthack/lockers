@@ -1,0 +1,5 @@
+# Integrated verification pass9
+
+Frozen14588be compiled and tested in an independent validation worktree using dependencies-indexeddb-final.json (ktstoref5e9eaa,ktbuf780bcc0), isolated Maven repository, repository wrapper and required PostgreSQL. All612 executed tests passed: API12, connector197, server356, sharding29, keymaster2, observability API6/connector4/server6. The server reports358 total tests because its two optional load drivers are skipped in this ordinary gate; they require separate load execution. PostgreSQL correctness cases were required and executed. Host compilation and verifyRuntimeSecurity passed. Raw build output and exact module counts are retained in evidence/integration-pass9.
+
+This includes subscription durable confirmation/startup CAS/strict success echoes, journal cancellation, V7 migration and legacy archive authority/provider guards. It precedes the independent verifier's subscription database/dispatcher lock-order fix and final consumer/publication/platform gates. It is not an overall completion claim.

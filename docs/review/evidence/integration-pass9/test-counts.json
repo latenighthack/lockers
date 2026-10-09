@@ -1,0 +1,63 @@
+{
+  "checkpoint": "14588be",
+  "gate": "integration pass9 before subscription lock-order follow-up",
+  "manifest": "dependencies-indexeddb-final.json",
+  "counts": {
+    "api": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 12
+    },
+    "connector": {
+      "tests": 197,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 197
+    },
+    "server": {
+      "tests": 358,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2,
+      "executed": 356
+    },
+    "sharding-core": {
+      "tests": 29,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 29
+    },
+    "keymaster": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 2
+    },
+    "observability-api": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 6
+    },
+    "observability-connector": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 4
+    },
+    "observability-server": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "executed": 6
+    }
+  }
+}
