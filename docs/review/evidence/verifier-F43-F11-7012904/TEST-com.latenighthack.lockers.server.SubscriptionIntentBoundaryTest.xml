@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.SubscriptionIntentBoundaryTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-09T03:53:50.819Z" hostname="Mikes-MacBook-Pro.local" time="0.043">
+  <properties/>
+  <testcase name="signed snapshot pages observe their exact active generation and cannot restore revoked membership()" classname="com.latenighthack.lockers.server.SubscriptionIntentBoundaryTest" time="0.022"/>
+  <testcase name="permanent session destruction clears revision and snapshot ledgers and rejects delayed signed mutations()" classname="com.latenighthack.lockers.server.SubscriptionIntentBoundaryTest" time="0.008"/>
+  <testcase name="custom legacy subscription stores do not advertise or silently accept modern intent ordering()" classname="com.latenighthack.lockers.server.SubscriptionIntentBoundaryTest" time="0.002"/>
+  <testcase name="invalid stored snapshot fences older intents without confirming membership and repaired retry reuses the same revision()" classname="com.latenighthack.lockers.server.SubscriptionIntentBoundaryTest" time="0.006"/>
+  <testcase name="signed malformed room identities never persist membership or intent authority()" classname="com.latenighthack.lockers.server.SubscriptionIntentBoundaryTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

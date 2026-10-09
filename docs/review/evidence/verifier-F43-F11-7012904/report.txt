@@ -1,0 +1,49 @@
+---
+
+**One new F43 blocker found at `7012904`; F11 migration/source-identity changes survive this scoped review.** Source remains clean.
+
+**P1 — Subscription and room writes acquire locks in opposite order. Confidence: high; source-established, not runtime-reproduced.**
+
+[SubscriptionIntents.kt:44](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/SubscriptionIntents.kt:44) holds the room transaction lock before its callback enters the dispatcher mutex at [RoomServiceImpl.kt:697](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:697). Conversely, `lockLocker` takes the dispatcher mutex before the same room transaction lock at [RoomServiceImpl.kt:995](/Users/mikeroberts/.paseo/worktrees/2ujo6tia/review-available-independent-verifier/server/src/main/kotlin/com/latenighthack/lockers/server/services/room/v1/RoomServiceImpl.kt:995).
+
+Concrete interleaving:
+
+1. A subscription acquires the room transaction lock.
+2. A concurrent room mutation acquires the dispatcher mutex and waits for that transaction lock.
+3. The subscription waits for the dispatcher mutex.
+
+Both remain blocked until cancellation/timeout intervenes. A deterministic regression should gate subscription after transaction acquisition, start `lockLocker` until it reaches `LockStore.atomic`, then release the subscription gate. Establish one lock order; preserve the proof/intent transaction boundary.
+
+The remaining reviewed behavior is sound: signed monotonic fences, exact positive-revision snapshot binding and active membership, `INVALID_DATA` desired-only fencing, custom-store fail-closed capability, bounded tombstones and destroy cleanup. F11 preserves frozen bytes, validates keys outside transaction ownership, resumes four-row migration, blocks partial adoption on conflicts, conditionally prunes exact rows, and reports the original archived source identity.
+
+**Independent tests: 26 passed; zero failures, errors or skips.**
+
+| Selection | Tests |
+|---|---:|
+| Subscription HTTP ordering / intent boundary / intent store / intent PostgreSQL | 11 |
+| Snapshot paging / session revocation | 5 |
+| Archive migration / migration safety / ratchet adoption | 10 |
+
+Both PostgreSQL cases actually ran using unique schemas and independent handles. They do **not** exercise the lock inversion above.
+
+```sh
+ANDROID_HOME=/Users/mikeroberts/Library/Android/sdk \
+LOCKERS_TEST_PG_REQUIRED=true \
+LOCKERS_TEST_PG_URL='jdbc:postgresql://127.0.0.1:58594/lockers_fixes?user=review' \
+./gradlew \
+-PfhWorkspace=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/dependencies-indexeddb-final.json \
+-Dmaven.repo.local=/Users/mikeroberts/workspace/rollgames/.worktrees/fullhouse-lockers-review-build/.fh/maven \
+--console=plain \
+:server:test \
+--tests '*SubscriptionHttpOrderingTest*' \
+--tests '*SubscriptionIntent*Test*' \
+--tests '*SnapshotPagingTest*' \
+--tests '*SessionRevocation*Test*' \
+:connector:jvmTest \
+--tests '*ArchiveMigration*' \
+--tests '*ReviewRatchetAdoptionTests*'
+```
+
+`BUILD SUCCESSFUL in 20s`. [Raw log](/tmp/independent-F43-F11-7012904-gradle.log) · [Archived XML results](/tmp/independent-F43-F11-7012904-xml)
+
+**overallDone=false.** Assigned SDK blockers and broader final gates remain open.

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.latenighthack.lockers.server.SubscriptionHttpOrderingTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T03:53:50.646Z" hostname="Mikes-MacBook-Pro.local" time="0.172">
+  <properties/>
+  <testcase name="late old HTTP subscribe cannot undo a confirmed same-session unsubscribe()" classname="com.latenighthack.lockers.server.SubscriptionHttpOrderingTest" time="0.171"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

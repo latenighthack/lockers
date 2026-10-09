@@ -14,7 +14,7 @@ Each row is complete only after its reproduction, regression, fix, commit and in
 | F08 | P1 | The default mutation path has no database version CAS or commit fence | partial | ca6e060c, 56ba7047 |
 | F09 | P1 | The default example agent can overwrite an independently locked keyspace | partial | f28f0afc |
 | F10 | P1 | A legacy ratchet can commit before its associated content write fails | partial | 984e2f03, 238cc852, 55f8733e, 50f5a42f, a6d21566, abe4311f |
-| F11 | P1 | The client can discard a successfully committed ratchet key | partial | f41db2c4, f1fe0fe1, 81372047, 076f5a14, d0a45c15, 8bdf808e, 4e66a0d0, 0dd7a49e, 119cfb31, 1011735c |
+| F11 | P1 | The client can discard a successfully committed ratchet key | partial | f41db2c4, f1fe0fe1, 81372047, 076f5a14, d0a45c15, 8bdf808e, 4e66a0d0, 0dd7a49e, 119cfb31, 1011735c, 24c8d8b8 |
 | F12 | P2 | Session creation and challenge rotation are not atomic | partial | b7768ab3 |
 | F13 | P2 | Creating a locker does not advance its version | partial | 987e85bc, 1b749f20 |
 | F14 | P2 | Null and zero keyspace aliases bypass duplicate and serialization checks | partial | a15c0ac4, 14b4a323, c268b2a7, 3aa145b4, 1cc3f671, 40026b51, f9af60db |
@@ -28,7 +28,7 @@ Each row is complete only after its reproduction, regression, fix, commit and in
 | F22 | P2 | Late push acknowledgements can restore obsolete or removed credentials | partial | 4374c3c0, 9c8c7741, 6d041947, f8f4442e |
 | F23 | P2 | A watcher publishes partial history as its initial snapshot | partial | fe7b93a8, 1e2ff0c9 |
 | F24 | P2 | Application Flow collectors can block acceptance and ACKs for unrelated rooms | partial | a321be6b, 1e2ff0c9 |
-| F25 | P2 | Cancellation is retried or converted into application failure | partial | ea56134d, 3555f92a, 565a39fe, 2f59f54c, c862e868, 845fbfd7, f9af60db |
+| F25 | P2 | Cancellation is retried or converted into application failure | partial | ea56134d, 3555f92a, 565a39fe, 2f59f54c, c862e868, 845fbfd7, f9af60db, e718c34 |
 | F26 | P2 | Background ownership and shutdown are detached from the caller's lifecycle | partial | 0d339e5a, b87f34b2, 1f3593f4, 70351cf4, 5cb73ce3, c6cca713, eb14e47b, 40b705dd, 7f7bfff6, 46775599, 845fbfd7, 82a262a4, f9af60db, 0dd7a49e, 119cfb31 |
 | F27 | P2 | Connection state can remain true during failure and awaiters can hang after closure | partial | 0750a296, 7f7bfff6, 845fbfd7, 82a262a4 |
 | F28 | P2 | The session ping branch never emits its pong and there is no heartbeat deadline | partial | d2eea55e, b11e9f2c, 811d2cf4 |
@@ -45,5 +45,5 @@ Each row is complete only after its reproduction, regression, fix, commit and in
 | F39 | P2 | Build reproducibility and target tests do not cover the published contract | partial | 608fb377, 69941b4e, d6ef56d1, e5664adb, 3b5f8cb1, f6a533ee, 58d72268, 95c839d1, 9a82beea, 0dd7a49e, 119cfb31, e3f5be9f, 83aa6370, 7f32cb74, ef528af5, 4bb5ea4a |
 | F40 | P2 | A topology priming error terminates polling while readiness can later report success | partial | 1ff4c46b |
 | F41 | P2 | Resolved JDBC and network dependencies need security patching and version alignment | partial | c2236968, a9d78e30 |
-| F42 | P3 | Documentation and quality gates disagree with the implementation | partial | 008d5d30, 91e672c2, fce28011, 7a370dd1, 46775599, 2765fbde, 3c7de149, 70129049 |
-| F43 | P2 | An older signed subscription can commit after a newer unsubscribe | partial | 4da978d5, e202cc91, f4fc55c0, 8e86d3ed, d770eb3d, 079a32be, 4bb5ea4a, 70129049 |
+| F42 | P3 | Documentation and quality gates disagree with the implementation | partial | 008d5d30, 91e672c2, fce28011, 7a370dd1, 46775599, 2765fbde, 3c7de149, 70129049, 91376a7, 9061474, 5c3e901, 2226676, 6c41d57 |
+| F43 | P2 | An older signed subscription can commit after a newer unsubscribe | partial | 4da978d5, e202cc91, f4fc55c0, 8e86d3ed, d770eb3d, 079a32be, 4bb5ea4a, 70129049, 4e91ca4 |
