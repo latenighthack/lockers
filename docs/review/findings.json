@@ -19,7 +19,7 @@
     ],
     "reproduction": "LockVerifierTest: unsigned descendants cannot replace room or keyspace authority (baseline assertion failure)",
     "regression": "LockVerifierTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F02",
@@ -46,7 +46,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F02-stored-envelope.md, docs/review/F02.md",
     "regression": "ConflictEnvelopeBoundaryTest; ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F03",
@@ -73,7 +73,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F03-connector.md, docs/review/F03.md",
     "regression": "LockVerifierTest; ReviewAuthorityV2Tests; ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F04",
@@ -101,7 +101,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F04-admin-boundary.md, docs/review/F04-public-convenience.md, docs/review/F04-runtime.md",
     "regression": "GatewayBoundaryTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F05",
@@ -122,7 +122,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F05-runtime.md",
     "regression": "WebPushEndpointTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F06",
@@ -158,7 +158,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F06-connector.md, docs/review/F06-revocation.md, docs/review/F06.md",
     "regression": "ReviewDestroyReconnectTests; ReviewSessionProofTests; SessionProofBoundaryTest; SessionRevocationTest; actual red/green evidence in linked issue notes; SessionRevocationTest actual two PostgreSQL handles and SQLite reopen confirmation",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F07",
@@ -181,7 +181,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F07.md",
     "regression": "ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F08",
@@ -207,7 +207,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F08.md",
     "regression": "RoomMutationFencePgTest (four actual PostgreSQL regressions); ReviewRegressionTest; RatchetAtomicityRegressionTest",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F09",
@@ -229,7 +229,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F09-runtime.md",
     "regression": "DefaultAgentAuthorityTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F10",
@@ -259,7 +259,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F10-delete-receipts.md, docs/review/F10.md",
     "regression": "RatchetAtomicityRegressionTest; ReviewDeleteReceiptTests; ReviewRatchetAdoptionTests",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F11",
@@ -275,7 +275,9 @@
     "evidence": [
       "docs/review/F11-connector.md",
       "docs/review/evidence/connector-ratchet-adversarial-isolation-red.log",
-      "docs/review/evidence/lockers-integration-ratchet-archive-green.log"
+      "docs/review/evidence/lockers-integration-ratchet-archive-green.log",
+      "docs/review/F11-archive-source-metadata.md",
+      "docs/review/F26-archive-migration.md"
     ],
     "fix": "Persist a pending ratchet key and immutable request identity before submission. Resolve a committed outcome and adopt that key even when derived agent work is pending or failed. Return a typed outcome separating source commit from agent completion; reserve an ordinary write-failed exception for a source mutation that did not commit. Recover pending key transitions on startup.",
     "status": "partial",
@@ -286,11 +288,14 @@
       "076f5a14473594103fbc79894a0e65ac9a86f5fe",
       "d0a45c1503693f5f575d6169376f5be44cb69206",
       "8bdf808e4bfe96888fc90bae0d258cfeadd26208",
-      "4e66a0d0d68de7cc89399a640f5351941a5e9bd9"
+      "4e66a0d0d68de7cc89399a640f5351941a5e9bd9",
+      "0dd7a49efbcdb68f8b71c0090a98c452f1145001",
+      "119cfb316377cb867d68d395dfb33bd966cc51d6",
+      "1011735cdcc48c04731c108a23993ad303f70046"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F11-connector.md",
     "regression": "ReviewConnectorTests; ReviewExpiredRatchetTests; ReviewRatchetArchiveOrderingTests; exact receipt/key adoption, source uncertainty, isolated recovery and epoch ordering regressions",
-    "verification": "Integrated d0a45c1: eight actual HTTP/private-archive regressions executed with zero skips/failures. Worker whole connector JVM156 and Android/Node/Apple gates passed before archive follow-up. Strong exact successor, retired effects, retry exhaustion and final full gates remain open."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F12",
@@ -314,7 +319,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F12-runtime.md",
     "regression": "SessionAtomicityTest; SessionOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F13",
@@ -337,7 +342,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F13.md",
     "regression": "ReviewBatchCreationTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F14",
@@ -354,7 +359,8 @@
       "docs/review/F14-connector.md",
       "docs/review/F14.md",
       "docs/review/F14-connector-aliases.md",
-      "docs/review/F14-unknown-identities.md"
+      "docs/review/F14-unknown-identities.md",
+      "docs/review/F14-locker-store-isolation.md"
     ],
     "fix": "Define a canonical identity type for room, keyspace, and locker bytes. Normalize at API entry before distinctness checks, mutation-lock acquisition, receipt construction, storage lookup, and routing. Keep the existing signed equivalence of omitted and zero keyspace; enforce it consistently rather than changing its meaning.",
     "status": "partial",
@@ -363,11 +369,13 @@
       "14b4a3238b66b49d53bde6e400e425b57bec228a",
       "c268b2a711a5b6e46962b9daf4bf76f831b1842a",
       "3aa145b41709a020e0642afd0dc92db1f06dbe39",
-      "1cc3f671632d4fe6d1ed386324a5210b5c250e40"
+      "1cc3f671632d4fe6d1ed386324a5210b5c250e40",
+      "40026b5164736e941c7a24afe925320a94228319",
+      "f9af60db42319d1dff810c9a50b1bd057ed4ce8e"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F14-connector.md, docs/review/F14.md",
     "regression": "CanonicalBatchRegressionTest; ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F15",
@@ -390,7 +398,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F15.md",
     "regression": "ReviewRegressionTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F16",
@@ -414,7 +422,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F16-connector.md",
     "regression": "ReviewSnapshotRepairTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F17",
@@ -438,7 +446,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F17-runtime.md",
     "regression": "SubscriptionFreshnessTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F18",
@@ -464,7 +472,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F18-default-construction.md, docs/review/F18-runtime.md",
     "regression": "LegacyDeliveryModeTest; LockersConfigTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F19",
@@ -488,7 +496,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F19-runtime.md",
     "regression": "PushServiceTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F20",
@@ -512,7 +520,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F20-runtime.md",
     "regression": "PushQueueClaimsTest; PushServiceTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F21",
@@ -540,7 +548,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F21-connector.md, docs/review/F21-session-admission.md",
     "regression": "ReviewPushControllerTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F22",
@@ -568,7 +576,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F22-connector.md, docs/review/F22-public-boundary.md, docs/review/F22-runtime.md",
     "regression": "PushQueueClaimsTest; PushServiceTest; ReviewPushControllerTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F23",
@@ -591,7 +599,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F23-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F24",
@@ -615,7 +623,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F24-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F25",
@@ -644,11 +652,12 @@
       "565a39feaac026486b167ae08df8122801928406",
       "2f59f54c123b71fae7b14117b34ac793799a8d10",
       "c862e868dafbc24893963043cc8c477567feed80",
-      "845fbfd7264f80eaf7d4d7316aae5df8ca3ae9e9"
+      "845fbfd7264f80eaf7d4d7316aae5df8ca3ae9e9",
+      "f9af60db42319d1dff810c9a50b1bd057ed4ce8e"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F25-advisory-cancellation.md, docs/review/F25-connector.md, docs/review/F25-coordination-sql-limits.md, docs/review/F25-runtime.md, docs/review/F25-telemetry-cancellation.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F26",
@@ -669,7 +678,8 @@
       "docs/review/F26-host-lifetime.md",
       "docs/review/F26-runtime.md",
       "docs/review/F26-connector-integration-fixtures.md",
-      "docs/review/F26-watch-producer-lifetime.md"
+      "docs/review/F26-watch-producer-lifetime.md",
+      "docs/review/F26-archive-migration.md"
     ],
     "fix": "Give each client/server component one explicit lifecycle scope with a supplied parent, owned child jobs, and injected execution contexts. Keep deliberately shared reads owned by that client scope so one waiter cannot cancel everyone. Make start idempotent or reject duplicate starts, clean up partial initialization, and provide suspending close/stop that cancels and joins. Add an equivalent awaitable lifecycle seam for extensions.",
     "status": "partial",
@@ -685,11 +695,14 @@
       "7f7bfff6cd99840f842aefc12648f1219a9d3acd",
       "467755990837fecdfeb79e49219ac5b5286881d4",
       "845fbfd7264f80eaf7d4d7316aae5df8ca3ae9e9",
-      "82a262a4844bacbe7ff9e1a33c29725c45c23f19"
+      "82a262a4844bacbe7ff9e1a33c29725c45c23f19",
+      "f9af60db42319d1dff810c9a50b1bd057ed4ce8e",
+      "0dd7a49efbcdb68f8b71c0090a98c452f1145001",
+      "119cfb316377cb867d68d395dfb33bd966cc51d6"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F26-connector.md, docs/review/F26-host-lifetime.md, docs/review/F26-runtime.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F27",
@@ -717,7 +730,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F27-connector.md",
     "regression": "ReviewConnectorTests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F28",
@@ -742,7 +755,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F28-connector.md, docs/review/F28-runtime.md",
     "regression": "ReviewConnectorTests; SessionAtomicityTest; SessionHeartbeatTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F29",
@@ -768,7 +781,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F29-runtime.md",
     "regression": "InMemorySessionGatewayStoreTest; RegistryIncarnationTest; RegistrySessionGatewayDiscoveryTest; SessionAtomicityTest; SessionAttachFailureTest; SessionHeartbeatTest; SessionOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F30",
@@ -792,7 +805,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F30-runtime.md",
     "regression": "OwnerLifecycleTest; OwnerRecoveryTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F31",
@@ -815,7 +828,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F31-runtime.md",
     "regression": "OwnerLifecycleTest; RoomOwnershipTest; ShardCountReshardTest; WholeRoomOwnershipTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F32",
@@ -840,7 +853,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F32-runtime.md",
     "regression": "ClaimRenewalServiceTest; ClaimResourceDrainTest; InMemorySessionGatewayStoreTest; RegistryIncarnationTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F33",
@@ -874,7 +887,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F33-connector.md, docs/review/F33-runtime.md",
     "regression": "DeliveryFrameBoundsTest; GatewayAdmissionTest; InboxDeliveryReceiptTest; InboxReceiptPersistenceTest; PushQuotaPgTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F34",
@@ -900,7 +913,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F34-notification-metadata.md",
     "regression": "BroadcastServiceTest; SessionAtomicityTest; SessionInboxMetadataPersistenceTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes; InboxByteAdmissionTest mutable result/lookup isolation",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F35",
@@ -925,7 +938,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F35-connector.md",
     "regression": "BroadcastShapeTest; SessionNotificationMetadataTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F36",
@@ -957,7 +970,7 @@
     ],
     "reproduction": "ReviewRoutingOwnershipTests: real bare/full HTTP destination failed before address normalization; PublicForwardingRecoveryTest: private forward failure/NOT_OWNER poisoned public route before fix. Red/green linked in issue notes.",
     "regression": "ReviewRoutingOwnershipTests; PeerConnectionOwnershipTest; PublicForwardingRecoveryTest (six actual HTTP tests); ReviewTerminalProtocolTests; RingPublicSessionRecoveryTest; PublicSessionAddressContractTest",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F37",
@@ -985,7 +998,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F37-connector.md",
     "regression": "AgentRecoveryTest; DeliveryLatencyTest; PersistedEnvelopeValidationTest; RequestPreflightTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F38",
@@ -1040,11 +1053,13 @@
       "6628762c36bcaec95e56dba84ba0cc02b7e137d9",
       "b37de9364fe59edd64f31e5d11246c6c50e8bb1b",
       "7f7bfff6cd99840f842aefc12648f1219a9d3acd",
-      "82a262a4844bacbe7ff9e1a33c29725c45c23f19"
+      "82a262a4844bacbe7ff9e1a33c29725c45c23f19",
+      "119cfb316377cb867d68d395dfb33bd966cc51d6",
+      "079a32be55623069b316ae30ae5e87a2d1bb0b8f"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F38-boundaries.md, docs/review/F38-claim-capacity.md",
     "regression": "BoundaryAuthorityTest; CpuAdmissionBoundaryTest; GatewayAdmissionTest; GeneratedDecodeAllocationTest; InboxReplayPagingTest; LockVerifierTest; NamespaceAdmissionPgTest; NamespaceAdmissionTest; ResourceAdmissionTest; ResponseBoundaryTest; RoomIdentityAdmissionTest; SessionAdmissionFailureContractTest; SessionFrameBoundaryTest; SnapshotPagingTest; StorageAdoptionTest; actual red/green evidence in linked issue notes; StorageFetchBudgetTest",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F39",
@@ -1069,7 +1084,9 @@
       "docs/review/F39-required-postgres-gate.md",
       "docs/review/F39-release-transition.md",
       "docs/review/integration-checkpoint.md",
-      "docs/review/F39-released-mode-gate.md"
+      "docs/review/F39-released-mode-gate.md",
+      "docs/review/F26-archive-migration.md",
+      "docs/review/F43-storage-platforms.md"
     ],
     "fix": "Complete the dependency publication/version transition and verify released-mode resolution before release. Preserve isolated workspace repositories while allowing toolchain distribution resolution. Pin and provision the same generator in local, CI, and container builds; include all generator/compiler inputs in caching. Move portable protocol/reducer tests to commonTest and add real platform storage/transport tests plus Fullhouse consumer checks for affected variants.",
     "status": "partial",
@@ -1082,11 +1099,18 @@
       "f6a533ee8261f945a3efbfacabb84209d09e9f05",
       "58d72268da3ed3d4bff7c3a472b1e04a6902a6e0",
       "95c839d1bdb43f39de1ee7465eeff910aa3cdbda",
-      "9a82beea4582f1b96e41f7212a96aaa9f580d1b1"
+      "9a82beea4582f1b96e41f7212a96aaa9f580d1b1",
+      "0dd7a49efbcdb68f8b71c0090a98c452f1145001",
+      "119cfb316377cb867d68d395dfb33bd966cc51d6",
+      "e3f5be9f07bf911eaeabc4f5d9d0f1ecbb9e9789",
+      "83aa6370f3d98095dd3f5d377a47df2658b136fe",
+      "7f32cb74048ecaa96cda7738f59e1ec15e1603bf",
+      "ef528af5a67e12144ab61ef850566d0b1cecc72d",
+      "4bb5ea4ad2bca00fc67078aef9cceeeffb7e7db2"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F39-build.md, docs/review/F39-historical-schema.md, docs/review/F39-source-project-pins.md",
     "regression": "NamespaceAdmissionPgTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F40",
@@ -1108,7 +1132,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F40-runtime.md",
     "regression": "PostgresShardMapSourceTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F41",
@@ -1132,7 +1156,7 @@
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F41-build.md",
     "regression": "NetworkDependencyContractTest; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F42",
@@ -1161,11 +1185,12 @@
       "7a370dd18415cd14abdf17d89e36f416ff78ccdf",
       "467755990837fecdfeb79e49219ac5b5286881d4",
       "2765fbded599cd8f0f2fe9d788dc8d6f7daf39c4",
-      "3c7de14940fc36ae33e7dda98d408a7d294df1c5"
+      "3c7de14940fc36ae33e7dda98d408a7d294df1c5",
+      "701290492c41ce9a16d29c5650394d188e793dcb"
     ],
     "reproduction": "Issue-specific failing reproduction recorded in docs/review/F42-build.md, docs/review/F42-connector.md",
     "regression": "GeneratedEqualityContractTest; PackedEnumGeneratorContractTest; ReviewAuthorityV2Tests; actual red/green evidence in linked issue notes",
-    "verification": "Intermediate checkpoint274e7de: API12, connector147, server340 executed/2 optional load skips, sharding29; zero failures; required PostgreSQL, host compile/security passed. Available verifier independently passed18 F06/F36 cases. Final F11/actor, source, target, consumer and independent gates remain open. See docs/review/integration-checkpoint.md."
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   },
   {
     "id": "F43",
@@ -1179,13 +1204,25 @@
     "evidence": [
       "docs/review/F43-subscription-order.md",
       "docs/review/evidence/runtime-subscription-http-order.log",
-      "docs/review/evidence/F43-subscription-order-red.xml"
+      "docs/review/evidence/F43-subscription-order-red.xml",
+      "docs/review/F43-runtime.md",
+      "docs/review/F43-connector.md",
+      "docs/review/F43-storage-platforms.md"
     ],
     "fix": "Add signed durable intent revisions, atomic server monotonic comparison and retained unsubscribe tombstones, binding ordinary and snapshot paths. Preserve legacy wire and frozen schemas through additive negotiated support.",
     "status": "partial",
-    "commits": [],
+    "commits": [
+      "4da978d549d5637ac24e72982a0f070c8296234f",
+      "e202cc91ef5d1e3b161a7ee547365331ecd250a7",
+      "f4fc55c0762a40867c3716abfe7985876247cf5d",
+      "8e86d3ed61c0069c12ce616d57371913f632825d",
+      "d770eb3dbe25881ecd7bfcc00ad6541165d98b6d",
+      "079a32be55623069b316ae30ae5e87a2d1bb0b8f",
+      "4bb5ea4ad2bca00fc67078aef9cceeeffb7e7db2",
+      "701290492c41ce9a16d29c5650394d188e793dcb"
+    ],
     "reproduction": "SubscriptionHttpOrderingTest: actual HTTP late old subscribe restored the revoked subscription, baseline assertion failure",
-    "regression": "SubscriptionHttpOrderingTest; subsequent server/SDK storage, snapshot and compatibility tests pending",
-    "verification": "Actual HTTP red reproduced with valid fresh SessionProof and same SID. Fix and final gates pending."
+    "regression": "SubscriptionHttpOrderingTest; SubscriptionIntentBoundaryTest; SubscriptionIntentStoreTest; SubscriptionIntentPgTest; ReviewSubscriptionRevisionTests; ReviewSubscriptionRevisionPersistenceTests; shared persistent V7 contracts",
+    "verification": "Intermediate e202cc9 / indexeddb-final(f5e9eaa+780bcc0): API12, SDK174, server345 executed/2 optional load skips, sharding29, keymaster2, observability6/4/6; zero failures/errors; required PostgreSQL, host/security passed. Independent F06/F36 18 and F11 9 passed. Later V7 real storage34 tests passed; final SDK startup/confirmation/echo, static, full target/consumer/independent gates remain open."
   }
 ]
