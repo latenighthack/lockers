@@ -1250,13 +1250,17 @@
     "evidence": [
       "docs/review/F44-authority-establishment.md",
       "docs/review/evidence/F44-consumer-red/TEST-gg.roll.viewmodel.core.OnboardingViewModelTests.xml",
-      "docs/review/evidence/F44-consumer-red/gradle.log"
+      "docs/review/evidence/F44-consumer-red/gradle.log",
+      "docs/review/F44-sdk-authority-repair.md"
     ],
     "fix": "Bound authority-only reconciliation for a definitive first rejection when current authority still uses the original owned key. Preserve encoded payload/notification and transform purity; use a fresh write identity for changed signed bytes. Never re-sign or rebase an outcome-uncertain request, weaken epoch checks, silently adopt another key, or discard a pending ratchet key. Retain finite retry budgets.",
     "status": "partial",
-    "commits": [],
-    "reproduction": "Actual immutable31aba20 consumer OnboardingViewModelTests fails with SIGNATURE_INVALID; diagnostic proves V2 signature valid at observed epoch0, current response ROOMepoch1 samepub, and invalid at1, zero skipped tests.",
-    "regression": "Deterministic gated SDK authority-establishment regression pending; actual Fullhouse onboarding repro retained.",
-    "verification": "At31aba20:615 executed JVM tests passed (server2 optional load drivers separate), required PostgreSQL+host/security passed;65 actual Node/Chrome/Apple/Android tests and Android compilation passed; ten-module detekt passed; available independent verifier33 tests passed with no new confirmed blocker at4a93a9e. Dedicated load drivers subsequently passed. Actual Fullhouse signed onboarding then exposed new F44 authority establishment race; F44 fix and final consumer gates remain open. F39 external release gate remains separate."
+    "commits": [
+      "0ec6f150a87f554e37d7ef89a3dc3bc6d22798a3",
+      "95ede873e41e699de57a92e51bb34c248b49f7a3"
+    ],
+    "reproduction": "Actual Fullhouse onboarding epoch-zero discovery races same-key ROOM establishment; minimal consumer1/1 fails. Valid SDK baseline8 executions/3 failures: ROOM and KEYSPACE races plus missing repair budget.",
+    "regression": "ReviewAuthorityDriftTests8; ReviewConsumerSignedWritesTests2; AuthorityRepairPortabilityTest2. Frozen payload/notification, one transform/codec, fresh IDs, scope-local counters, ambiguous/ratchet guards, finite repair budget.",
+    "verification": "Focused JVM29 and actual Node6/Apple9/Chrome9/Android9 passed with zero failures/errors/skips; Android production compilation passed. Whole JVM, independent F44 verifier and new immutable publication/actual Fullhouse consumer gates in progress."
   }
 ]

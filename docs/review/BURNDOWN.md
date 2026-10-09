@@ -47,4 +47,4 @@ Each row is complete only after its reproduction, regression, fix, commit and in
 | F41 | P2 | Resolved JDBC and network dependencies need security patching and version alignment | partial | c2236968, a9d78e30 |
 | F42 | P3 | Documentation and quality gates disagree with the implementation | partial | 008d5d30, 91e672c2, fce28011, 7a370dd1, 46775599, 2765fbde, 3c7de149, 70129049, 91376a7, 9061474, 5c3e901, 2226676, 6c41d57 |
 | F43 | P2 | An older signed subscription can commit after a newer unsubscribe | partial | 4da978d5, e202cc91, f4fc55c0, 8e86d3ed, d770eb3d, 079a32be, 4bb5ea4a, 70129049, 4e91ca4 |
-| F44 | P2 | A concurrent authority establishment permanently rejects an otherwise valid SDK write | partial | — |
+| F44 | P2 | A concurrent authority establishment permanently rejects an otherwise valid SDK write | partial | 0ec6f15, 95ede87 |
