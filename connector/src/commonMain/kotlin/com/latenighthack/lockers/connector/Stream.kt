@@ -19,6 +19,7 @@ import kotlinx.datetime.Clock
 import com.latenighthack.lockers.session.v1.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.withLock
 import kotlin.random.Random
 import com.latenighthack.lockers.common.v1.*
 import com.latenighthack.lockers.connector.internal.ConnectorEventJournal
@@ -461,14 +462,29 @@ class Stream(
             publicKey = Secp256R1Key.PublicKey(key.publicKey.encode()), signature = signature, signingVersion = 2))
     }
 
-    /** Revoke the current server session and close its client incarnation. */
-    suspend fun destroySession() {
-        val session = sessionId.value ?: throw StreamClosedException()
+    private val revocationMutex = kotlinx.coroutines.sync.Mutex()
+
+    /** Terminal locally before sending revocation. An uncertain attempt retains its identity for explicit retry. */
+    suspend fun destroySession() = revocationMutex.withLock {
+        currentCoroutineContext().ensureActive()
+        val session = (sessionId.value ?: sessionStore.getSessionId())?.canonical() ?: throw StreamClosedException()
+        // Join reconnect and reconciliation before contacting the server. Otherwise its close frame
+        // can create a replacement while the unary reply is delayed or lost.
+        withContext(NonCancellable) { closeAndJoin() }
+        currentCoroutineContext().ensureActive()
+        check(sessionStore.getSessionId()?.canonical() == session) { "Session changed before revocation" }
         val unsigned = DestroySessionRequest(sessionId = session)
-        val signed = unsigned.copy(proof = signSessionRequest(SessionSigning.DESTROY, session, unsigned.toByteArray()))
-        check(sessionService.destroySession(signed).result.isOk()) { "Session revocation rejected" }
-        sessionStore.updateSessionId(null); sessionStore.updateNextSequenceBytes(null)
-        stop()
+        val key = keySource.getSessionKeyPair()
+        val nonce = Random.nextBytes(32)
+        val issued = Clock.System.now().toEpochMilliseconds()
+        val context = SessionSigning.context(SessionSigning.DESTROY, session, SHA256.digest(unsigned.toByteArray()), issued, nonce)
+        val proof = SessionProof(issuedAtMs = issued, nonce = nonce, signature = Signature(
+            publicKey = Secp256R1Key.PublicKey(key.publicKey.encode()), signature = key.privateKey.sign(context), signingVersion = 2))
+        check(sessionService.destroySession(unsigned.copy(proof = proof)).result.isOk()) { "Session revocation rejected" }
+        withContext(NonCancellable) {
+            sessionStore.updateNextSequenceBytes(null)
+            sessionStore.updateSessionId(null)
+        }
     }
 
     private suspend fun connect() {

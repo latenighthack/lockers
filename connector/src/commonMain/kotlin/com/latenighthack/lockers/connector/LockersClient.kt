@@ -104,8 +104,11 @@ class LockersClient private constructor(
     /** Server push capabilities — notably the VAPID public key a web client needs to subscribe. */
     suspend fun getPushConfig(): PushConfig? = pushRegistrations.getPushConfig()
 
-    /** Authenticates revocation of the connected server session before closing this client. */
-    suspend fun destroySession() { stream.destroySession(); closeAndJoin() }
+    /** Stops automatic replacement before authenticated revocation; failures stay closed and allow explicit retry. */
+    suspend fun destroySession() {
+        try { stream.destroySession() }
+        finally { withContext(NonCancellable) { closeAndJoin() } }
+    }
 
     /** Tears down the stream and background processing. */
     fun close() {

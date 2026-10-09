@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReviewDestroyReconnectTests[jvm]" tests="2" skipped="0" failures="2" errors="0" timestamp="2026-10-09T01:29:43.333Z" hostname="Mikes-MacBook-Pro.local" time="3.919">
+  <properties/>
+  <testcase name="revocationClosesReconnectBeforeADelayedServerReply[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests" time="3.887">
+    <failure message="java.lang.AssertionError: Revocation must be terminal before its RPC returns" type="java.lang.AssertionError">java.lang.AssertionError: Revocation must be terminal before its RPC returns
+	at org.junit.Assert.fail(Assert.java:89)
+	at kotlin.test.junit.JUnitAsserter.fail(JUnitSupport.kt:56)
+	at kotlin.test.Asserter.assertTrue(Assertions.kt:765)
+	at kotlin.test.junit.JUnitAsserter.assertTrue(JUnitSupport.kt:30)
+	at kotlin.test.Asserter.assertTrue(Assertions.kt:775)
+	at kotlin.test.junit.JUnitAsserter.assertTrue(JUnitSupport.kt:30)
+	at kotlin.test.AssertionsKt__AssertionsKt.assertTrue(Assertions.kt:44)
+	at kotlin.test.AssertionsKt.assertTrue(Unknown Source)
+	at com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests$revocationClosesReconnectBeforeADelayedServerReply$2$1.invokeSuspend(ReviewDestroyReconnectTests.kt:44)
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests$revocationClosesReconnectBeforeADelayedServerReply$2.invokeSuspend(ReviewDestroyReconnectTests.kt:26)
+	at com.latenighthack.lockers.connector.test.OwnedTestFixtureKt$runOwnedTestWithServer$2$2.invokeSuspend(OwnedTestFixture.kt:56)
+	at com.latenighthack.lockers.connector.test.OwnedTestFixtureKt$runOwnedTestWithServer$2.invokeSuspend(OwnedTestFixture.kt:53)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:317)
+Caused by: java.lang.AssertionError: Revocation must be terminal before its RPC returns
+	at org.junit.Assert.fail(Assert.java:89)
+	at kotlin.test.junit.JUnitAsserter.fail(JUnitSupport.kt:56)
+	at kotlin.test.Asserter.assertTrue(Assertions.kt:765)
+	at kotlin.test.junit.JUnitAsserter.assertTrue(JUnitSupport.kt:30)
+	at kotlin.test.Asserter.assertTrue(Assertions.kt:775)
+	at kotlin.test.junit.JUnitAsserter.assertTrue(JUnitSupport.kt:30)
+	at kotlin.test.AssertionsKt__AssertionsKt.assertTrue(Assertions.kt:44)
+	at kotlin.test.AssertionsKt.assertTrue(Unknown Source)
+	at com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests$revocationClosesReconnectBeforeADelayedServerReply$2$1.invokeSuspend(ReviewDestroyReconnectTests.kt:44)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:829)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+</failure>
+  </testcase>
+  <testcase name="cancelledRevocationStaysClosedAndExplicitRetryTargetsTheSameIdentity[jvm]" classname="com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests" time="0.031">
+    <failure message="java.lang.AssertionError: Expected value to be true." type="java.lang.AssertionError">java.lang.AssertionError: Expected value to be true.
+	at org.junit.Assert.fail(Assert.java:89)
+	at kotlin.test.junit.JUnitAsserter.fail(JUnitSupport.kt:56)
+	at kotlin.test.Asserter.assertTrue(Assertions.kt:765)
+	at kotlin.test.junit.JUnitAsserter.assertTrue(JUnitSupport.kt:30)
+	at kotlin.test.Asserter.assertTrue(Assertions.kt:775)
+	at kotlin.test.junit.JUnitAsserter.assertTrue(JUnitSupport.kt:30)
+	at kotlin.test.AssertionsKt__AssertionsKt.assertTrue(Assertions.kt:44)
+	at kotlin.test.AssertionsKt.assertTrue(Unknown Source)
+	at kotlin.test.AssertionsKt__AssertionsKt.assertTrue$default(Assertions.kt:42)
+	at kotlin.test.AssertionsKt.assertTrue$default(Unknown Source)
+	at com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests$cancelledRevocationStaysClosedAndExplicitRetryTargetsTheSameIdentity$2$1.invokeSuspend(ReviewDestroyReconnectTests.kt:72)
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests$cancelledRevocationStaysClosedAndExplicitRetryTargetsTheSameIdentity$2.invokeSuspend(ReviewDestroyReconnectTests.kt:52)
+	at com.latenighthack.lockers.connector.test.OwnedTestFixtureKt$runOwnedTestWithServer$2$2.invokeSuspend(OwnedTestFixture.kt:56)
+	at com.latenighthack.lockers.connector.test.OwnedTestFixtureKt$runOwnedTestWithServer$2.invokeSuspend(OwnedTestFixture.kt:53)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:317)
+Caused by: java.lang.AssertionError: Expected value to be true.
+	at org.junit.Assert.fail(Assert.java:89)
+	at kotlin.test.junit.JUnitAsserter.fail(JUnitSupport.kt:56)
+	at kotlin.test.Asserter.assertTrue(Assertions.kt:765)
+	at kotlin.test.junit.JUnitAsserter.assertTrue(JUnitSupport.kt:30)
+	at kotlin.test.Asserter.assertTrue(Assertions.kt:775)
+	at kotlin.test.junit.JUnitAsserter.assertTrue(JUnitSupport.kt:30)
+	at kotlin.test.AssertionsKt__AssertionsKt.assertTrue(Assertions.kt:44)
+	at kotlin.test.AssertionsKt.assertTrue(Unknown Source)
+	at kotlin.test.AssertionsKt__AssertionsKt.assertTrue$default(Assertions.kt:42)
+	at kotlin.test.AssertionsKt.assertTrue$default(Unknown Source)
+	at com.latenighthack.lockers.connector.test.ReviewDestroyReconnectTests$cancelledRevocationStaysClosedAndExplicitRetryTargetsTheSameIdentity$2$1.invokeSuspend(ReviewDestroyReconnectTests.kt:72)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:829)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>
