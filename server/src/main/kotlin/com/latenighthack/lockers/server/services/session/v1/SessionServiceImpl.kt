@@ -180,6 +180,7 @@ class SessionServiceImpl(
         val openSent = CompletableDeferred<Unit>()
 
         val producer = deliveryScope.async(currentCoroutineContext().minusKey(Job) + ServiceLifecycle.context) {
+        try {
         flow { coroutineScope {
         val streamJob = currentCoroutineContext()[Job]!!
         merge(flow {
@@ -400,7 +401,14 @@ class SessionServiceImpl(
             }
             cancellationChannel.close()
         }.collect { emit(it) }
-        } }.collect { send(it) }
+        } }.collect {
+            send(it)
+            if (it is StreamControlEvent.Close) throw StreamRejected()
+        }
+        } catch (_: StreamRejected) {
+            // Close is terminal after it has reached the output channel. Joining the merged
+            // producer cancels request intake, replay and revocation polling before completion.
+        }
         }
         producer.invokeOnCompletion { close(it) }
         try { awaitClose { producer.cancel() } }

@@ -96,7 +96,7 @@ class SessionAttachFailureTest {
                         emit(WatchSessionRequest { request.create { sessionId = sid; publicKey { rawValue = public } } })
                         awaitCancellation()
                     }).onEach { if (it is StreamControlEvent.Message) opened.complete(Unit) }
-                        .first { it is StreamControlEvent.Close }
+                        .toList().also { frames -> assertTrue(frames.last() is StreamControlEvent.Close) }
                 }
             }
             opened.await()
