@@ -6,6 +6,25 @@ import java.sql.DriverManager
 import kotlin.test.*
 
 class ClaimCapacityPgTest {
+    @Test fun productionClaimContextHonorsTheConfiguredPermanentCapacity(): Unit = runBlocking {
+        val base = PgTestGate.urlOrSkip()
+        val schema = "claim_config_capacity_${System.nanoTime()}"
+        DriverManager.getConnection(base).use { it.createStatement().use { s -> s.execute("CREATE SCHEMA $schema") } }
+        val url = base + (if ('?' in base) "&" else "?") + "currentSchema=$schema"
+        val values = mapOf("LOCKERS_ROOM_OWNERSHIP" to "claim", "LOCKERS_DB_URL" to url,
+            "LOCKERS_NODE_ID" to "one", "LOCKERS_ADVERTISE_ADDR" to "127.0.0.1:1", "LOCKERS_MAX_ROOM_CLAIMS" to "1")
+        val config = com.latenighthack.lockers.server.LockersConfig.fromEnv(values::get)
+        val context = ClaimContext.fromConfig(config, io.micrometer.core.instrument.simple.SimpleMeterRegistry())!!
+        try {
+            context.roomClaims.claim(RoomId(byteArrayOf(1)), context.nodeId, context.advertiseAddr, context.ttlMs)
+            assertFailsWith<RoomClaimCapacityExceeded> {
+                context.roomClaims.claim(RoomId(byteArrayOf(2)), context.nodeId, context.advertiseAddr, context.ttlMs)
+            }
+        } finally {
+            context.close()
+            DriverManager.getConnection(base).use { it.createStatement().use { s -> s.execute("DROP SCHEMA $schema CASCADE") } }
+        }
+    }
     @Test fun permanentClaimHistoryHasOneAtomicCapacityAcrossReplicas(): Unit = runBlocking {
         val base = PgTestGate.urlOrSkip()
         val schema = "claim_capacity_${System.nanoTime()}"

@@ -25,8 +25,7 @@ class ClaimContext(
 ) : AutoCloseable {
     /** Releases the east-west connection pool and (when [fromConfig]-built) the JDBC pool. */
     override fun close() {
-        pool.close()
-        ownedJdbcPool?.close()
+        try { pool.close() } finally { ownedJdbcPool?.close() }
     }
 
     companion object {
@@ -63,17 +62,20 @@ class ClaimContext(
                     "LOCKERS_CLAIM_TTL_MS (${config.claimTtlMs})."
             }
             val jdbcPool = ClaimJdbcPool(jdbcUrl)
-            return ClaimContext(
+            try { return ClaimContext(
                 nodeId = nodeId,
                 advertiseAddr = advertiseAddr,
-                roomClaims = JdbcRoomClaimStore(jdbcPool).also { it.prepare() },
+                roomClaims = JdbcRoomClaimStore(jdbcPool, maxRoomClaims = config.resourceLimits.maxRoomClaims.toLong()).also { it.prepare() },
                 sessionGateways = JdbcSessionGatewayStore(jdbcPool).also { it.prepare() },
                 pool = PeerConnectionPool(peerToken = config.peerToken),
                 ttlMs = config.claimTtlMs,
                 renewMs = config.claimRenewMs,
                 meters = ClaimMetrics(meterRegistry),
                 ownedJdbcPool = jdbcPool,
-            )
+            ) } catch (failure: Throwable) {
+                try { jdbcPool.close() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                throw failure
+            }
         }
     }
 }
