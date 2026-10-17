@@ -1247,7 +1247,6 @@
     <ID>MaxLineLength:ServerStorage.kt$ServerStorage$Database(configuration(identity + "-${kotlin.random.Random.nextLong()}"), com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(com.latenighthack.lockers.server.services.room.v1.FencedMemoryDelegate(InMemoryStoreDelegate()), meterRegistry, telemetry))</ID>
     <ID>MaxLineLength:ServerStorage.kt$ServerStorage$createStore(com.latenighthack.lockers.server.services.room.v1.SubscriptionIntentDefinitionV2.declaration)</ID>
     <ID>MaxLineLength:ServerStorage.kt$ServerStorage$fun</ID>
-    <ID>MaxLineLength:ServerStorage.kt$ServerStorage$return Database(configuration, com.latenighthack.lockers.server.tools.MeasuredStoreDelegate(SqlStoreDelegate(driver, "BYTEA", configuration), meterRegistry, telemetry))</ID>
     <ID>MaxLineLength:ServerStorage.kt$ServerStorage$val configuration = configuration("lockers-server", additional).copy(externalTables = setOf("room_claim", "room_claim_capacity", "session_gateway", "shard_map", "shard_fence"))</ID>
     <ID>MaxLineLength:ServerStorage.kt$ServerStorage$val driver = com.latenighthack.lockers.server.services.room.v1.FencedSqlDriver(JdbcDriver(location.removePrefix("jdbc:postgresql:"), "postgresql"))</ID>
     <ID>MaxLineLength:ServiceLifecycle.kt$ServiceLifecycle$check</ID>
