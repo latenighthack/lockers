@@ -52,8 +52,12 @@ class ConnectorTelemetry(
     }
     private suspend fun send(batch: ClientTelemetryBatch) {
         fun retainLosses() { batch.losses.forEach { lost(it.reason, it.count) } }
-        if (TelemetryContract.encode(batch).encodeToByteArray().size > TelemetryContract.MAX_BYTES) { retainLosses(); lost(TelemetryLoss.OVERSIZE); return }
-        try { withTimeout(5_000) { transport.send(batch) } }
+        try {
+            if (TelemetryContract.encode(batch).encodeToByteArray().size > TelemetryContract.MAX_BYTES) {
+                retainLosses(); lost(TelemetryLoss.OVERSIZE); return
+            }
+            withTimeout(5_000) { transport.send(batch) }
+        }
         catch (_: TimeoutCancellationException) { retainLosses(); lost(TelemetryLoss.UPLOAD) }
         catch (cancelled: CancellationException) { retainLosses(); lost(TelemetryLoss.UPLOAD); throw cancelled }
         catch (_: Exception) { retainLosses(); lost(TelemetryLoss.UPLOAD) }

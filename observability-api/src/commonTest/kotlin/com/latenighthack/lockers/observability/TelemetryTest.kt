@@ -35,6 +35,22 @@ class TelemetryTest {
         assertFailsWith<CancellationException> { telemetry.observe(TelemetryOperation.CONNECTOR_WRITE) { throw CancellationException() } }
         assertEquals(TelemetryOutcome.CANCELLED, outcome)
     }
+    @Test fun eventEmissionDistinguishesLifecycleSuccessFailureAndCancellation() = runTest {
+        val events = mutableListOf<TelemetryEvent>()
+        val telemetry = object : LockersTelemetry {
+            override fun event(event: TelemetryEvent) { events += event }
+        }
+        telemetry.observe(TelemetryOperation.CONNECTOR_WRITE) { 1 }
+        telemetry.observe(TelemetryOperation.SESSION_OPEN) { 2 }
+        assertFailsWith<IllegalStateException> {
+            telemetry.observe(TelemetryOperation.CONNECTOR_WRITE) { error("write failed") }
+        }
+        assertFailsWith<CancellationException> {
+            telemetry.observe(TelemetryOperation.SESSION_OPEN) { throw CancellationException() }
+        }
+        assertEquals(listOf(TelemetryOutcome.OK, TelemetryOutcome.ERROR), events.map { it.outcome })
+        assertEquals(listOf(TelemetryOperation.SESSION_OPEN, TelemetryOperation.CONNECTOR_WRITE), events.map { it.operation })
+    }
     @Test fun ingestionRejectsUnknownOrUnboundedData() {
         val valid = ClientTelemetryBatch(platform = ClientPlatform.IOS, measurements = listOf(ClientMeasurement(TelemetryOperation.CONNECTOR_WRITE, TelemetryOutcome.OK, 1, .01, List(15) { if(it == 2) 1 else 0 })))
         assertEquals(valid, TelemetryContract.decode(TelemetryContract.encode(valid)))

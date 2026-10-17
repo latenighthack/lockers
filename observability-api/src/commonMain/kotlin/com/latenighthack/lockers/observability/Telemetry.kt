@@ -72,10 +72,13 @@ suspend fun <T> LockersTelemetry.observe(
     finally {
         try { record(operation, result, began.elapsedNow().inWholeNanoseconds) } catch (_: Exception) {}
         try { span?.finish(result) } catch (_: Exception) {}
-        val lifecycle = operation in setOf(TelemetryOperation.SESSION_CREATE, TelemetryOperation.SESSION_OPEN,
-            TelemetryOperation.SESSION_DESTROY, TelemetryOperation.CONNECTOR_SUBSCRIBE,
-            TelemetryOperation.CONNECTOR_PUSH_REGISTER, TelemetryOperation.CONNECTOR_PUSH_UNREGISTER)
-        if (result != TelemetryOutcome.CANCELLED && (result != TelemetryOutcome.OK || lifecycle))
+        val lifecycle = operation === TelemetryOperation.SESSION_CREATE ||
+            operation === TelemetryOperation.SESSION_OPEN ||
+            operation === TelemetryOperation.SESSION_DESTROY ||
+            operation === TelemetryOperation.CONNECTOR_SUBSCRIBE ||
+            operation === TelemetryOperation.CONNECTOR_PUSH_REGISTER ||
+            operation === TelemetryOperation.CONNECTOR_PUSH_UNREGISTER
+        if (result !== TelemetryOutcome.CANCELLED && (result !== TelemetryOutcome.OK || lifecycle))
             safeEvent(TelemetryEvent(operation, result, span?.traceId, span?.spanId))
     }
 }
