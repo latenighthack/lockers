@@ -72,16 +72,17 @@ suspend fun <T> LockersTelemetry.observe(
     finally {
         try { record(operation, result, began.elapsedNow().inWholeNanoseconds) } catch (_: Exception) {}
         try { span?.finish(result) } catch (_: Exception) {}
-        val lifecycle = operation === TelemetryOperation.SESSION_CREATE ||
-            operation === TelemetryOperation.SESSION_OPEN ||
-            operation === TelemetryOperation.SESSION_DESTROY ||
-            operation === TelemetryOperation.CONNECTOR_SUBSCRIBE ||
-            operation === TelemetryOperation.CONNECTOR_PUSH_REGISTER ||
-            operation === TelemetryOperation.CONNECTOR_PUSH_UNREGISTER
-        if (result !== TelemetryOutcome.CANCELLED && (result !== TelemetryOutcome.OK || lifecycle))
+        if (result !== TelemetryOutcome.CANCELLED && (result !== TelemetryOutcome.OK || operation.isLifecycle()))
             safeEvent(TelemetryEvent(operation, result, span?.traceId, span?.spanId))
     }
 }
+
+private fun TelemetryOperation.isLifecycle(): Boolean = this === TelemetryOperation.SESSION_CREATE ||
+    this === TelemetryOperation.SESSION_OPEN ||
+    this === TelemetryOperation.SESSION_DESTROY ||
+    this === TelemetryOperation.CONNECTOR_SUBSCRIBE ||
+    this === TelemetryOperation.CONNECTOR_PUSH_REGISTER ||
+    this === TelemetryOperation.CONNECTOR_PUSH_UNREGISTER
 
 @Serializable data class TelemetryEvent(val operation: TelemetryOperation, val outcome: TelemetryOutcome, val traceId: String? = null, val spanId: String? = null)
 /** Bucket counts are disjoint; the final bucket is +Inf. Server exposition is cumulative. */

@@ -49,7 +49,10 @@ class TelemetryTest {
             telemetry.observe(TelemetryOperation.SESSION_OPEN) { throw CancellationException() }
         }
         assertEquals(listOf(TelemetryOutcome.OK, TelemetryOutcome.ERROR), events.map { it.outcome })
-        assertEquals(listOf(TelemetryOperation.SESSION_OPEN, TelemetryOperation.CONNECTOR_WRITE), events.map { it.operation })
+        assertEquals(
+            listOf(TelemetryOperation.SESSION_OPEN, TelemetryOperation.CONNECTOR_WRITE),
+            events.map { it.operation },
+        )
     }
     @Test fun ingestionRejectsUnknownOrUnboundedData() {
         val valid = ClientTelemetryBatch(platform = ClientPlatform.IOS, measurements = listOf(ClientMeasurement(TelemetryOperation.CONNECTOR_WRITE, TelemetryOutcome.OK, 1, .01, List(15) { if(it == 2) 1 else 0 })))
