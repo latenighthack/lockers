@@ -33,7 +33,6 @@
     <ID>ComplexCondition:WebPushEndpointPolicy.kt$WebPushEndpointPolicy$address.isAnyLocalAddress || address.isLoopbackAddress || address.isLinkLocalAddress || address.isSiteLocalAddress || address.isMulticastAddress</ID>
     <ID>ComplexCondition:WebPushEndpointPolicy.kt$WebPushEndpointPolicy$allowedHosts.none { trusted -&gt; host == trusted || (trusted.startsWith("*.") &amp;&amp; host.endsWith(trusted.substring(1)) &amp;&amp; host != trusted.substring(2)) }</ID>
     <ID>ComplexCondition:WebPushEndpointPolicy.kt$WebPushEndpointPolicy$uri.scheme != "https" || uri.port !in listOf(-1, 443) || uri.userInfo != null || uri.fragment != null</ID>
-    <ID>CyclomaticComplexMethod:AgentWorkflow.kt$AgentWorkflow$fun start()</ID>
     <ID>CyclomaticComplexMethod:DeliveryOutboxStore.kt$DeliveryOutboxStore$suspend fun claim(owner: String, now: Long, leaseMs: Long = 30_000, limit: Int = 4, eventsPerRoom: Int = 1): List&lt;ServerDeliveryIntent&gt;</ID>
     <ID>CyclomaticComplexMethod:DeliveryWorker.kt$DeliveryWorker$private suspend fun drainMeasured(roomLimit: Int): Boolean</ID>
     <ID>CyclomaticComplexMethod:LockVerifier.kt$LockVerifier$private suspend fun applyLockUnchecked(roomId: RoomId, grant: LockGrant, parentLockVersion: Long): LockOutcome</ID>
@@ -82,7 +81,6 @@
     <ID>LongMethod:LockVerifier.kt$LockVerifier$private suspend fun applyLockUnchecked(roomId: RoomId, grant: LockGrant, parentLockVersion: Long): LockOutcome</ID>
     <ID>LongMethod:RoomServiceImpl.kt$RoomServiceImpl$override suspend fun deleteLocker( context: GrpcRequestContext, request: DeleteLockerRequest )</ID>
     <ID>LongMethod:RoomServiceImpl.kt$RoomServiceImpl$private suspend fun performLockerChange(request: PostLockerChangeRequest, pendingEvents: MutableList&lt;Event&gt;, pendingWrites: MutableList&lt;ServerLocker&gt;, prefetchedLocker: ServerLocker?, prefetchedLock: ServerLock? = null, prefetchLocks: Boolean = false): PostLockerChangeResponse</ID>
-    <ID>LongMethod:RoomServiceImpl.kt$RoomServiceImpl$private suspend fun postLockerChangesTraced(context: GrpcRequestContext, request: PostLockerChangesRequest, trace: WriteTrace): PostLockerChangesResponse</ID>
     <ID>LongMethod:SessionInboxStore.kt$SessionInboxStoreImpl$override suspend fun acceptClientEvents(events: List&lt;Pair&lt;ServerSessionEvent, Event&gt;&gt;): List&lt;Pair&lt;ServerSessionEvent, Event&gt;&gt;</ID>
     <ID>LongMethod:SessionServiceImpl.kt$SessionServiceImpl$override fun watchSession( context: GrpcRequestContext, request: Flow&lt;WatchSessionRequest&gt; ): Flow&lt;StreamControlEvent&lt;WatchSessionResponse&gt;&gt;</ID>
     <ID>LongMethod:SessionServiceImpl.kt$SessionServiceImpl$private suspend fun WatchSessionResponse_OpenBuilder.observedHandleOpen(open: WatchSessionRequest.Open): ServerSessionId?</ID>
@@ -103,7 +101,6 @@
     <ID>LongParameterList:SnapshotStore.kt$SnapshotStore$(operation: Int, room: RoomId, session: SessionId?, spaces: Set&lt;Long&gt;, pageSize: Int, sequence: Long, lockers: List&lt;IdentifiedLocker&gt;, intentRevision: Long = 0)</ID>
     <ID>LongParameterList:SnapshotStore.kt$SnapshotStore$(operation: Int, room: RoomId, session: SessionId?, spaces: Set&lt;Long&gt;, pageSize: Int, token: ByteArray, intentRevision: Long = 0)</ID>
     <ID>LongParameterList:TwoNodeClaimHarness.kt$( nodeId: String, delegate: Database, roomClaims: RoomClaimStore, sessionGateways: SessionGatewayStore, ttlMs: Long, renewMs: Long, configureCore: (ServerCore) -&gt; Unit = {}, )</ID>
-    <ID>LoopWithTooManyJumpStatements:AgentWorkflow.kt$AgentWorkflow$for</ID>
     <ID>LoopWithTooManyJumpStatements:DeliveryOutboxStore.kt$DeliveryOutboxStore$for</ID>
     <ID>LoopWithTooManyJumpStatements:PushQueueStore.kt$PushQueueStoreImpl$for</ID>
     <ID>LoopWithTooManyJumpStatements:PushServiceImpl.kt$PushServiceImpl$while</ID>
@@ -122,9 +119,6 @@
     <ID>MagicNumber:AgentWorkStore.kt$AgentWorkStore$60</ID>
     <ID>MagicNumber:AgentWorkStore.kt$AgentWorkStore$64</ID>
     <ID>MagicNumber:AgentWorkStore.kt$AgentWorkStore$72</ID>
-    <ID>MagicNumber:AgentWorkflow.kt$AgentWorkflow$250</ID>
-    <ID>MagicNumber:AgentWorkflow.kt$AgentWorkflow$4</ID>
-    <ID>MagicNumber:AgentWorkflow.kt$AgentWorkflow$50</ID>
     <ID>MagicNumber:AgentWorkflow.kt$AgentWorkflow$60_000</ID>
     <ID>MagicNumber:ClaimMetrics.kt$ClaimMetrics$1000</ID>
     <ID>MagicNumber:CpuAdmission.kt$CpuAdmission$1024</ID>
@@ -137,7 +131,6 @@
     <ID>MagicNumber:DeliveryOutboxStore.kt$DeliveryOutboxStore$1024</ID>
     <ID>MagicNumber:DeliveryOutboxStore.kt$DeliveryOutboxStore$128</ID>
     <ID>MagicNumber:DeliveryOutboxStore.kt$DeliveryOutboxStore$16L</ID>
-    <ID>MagicNumber:DeliveryOutboxStore.kt$DeliveryOutboxStore$250</ID>
     <ID>MagicNumber:DeliveryOutboxStore.kt$DeliveryOutboxStore$256</ID>
     <ID>MagicNumber:DeliveryOutboxStore.kt$DeliveryOutboxStore$30_000</ID>
     <ID>MagicNumber:DeliveryOutboxStore.kt$DeliveryOutboxStore$30_000L</ID>
@@ -255,8 +248,6 @@
     <ID>MagicNumber:RoomServiceImpl.kt$RoomServiceImpl$32</ID>
     <ID>MagicNumber:RoomServiceImpl.kt$RoomServiceImpl$4</ID>
     <ID>MagicNumber:RoomServiceImpl.kt$RoomServiceImpl$5</ID>
-    <ID>MagicNumber:RoomServiceImpl.kt$RoomServiceImpl$50</ID>
-    <ID>MagicNumber:RoomServiceImpl.kt$RoomServiceImpl$5_000</ID>
     <ID>MagicNumber:RoomServiceImpl.kt$RoomServiceImpl$64</ID>
     <ID>MagicNumber:RoomServiceImpl.kt$RoomServiceImpl$8</ID>
     <ID>MagicNumber:RoomServiceImpl.kt$RoomServiceImpl$8L</ID>
@@ -311,7 +302,6 @@
     <ID>MagicNumber:SessionProofVerifier.kt$UsedSessionProofDefinitionV2$32</ID>
     <ID>MagicNumber:SessionProofVerifier.kt$UsedSessionProofDefinitionV2$40</ID>
     <ID>MagicNumber:SessionProofVerifier.kt$UsedSessionProofDefinitionV2$8</ID>
-    <ID>MagicNumber:SessionServiceImpl.kt$SessionServiceImpl$1000</ID>
     <ID>MagicNumber:SessionServiceImpl.kt$SessionServiceImpl$1024</ID>
     <ID>MagicNumber:SessionServiceImpl.kt$SessionServiceImpl$128</ID>
     <ID>MagicNumber:SessionServiceImpl.kt$SessionServiceImpl$256</ID>
@@ -416,8 +406,6 @@
     <ID>MaxLineLength:AgentWorkStore.kt$AgentWorkStore$check(database.count(AgentWorkDefinitionV2.storeName, roomQuery(AgentWorkDefinitionV2.room, room.rawValue, 1)) &lt; roomCapacity) { "Agent journal room capacity exceeded" }</ID>
     <ID>MaxLineLength:AgentWorkStore.kt$AgentWorkStore$createdAt = old?.createdAt ?: clock().coerceAtLeast(1)</ID>
     <ID>MaxLineLength:AgentWorkStore.kt$AgentWorkStore$database</ID>
-    <ID>MaxLineLength:AgentWorkStore.kt$AgentWorkStore$database.count(WriteReceiptsDefinitionV1("delivery").storeName, WriteReceiptsDefinitionV1("delivery").request.query(1))</ID>
-    <ID>MaxLineLength:AgentWorkStore.kt$AgentWorkStore$database.count(WriteReceiptsDefinitionV1("delivery").storeName, WriteReceiptsDefinitionV1("delivery").room.query(1, lower = encodedRoom, upper = encodedRoom))</ID>
     <ID>MaxLineLength:AgentWorkStore.kt$AgentWorkStore$effectKey = SHA256.digest("lockers.agent.effect.v1".encodeToByteArray() + id)</ID>
     <ID>MaxLineLength:AgentWorkStore.kt$AgentWorkStore$if</ID>
     <ID>MaxLineLength:AgentWorkStore.kt$AgentWorkStore$if (AgentWorkState.terminal(row.state) || row.state == AgentWorkState.INDETERMINATE || row.leaseUntil &gt; now) return@transaction null</ID>
@@ -435,11 +423,6 @@
     <ID>MaxLineLength:AgentWorkStore.kt$AgentWorkStore$val first = database.query(AgentWorkDefinitionV2.storeName, roomQuery(AgentWorkDefinitionV2.active, room.rawValue, 1)).records.firstOrNull()?.let(::decode)</ID>
     <ID>MaxLineLength:AgentWorkStore.kt$AgentWorkStore$val page = database.query(AgentWorkDefinitionV2.storeName, AgentWorkDefinitionV2.due.query(64, upper = OrderedKeyEncoding.long(now), after = after))</ID>
     <ID>MaxLineLength:AgentWorkStore.kt$AgentWorkStore$val state = when { response.agentPending || response.agentIndeterminate -&gt; AgentWorkState.INDETERMINATE; response.agentFailed -&gt; AgentWorkState.FAILED; else -&gt; AgentWorkState.APPLIED }</ID>
-    <ID>MaxLineLength:AgentWorkflow.kt$AgentWorkflow$catch (cancelled: CancellationException) { if (!currentCoroutineContext().isActive) throw cancelled }</ID>
-    <ID>MaxLineLength:AgentWorkflow.kt$AgentWorkflow$catch (error: Exception) { logger.warn("Agent receipt adoption failed; retrying", error); delay(250) }</ID>
-    <ID>MaxLineLength:AgentWorkflow.kt$AgentWorkflow$catch (error: Exception) { logger.warn("Agent work discovery failed; retrying", error); after = null; scanTime = System.currentTimeMillis(); delay(250) }</ID>
-    <ID>MaxLineLength:AgentWorkflow.kt$AgentWorkflow$val claimed = outbox.agentWork.claim(room, candidate.writeRequestId, version, System.currentTimeMillis()) ?: continue</ID>
-    <ID>MaxLineLength:AgentWorkflow.kt$AgentWorkflow$val fence = try { ownership.mutationFence(0, room) } catch (_: RoomOwnershipLost) { continue }</ID>
     <ID>MaxLineLength:AgentWorkflowPgTest.kt$AgentWorkflowPgTest$@Test</ID>
     <ID>MaxLineLength:AgentWorkflowPgTest.kt$AgentWorkflowPgTest$DriverManager.getConnection(base).use { it.createStatement().use { s -&gt; s.execute("DROP SCHEMA $schema CASCADE") } }</ID>
     <ID>MaxLineLength:AgentWorkflowPgTest.kt$AgentWorkflowPgTest$LocalRoomOwnership()</ID>
@@ -585,7 +568,6 @@
     <ID>MaxLineLength:DeliveryOutboxStore.kt$DeliveryOutboxStore$suspend</ID>
     <ID>MaxLineLength:DeliveryOutboxStore.kt$DeliveryOutboxStore$suspend fun &lt;T&gt; atomic(roomId: RoomId, block: suspend () -&gt; T): T</ID>
     <ID>MaxLineLength:DeliveryOutboxStore.kt$DeliveryOutboxStore$suspend fun prepareStores()</ID>
-    <ID>MaxLineLength:DeliveryOutboxStore.kt$DeliveryOutboxStore$val</ID>
     <ID>MaxLineLength:DeliveryOutboxStore.kt$DeliveryOutboxStore$val next = current.copy(leaseOwner = "$owner:${java.util.UUID.randomUUID()}", leaseUntil = now + leaseMs, attempts = current.attempts + 1)</ID>
     <ID>MaxLineLength:DeliveryOutboxStore.kt$DeliveryOutboxStore$val snapshot = if (raw is ServerWriteReceipt) raw else ServerWriteReceipt.fromByteArray(raw as ByteArray)</ID>
     <ID>MaxLineLength:DeliveryOutboxStore.kt$DeliveryOutboxStore.Entries$private</ID>
@@ -704,7 +686,6 @@
     <ID>MaxLineLength:LockStore.kt$LockStoreImpl$override suspend</ID>
     <ID>MaxLineLength:LockStore.kt$LockStoreImpl$override suspend fun &lt;T&gt; atomic(roomId: ServerRoomId, block: suspend () -&gt; T): T</ID>
     <ID>MaxLineLength:LockStore.kt$LockStoreImpl$val count = database.count(LockStoreImplDefinitionV1.storeName, roomIdKey.query(1, lower = room.toByteArray(), upper = room.toByteArray()))</ID>
-    <ID>MaxLineLength:LockStore.kt$LockStoreImpl$val count = database.count(LockStoreImplDefinitionV1.storeName, roomIdKey.query(1, lower = roomId.toByteArray(), upper = roomId.toByteArray()))</ID>
     <ID>MaxLineLength:LockStore.kt$fun roomMutationKey(roomId: ServerRoomId): String</ID>
     <ID>MaxLineLength:LockStore.kt$internal fun namespaceExhausted(message: String): Nothing</ID>
     <ID>MaxLineLength:LockStore.kt$internal fun protocolCapacityExceeded(message: String): Nothing</ID>
@@ -737,14 +718,11 @@
     <ID>MaxLineLength:LockerAgentRegistry.kt$LockerAgentRegistry.None$override suspend fun processPayload(effectKey: ByteArray, roomId: RoomId, lockerId: LockerId, locker: Locker)</ID>
     <ID>MaxLineLength:LockerAgentRegistry.kt$LockerAgentRegistry.None$override suspend fun processPayload(roomId: RoomId, lockerId: LockerId, locker: Locker)</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$class</ID>
-    <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$if (count + rows.size &gt; limits.maxLockersPerRoom) namespaceExhausted("Room locker namespace exhausted")</ID>
-    <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$if (total + added.size &gt; limits.maxLockers) namespaceExhausted("Permanent locker namespace exhausted")</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$is ServerLocker -&gt; it</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$override fun snapshotStore(limits: com.latenighthack.lockers.server.ServerResourceLimits)</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$override suspend</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$override suspend fun getAllLockers(roomId: ServerRoomId): List&lt;ServerLocker&gt;</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$val added = unique.filter { getLocker(requireNotNull(it.roomId), it.keyspace, requireNotNull(it.lockerId)) == null }</ID>
-    <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$val count = database.count(LockerStoreDefinitionV2.storeName, roomIdKey.query(1, lower = room.toByteArray(), upper = room.toByteArray()))</ID>
     <ID>MaxLineLength:LockerStoreDefinitionV2.kt$LockerStoreDefinitionV2$val</ID>
     <ID>MaxLineLength:LockerStoreDefinitionV2.kt$LockerStoreDefinitionV2$val roomIdAndKeyspaceAndLockerIdKey = compositeIndex(IndexName("composite_roomIdtoByteArray_keyspace_lockerIdtoByteArray"), roomIdKey, keyspaceKey, lockerIdKey).also { primaryKey(it) }</ID>
     <ID>MaxLineLength:LockerStoreDefinitionsV1.kt$LockerStoreImplDefinitionV1$val roomIdAndKeyspaceAndLockerIdKey = compositeIndex(IndexName("composite_roomIdtoByteArray_keyspace_lockerIdtoByteArray"), roomIdKey, keyspaceKey, lockerIdKey).also { primaryKey(it) }</ID>
@@ -934,7 +912,6 @@
     <ID>MaxLineLength:PushServiceImpl.kt$PushServiceImpl$fun record(failure: Throwable)</ID>
     <ID>MaxLineLength:PushServiceImpl.kt$PushServiceImpl$if</ID>
     <ID>MaxLineLength:PushServiceImpl.kt$PushServiceImpl$if (!pushQueueStore.renew(claim, System.currentTimeMillis())) processing.cancel(CancellationException("push claim revoked"))</ID>
-    <ID>MaxLineLength:PushServiceImpl.kt$PushServiceImpl$launch { while (isActive) { try { pushQueueStore.maintain(); seedGauges() } catch (cancelled: CancellationException) { throw cancelled } catch (error: Exception) { logger.warn("push maintenance failed", error) }; delay(1_000) } }</ID>
     <ID>MaxLineLength:PushServiceImpl.kt$PushServiceImpl$meterRegistry.gauge("lockers.push.deadletter.depth", listOf(Tag.of("backend", backend.tag)), gauge) { it.get().toDouble() }</ID>
     <ID>MaxLineLength:PushServiceImpl.kt$PushServiceImpl$meterRegistry.gauge("lockers.push.provider.configured", listOf(Tag.of("backend", backend.tag)), providersByBackend[backend]?.isConfigured == true) { if (it) 1.0 else 0.0 }</ID>
     <ID>MaxLineLength:PushServiceImpl.kt$PushServiceImpl$meterRegistry.gauge("lockers.push.queue.depth", listOf(Tag.of("backend", backend.tag)), gauge) { it.get().toDouble() }</ID>
@@ -1095,7 +1072,6 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$!CpuAdmission.signatureShape(request.grant?.parentSignature)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$!CpuAdmission.signatureShape(request.signature, required = true)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$!ProtocolValidation.sharedKeys(it.newSharedKeys)</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$(lock.keyspace == (id.keyspace?.value ?: 0L) &amp;&amp; (lock.scopeKind == LockVerifier.SCOPE_KEYSPACE || lock.lockerId?.rawValue.contentEquals(id.rawValue)))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$DeleteLockerResponse(result = DeleteLockerResponse.Result.OK, version = version, lockState = state, writeRequestId = request.writeRequestId)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$DeliveryWorker(requireNotNull(this.deliveryOutbox), sessionGatewayDiscovery, meterRegistry, telemetry, coroutineContext = coroutineContext)</ID>
@@ -1130,7 +1106,6 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$if (request.pageToken.isNotEmpty()) return@trackResponse snapshots.next(0, roomId, null, spaces, request.pageSize, request.pageToken)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$if (request.ratchet != null &amp;&amp; effectiveLock == null) return PostLockerChangeResponse(result = PostLockerChangeResponse.Result.NOT_AUTHORIZED)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$is LockVerifier.LockOutcome.NotAuthorized -&gt; LockLockerResponse(result = LockLockerResponse.Result.NOT_AUTHORIZED)</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$is LockVerifier.LockOutcome.Stale -&gt; throw BatchRejected(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.CONFLICT, lockState = outcome.state))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$is LockVerifier.UnlockOutcome.SignatureInvalid -&gt; UnlockLockerResponse(result = UnlockLockerResponse.Result.SIGNATURE_INVALID)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$is LockVerifier.UnlockOutcome.Stale -&gt; UnlockLockerResponse(result = UnlockLockerResponse.Result.UPDATE_LOCAL_VERSION)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$lockState = lockState</ID>
@@ -1138,20 +1113,17 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$locker { locker = updatedLocker; lockerId = requestLockerId; version = updatedLockerVersion; lockState = effectiveState }</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$meterRegistry.counter("lockers.room.subscriptions", "operation", "unknown", "result", "ERROR").increment()</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$meterRegistry.counter("lockers.room.subscriptions", "operation", if (subscribed) "subscribe" else "unsubscribe", "result", "OK").increment()</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$meterRegistry.timer("lockers.write.phase", "phase", "room_queue").record(System.nanoTime() - queuedAt, java.util.concurrent.TimeUnit.NANOSECONDS)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$outcome = "ok"</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$override suspend</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$override suspend fun getLockers(context: GrpcRequestContext, request: GetLockersRequest): GetLockersResponse</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$override suspend fun postLockerChanges(context: GrpcRequestContext, request: PostLockerChangesRequest): PostLockerChangesResponse</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$override suspend fun subscribeAndSnapshot(context: GrpcRequestContext, request: SubscribeAndSnapshotRequest): SubscribeAndSnapshotResponse</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$pending</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$private</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$private suspend</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$private val agentWorkflow = AgentWorkflow(requireNotNull(this.deliveryOutbox), roomOwnership, agentVersion, ::executeAgentWork, coroutineContext)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$private val cacheSizeGauge = meterRegistry.gauge("lockers.room.cache.size", roomToSessionCache) { it.asMap().size.toDouble() }</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$private val forwardConnections = com.latenighthack.lockers.server.cluster.PeerConnectionPool(peerToken = config.peerToken)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$recipients.addAll(subscriptionStore.getAllSessions(ServerRoomId(room.rawValue)).map { SessionId(it.rawValue) })</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$replay</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$request.writeRequestId.size !in 16..64</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$require</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$require(agentRegistry !is IdempotentLockerAgentRegistry || (it.isNotBlank() &amp;&amp; it.encodeToByteArray().size &lt;= 128)) { "Durable agent version must be nonempty and bounded" }</ID>
@@ -1205,7 +1177,6 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val trace = WriteTrace(request.writeRequestId.take(8).joinToString("") { "%02x".format(it) }, meterRegistry, telemetry)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val writes = writesInput.map { LockerAgentRegistry.LockerWrite(LockerId.fromByteArray(it.lockerId.toByteArray()), Locker.fromByteArray(it.locker.toByteArray())) }</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$when</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$writeOutcomeFlow(room, request.writeRequestId).first { it.agentState in setOf(WriteOutcome.AgentState.APPLIED, WriteOutcome.AgentState.FAILED, WriteOutcome.AgentState.INDETERMINATE) }</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$writeRequestId = work.writeRequestId.copyOf()</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$writes.add(ServerAgentDerivedWrite(write.lockerId.rawValue, write.lockerId.keyspace?.value ?: 0, write.locker.toByteArray()))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$writes.map { ServerAgentDerivedWrite(it.lockerId.rawValue, it.lockerId.keyspace?.value ?: 0, it.locker.toByteArray()) }</ID>
@@ -1682,9 +1653,6 @@
     <ID>SpreadOperator:OperationalMetrics.kt$("lockers.rpc.requests", *tags)</ID>
     <ID>SpreadOperator:WriteTrace.kt$MeasuredStoreDelegate$("lockers.storage.duration", *tags)</ID>
     <ID>SpreadOperator:WriteTrace.kt$MeasuredStoreDelegate$("lockers.storage.operations", *tags)</ID>
-    <ID>ThrowsCount:AgentWorkflow.kt$AgentWorkflow$fun start()</ID>
-    <ID>ThrowsCount:PushServiceImpl.kt$PushServiceImpl$fun start()</ID>
-    <ID>ThrowsCount:RoomServiceImpl.kt$RoomServiceImpl$private suspend fun postLockerChangesTraced(context: GrpcRequestContext, request: PostLockerChangesRequest, trace: WriteTrace): PostLockerChangesResponse</ID>
     <ID>ThrowsCount:SessionInboxStore.kt$SessionInboxStoreImpl$private suspend fun changeBytes(changes: Map&lt;List&lt;Byte&gt;, Long&gt;, checkCapacity: Boolean)</ID>
     <ID>ThrowsCount:SessionServiceImpl.kt$SessionServiceImpl$private suspend fun enqueueEvent(sessionIds: List&lt;SessionId&gt;, offered: Event): Enqueued</ID>
     <ID>TooGenericExceptionCaught:AdvisoryLockCoordinator.kt$JdbcAdvisoryLockGateway$cleanup: Throwable</ID>

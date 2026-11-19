@@ -15,7 +15,24 @@ class AgentWorkStore(private val database: Database, private val clock: () -> Lo
     private val globalCapacity: Long = 1_000_000, private val roomCapacity: Long = 4096,
 ) : Store<ServerAgentWork>(database, AgentWorkDefinitionV3) {
     init { require(retentionMs > 0 && globalCapacity > 0 && roomCapacity > 0) }
-    private val lock = "lockers.agent-work"
+    private val lock = AGENT_WORK_LOCK
+    private val counters = CapacityCounters(database)
+    private val family = CapacityCounters.agentWork
+    // Every receipt is journaled 1:1 in the same transaction (or adopted at startup), so the
+    // journal counters also bound the receipts that used to be counted separately.
+    private fun capacity(room: RoomId) = listOf(
+        family.global { database.count(AgentWorkDefinitionV3.storeName, AgentWorkDefinitionV3.id.query(1)) },
+        family.room(room.rawValue) {
+            database.count(AgentWorkDefinitionV3.storeName, roomQuery(AgentWorkDefinitionV3.room, room.rawValue, 1))
+        })
+    /** Reads both journal counters once, rejects at the configured boundary, and reserves one row. */
+    private suspend fun admit(room: RoomId) {
+        val scope = capacity(room)
+        val (global, inRoom) = counters.read(scope).let { it[0] to it[1] }
+        check(global < globalCapacity) { "Agent journal global capacity exceeded" }
+        check(inRoom < roomCapacity) { "Agent journal room capacity exceeded" }
+        counters.write(scope, longArrayOf(global + 1, inRoom + 1))
+    }
     private fun decode(raw: Any) = if (raw is ServerAgentWork) raw else ServerAgentWork.fromByteArray(raw as ByteArray)
     private fun roomQuery(index: TypedIndex<ServerAgentWork, ByteArray>, room: ByteArray, limit: Int) = index.query(limit,
         lower = agentRoomPrefix(room), upper = agentRoomPrefix(room) + ByteArray(72) { -1 })
@@ -24,12 +41,7 @@ class AgentWorkStore(private val database: Database, private val clock: () -> Lo
     suspend fun create(room: RoomId, request: PostLockerChangesRequest, response: PostLockerChangesResponse, version: String, sourceOrder: Long, applied: Boolean = false) = database.transaction(lock) {
         require(version.encodeToByteArray().size <= 128)
         check(find(room, request.writeRequestId) == null) { "Agent work identity reused" }
-        check(maxOf(database.count(AgentWorkDefinitionV3.storeName, AgentWorkDefinitionV3.id.query(1)),
-            database.count(WriteReceiptsDefinitionV1("delivery").storeName, WriteReceiptsDefinitionV1("delivery").request.query(1))) < globalCapacity) { "Agent journal global capacity exceeded" }
-        val encodedRoom = com.latenighthack.lockers.server.storage.v1.ServerRoomId(room.rawValue).toByteArray()
-        check(maxOf(database.count(AgentWorkDefinitionV3.storeName, roomQuery(AgentWorkDefinitionV3.room,
-            room.rawValue, 1)),
-            database.count(WriteReceiptsDefinitionV1("delivery").storeName, WriteReceiptsDefinitionV1("delivery").room.query(1, lower = encodedRoom, upper = encodedRoom))) < roomCapacity) { "Agent journal room capacity exceeded" }
+        admit(room)
         val id = key(room, request.writeRequestId)
         save(ServerAgentWork(key = id, roomId = room.rawValue, writeRequestId = request.writeRequestId,
             encodedRequest = request.toByteArray(), encodedOutcome = response.toByteArray(), agentVersion = version,
@@ -44,12 +56,7 @@ class AgentWorkStore(private val database: Database, private val clock: () -> Lo
         if (old != null && old.encodedRequest.isNotEmpty()) return@transaction
         val response = PostLockerChangesResponse.fromByteArray(receipt.encodedOutcome)
         val state = when { response.agentPending || response.agentIndeterminate -> AgentWorkState.INDETERMINATE; response.agentFailed -> AgentWorkState.FAILED; else -> AgentWorkState.APPLIED }
-        if (old == null) {
-            check(database.count(AgentWorkDefinitionV3.storeName,
-                AgentWorkDefinitionV3.id.query(1)) < globalCapacity) { "Agent journal global capacity exceeded" }
-            check(database.count(AgentWorkDefinitionV3.storeName, roomQuery(AgentWorkDefinitionV3.room,
-                room.rawValue, 1)) < roomCapacity) { "Agent journal room capacity exceeded" }
-        }
+        if (old == null) admit(room)
         val id = key(room, receipt.requestId)
         save(ServerAgentWork(key = id, roomId = room.rawValue, writeRequestId = receipt.requestId, encodedOutcome = receipt.encodedOutcome,
             state = state, effectKey = old?.effectKey ?: SHA256.digest("lockers.agent.effect.v1".encodeToByteArray() + id),
@@ -70,20 +77,41 @@ class AgentWorkStore(private val database: Database, private val clock: () -> Lo
             OrderedKeyEncoding.long(now), after = after))
         return page.records.map(::decode) to page.continuation
     }
+    class Upcoming(val due: List<ServerAgentWork>, val nextDueAt: Long?, val continuation: LocalContinuation?)
+    /** One indexed read: rows due by [now], or the earliest future due time within [horizon]. */
+    suspend fun upcoming(now: Long, horizon: Long, after: LocalContinuation? = null): Upcoming {
+        val page = database.query(AgentWorkDefinitionV3.storeName, AgentWorkDefinitionV3.due.query(64, upper =
+            OrderedKeyEncoding.long(maxOf(now, horizon)), after = after))
+        val rows = page.records.map(::decode)
+        val due = rows.takeWhile { it.leaseUntil <= now }
+        val next = rows.getOrNull(due.size)?.leaseUntil
+        return Upcoming(due, next, if (next == null) page.continuation else null)
+    }
     suspend fun claim(room: RoomId, id: ByteArray, expectedVersion: String, now: Long, leaseMs: Long = 30_000): ServerAgentWork? = database.transaction(lock) {
         val row = find(room, id) ?: return@transaction null
         if (AgentWorkState.terminal(row.state) || row.state == AgentWorkState.INDETERMINATE || row.leaseUntil > now) return@transaction null
-        val first = database.query(AgentWorkDefinitionV3.storeName, roomQuery(AgentWorkDefinitionV3.active,
-            room.rawValue, 1)).records.firstOrNull()?.let(::decode)
+        val first = firstActive(room)
         if (first?.key?.contentEquals(row.key) != true) return@transaction null
+        claimRow(row, expectedVersion, now, leaseMs)
+    }
+    private suspend fun firstActive(room: RoomId) = database.query(AgentWorkDefinitionV3.storeName,
+        roomQuery(AgentWorkDefinitionV3.active, room.rawValue, 1)).records.firstOrNull()?.let(::decode)
+    /** Claims the room's first active item when it is due; later items wait behind it in source order. */
+    suspend fun claimNext(room: RoomId, expectedVersion: String, now: Long, leaseMs: Long = 30_000): ServerAgentWork? = database.transaction(lock) {
+        val row = firstActive(room) ?: return@transaction null
+        if (row.state == AgentWorkState.INDETERMINATE || row.leaseUntil > now) return@transaction null
+        claimRow(row, expectedVersion, now, leaseMs)
+    }
+    private suspend fun claimRow(row: ServerAgentWork, expectedVersion: String, now: Long,
+        leaseMs: Long): ServerAgentWork? {
         if ((row.state != AgentWorkState.READY && row.agentVersion != expectedVersion) || (row.state == AgentWorkState.RUNNING && row.agentVersion.isEmpty())) {
             save(row.copy(state = AgentWorkState.INDETERMINATE, leaseOwner = "", leaseUntil = 0, failure = "Execution interrupted or installed agent version changed"))
-            return@transaction null
+            return null
         }
         check(now <= Long.MAX_VALUE - leaseMs && leaseMs > 0)
         val claimed = row.copy(state = if (row.state == AgentWorkState.READY) row.state else AgentWorkState.RUNNING,
             leaseOwner = java.util.UUID.randomUUID().toString(), leaseUntil = now + leaseMs, attempts = if (row.attempts == Int.MAX_VALUE) row.attempts else row.attempts + 1)
-        save(claimed); claimed
+        save(claimed); return claimed
     }
     private suspend fun current(claim: ServerAgentWork) = get(AgentWorkDefinitionV3.id.eq(claim.key))?.takeIf {
         it.leaseOwner == claim.leaseOwner && it.leaseOwner.isNotEmpty() && it.leaseUntil > clock() }
@@ -132,6 +160,7 @@ class AgentWorkStore(private val database: Database, private val clock: () -> Lo
                 database.transaction(lock) {
                     val row = find(room, snapshot.writeRequestId)
                     if (row != null && AgentWorkState.terminal(row.state) && row.completedAt == snapshot.completedAt) {
+                        counters.adjust(capacity(room), -1)
                         removeReceipt(room, row.writeRequestId); delete(AgentWorkDefinitionV3.id.eq(row.key))
                     }
                 }

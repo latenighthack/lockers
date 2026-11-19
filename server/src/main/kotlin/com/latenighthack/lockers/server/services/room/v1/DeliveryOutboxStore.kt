@@ -17,7 +17,10 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
     val metrics: QueueMetrics? = null,
 ) : Store<ServerDeliveryIntent>(delegate, DeliveryOutboxStoreDefinitionV1(prefix)) {
     private val available = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
-    suspend fun awaitWork() { kotlinx.coroutines.withTimeoutOrNull(250) { available.receive() } }
+    /** Waits for a local commit notice; returns false when the fallback interval elapsed instead. */
+    suspend fun awaitWork(timeoutMs: Long = 250): Boolean = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) { available.receive() } != null
+    /** Hands a pending notice to another waiting worker lane. */
+    fun signalWork() { available.trySend(Unit) }
     private val definition = DeliveryOutboxStoreDefinitionV1(prefix)
     private val id = definition.id
     private val entriesDefinition = OutboxEntriesDefinitionV3(prefix)
@@ -37,12 +40,30 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
     private val heads = Heads(delegate, headsDefinition)
     private val sequences = RoomSequences(delegate, prefix)
     private val receipts = WriteReceipts(delegate, prefix)
+    private val counters = CapacityCounters(delegate)
+    private val family = CapacityCounters.outbox(prefix)
+    // Retained = undelivered intents plus parked entries (room); plus resolved entries (global).
+    private fun roomRetained(roomId: RoomId) = family.room(roomId.rawValue) {
+        val canonicalRoom = ServerRoomId(roomId.rawValue).toByteArray()
+        delegate.count(definition.storeName, definition.room.query(1, lower = canonicalRoom, upper = canonicalRoom)) +
+            delegate.count(entriesDefinition.storeName, roomQuery(entriesDefinition.parkedRoom, roomId.rawValue, 1))
+    }
+    private fun globalRetained() = family.global {
+        delegate.count(definition.storeName, id.query(1)) +
+            delegate.count(entriesDefinition.storeName, entriesDefinition.parked.query(1)) +
+            delegate.count(entriesDefinition.storeName, entriesDefinition.completed.query(1))
+    }
     private val migration = Mutex()
     private var indexed = false
     private var migrationAfter: LocalContinuation? = null
     val agentWork = AgentWorkStore(delegate, clock = clock)
     suspend fun prepareStores() { prepare(); sequences.prepare(); receipts.prepare(); entries.prepare(); heads.prepare(); agentWork.prepare() }
     suspend fun pruneAgentReceipts() = agentWork.prune { room, id -> receipts.remove(ServerRoomId(room.rawValue), id) }
+    /**
+     * Recounts every admission counter from its rows. A previous server version admits writes
+     * without maintaining counters, so a rolling deployment schedules this after its overlap.
+     */
+    suspend fun recountCapacity() = CapacityCounters.families().forEach { counters.reset(it) }
     suspend fun receipt(room: RoomId, id: ByteArray) = receipts.find(ServerRoomId(room.rawValue), id)
     suspend fun saveReceipt(receipt: ServerWriteReceipt) {
         receipts.put(receipt)
@@ -70,7 +91,7 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
     suspend fun <T> atomic(block: suspend () -> T): T = delegate.transaction(LOCK, block)
     suspend fun <T> atomic(roomId: RoomId, block: suspend () -> T): T = delegate.transaction(roomMutationKey(ServerRoomId(roomId.rawValue)), block)
     private suspend fun <T> mutateRoom(roomId: RoomId, block: suspend () -> T): T =
-        atomic(roomId) { delegate.transaction("lockers.$prefix-outbox-quota", block) }
+        atomic(roomId) { delegate.transaction(family.lockKey, block) }
     suspend fun watermark(roomId: RoomId): Long = sequences.value(ServerRoomId(roomId.rawValue))
     private fun decodeEntry(raw: Any) = if (raw is ServerOutboxEntry) raw else ServerOutboxEntry.fromByteArray(raw as ByteArray)
     private fun decodeIntent(raw: Any) = if (raw is ServerDeliveryIntent) raw else ServerDeliveryIntent.fromByteArray(raw as ByteArray)
@@ -129,14 +150,11 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
             val result = mutation()
             if (events.isEmpty()) return@mutateRoom result
             check(events.map { requireNotNull(it.eventId).rawValue.toList() }.toSet().size == events.size) { "Duplicate event identities in one commit" }
-            val canonicalRoom = ServerRoomId(roomId.rawValue).toByteArray()
-            val count = delegate.count(definition.storeName, definition.room.query(1, lower = canonicalRoom, upper = canonicalRoom)) +
-                delegate.count(entriesDefinition.storeName, roomQuery(entriesDefinition.parkedRoom, roomId.rawValue, 1))
+            val capacity = listOf(roomRetained(roomId), globalRetained())
+            val (count, retained) = counters.read(capacity).let { it[0] to it[1] }
             check(count <= policy.retainedPerRoom - events.size.toLong()) { "Room delivery capacity exceeded" }
-            val retained = delegate.count(definition.storeName, id.query(1)) +
-                delegate.count(entriesDefinition.storeName, entriesDefinition.parked.query(1)) +
-                delegate.count(entriesDefinition.storeName, entriesDefinition.completed.query(1))
             check(retained <= policy.retainedGlobal - events.size.toLong()) { "Global delivery capacity exceeded" }
+            counters.write(capacity, longArrayOf(count + events.size, retained + events.size))
             val serverRoom = ServerRoomId(roomId.rawValue)
             var sequence = sequences.value(serverRoom)
             check(sequence >= 0 && events.size.toLong() <= Long.MAX_VALUE - sequence) { "Outbox sequence exhausted" }
@@ -198,6 +216,7 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
         val accepted = sessions.map { ServerSessionId(it.rawValue) }.toSet()
         val pending = current.pendingSessions.filterNot { it in accepted }
         if (pending.isEmpty()) {
+            counters.adjust(listOf(roomRetained(RoomId(requireNotNull(current.roomId).rawValue)), globalRetained()), -1)
             delete(id.eq(requireNotNull(current.eventId).toByteArray()))
             entries.remove(requireNotNull(current.eventId).rawValue)
             metrics?.event("completion")
@@ -244,15 +263,25 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
         return mutateRoom(RoomId(entry.roomId)) {
             val current = entries.find(eventId) ?: return@mutateRoom false
             if (current.parkedReason.isEmpty() || current.resolvedAt != 0L) return@mutateRoom false
+            // Resolution moves the entry from the room's parked set to the global resolved set.
+            counters.adjust(listOf(roomRetained(RoomId(entry.roomId))), -1)
             entries.put(current.copy(resolvedAt = clock().coerceAtLeast(1)))
             true
         }
     }
+    @Volatile private var prunedAt: Long? = null
     private suspend fun pruneResolved(now: Long) {
         if (now <= policy.completedRetentionMs) return
-        delegate.transaction("lockers.$prefix-outbox-quota") {
-            delegate.deleteBatch(entriesDefinition.storeName, entriesDefinition.completed.query(128,
+        // Retention is measured in days; idle claim polls must not rescan it every time.
+        val last = prunedAt
+        if (last != null && now in last until last + PRUNE_INTERVAL_MS) return
+        prunedAt = now
+        delegate.transaction(family.lockKey) {
+            val removed = delegate.deleteBatch(entriesDefinition.storeName, entriesDefinition.completed.query(128,
                 upper = OrderedKeyEncoding.long(now - policy.completedRetentionMs)))
+            // An uninitialised counter recounts after this deletion, so only a stored one changes.
+            val global = globalRetained()
+            if (removed > 0) counters.stored(global)?.let { counters.write(listOf(global), longArrayOf(it - removed)) }
         }
     }
     private suspend fun TransactionScope.recipientCount(): Long {
@@ -305,4 +334,5 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
         suspend fun set(id: ServerRoomId, sequence: Long) = save(ServerRoomSequence(id, sequence))
     }
     private val LOCK = "lockers.$prefix-outbox"
+    private companion object { const val PRUNE_INTERVAL_MS = 60_000L }
 }

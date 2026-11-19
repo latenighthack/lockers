@@ -42,6 +42,8 @@ import com.latenighthack.lockers.server.storage.v2.*
 /** One-hop stamp honored only for authenticated peers, or explicit legacy direct routing. */
 private const val FORWARDED_PARAM = "fwd"
 private const val FORWARD_TIMEOUT_MS = 5_000L
+private const val WRITE_OUTCOME_FALLBACK_MS = 1_000L
+private const val AGENT_WAIT_MS = 5_000L
 
 @ServiceScope
 @Component
@@ -468,76 +470,115 @@ class RoomServiceImpl(
         if (!rateLimiter.tryAcquire(room)) return PostLockerChangesResponse(result = PostLockerChangesResponse.Result.UNKNOWN_ERROR)
         val outbox = requireNotNull(deliveryOutbox)
         val digest = com.latenighthack.ktcrypto.SHA256.digest(request.toByteArray())
+        // Watch before committing: the agent may finish before this request starts waiting.
+        return agentWorkflow.signals.watch(room.rawValue, request.writeRequestId) { agentChanges ->
+            val seen = agentChanges.value
+            val committed = commitLockerChanges(context, room, request, digest, trace, outbox)
+            if (!committed.result.isOk() || !committed.agentPending || !lifecycleStarted.get()) return@watch committed
+            agentWorkflow.wake()
+            // Waiting observes owned work. A disconnected caller never owns its execution job.
+            awaitAgentOutcome(room, request.writeRequestId, agentChanges, seen) ?: committed
+        }
+    }
+
+    /** Waits for an in-process completion notice, then reads once; a missed notice costs only the timeout. */
+    private suspend fun awaitAgentOutcome(room: RoomId, writeRequestId: ByteArray,
+        changes: kotlinx.coroutines.flow.StateFlow<Long>, initial: Long): PostLockerChangesResponse? {
+        val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(AGENT_WAIT_MS)
+        var seen = initial
+        while (true) {
+            val remainingMs = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime())
+            val signalled = remainingMs > 0 && withTimeoutOrNull(remainingMs) { changes.first { it != seen } } != null
+            seen = changes.value
+            val work = requireNotNull(deliveryOutbox).agentWork.find(room, writeRequestId)
+            if (work != null && settled(work.state)) return responseForWork(work)
+            if (!signalled) return null
+        }
+    }
+
+    private fun settled(state: Int) = AgentWorkState.terminal(state) || state == AgentWorkState.INDETERMINATE
+
+    private sealed interface StagedWrite {
+        class Replay(val response: PostLockerChangesResponse) : StagedWrite
+        class Pending(val response: PostLockerChangesResponse) : StagedWrite
+    }
+
+    @Suppress("LongParameterList")
+    private suspend fun commitLockerChanges(context: GrpcRequestContext, room: RoomId, request: PostLockerChangesRequest,
+        digest: ByteArray, trace: WriteTrace, outbox: DeliveryOutboxStore): PostLockerChangesResponse {
         val queuedAt = System.nanoTime()
-        val committed = runRoomMutation(context, room, onLost = { PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_OWNER, redirect = redirectIfNotOwner(0, room)) }) {
-            meterRegistry.timer("lockers.write.phase", "phase", "room_queue").record(System.nanoTime() - queuedAt, java.util.concurrent.TimeUnit.NANOSECONDS)
+        val onLost: suspend () -> PostLockerChangesResponse = {
+            PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_OWNER,
+                redirect = redirectIfNotOwner(0, room))
+        }
+        return runRoomMutation(context, room, onLost) {
+            meterRegistry.timer("lockers.write.phase", "phase", "room_queue")
+                .record(System.nanoTime() - queuedAt, java.util.concurrent.TimeUnit.NANOSECONDS)
             val events = mutableListOf<Event>()
-            var replay: PostLockerChangesResponse? = null
-            var pending: PostLockerChangesResponse? = null
-            val normalized = changes.map { it.copy(roomId = room) }
             val recipients = mutableListOf<SessionId>()
-            try {
+            val staged = try {
                 trace.phase("source_validation_commit") { outbox.commit(room, recipients, events) {
                     recipients.addAll(subscriptionStore.getAllSessions(ServerRoomId(room.rawValue)).map { SessionId(it.rawValue) })
-                    val old = outbox.receipt(room, request.writeRequestId)
-                    if (old != null) {
-                        replay = if (old.requestDigest.contentEquals(digest)) PostLockerChangesResponse.fromByteArray(old.encodedOutcome)
-                            else PostLockerChangesResponse(result = PostLockerChangesResponse.Result.REQUEST_ID_REUSED)
-                        return@commit
-                    }
-                    var lockState: LockState? = null
-                    request.initialLock?.let { grant ->
-                        when (val outcome = lockVerifier.applyLock(room, grant, request.parentLockVersion)) {
-                            is LockVerifier.LockOutcome.Ok -> { lockState = outcome.state }
-                            is LockVerifier.LockOutcome.Stale -> throw BatchRejected(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.CONFLICT, lockState = outcome.state))
-                            else -> throw BatchRejected(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_AUTHORIZED))
-                        }
-                    }
-                    val existing = lockerStore.getLockers(ServerRoomId(room.rawValue), normalized.map { (it.lockerId!!.keyspace?.value ?: 0L) to ServerLockerId(it.lockerId!!.rawValue) })
-                        .associateBy { LockerId(it.lockerId!!.rawValue, LockerKeyspace(it.keyspace)) }
-                    val roomLocks = lockStore.getAllLocksInRoom(ServerRoomId(room.rawValue)).filter { lockVerifier.stateOf(it).locked }
-                    val sourceWrites = mutableListOf<ServerLocker>()
-                    val results = normalized.map { change ->
-                        val id = change.lockerId!!
-                        val effective = roomLocks.filter { lock ->
-                            lock.scopeKind == LockVerifier.SCOPE_ROOM ||
-                                (lock.keyspace == (id.keyspace?.value ?: 0L) && (lock.scopeKind == LockVerifier.SCOPE_KEYSPACE || lock.lockerId?.rawValue.contentEquals(id.rawValue)))
-                        }.minByOrNull { it.scopeKind }
-                        performLockerChange(change, events, sourceWrites, existing[canonicalLockerId(id)], effective,
-                            prefetchLocks = normalized.none { it.ratchet != null })
-                    }
-                    if (results.any { !it.result.isOk() }) throw BatchRejected(boundedResponse(PostLockerChangesResponse(
-                        result = PostLockerChangesResponse.Result.CONFLICT, changes = results, lockState = lockState), PostLockerChangesResponse::writeTo))
-                    lockerStore.updateLockers(sourceWrites)
-                    pending = boundedResponse(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.OK, changes = results,
-                        lockState = lockState, agentPending = agentRegistry !== LockerAgentRegistry.None, writeRequestId = request.writeRequestId,
-                        sourceVersions = normalized.zip(results) { change, result -> WriteSourceVersion(change.lockerId, result.version) }), PostLockerChangesResponse::writeTo)
-                    val order = outbox.watermark(room)
-                    check(order < Long.MAX_VALUE) { "Agent source order exhausted" }
-                    outbox.agentWork.create(room, request.copy(changes = normalized), pending, agentVersion, order + 1,
-                        applied = agentRegistry === LockerAgentRegistry.None)
-
-                    outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
-                        request.writeRequestId, ServerRoomId(room.rawValue), digest, pending.toByteArray()))
-                }
-                }
-                trace.recipients = recipients.size
+                    stageLockerChanges(room, request, digest, events, outbox)
+                } }
             } catch (e: BatchRejected) {
                 return@runRoomMutation e.response
             }
-            replay?.let { response ->
-                val work = outbox.agentWork.find(room, request.writeRequestId)
-                return@runRoomMutation if (response.result.isOk() && work != null) responseForWork(work) else response
+            trace.recipients = recipients.size
+            when (staged) {
+                is StagedWrite.Pending -> staged.response
+                is StagedWrite.Replay -> {
+                    val work = outbox.agentWork.find(room, request.writeRequestId)
+                    if (staged.response.result.isOk() && work != null) responseForWork(work) else staged.response
+                }
             }
-            pending!!
         }
-        if (!committed.result.isOk() || !committed.agentPending || !lifecycleStarted.get()) return committed
-        // Waiting observes owned work. A disconnected caller never owns its execution job.
-        return withTimeoutOrNull(5_000) {
-            writeOutcomeFlow(room, request.writeRequestId).first { it.agentState in setOf(WriteOutcome.AgentState.APPLIED, WriteOutcome.AgentState.FAILED, WriteOutcome.AgentState.INDETERMINATE) }
-            outbox.agentWork.find(room, request.writeRequestId)?.let(::responseForWork) ?: committed
-        } ?: committed
     }
+
+    /** Validates one batch inside the room commit and stages its source writes, journal and receipt. */
+    private suspend fun stageLockerChanges(room: RoomId, request: PostLockerChangesRequest, digest: ByteArray,
+        events: MutableList<Event>, outbox: DeliveryOutboxStore): StagedWrite {
+        outbox.receipt(room, request.writeRequestId)?.let { old ->
+            return StagedWrite.Replay(if (old.requestDigest.contentEquals(digest)) PostLockerChangesResponse.fromByteArray(old.encodedOutcome)
+                else PostLockerChangesResponse(result = PostLockerChangesResponse.Result.REQUEST_ID_REUSED))
+        }
+        val lockState = request.initialLock?.let { applyInitialLock(room, it, request.parentLockVersion) }
+        val normalized = request.changes.map { it.copy(roomId = room) }
+        val ids = normalized.map { requireNotNull(it.lockerId) }
+        val existing = lockerStore.getLockers(ServerRoomId(room.rawValue), ids.map { (it.keyspace?.value ?: 0L) to ServerLockerId(it.rawValue) })
+            .associateBy { LockerId(requireNotNull(it.lockerId).rawValue, LockerKeyspace(it.keyspace)) }
+        val roomLocks = lockStore.getAllLocksInRoom(ServerRoomId(room.rawValue)).filter { lockVerifier.stateOf(it).locked }
+        val sourceWrites = mutableListOf<ServerLocker>()
+        val results = normalized.zip(ids) { change, id ->
+            val effective = roomLocks.filter { lock -> lock.scopeKind == LockVerifier.SCOPE_ROOM || (lock.keyspace == (id.keyspace?.value ?: 0L) &&
+                (lock.scopeKind == LockVerifier.SCOPE_KEYSPACE || lock.lockerId?.rawValue.contentEquals(id.rawValue)))
+            }.minByOrNull { it.scopeKind }
+            performLockerChange(change, events, sourceWrites, existing[canonicalLockerId(id)], effective,
+                prefetchLocks = normalized.none { it.ratchet != null })
+        }
+        if (results.any { !it.result.isOk() }) throw BatchRejected(boundedResponse(PostLockerChangesResponse(
+            result = PostLockerChangesResponse.Result.CONFLICT, changes = results, lockState = lockState), PostLockerChangesResponse::writeTo))
+        lockerStore.updateLockers(sourceWrites)
+        val pending = boundedResponse(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.OK, changes = results,
+            lockState = lockState, agentPending = agentRegistry !== LockerAgentRegistry.None, writeRequestId = request.writeRequestId,
+            sourceVersions = normalized.zip(results) { change, result -> WriteSourceVersion(change.lockerId, result.version) }),
+            PostLockerChangesResponse::writeTo)
+        val order = outbox.watermark(room)
+        check(order < Long.MAX_VALUE) { "Agent source order exhausted" }
+        outbox.agentWork.create(room, request.copy(changes = normalized), pending, agentVersion, order + 1,
+            applied = agentRegistry === LockerAgentRegistry.None)
+        outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
+            request.writeRequestId, ServerRoomId(room.rawValue), digest, pending.toByteArray()))
+        return StagedWrite.Pending(pending)
+    }
+
+    private suspend fun applyInitialLock(room: RoomId, grant: LockGrant, parentLockVersion: Long): LockState? =
+        when (val outcome = lockVerifier.applyLock(room, grant, parentLockVersion)) {
+            is LockVerifier.LockOutcome.Ok -> outcome.state
+            is LockVerifier.LockOutcome.Stale -> throw BatchRejected(PostLockerChangesResponse(
+                result = PostLockerChangesResponse.Result.CONFLICT, lockState = outcome.state))
+            else -> throw BatchRejected(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_AUTHORIZED))
+        }
 
     private fun agentState(state: Int): WriteOutcome.AgentState = when (state) {
         AgentWorkState.PENDING -> WriteOutcome.AgentState.PENDING
@@ -550,22 +591,28 @@ class RoomServiceImpl(
         writeRequestId = work.writeRequestId.copyOf(), agentPending = work.state in setOf(AgentWorkState.PENDING, AgentWorkState.RUNNING, AgentWorkState.READY),
         agentFailed = work.state == AgentWorkState.FAILED, agentIndeterminate = work.state == AgentWorkState.INDETERMINATE)
 
-    /** Cold metadata-only observation for trusted server extensions; collection owns polling. */
+    /**
+     * Cold metadata-only observation for trusted server extensions. Local executions wake the
+     * collector; a slow fallback read observes transitions committed by another node.
+     */
     fun writeOutcomeFlow(room: RoomId, writeRequestId: ByteArray): Flow<WriteOutcome> {
         val identity = writeRequestId.copyOf(); val roomCopy = room.copy(rawValue = room.rawValue.copyOf())
         return flow {
             require(identity.size in 16..64 && ProtocolValidation.room(roomCopy))
-            var previous: ByteArray? = null
-            while (currentCoroutineContext().isActive) {
-                val work = deliveryOutbox!!.agentWork.find(roomCopy, identity)
-                if (work != null) {
-                    val response = responseForWork(work)
-                    val outcome = WriteOutcome(roomCopy, identity.copyOf(), response.sourceVersions, agentState(work.state))
-                    val bytes = outcome.toByteArray()
-                    if (previous?.contentEquals(bytes) != true) { emit(outcome); previous = bytes }
-                    if (AgentWorkState.terminal(work.state) || work.state == AgentWorkState.INDETERMINATE) return@flow
+            agentWorkflow.signals.watch(roomCopy.rawValue, identity) { changes ->
+                var previous: ByteArray? = null
+                while (currentCoroutineContext().isActive) {
+                    val seen = changes.value
+                    val work = deliveryOutbox!!.agentWork.find(roomCopy, identity)
+                    if (work != null) {
+                        val response = responseForWork(work)
+                        val outcome = WriteOutcome(roomCopy, identity.copyOf(), response.sourceVersions, agentState(work.state))
+                        val bytes = outcome.toByteArray()
+                        if (previous?.contentEquals(bytes) != true) { emit(outcome); previous = bytes }
+                        if (settled(work.state)) return@watch
+                    }
+                    withTimeoutOrNull(WRITE_OUTCOME_FALLBACK_MS) { changes.first { it != seen } }
                 }
-                delay(50)
             }
         }
     }
@@ -678,9 +725,14 @@ class RoomServiceImpl(
                 }
             }
         } } ?: return false
-        if (!failed) {
-            val claim = outbox.agentWork.claim(room, writeRequestId, result.agentVersion, System.currentTimeMillis()) ?: return true
-            applyAgentResult(claim, fence)
+        try {
+            if (!failed) {
+                val claim = outbox.agentWork.claim(room, writeRequestId, result.agentVersion, System.currentTimeMillis()) ?: return true
+                applyAgentResult(claim, fence)
+            }
+        } finally {
+            // Reconciliation can unblock the room's next item.
+            agentWorkflow.signals.changed(room.rawValue, writeRequestId); agentWorkflow.wake()
         }
         return true
     }

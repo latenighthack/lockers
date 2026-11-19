@@ -40,7 +40,9 @@ import com.latenighthack.lockers.server.services.session.v1.UsedSessionProofOwne
 
 /** Complete schemas must be composed before any shared handle is opened. */
 object ServerStorage {
-    private const val OPERATIONS_SCHEMA_VERSION = 6
+    private const val INDEXED_OPERATIONS_SCHEMA_VERSION = 6
+    private const val COUNTERS_SCHEMA_VERSION = 7
+    private const val OPERATIONS_SCHEMA_VERSION = COUNTERS_SCHEMA_VERSION
     val legacyDefinitionsV3: List<StoreDefinition<*>> = listOf(
         SessionStoreImplDefinitionV1,
         SessionInboxStoreImplDefinitionV1,
@@ -84,7 +86,7 @@ object ServerStorage {
             LockerStoreDefinitionV2 else definition
     } + additionsV4
     val definitionsV5 = definitionsV4 + SubscriptionIntentDefinitionV2
-    val definitions = definitionsV5.map { definition ->
+    val definitionsV6 = definitionsV5.map { definition ->
         when (definition) {
             SessionInboxStoreDefinitionV2 -> SessionInboxStoreDefinitionV3
             PushWorkDefinitionV2 -> PushWorkDefinitionV3
@@ -96,10 +98,13 @@ object ServerStorage {
             }
         }
     }
+    /** Version 7 replaces per-write COUNT admission scans with transactional counters. */
+    val definitions = definitionsV6 + com.latenighthack.lockers.server.services.room.v1.CapacityCounterDefinitionV1
     fun configuration(identity: String, additional: List<StoreDefinition<*>> = emptyList()): DatabaseConfiguration {
         val historical = definitionDatabaseConfiguration(identity, legacyDefinitionsV3 + additional)
         val previous = (definitionsV4 + additional).map { it.declaration }
         val version5 = (definitionsV5 + additional).map { it.declaration }
+        val version6 = (definitionsV6 + additional).map { it.declaration }
         val declarations = (definitions + additional).map { it.declaration }
         return historical.copy(version = OPERATIONS_SCHEMA_VERSION, stores = declarations, migrations =
             historical.migrations +
@@ -115,8 +120,8 @@ object ServerStorage {
                 }
             } + DatabaseMigration.configured(4, 5, previous, version5) {
                 createStore(SubscriptionIntentDefinitionV2.declaration)
-            } + DatabaseMigration.configured(5, OPERATIONS_SCHEMA_VERSION, version5, declarations) {
-                for (definition in definitions) {
+            } + DatabaseMigration.configured(5, INDEXED_OPERATIONS_SCHEMA_VERSION, version5, version6) {
+                for (definition in definitionsV6) {
                     val old = definitionsV5.single { it.storeName == definition.storeName }
                     if (old.declaration != definition.declaration) rebuildStore(definition.storeName,
                         definition.declaration) { raw ->
@@ -125,6 +130,10 @@ object ServerStorage {
                         StoreRow(raw.copyOf(), typed.encodeRow(typed.decode(raw)).keys)
                     }
                 }
+            } + DatabaseMigration.configured(INDEXED_OPERATIONS_SCHEMA_VERSION, COUNTERS_SCHEMA_VERSION,
+                version6, declarations) {
+                // Counters start empty and are initialised from their rows on first use.
+                createStore(com.latenighthack.lockers.server.services.room.v1.CapacityCounterDefinitionV1.declaration)
             })
     }
     fun inMemory(identity: String = "ServerStorage-test", meterRegistry: MeterRegistry? = null, telemetry: LockersTelemetry = LockersTelemetry.NONE) =

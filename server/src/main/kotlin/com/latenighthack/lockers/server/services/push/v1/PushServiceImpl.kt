@@ -93,6 +93,10 @@ private const val LAST_BACKEND_VALUE = 3
 private const val MILLIS_PER_SECOND = 1000.0
 private const val OPERATIONS_TIMEOUT_MILLIS = 4_000L
 private const val OPERATIONS_INTERVAL_MILLIS = 5_000L
+private const val MAINTENANCE_MIN_MILLIS = 1_000L
+private const val MAINTENANCE_MAX_MILLIS = 30_000L
+private const val CLAIM_POLL_MIN_MILLIS = 250L
+private const val CLAIM_POLL_MAX_MILLIS = 5_000L
 
 @ServiceScope
 @Inject
@@ -203,7 +207,7 @@ class PushServiceImpl(
         check(processorJob == null) { "Push processor already started" }
         processorJob = processorScope.launch {
             coroutineScope {
-                launch { while (isActive) { try { pushQueueStore.maintain(); seedGauges() } catch (cancelled: CancellationException) { throw cancelled } catch (error: Exception) { logger.warn("push maintenance failed", error) }; delay(1_000) } }
+                launch { maintainWhileActive() }
                 for (backend in listOf(0) + pushProviders.filter { it.isConfigured }.map { it.backend.protoValue }.distinct()) {
                     val count = if (backend == 0) 1 else dispatch.sendConcurrencyPerBackend.coerceIn(1, 256)
                     val slots = Semaphore(count)
@@ -221,6 +225,8 @@ class PushServiceImpl(
                         }
                     } }
                     launch {
+                        // Local enqueues signal workAvailable; the fallback poll backs off while idle.
+                        var idle = CLAIM_POLL_MIN_MILLIS
                         while (isActive) {
                             var available = 0
                             repeat(count) { if (slots.tryAcquire()) available++ }
@@ -234,7 +240,11 @@ class PushServiceImpl(
                                 TimeUnit.NANOSECONDS) }
                             repeat(available - batch.size) { slots.release() }
                             batch.forEach { claim -> localClaims[requireNotNull(claim.push.pushId)] = claim; claimed.send(claim) }
-                            if (batch.isEmpty()) withTimeoutOrNull(250) { workAvailable.receive() }
+                            idle = when {
+                                batch.isNotEmpty() -> CLAIM_POLL_MIN_MILLIS
+                                withTimeoutOrNull(idle) { workAvailable.receive() } != null -> CLAIM_POLL_MIN_MILLIS
+                                else -> minOf(idle * 2, CLAIM_POLL_MAX_MILLIS)
+                            }
                         }
                     }
                 }
@@ -242,7 +252,20 @@ class PushServiceImpl(
         }
     }
 
-    private suspend fun seedGauges() {
+    /** Maintenance parks expired pending pushes; with nothing pending it backs off. */
+    private suspend fun maintainWhileActive() {
+        var interval = MAINTENANCE_MIN_MILLIS
+        while (currentCoroutineContext().isActive) {
+            val pending = try { pushQueueStore.maintain(); seedGauges() }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (error: Exception) { logger.warn("push maintenance failed", error); 1L }
+            interval = if (pending > 0) MAINTENANCE_MIN_MILLIS else minOf(interval * 2, MAINTENANCE_MAX_MILLIS)
+            delay(interval)
+        }
+    }
+
+    /** Returns the pending total so idle maintenance can back off. */
+    private suspend fun seedGauges(): Long {
         val pending = pushQueueStore.pendingCounts()
         val dead = pushDeadLetterStore.counts()
         totalQueueGauge.set(pending.values.sum().coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
@@ -250,6 +273,7 @@ class PushServiceImpl(
             queueDepth[backend]?.set((pending[backend.protoValue] ?: 0).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
             deadLetterDepth[backend]?.set((dead[backend.protoValue] ?: 0).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
         }
+        return pending.values.sum()
     }
 
     fun stop() = ServiceLifecycle.blockingClose(coroutineContext) { stopAndJoin() }

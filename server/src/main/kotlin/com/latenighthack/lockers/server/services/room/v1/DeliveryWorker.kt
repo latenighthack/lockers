@@ -18,6 +18,10 @@ import com.latenighthack.lockers.observability.*
 import com.latenighthack.lockers.server.tools.safeMeters
 import java.util.concurrent.TimeUnit
 
+private const val IDLE_POLL_MIN_MS = 250L
+private const val IDLE_POLL_MAX_MS = 5_000L
+private const val IDLE_LANE_POLL_MS = 30_000L
+
 private data class RoutedDelivery(val intent: ServerDeliveryIntent, val request: PostEventRequest, val expansionBytes: Long)
 
 /** Leases recover after process death; stable event ids make retries safe at the gateway. */
@@ -46,10 +50,18 @@ class DeliveryWorker(private val store: DeliveryOutboxStore, private val discove
             // Independent room lanes keep a slow gateway from imposing a batch barrier on
             // unrelated rooms. All lanes share the same four network permits.
             coroutineScope {
-                repeat(4) { launch {
+                repeat(4) { lane -> launch {
+                    // Local commits signal the store. Only lane 0 keeps a short fallback poll for
+                    // retries, expired leases and other nodes' commits; it backs off while idle.
+                    var idle = IDLE_POLL_MIN_MS
                     while (isActive && !stopping) {
                         store.metrics?.heartbeat()
-                        try { if (!drainOnce(roomLimit = 1)) store.awaitWork() }
+                        try {
+                            val fallback = if (lane == 0) idle else IDLE_LANE_POLL_MS
+                            if (drainOnce(roomLimit = 1)) { idle = IDLE_POLL_MIN_MS; store.signalWork() }
+                            else if (store.awaitWork(fallback)) idle = IDLE_POLL_MIN_MS
+                            else if (lane == 0) idle = minOf(idle * 2, IDLE_POLL_MAX_MS)
+                        }
                         catch (e: CancellationException) { throw e }
                         catch (e: Exception) { meters?.safeMeters { counter("lockers.delivery.failures", "queue", queue).increment() }; logger.warn("delivery outbox iteration failed", e); delay(250) }
                     }

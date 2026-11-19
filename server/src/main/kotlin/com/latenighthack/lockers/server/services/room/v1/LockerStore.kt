@@ -28,6 +28,8 @@ class LockerStoreImpl(private val database: Database, private val limits: com.la
     private val keyspaceKey = LockerStoreDefinitionV2.keyspaceKey
     private val roomIdAndKeyspace = LockerStoreDefinitionV2.roomIdAndKeyspace
     private val roomIdAndKeyspaceAndLockerIdKey = LockerStoreDefinitionV2.roomIdAndKeyspaceAndLockerIdKey
+    private val counters = CapacityCounters(database)
+    private val family = CapacityCounters.lockers
 
     override fun supportsSnapshotPaging() = true
     override fun snapshotStore(limits: com.latenighthack.lockers.server.ServerResourceLimits) = SnapshotStore(database, limits)
@@ -74,16 +76,29 @@ class LockerStoreImpl(private val database: Database, private val limits: com.la
         val rooms = lockers.map { requireNotNull(it.roomId) }.distinct().sortedBy { roomMutationKey(it) }
         suspend fun owned(index: Int) {
             if (index < rooms.size) { database.transaction(roomMutationKey(rooms[index])) { owned(index + 1) }; return }
-            database.transaction("lockers.locker-admission") {
+            database.transaction(family.lockKey) {
                 val unique = lockers.distinctBy { Triple(it.roomId, it.keyspace, it.lockerId) }
                 val added = unique.filter { getLocker(requireNotNull(it.roomId), it.keyspace, requireNotNull(it.lockerId)) == null }
                 if (added.isNotEmpty()) {
-                    val total = database.count(LockerStoreDefinitionV2.storeName, roomIdKey.query(1))
-                    if (total + added.size > limits.maxLockers) namespaceExhausted("Permanent locker namespace exhausted")
-                    for ((room, rows) in added.groupBy { requireNotNull(it.roomId) }) {
-                        val count = database.count(LockerStoreDefinitionV2.storeName, roomIdKey.query(1, lower = room.toByteArray(), upper = room.toByteArray()))
-                        if (count + rows.size > limits.maxLockersPerRoom) namespaceExhausted("Room locker namespace exhausted")
+                    // Lockers are never removed (deletion retires content), so admission only grows.
+                    val perRoom = added.groupBy { requireNotNull(it.roomId) }
+                    val store = LockerStoreDefinitionV2.storeName
+                    val scope = listOf(family.global { database.count(store, roomIdKey.query(1)) }) +
+                        perRoom.keys.map { room -> family.room(room.toByteArray()) {
+                            val key = room.toByteArray()
+                            database.count(store, roomIdKey.query(1, lower = key, upper = key))
+                        } }
+                    val values = counters.read(scope)
+                    if (values[0] + added.size > limits.maxLockers) {
+                        namespaceExhausted("Permanent locker namespace exhausted")
                     }
+                    perRoom.values.forEachIndexed { index, rows ->
+                        if (values[index + 1] + rows.size > limits.maxLockersPerRoom) {
+                            namespaceExhausted("Room locker namespace exhausted")
+                        }
+                    }
+                    counters.write(scope, LongArray(values.size) { index ->
+                        values[index] + if (index == 0) added.size else perRoom.values.elementAt(index - 1).size })
                 }
                 saveAll(lockers)
             }

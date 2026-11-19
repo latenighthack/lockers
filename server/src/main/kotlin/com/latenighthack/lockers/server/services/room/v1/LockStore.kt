@@ -44,10 +44,16 @@ class LockStoreImpl(private val database: Database, private val limits: com.late
         )
     ))
 
+    /**
+     * One read. Lock admission ([saveLock]) already caps every room's history, so the set is
+     * finite; a history above a since-lowered limit is still rejected with the same error.
+     */
     override suspend fun getAllLocksInRoom(roomId: ServerRoomId): List<ServerLock> = atomic(roomId) {
-        val count = database.count(LockStoreImplDefinitionV1.storeName, roomIdKey.query(1, lower = roomId.toByteArray(), upper = roomId.toByteArray()))
-        if (count > limits.maxLocksPerRoom) protocolCapacityExceeded("Historical room lock set exceeds finite capacity")
-        getAll(roomIdKey.eq(roomId.toByteArray()))
+        getAll(roomIdKey.eq(roomId.toByteArray())).also {
+            if (it.size > limits.maxLocksPerRoom) {
+                protocolCapacityExceeded("Historical room lock set exceeds finite capacity")
+            }
+        }
     }
 
     override suspend fun saveLock(lock: ServerLock) = atomic(requireNotNull(lock.roomId)) {

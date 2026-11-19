@@ -90,6 +90,8 @@ class LocalSessionGatewayDiscovery(private val sessionGatewayServer: SessionGate
 private data class OnlineServerSessionEvent(val event: ServerSessionEvent? = null, val receiveTime: Long = 0L, val sequence: Long = 0L, val clientEvent: Event? = null, val catchUp: Boolean = false)
 
 private const val BROADCAST_EVENT_ID_BYTES = 16
+private const val SESSION_WATCH_MIN_MILLIS = 1_000L
+private const val SESSION_WATCH_MAX_MILLIS = 10_000L
 
 @ServiceScope
 @Inject
@@ -328,8 +330,12 @@ class SessionServiceImpl(
             StreamControlEvent.Close()
         }, flow {
             val os = openState.await() ?: return@flow
+            // Local destruction closes the stream directly (closeSessionStream). This read only
+            // observes destruction by another node, so it backs off while the session lives.
+            var interval = SESSION_WATCH_MIN_MILLIS
             while (currentCoroutineContext().isActive) {
-                delay(1000)
+                delay(interval)
+                interval = minOf(interval * 2, SESSION_WATCH_MAX_MILLIS)
                 if (sessionStore.getSessionById(os.sessionId) == null) {
                     cancellationChannel.trySend(Unit)
                     return@flow
