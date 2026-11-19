@@ -9,6 +9,10 @@ import com.latenighthack.lockers.room.v1.fromByteArray
 import com.latenighthack.lockers.server.storage.v1.*
 import com.latenighthack.lockers.server.storage.v2.*
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.sync.withLock
 
 /** Source writes, sequences, and indexed durable delivery commit on the same storage connection. */
@@ -28,11 +32,14 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
     private class Entries(db: Database,
         val definition: OutboxEntriesDefinitionV3) : Store<ServerOutboxEntry>(db, definition) {
         suspend fun find(id: ByteArray) = get(definition.id.eq(id))
+        suspend fun findAny(ids: List<ByteArray>) = getMany(ids.map { definition.id.eq(it) })
         suspend fun put(row: ServerOutboxEntry) = save(row)
+        suspend fun putAll(rows: List<ServerOutboxEntry>) = saveAll(rows)
         suspend fun remove(id: ByteArray) = delete(definition.id.eq(id))
     }
     private class Heads(db: Database, val definition: OutboxHeadsDefinitionV3) : Store<ServerOutboxHead>(db,
         definition) {
+        suspend fun find(room: ByteArray) = get(definition.room.eq(room))
         suspend fun put(row: ServerOutboxHead) = save(row)
         suspend fun remove(room: ByteArray) = delete(definition.room.eq(room))
     }
@@ -92,7 +99,18 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
     suspend fun <T> atomic(roomId: RoomId, block: suspend () -> T): T = delegate.transaction(roomMutationKey(ServerRoomId(roomId.rawValue)), block)
     private suspend fun <T> mutateRoom(roomId: RoomId, block: suspend () -> T): T =
         atomic(roomId) { delegate.transaction(family.lockKey, block) }
-    suspend fun watermark(roomId: RoomId): Long = sequences.value(ServerRoomId(roomId.rawValue))
+    /** The room's sequence for the duration of one room commit, read at most once. */
+    private class RoomCommit(val owner: DeliveryOutboxStore, val room: ByteArray) :
+        AbstractCoroutineContextElement(Key) {
+        companion object Key : CoroutineContext.Key<RoomCommit>
+        var sequence: Long? = null
+    }
+    private suspend fun roomCommit(roomId: RoomId) =
+        coroutineContext[RoomCommit]?.takeIf { it.owner === this && it.room.contentEquals(roomId.rawValue) }
+    suspend fun watermark(roomId: RoomId): Long {
+        val commit = roomCommit(roomId)
+        return commit?.sequence ?: sequences.value(ServerRoomId(roomId.rawValue)).also { commit?.sequence = it }
+    }
     private fun decodeEntry(raw: Any) = if (raw is ServerOutboxEntry) raw else ServerOutboxEntry.fromByteArray(raw as ByteArray)
     private fun decodeIntent(raw: Any) = if (raw is ServerDeliveryIntent) raw else ServerDeliveryIntent.fromByteArray(raw as ByteArray)
     private fun roomQuery(index: TypedIndex<ServerOutboxEntry, ByteArray>, room: ByteArray, limit: Int) = index.query(limit,
@@ -145,34 +163,53 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
         }
     }
 
+    /**
+     * Commits [mutation] and its delivery [events] in one room transaction. The room sequence is
+     * read once (shared with [watermark] inside [mutation]) and admission counters are read and
+     * written once for the whole transaction.
+     */
     suspend fun <T> commit(roomId: RoomId, recipients: List<SessionId>, events: List<Event>, mutation: suspend () -> T): T {
         val result = mutateRoom(roomId) {
-            val result = mutation()
-            if (events.isEmpty()) return@mutateRoom result
-            check(events.map { requireNotNull(it.eventId).rawValue.toList() }.toSet().size == events.size) { "Duplicate event identities in one commit" }
-            val capacity = listOf(roomRetained(roomId), globalRetained())
-            val (count, retained) = counters.read(capacity).let { it[0] to it[1] }
-            check(count <= policy.retainedPerRoom - events.size.toLong()) { "Room delivery capacity exceeded" }
-            check(retained <= policy.retainedGlobal - events.size.toLong()) { "Global delivery capacity exceeded" }
-            counters.write(capacity, longArrayOf(count + events.size, retained + events.size))
-            val serverRoom = ServerRoomId(roomId.rawValue)
-            var sequence = sequences.value(serverRoom)
-            check(sequence >= 0 && events.size.toLong() <= Long.MAX_VALUE - sequence) { "Outbox sequence exhausted" }
-            val intents = events.map { event ->
-                val eventId = requireNotNull(event.eventId)
-                check(entries.find(eventId.rawValue) == null) { "Delivery event identity reused" }
-                ServerDeliveryIntent(eventId = ServerEventId(eventId.rawValue), roomId = serverRoom, roomSequence = ++sequence,
-                    encodedEvent = event.copy(roomSequence = sequence).toByteArray(),
-                    pendingSessions = recipients.distinct().map { ServerSessionId(it.rawValue) })
+            val state = roomCommit(roomId) ?: RoomCommit(this, roomId.rawValue.copyOf())
+            withContext(state) {
+                counters.batched(CapacityCounters.roomScope(roomId.rawValue, prefix)) {
+                    mutation().also { if (events.isNotEmpty()) enqueue(roomId, recipients, events, state) }
+                }
             }
-            sequences.set(serverRoom, sequence)
-            saveAll(intents)
-            intents.forEach { entries.put(metadata(it, new = true)) }
-            refreshHead(roomId.rawValue)
-            result
         }
         if (events.isNotEmpty()) available.trySend(Unit)
         return result
+    }
+
+    private suspend fun enqueue(roomId: RoomId, recipients: List<SessionId>, events: List<Event>, state: RoomCommit) {
+        val ids = events.map { requireNotNull(it.eventId).rawValue }
+        check(ids.map { it.toList() }.toSet().size == events.size) { "Duplicate event identities in one commit" }
+        val capacity = listOf(roomRetained(roomId), globalRetained())
+        val (count, retained) = counters.read(capacity).let { it[0] to it[1] }
+        check(count <= policy.retainedPerRoom - events.size.toLong()) { "Room delivery capacity exceeded" }
+        check(retained <= policy.retainedGlobal - events.size.toLong()) { "Global delivery capacity exceeded" }
+        counters.write(capacity, longArrayOf(count + events.size, retained + events.size))
+        val serverRoom = ServerRoomId(roomId.rawValue)
+        var sequence = watermark(roomId)
+        check(sequence >= 0 && events.size.toLong() <= Long.MAX_VALUE - sequence) { "Outbox sequence exhausted" }
+        check(entries.findAny(ids).isEmpty()) { "Delivery event identity reused" }
+        val pending = recipients.distinct().map { ServerSessionId(it.rawValue) }
+        val intents = events.map { event ->
+            ServerDeliveryIntent(eventId = ServerEventId(requireNotNull(event.eventId).rawValue), roomId = serverRoom,
+                roomSequence = ++sequence, encodedEvent = event.copy(roomSequence = sequence).toByteArray(),
+                pendingSessions = pending)
+        }
+        sequences.set(serverRoom, sequence)
+        state.sequence = sequence
+        saveAll(intents)
+        entries.putAll(intents.map { metadata(it, new = true) })
+        // Appended entries sort after every active entry, so an existing head still names the
+        // room's first undelivered event. Only a room without one gets a head (due immediately).
+        if (heads.find(roomId.rawValue) == null) {
+            val first = intents.first()
+            heads.put(ServerOutboxHead(roomId = roomId.rawValue, eventId = requireNotNull(first.eventId).rawValue,
+                sequence = first.roomSequence, dueAt = 0))
+        }
     }
 
     private suspend fun park(intent: ServerDeliveryIntent, reason: String) {

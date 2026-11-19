@@ -84,7 +84,6 @@
     <ID>LongMethod:SessionInboxStore.kt$SessionInboxStoreImpl$override suspend fun acceptClientEvents(events: List&lt;Pair&lt;ServerSessionEvent, Event&gt;&gt;): List&lt;Pair&lt;ServerSessionEvent, Event&gt;&gt;</ID>
     <ID>LongMethod:SessionServiceImpl.kt$SessionServiceImpl$override fun watchSession( context: GrpcRequestContext, request: Flow&lt;WatchSessionRequest&gt; ): Flow&lt;StreamControlEvent&lt;WatchSessionResponse&gt;&gt;</ID>
     <ID>LongMethod:SessionServiceImpl.kt$SessionServiceImpl$private suspend fun WatchSessionResponse_OpenBuilder.observedHandleOpen(open: WatchSessionRequest.Open): ServerSessionId?</ID>
-    <ID>LongParameterList:AgentWorkStore.kt$AgentWorkStore$(room: RoomId, request: PostLockerChangesRequest, response: PostLockerChangesResponse, version: String, sourceOrder: Long, applied: Boolean = false)</ID>
     <ID>LongParameterList:ClaimContext.kt$ClaimContext$( /** Unique process incarnation; direct embedders must never share this value across live processes. */ val nodeId: String, val advertiseAddr: String, val roomClaims: RoomClaimStore, val sessionGateways: SessionGatewayStore, val pool: PeerConnectionPool, val ttlMs: Long, val renewMs: Long, val meters: ClaimMetrics, /** Set by [fromConfig] so [close] can release the coordination pool it created. */ private val ownedJdbcPool: ClaimJdbcPool? = null, )</ID>
     <ID>LongParameterList:ClaimRenewalService.kt$ClaimRenewalService$( private val roomClaims: RoomClaimStore, private val ownership: ClaimRoomOwnership, private val nodeId: String, private val ttlMs: Long, private val renewIntervalMs: Long, private val meters: ClaimMetrics, /** Invoked after any demotion so the component can evict room caches. */ private val onDemoted: suspend () -&gt; Unit = {}, /** The session-registry renew round (claim mode wires `ClaimSessionRegistry::renewRound`). */ private val sessionRenewRound: suspend () -&gt; Unit = {}, /** Session-registry drain, run alongside [RoomClaimStore.releaseAll] on stop. */ private val sessionReleaseAll: suspend () -&gt; Unit = {}, private val clock: () -&gt; Long = System::currentTimeMillis, private val telemetry: LockersTelemetry = LockersTelemetry.NONE, )</ID>
     <ID>LongParameterList:ClaimRoomOwnership.kt$ClaimRoomOwnership$( private val store: RoomClaimStore, private val selfNodeId: String, private val advertiseAddr: String, private val ttlMs: Long, renewIntervalMs: Long, private val meters: ClaimMetrics, private val nonOwnerCacheTtlMs: Long = NON_OWNER_CACHE_TTL_MS, private val clock: () -&gt; Long = System::currentTimeMillis, )</ID>
@@ -554,8 +553,6 @@
     <ID>MaxLineLength:DeliveryOutboxPgTest.kt$DeliveryOutboxPgTest$DriverManager.getConnection(base).use { it.createStatement().use { statement -&gt; statement.execute("CREATE SCHEMA $schema") } }</ID>
     <ID>MaxLineLength:DeliveryOutboxPgTest.kt$DeliveryOutboxPgTest$DriverManager.getConnection(base).use { it.createStatement().use { statement -&gt; statement.execute("DROP SCHEMA $schema CASCADE") } }</ID>
     <ID>MaxLineLength:DeliveryOutboxPgTest.kt$DeliveryOutboxPgTest$listOf(async(Dispatchers.IO) { a.claim("a", 100) }, async(Dispatchers.IO) { b.claim("b", 100) }).awaitAll().flatten()</ID>
-    <ID>MaxLineLength:DeliveryOutboxStore.kt$DeliveryOutboxStore$ServerDeliveryIntent</ID>
-    <ID>MaxLineLength:DeliveryOutboxStore.kt$DeliveryOutboxStore$check(events.map { requireNotNull(it.eventId).rawValue.toList() }.toSet().size == events.size) { "Duplicate event identities in one commit" }</ID>
     <ID>MaxLineLength:DeliveryOutboxStore.kt$DeliveryOutboxStore$delegate.query(entriesDefinition.storeName, roomQuery(entriesDefinition.active, room, limit)).records.map(::decodeEntry)</ID>
     <ID>MaxLineLength:DeliveryOutboxStore.kt$DeliveryOutboxStore$entries.put(old.copy(parkedReason = reason, parkedIntent = intent.copy(leaseOwner = "", leaseUntil = 0).toByteArray()))</ID>
     <ID>MaxLineLength:DeliveryOutboxStore.kt$DeliveryOutboxStore$if (bytes &gt; byteLimit) { park(current, "Delivery intent exceeds the supported claim byte budget"); continue }</ID>
@@ -722,7 +719,6 @@
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$override fun snapshotStore(limits: com.latenighthack.lockers.server.ServerResourceLimits)</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$override suspend</ID>
     <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$override suspend fun getAllLockers(roomId: ServerRoomId): List&lt;ServerLocker&gt;</ID>
-    <ID>MaxLineLength:LockerStore.kt$LockerStoreImpl$val added = unique.filter { getLocker(requireNotNull(it.roomId), it.keyspace, requireNotNull(it.lockerId)) == null }</ID>
     <ID>MaxLineLength:LockerStoreDefinitionV2.kt$LockerStoreDefinitionV2$val</ID>
     <ID>MaxLineLength:LockerStoreDefinitionV2.kt$LockerStoreDefinitionV2$val roomIdAndKeyspaceAndLockerIdKey = compositeIndex(IndexName("composite_roomIdtoByteArray_keyspace_lockerIdtoByteArray"), roomIdKey, keyspaceKey, lockerIdKey).also { primaryKey(it) }</ID>
     <ID>MaxLineLength:LockerStoreDefinitionsV1.kt$LockerStoreImplDefinitionV1$val roomIdAndKeyspaceAndLockerIdKey = compositeIndex(IndexName("composite_roomIdtoByteArray_keyspace_lockerIdtoByteArray"), roomIdKey, keyspaceKey, lockerIdKey).also { primaryKey(it) }</ID>
@@ -1050,13 +1046,10 @@
     <ID>MaxLineLength:RoomMutationFence.kt$CheckedRoomMutationFence$require(driver == null || allowPersistent) { "Persistent ownership implementations must provide a storage-backed commit fence" }</ID>
     <ID>MaxLineLength:RoomMutationFence.kt$ClaimMutationFence$class</ID>
     <ID>MaxLineLength:RoomMutationFence.kt$ClaimMutationFence$val query = sql.selectAll("SELECT epoch FROM room_claim WHERE room_id = ? AND node_id = ? AND epoch = ? AND expires_at &gt;= clock_timestamp() FOR UPDATE")</ID>
-    <ID>MaxLineLength:RoomMutationFence.kt$FencedMemoryDelegate$override suspend fun &lt;T&gt; transaction(block: suspend () -&gt; T): T</ID>
-    <ID>MaxLineLength:RoomMutationFence.kt$FencedMemoryDelegate$override suspend fun &lt;T&gt; transaction(lockKey: String, block: suspend () -&gt; T): T</ID>
     <ID>MaxLineLength:RoomMutationFence.kt$FencedMemoryDelegate$override suspend fun &lt;T&gt; transaction(stores: Set&lt;String&gt;, mode: TransactionMode, block: suspend () -&gt; T): T</ID>
     <ID>MaxLineLength:RoomMutationFence.kt$FencedMemoryDelegate$override suspend fun count(tableName: String, query: IndexedQuery)</ID>
     <ID>MaxLineLength:RoomMutationFence.kt$FencedMemoryDelegate$override suspend fun deleteBatch(tableName: String, query: IndexedQuery, identity: String, version: Int)</ID>
     <ID>MaxLineLength:RoomMutationFence.kt$FencedMemoryDelegate$override suspend fun query(tableName: String, query: IndexedQuery, identity: String, version: Int)</ID>
-    <ID>MaxLineLength:RoomMutationFence.kt$FencedSqlDriver$override suspend fun &lt;T&gt; transaction(lockKey: String, block: suspend () -&gt; T): T</ID>
     <ID>MaxLineLength:RoomMutationFence.kt$LeaseMutationFence$class</ID>
     <ID>MaxLineLength:RoomMutationFencePgTest.kt$RoomMutationFencePgTest$DriverManager.getConnection(base).use { it.createStatement().use { sql -&gt; sql.execute("CREATE SCHEMA $schema") } }</ID>
     <ID>MaxLineLength:RoomMutationFencePgTest.kt$RoomMutationFencePgTest$DriverManager.getConnection(base).use { it.createStatement().use { sql -&gt; sql.execute("DROP SCHEMA $schema CASCADE") } }</ID>

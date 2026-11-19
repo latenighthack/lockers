@@ -545,8 +545,13 @@ class RoomServiceImpl(
         val lockState = request.initialLock?.let { applyInitialLock(room, it, request.parentLockVersion) }
         val normalized = request.changes.map { it.copy(roomId = room) }
         val ids = normalized.map { requireNotNull(it.lockerId) }
-        val existing = lockerStore.getLockers(ServerRoomId(room.rawValue), ids.map { (it.keyspace?.value ?: 0L) to ServerLockerId(it.rawValue) })
+        val serverRoom = ServerRoomId(room.rawValue)
+        val existing = lockerStore.getLockers(serverRoom, ids.map { (it.keyspace?.value ?: 0L) to ServerLockerId(it.rawValue) })
             .associateBy { LockerId(requireNotNull(it.lockerId).rawValue, LockerKeyspace(it.keyspace)) }
+        // Every requested identity was read under the room lock; admission need not read them again.
+        val checked: Map<LockerKey, ServerLocker?> = ids.associate { id ->
+            Triple(serverRoom, id.keyspace?.value ?: 0L, ServerLockerId(id.rawValue)) to existing[canonicalLockerId(id)]
+        }
         val roomLocks = lockStore.getAllLocksInRoom(ServerRoomId(room.rawValue)).filter { lockVerifier.stateOf(it).locked }
         val sourceWrites = mutableListOf<ServerLocker>()
         val results = normalized.zip(ids) { change, id ->
@@ -558,7 +563,9 @@ class RoomServiceImpl(
         }
         if (results.any { !it.result.isOk() }) throw BatchRejected(boundedResponse(PostLockerChangesResponse(
             result = PostLockerChangesResponse.Result.CONFLICT, changes = results, lockState = lockState), PostLockerChangesResponse::writeTo))
-        lockerStore.updateLockers(sourceWrites)
+        // Extension stores keep their own write path; the built-in store reuses this transaction's reads.
+        val builtIn = lockerStore as? LockerStoreImpl
+        if (builtIn != null) builtIn.updateLockers(sourceWrites, checked) else lockerStore.updateLockers(sourceWrites)
         val pending = boundedResponse(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.OK, changes = results,
             lockState = lockState, agentPending = agentRegistry !== LockerAgentRegistry.None, writeRequestId = request.writeRequestId,
             sourceVersions = normalized.zip(results) { change, result -> WriteSourceVersion(change.lockerId, result.version) }),
@@ -566,7 +573,7 @@ class RoomServiceImpl(
         val order = outbox.watermark(room)
         check(order < Long.MAX_VALUE) { "Agent source order exhausted" }
         outbox.agentWork.create(room, request.copy(changes = normalized), pending, agentVersion, order + 1,
-            applied = agentRegistry === LockerAgentRegistry.None)
+            applied = agentRegistry === LockerAgentRegistry.None, receiptAbsent = true)
         outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
             request.writeRequestId, ServerRoomId(room.rawValue), digest, pending.toByteArray()))
         return StagedWrite.Pending(pending)

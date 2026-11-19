@@ -30,6 +30,7 @@ import com.latenighthack.lockers.server.services.session.v1.SessionGatewayDiscov
 import com.latenighthack.lockers.session.v1.SessionGatewayService
 import com.latenighthack.lockers.server.storage.v1.ServerRoomId
 import com.latenighthack.lockers.server.storage.v1.ServerSessionId
+import com.latenighthack.lockers.server.tools.CountingSqlDriver
 import com.latenighthack.lockers.server.tools.CountingStoreDelegate
 import com.latenighthack.lockers.server.tools.MeasuredStoreDelegate
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
@@ -64,13 +65,17 @@ class MoveStoreCostTest {
         override suspend fun findServer(sessionId: SessionId): SessionGatewayService? = null
     }
 
+    /** Receives advisory lock statements counted below the fenced SQL driver. */
+    private var locks: CountingStoreDelegate? = null
+
     private class Harness(val db: Database, val counter: CountingStoreDelegate, val outbox: DeliveryOutboxStore,
         val service: RoomServiceImpl) {
         val rpc = LocalRoomServiceRpc(service)
     }
 
-    private suspend fun harness(configuration: DatabaseConfiguration, delegate: LifecycleStoreDelegate): Harness {
-        val counter = CountingStoreDelegate(delegate)
+    private suspend fun harness(configuration: DatabaseConfiguration, delegate: LifecycleStoreDelegate,
+        countLockRequests: Boolean = true): Harness {
+        val counter = CountingStoreDelegate(delegate, countLockRequests).also { locks = it }
         val db = Database(configuration, counter, ReadCacheConfiguration.Disabled)
         val outbox = DeliveryOutboxStore(db).also { it.prepareStores() }
         val lockers = LockerStoreImpl(db).also { it.prepare() }
@@ -84,7 +89,7 @@ class MoveStoreCostTest {
         return Harness(db, counter, outbox, service)
     }
 
-    private suspend fun measure(h: Harness) {
+    private suspend fun measure(h: Harness, lockBudget: Int? = null) {
         h.service.start()
         try {
             // First move admits new lockers; the measured move is the steady state of a game.
@@ -107,14 +112,17 @@ class MoveStoreCostTest {
             assertTrue(keys.none { it.startsWith("count:") }, "COUNT on the move path: $move")
             assertTrue(move.requestOps <= REQUEST_BUDGET, "request side: ${move.requestOps} > $REQUEST_BUDGET\n$move")
             assertTrue(move.backgroundOps <= AGENT_BUDGET, "agent side: ${move.backgroundOps} > $AGENT_BUDGET\n$move")
+            // A logical lock the transaction already holds is not requested from Postgres again.
+            lockBudget?.let { assertTrue(move.requestLocks <= it, "advisory lock statements: $move") }
             // Discovery is woken in-process; an idle room service only runs its slow safety-net scan.
             assertTrue(idle.backgroundOps <= IDLE_ROOM_BUDGET, "idle room service storage calls in 3s: $idle")
         } finally { h.service.closeAndJoin(); h.db.close() }
     }
 
     private companion object {
-        const val REQUEST_BUDGET = 23
-        const val AGENT_BUDGET = 29
+        const val REQUEST_BUDGET = 16
+        const val AGENT_BUDGET = 24
+        const val REQUEST_LOCK_BUDGET = 4
         const val IDLE_ROOM_BUDGET = 4
         const val IDLE_POLL_BUDGET = 3
         const val SETTLE_MS = 300L
@@ -182,8 +190,12 @@ class MoveStoreCostTest {
         try {
             val url = base + (if ('?' in base) "&" else "?") + "currentSchema=$schema"
             val configuration = ServerStorage.configuration("lockers-server").copy(externalTables = externalTables)
-            val driver = FencedSqlDriver(JdbcDriver(url.removePrefix("jdbc:postgresql:"), "postgresql"))
-            measure(harness(configuration, MeasuredStoreDelegate(SqlStoreDelegate(driver, "BYTEA", configuration))))
+            // Count advisory lock statements actually sent, after re-entrant locks are elided.
+            val jdbc = CountingSqlDriver(JdbcDriver(url.removePrefix("jdbc:postgresql:"), "postgresql")) {
+                requireNotNull(locks).recordLock()
+            }
+            val delegate = MeasuredStoreDelegate(SqlStoreDelegate(FencedSqlDriver(jdbc), "BYTEA", configuration))
+            measure(harness(configuration, delegate, countLockRequests = false), lockBudget = REQUEST_LOCK_BUDGET)
         } finally {
             DriverManager.getConnection(base).use { connection ->
                 connection.createStatement().use { it.execute("DROP SCHEMA $schema CASCADE") }

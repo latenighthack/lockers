@@ -38,9 +38,16 @@ class AgentWorkStore(private val database: Database, private val clock: () -> Lo
         lower = agentRoomPrefix(room), upper = agentRoomPrefix(room) + ByteArray(72) { -1 })
     private fun key(room: RoomId, id: ByteArray) = agentRoomPrefix(room.rawValue) + id
     suspend fun find(room: RoomId, id: ByteArray): ServerAgentWork? = get(AgentWorkDefinitionV3.id.eq(key(room, id)))
-    suspend fun create(room: RoomId, request: PostLockerChangesRequest, response: PostLockerChangesResponse, version: String, sourceOrder: Long, applied: Boolean = false) = database.transaction(lock) {
+    /**
+     * Journals one accepted write. [receiptAbsent] records that the caller found no write receipt
+     * for this identity in the same transaction; journal rows only exist alongside receipts, so
+     * the identity check is then already proven.
+     */
+    @Suppress("LongParameterList")
+    suspend fun create(room: RoomId, request: PostLockerChangesRequest, response: PostLockerChangesResponse, version: String,
+        sourceOrder: Long, applied: Boolean = false, receiptAbsent: Boolean = false) = database.transaction(lock) {
         require(version.encodeToByteArray().size <= 128)
-        check(find(room, request.writeRequestId) == null) { "Agent work identity reused" }
+        check(receiptAbsent || find(room, request.writeRequestId) == null) { "Agent work identity reused" }
         admit(room)
         val id = key(room, request.writeRequestId)
         save(ServerAgentWork(key = id, roomId = room.rawValue, writeRequestId = request.writeRequestId,

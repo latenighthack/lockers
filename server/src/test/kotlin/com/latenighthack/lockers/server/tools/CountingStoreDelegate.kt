@@ -20,7 +20,8 @@ import kotlin.coroutines.coroutineContext
  * table and index. Logical lock transactions are counted separately: on PostgreSQL each one is
  * an extra `pg_advisory_xact_lock` statement.
  */
-class CountingStoreDelegate(private val inner: LifecycleStoreDelegate) : LifecycleStoreDelegate by inner,
+class CountingStoreDelegate(private val inner: LifecycleStoreDelegate, private val countLockRequests: Boolean = true) :
+    LifecycleStoreDelegate by inner,
     ScopedStoreDelegate, IndexedQueryDelegate {
     data class Snapshot(
         val request: Map<String, Int>,
@@ -51,8 +52,12 @@ class CountingStoreDelegate(private val inner: LifecycleStoreDelegate) : Lifecyc
     override suspend fun <T> transaction(block: suspend () -> T): T =
         (inner as TransactionalStoreDelegate).transaction(block)
     override suspend fun <T> transaction(lockKey: String, block: suspend () -> T): T {
-        (if (coroutineContext[WriteTrace] != null) requestLocks else backgroundLocks).incrementAndGet()
+        if (countLockRequests) recordLock()
         return (inner as TransactionalStoreDelegate).transaction(lockKey, block)
+    }
+    /** Counts one logical lock; a SQL driver wrapper calls this once per issued advisory lock. */
+    suspend fun recordLock() {
+        (if (coroutineContext[WriteTrace] != null) requestLocks else backgroundLocks).incrementAndGet()
     }
     override suspend fun <T> transaction(stores: Set<String>, mode: TransactionMode, block: suspend () -> T): T =
         (inner as ScopedStoreDelegate).transaction(stores, mode, block)

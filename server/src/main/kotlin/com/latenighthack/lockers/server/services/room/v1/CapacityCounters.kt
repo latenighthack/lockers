@@ -6,6 +6,10 @@ import com.latenighthack.ktstore.Store
 import com.latenighthack.ktstore.StoreDefinition
 import com.latenighthack.ktstore.StoreName
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
@@ -46,8 +50,10 @@ class CapacityCounters internal constructor(private val database: Database) :
     class Family(val name: String, val lockKey: String) {
         private val prefix = name.encodeToByteArray()
         init { require(prefix.isNotEmpty() && 0 !in prefix) }
-        fun global(initial: suspend () -> Long) = Counter(prefix + byteArrayOf(0, 0), initial)
-        fun room(room: ByteArray, initial: suspend () -> Long) = Counter(prefix + byteArrayOf(0, 1) + room, initial)
+        fun globalKey() = prefix + byteArrayOf(0, 0)
+        fun roomKey(room: ByteArray) = prefix + byteArrayOf(0, 1) + room
+        fun global(initial: suspend () -> Long) = Counter(globalKey(), initial)
+        fun room(room: ByteArray, initial: suspend () -> Long) = Counter(roomKey(room), initial)
         internal val lower get() = prefix + byteArrayOf(0)
         internal val upper get() = prefix + byteArrayOf(0) + ByteArray(MAX_COUNTER_KEY_BYTES) { -1 }
     }
@@ -55,18 +61,64 @@ class CapacityCounters internal constructor(private val database: Database) :
         init { require(key.size <= MAX_COUNTER_KEY_BYTES) }
     }
 
+    /** Counter rows read and written by one transaction, flushed once before it commits. */
+    private class Batch(val database: Database, val prefetch: List<Pair<Family, ByteArray>>) :
+        AbstractCoroutineContextElement(Key) {
+        companion object Key : CoroutineContext.Key<Batch>
+        val values = HashMap<List<Byte>, Long>()
+        val loaded = HashSet<List<Byte>>()
+        val dirty = LinkedHashMap<List<Byte>, CapacityCounter>()
+    }
+    private suspend fun batch() = coroutineContext[Batch]?.takeIf { it.database === database }
+
+    /**
+     * Runs [block] with one read and one write for every counter it touches. [prefetch] names
+     * counters the transaction is likely to need; they are fetched with the first read, but only
+     * for families whose lock the transaction already holds, so a cached value cannot go stale.
+     * Must run inside the transaction whose locks guard the counters; nested calls join.
+     */
+    suspend fun <T> batched(prefetch: List<Pair<Family, ByteArray>>, block: suspend () -> T): T {
+        if (batch() != null) return block()
+        val batch = Batch(database, prefetch)
+        return withContext(batch) {
+            val result = block()
+            if (batch.dirty.isNotEmpty()) saveAll(batch.dirty.values.toList())
+            result
+        }
+    }
+
     /** One read for every counter; a missing counter is counted once from its rows. */
     suspend fun read(counters: List<Counter>): LongArray {
-        val found = getMany(counters.map { CapacityCounterDefinitionV1.id.eq(it.key) })
-            .associate { it.key.toList() to it.value }
-        return LongArray(counters.size) { found[counters[it].key.toList()] ?: counters[it].initial() }
+        val batch = batch()
+        if (batch == null) {
+            val found = getMany(counters.map { CapacityCounterDefinitionV1.id.eq(it.key) })
+                .associate { it.key.toList() to it.value }
+            return LongArray(counters.size) { found[counters[it].key.toList()] ?: counters[it].initial() }
+        }
+        val unknown = counters.map { it.key.toList() }.filter { it !in batch.loaded }
+        if (unknown.isNotEmpty()) {
+            val held = heldLockKeys()
+            val likely = batch.prefetch.filter { (family, _) -> family.lockKey in held }.map { it.second.toList() }
+            val keys = (unknown + likely).distinct().filter { it !in batch.loaded }
+            getMany(keys.map { CapacityCounterDefinitionV1.id.eq(it.toByteArray()) })
+                .forEach { batch.values[it.key.toList()] = it.value }
+            batch.loaded.addAll(keys)
+        }
+        return LongArray(counters.size) { index ->
+            val key = counters[index].key.toList()
+            batch.values[key] ?: counters[index].initial().also { batch.values[key] = it }
+        }
     }
     /** The stored value, or null while the counter is uninitialised (it then recounts on first [read]). */
     suspend fun stored(counter: Counter): Long? = get(CapacityCounterDefinitionV1.id.eq(counter.key))?.value
     /** Writes values previously returned by [read] plus their change. */
     suspend fun write(counters: List<Counter>, values: LongArray) {
         require(counters.size == values.size)
-        saveAll(counters.mapIndexed { index, counter -> CapacityCounter(counter.key, values[index].coerceAtLeast(0)) })
+        val rows = counters.mapIndexed { index, counter ->
+            CapacityCounter(counter.key, values[index].coerceAtLeast(0))
+        }
+        val batch = batch() ?: return saveAll(rows)
+        rows.forEach { batch.values[it.key.toList()] = it.value; batch.dirty[it.key.toList()] = it }
     }
     suspend fun adjust(counters: List<Counter>, delta: Long) {
         val values = read(counters)
@@ -90,6 +142,9 @@ class CapacityCounters internal constructor(private val database: Database) :
         val agentWork = Family("agent_work", AGENT_WORK_LOCK)
         val lockers = Family("lockers", LOCKER_ADMISSION_LOCK)
         fun outbox(prefix: String) = Family("${prefix}_outbox_retained", outboxQuotaLock(prefix))
+        /** Counters a room commit may touch: its outbox, agent journal and new lockers. */
+        fun roomScope(room: ByteArray, outboxPrefix: String) = listOf(outbox(outboxPrefix), agentWork, lockers)
+            .flatMap { family -> listOf(family to family.roomKey(room), family to family.globalKey()) }
         /** Every family maintained by this server, for a full recount. */
         fun families() = listOf(agentWork, lockers, outbox("delivery"), outbox("push_delivery"))
     }

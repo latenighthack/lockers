@@ -5,6 +5,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import com.latenighthack.lockers.server.storage.v1.*
 
+/** A locker's identity within its room. */
+typealias LockerKey = Triple<ServerRoomId?, Long, ServerLockerId?>
+val ServerLocker.key: LockerKey get() = Triple(roomId, keyspace, lockerId)
+
 interface LockerStore {
     fun supportsSnapshotPaging(): Boolean = false
     fun lockerPages(roomId: ServerRoomId): Flow<List<ServerLocker>> =
@@ -22,6 +26,8 @@ interface LockerStore {
     suspend fun deleteLocker(roomId: ServerRoomId, keyspace: Long, lockerId: ServerLockerId)
 }
 
+// The LockerStore surface plus one admission overload for rows the caller already read.
+@Suppress("TooManyFunctions")
 class LockerStoreImpl(private val database: Database, private val limits: com.latenighthack.lockers.server.ServerResourceLimits = com.latenighthack.lockers.server.ServerResourceLimits()) : LockerStore, Store<ServerLocker>(database, LockerStoreDefinitionV2) {
     private val roomIdKey = LockerStoreDefinitionV2.roomIdKey
     private val lockerIdKey = LockerStoreDefinitionV2.lockerIdKey
@@ -70,15 +76,25 @@ class LockerStoreImpl(private val database: Database, private val limits: com.la
     })
 
     override suspend fun updateLocker(locker: ServerLocker) = updateLockers(listOf(locker))
-    override suspend fun updateLockers(lockers: List<ServerLocker>) {
+    override suspend fun updateLockers(lockers: List<ServerLocker>) = updateLockers(lockers, emptyMap())
+    /**
+     * Like [updateLockers], given rows the caller already read in this transaction under the room
+     * lock: [checked] maps each read identity to its stored row, or null when it was absent.
+     * Not part of [LockerStore], so a delegating extension store keeps its own write path.
+     */
+    suspend fun updateLockers(lockers: List<ServerLocker>, checked: Map<LockerKey, ServerLocker?>) {
         if (lockers.isEmpty()) return
         require(lockers.size <= 1024) { "Locker store batch exceeds bounded work" }
         val rooms = lockers.map { requireNotNull(it.roomId) }.distinct().sortedBy { roomMutationKey(it) }
         suspend fun owned(index: Int) {
             if (index < rooms.size) { database.transaction(roomMutationKey(rooms[index])) { owned(index + 1) }; return }
             database.transaction(family.lockKey) {
-                val unique = lockers.distinctBy { Triple(it.roomId, it.keyspace, it.lockerId) }
-                val added = unique.filter { getLocker(requireNotNull(it.roomId), it.keyspace, requireNotNull(it.lockerId)) == null }
+                val unique = lockers.distinctBy { it.key }
+                val unchecked = unique.filter { it.key !in checked }
+                val stored = unchecked.groupBy { requireNotNull(it.roomId) }.flatMap { (room, rows) ->
+                    getLockers(room, rows.map { it.keyspace to requireNotNull(it.lockerId) })
+                }.map { it.key }.toSet()
+                val added = unique.filter { if (it.key in checked) checked[it.key] == null else it.key !in stored }
                 if (added.isNotEmpty()) {
                     // Lockers are never removed (deletion retires content), so admission only grows.
                     val perRoom = added.groupBy { requireNotNull(it.roomId) }
