@@ -475,7 +475,8 @@ class RoomServiceImpl(
             val seen = agentChanges.value
             val committed = commitLockerChanges(context, room, request, digest, trace, outbox)
             if (!committed.result.isOk() || !committed.agentPending || !lifecycleStarted.get()) return@watch committed
-            agentWorkflow.wake()
+            // Hand the room straight to a worker; no discovery scan is needed for the request's own work.
+            agentWorkflow.submit(room.rawValue)
             // Waiting observes owned work. A disconnected caller never owns its execution job.
             awaitAgentOutcome(room, request.writeRequestId, agentChanges, seen) ?: committed
         }
@@ -683,33 +684,52 @@ class RoomServiceImpl(
 
     }
 
+    /**
+     * Commits a persisted agent result: derived lockers, their delivery events and the applied
+     * journal state in one room transaction. Derived lockers are read once and that read admits
+     * them. The source receipt is not rewritten: while the journal row exists (receipts and journal
+     * rows are created and pruned together) replay and outcome reads take agent state from it.
+     */
     private suspend fun applyAgentResult(ready: ServerAgentWork, fence: RoomMutationFence) {
         val room = RoomId(ready.roomId); val outbox = requireNotNull(deliveryOutbox)
+        val serverRoom = ServerRoomId(room.rawValue)
         withContext(fence) {
             dispatchers.runOnDispatcher(room) {
                 val events = mutableListOf<Event>(); val recipients = mutableListOf<SessionId>()
                 outbox.commit(room, recipients, events) {
                     val complete = responseForWork(ready).copy(agentPending = false, agentFailed = false, agentIndeterminate = false)
                     outbox.agentWork.complete(ready, AgentWorkState.APPLIED, complete) {
-                        recipients.addAll(subscriptionStore.getAllSessions(ServerRoomId(room.rawValue)).map { SessionId(it.rawValue) })
-                        val writes = linkedMapOf<LockerId, ServerLocker>()
+                        recipients.addAll(subscriptionStore.getAllSessions(serverRoom).map { SessionId(it.rawValue) })
+                        fun keyOf(write: ServerAgentDerivedWrite): LockerKey =
+                            Triple(serverRoom, write.keyspace, ServerLockerId(write.lockerId))
+                        val keys = ready.writes.map(::keyOf).distinct()
+                        val stored = lockerStore.getLockers(serverRoom, keys.map { it.second to requireNotNull(it.third) })
+                            .associateBy { it.key }
+                        val checked: Map<LockerKey, ServerLocker?> = keys.associateWith { stored[it] }
+                        val writes = linkedMapOf<LockerKey, ServerLocker>()
                         for (write in ready.writes) {
-                            val id = LockerId(write.lockerId, LockerKeyspace(write.keyspace))
-                            val old = writes[id] ?: lockerStore.getLocker(ServerRoomId(room.rawValue), write.keyspace, ServerLockerId(write.lockerId))
-                            val version = old?.version ?: 0
+                            val key = keyOf(write)
+                            val version = (writes[key] ?: stored[key])?.version ?: 0
                             requireAgentOutput(version in 0 until Long.MAX_VALUE, "Derived locker version exhausted")
-                            writes[id] = ServerLocker(ServerRoomId(room.rawValue), write.keyspace, ServerLockerId(write.lockerId), write.encodedLocker, version + 1)
-                            val event = Event(roomId = room, eventId = EventId(Random.nextBytes(32)), locker = IdentifiedLocker(id, Locker.fromByteArray(write.encodedLocker), version + 1))
-                            requireAgentOutput(ProtocolValidation.event(event.copy(roomSequence = Long.MAX_VALUE)), "Derived delivery event exceeds protocol bounds")
-                            events.add(event)
+                            writes[key] = ServerLocker(serverRoom, write.keyspace, ServerLockerId(write.lockerId),
+                                write.encodedLocker, version + 1)
+                            events.add(derivedEvent(room, write, version + 1))
                         }
-                        lockerStore.updateLockers(writes.values.toList())
-                        val receipt = requireNotNull(outbox.receipt(room, ready.writeRequestId))
-                        outbox.saveReceipt(receipt.copy(encodedOutcome = complete.toByteArray()))
+                        val builtIn = lockerStore as? LockerStoreImpl
+                        if (builtIn != null) builtIn.updateLockers(writes.values.toList(), checked)
+                        else lockerStore.updateLockers(writes.values.toList())
                     }
                 }
             }
         }
+    }
+
+    private suspend fun derivedEvent(room: RoomId, write: ServerAgentDerivedWrite, version: Long): Event {
+        val id = LockerId(write.lockerId, LockerKeyspace(write.keyspace))
+        val event = Event(roomId = room, eventId = EventId(Random.nextBytes(32)),
+            locker = IdentifiedLocker(id, Locker.fromByteArray(write.encodedLocker), version))
+        requireAgentOutput(ProtocolValidation.event(event.copy(roomSequence = Long.MAX_VALUE)), "Derived delivery event exceeds protocol bounds")
+        return event
     }
 
     /** Trusted reconciliation hook. It never invokes the external effect again. */

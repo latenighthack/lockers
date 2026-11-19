@@ -11,10 +11,12 @@ import com.latenighthack.lockers.common.v1.Locker
 import com.latenighthack.lockers.common.v1.LockerId
 import com.latenighthack.lockers.common.v1.RoomId
 import com.latenighthack.lockers.common.v1.SessionId
+import com.latenighthack.lockers.room.v1.GetWriteOutcomeRequest
 import com.latenighthack.lockers.room.v1.LocalRoomServiceRpc
 import com.latenighthack.lockers.room.v1.PostLockerChangeRequest
 import com.latenighthack.lockers.room.v1.PostLockerChangesRequest
 import com.latenighthack.lockers.room.v1.PostLockerChangesResponse
+import com.latenighthack.lockers.room.v1.WriteOutcome
 import com.latenighthack.lockers.server.agents.IdempotentLockerAgentRegistry
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
 import com.latenighthack.lockers.server.claim.PgTestGate
@@ -102,6 +104,13 @@ class MoveStoreCostTest {
             assertEquals(PostLockerChangesResponse.Result.OK, response.result)
             assertFalse(response.agentPending, "request should observe its applied frames")
             println("MOVE COST\n$move")
+            // The receipt is not rewritten when frames apply; replays and outcomes read the journal.
+            val replay = h.rpc.postLockerChanges(move(2, 1))
+            assertEquals(PostLockerChangesResponse.Result.OK, replay.result)
+            val settled = !replay.agentPending && !replay.agentFailed && !replay.agentIndeterminate
+            assertTrue(settled, "replay of an applied move: $replay")
+            val outcome = h.rpc.getWriteOutcome(GetWriteOutcomeRequest(room, move(2, 1).writeRequestId)).outcome
+            assertEquals(WriteOutcome.AgentState.APPLIED, outcome?.agentState)
             delay(SETTLE_MS)
             h.counter.reset()
             delay(IDLE_WINDOW_MS)
@@ -121,7 +130,7 @@ class MoveStoreCostTest {
 
     private companion object {
         const val REQUEST_BUDGET = 16
-        const val AGENT_BUDGET = 24
+        const val AGENT_BUDGET = 18
         const val REQUEST_LOCK_BUDGET = 4
         const val IDLE_ROOM_BUDGET = 4
         const val IDLE_POLL_BUDGET = 3

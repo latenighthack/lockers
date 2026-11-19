@@ -1151,9 +1151,7 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val claim = outbox.agentWork.claim(room, writeRequestId, result.agentVersion, System.currentTimeMillis()) ?: return true</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val complete = responseForWork(ready).copy(agentPending = false, agentFailed = false, agentIndeterminate = false)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val effectiveLock = if (prefetchLocks) prefetchedLock else effectiveLockOrNull(requestRoomId, requestLockerId)</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val event = Event(roomId = room, eventId = EventId(Random.nextBytes(32)), locker = IdentifiedLocker(id, Locker.fromByteArray(write.encodedLocker), version + 1))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val grant = request.grant ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val old = writes[id] ?: lockerStore.getLocker(ServerRoomId(room.rawValue), write.keyspace, ServerLockerId(write.lockerId))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val outcome = WriteOutcome(roomCopy, identity.copyOf(), response.sourceVersions, agentState(work.state))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val outputs = if (agentRegistry is IdempotentLockerAgentRegistry) agentRegistry.processPayload(effectKey.copyOf(), room, id, locker) else agentRegistry.processPayload(room, id, locker)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val page = snapshots.next(1, room, session, spaces, request.pageSize, request.pageToken, request.intentRevision)</ID>
@@ -1174,7 +1172,6 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$writes.add(ServerAgentDerivedWrite(write.lockerId.rawValue, write.lockerId.keyspace?.value ?: 0, write.locker.toByteArray()))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$writes.map { ServerAgentDerivedWrite(it.lockerId.rawValue, it.lockerId.keyspace?.value ?: 0, it.locker.toByteArray()) }</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$writes.sumOf { it.locker.toByteArray().size.toLong() } &lt;= minOf(8L * 1024 * 1024, config.maxLockerPayloadBytes.toLong())</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$writes[id] = ServerLocker(ServerRoomId(room.rawValue), write.keyspace, ServerLockerId(write.lockerId), write.encodedLocker, version + 1)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$}</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceModule$override val server: RoomServer get() = com.latenighthack.lockers.server.services.session.v1.AuthorizedRoomServer(serverImpl, serverCore.sessionProofVerifier)</ID>
     <ID>MaxLineLength:RuntimeCancellationTest.kt$RuntimeCancellationTest$sessionId = SessionId(byteArrayOf(1)); registration { backend.apns { deviceToken = byteArrayOf(1) } }</ID>

@@ -64,7 +64,7 @@ internal class AgentWorkflow(private val outbox: DeliveryOutboxStore, private va
     private val logger = LoggerFactory.getLogger(AgentWorkflow::class.java)
     private val started = java.util.concurrent.atomic.AtomicBoolean(false)
     private val wakeups = Channel<Unit>(Channel.CONFLATED)
-    private val dispatched = Channel<ServerAgentWork>(Channel.UNLIMITED)
+    private val dispatched = Channel<ByteArray>(Channel.UNLIMITED)
     // At most one item per room is in flight; the claim only admits a room's first active item.
     private val busyRooms = ConcurrentHashMap.newKeySet<List<Byte>>()
     val signals = AgentWorkSignals()
@@ -72,10 +72,18 @@ internal class AgentWorkflow(private val outbox: DeliveryOutboxStore, private va
     /** Requests a discovery scan after a commit that enqueued (or unblocked) agent work. */
     fun wake() { wakeups.trySend(Unit) }
 
+    /**
+     * Runs [room]'s first due item without a discovery scan, after a local commit enqueued it. A
+     * room already in flight is left to that worker, whose completion wakes discovery.
+     */
+    fun submit(room: ByteArray) {
+        if (busyRooms.add(room.toList())) dispatched.trySend(room.copyOf())
+    }
+
     fun start() {
         check(started.compareAndSet(false, true))
         scope.launch { discover() }
-        repeat(workers) { scope.launch { for (candidate in dispatched) run(candidate) } }
+        repeat(workers) { scope.launch { for (room in dispatched) run(room) } }
         scope.launch {
             // Counters written by this version are exact; recount once after a rolling deploy's
             // previous version, which admitted rows without counting them, has stopped.
@@ -126,7 +134,7 @@ internal class AgentWorkflow(private val outbox: DeliveryOutboxStore, private va
         do {
             val page = outbox.agentWork.upcoming(now, now + idleScanMaxMs, after)
             for (candidate in page.due) {
-                if (busyRooms.add(candidate.roomId.toList())) dispatched.send(candidate)
+                if (busyRooms.add(candidate.roomId.toList())) dispatched.send(candidate.roomId)
             }
             if (page.nextDueAt != null) return page.nextDueAt
             after = page.continuation
@@ -134,12 +142,12 @@ internal class AgentWorkflow(private val outbox: DeliveryOutboxStore, private va
         return null
     }
 
-    private suspend fun run(candidate: ServerAgentWork) {
+    private suspend fun run(roomId: ByteArray) {
         var executed = false
         try {
-            val room = RoomId(candidate.roomId)
+            val room = RoomId(roomId)
             val fence = try { ownership.mutationFence(0, room) } catch (_: RoomOwnershipLost) { return }
-            // The candidate only names a room with due work; the room's first active item runs.
+            // Dispatch only names a room with due work; the room's first active item runs.
             val claimed = outbox.agentWork.claimNext(room, version, System.currentTimeMillis()) ?: return
             executed = true
             try { execute(claimed, fence) }
@@ -149,7 +157,7 @@ internal class AgentWorkflow(private val outbox: DeliveryOutboxStore, private va
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (error: Exception) { logger.warn("Agent work claim failed; work remains recoverable", error) }
         finally {
-            busyRooms.remove(candidate.roomId.toList())
+            busyRooms.remove(roomId.toList())
             // The room's next item, or a retry, may now be due.
             if (executed) wake()
         }
