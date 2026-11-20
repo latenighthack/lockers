@@ -101,6 +101,8 @@ class AgentWorkStore(private val database: Database, private val clock: () -> Lo
         if (first?.key?.contentEquals(row.key) != true) return@transaction null
         claimRow(row, expectedVersion, now, leaseMs)
     }
+    /** Whether the room has journaled agent work that has not settled; later work must queue behind it. */
+    suspend fun hasActive(room: RoomId): Boolean = firstActive(room) != null
     private suspend fun firstActive(room: RoomId) = database.query(AgentWorkDefinitionV3.storeName,
         roomQuery(AgentWorkDefinitionV3.active, room.rawValue, 1)).records.firstOrNull()?.let(::decode)
     /** Claims the room's first active item when it is due; later items wait behind it in source order. */

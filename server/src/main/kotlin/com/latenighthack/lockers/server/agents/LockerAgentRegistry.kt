@@ -28,3 +28,24 @@ interface IdempotentLockerAgentRegistry : LockerAgentRegistry {
     override suspend fun processPayload(roomId: RoomId, lockerId: LockerId, locker: Locker): List<LockerAgentRegistry.LockerWrite> =
         throw UnsupportedOperationException("Durable agents require an immutable effect key")
 }
+
+/**
+ * Agents whose derived writes can share the source write's transaction.
+ *
+ * [prepare] must have no external effect: the room service may call it before the source write
+ * is accepted, discard its result (a rejected or conflicting write, an aborted commit), or call it
+ * again for the same input. Its state changes belong in [Prepared.commit], which runs inside the
+ * room's write transaction on the server's shared database, so they commit or roll back with the
+ * source write and the derived lockers. When the room service cannot apply a prepared result in
+ * the same transaction, it uses the journaled [processPayload] path instead, which by default
+ * prepares and commits immediately.
+ */
+interface TransactionalLockerAgentRegistry : LockerAgentRegistry {
+    class Prepared(val writes: List<LockerAgentRegistry.LockerWrite>, val commit: suspend () -> Unit = {})
+
+    suspend fun prepare(roomId: RoomId, lockerId: LockerId, locker: Locker): Prepared
+
+    override suspend fun processPayload(roomId: RoomId, lockerId: LockerId,
+        locker: Locker): List<LockerAgentRegistry.LockerWrite> =
+        prepare(roomId, lockerId, locker).let { prepared -> prepared.commit(); prepared.writes }
+}

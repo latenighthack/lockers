@@ -1087,7 +1087,6 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$context.originalUrl</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$else -&gt; throw BatchRejected(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_AUTHORIZED))</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$encodedBytes &gt; ProtocolValidation.MAX_ENVELOPE_BYTES</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$for</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$grant.toByteArray().size &gt; 1024</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$if</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$if (!LockerEnvelope.isSupported(updatedLocker)) return PostLockerChangeResponse(result = PostLockerChangeResponse.Result.NOT_AUTHORIZED)</ID>
@@ -1153,7 +1152,6 @@
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val effectiveLock = if (prefetchLocks) prefetchedLock else effectiveLockOrNull(requestRoomId, requestLockerId)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val grant = request.grant ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val outcome = WriteOutcome(roomCopy, identity.copyOf(), response.sourceVersions, agentState(work.state))</ID>
-    <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val outputs = if (agentRegistry is IdempotentLockerAgentRegistry) agentRegistry.processPayload(effectKey.copyOf(), room, id, locker) else agentRegistry.processPayload(room, id, locker)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val page = snapshots.next(1, room, session, spaces, request.pageSize, request.pageToken, request.intentRevision)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val requestRoomId = request.roomId ?: return@trackResponse LockLockerResponse(result = LockLockerResponse.Result.UNKNOWN_ERROR)</ID>
     <ID>MaxLineLength:RoomServiceImpl.kt$RoomServiceImpl$val requestRoomId = request.roomId ?: return@trackResponse UnlockLockerResponse(result = UnlockLockerResponse.Result.UNKNOWN_ERROR)</ID>

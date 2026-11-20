@@ -72,8 +72,10 @@ class DeliveryOutboxStore(private val delegate: Database, private val prefix: St
      */
     suspend fun recountCapacity() = CapacityCounters.families().forEach { counters.reset(it) }
     suspend fun receipt(room: RoomId, id: ByteArray) = receipts.find(ServerRoomId(room.rawValue), id)
-    suspend fun saveReceipt(receipt: ServerWriteReceipt) {
+    /** Saves a receipt; [journaled] skips adoption when the caller journaled it in this transaction. */
+    suspend fun saveReceipt(receipt: ServerWriteReceipt, journaled: Boolean = false) {
         receipts.put(receipt)
+        if (journaled) return
         val response = com.latenighthack.lockers.room.v1.PostLockerChangesResponse.fromByteArray(receipt.encodedOutcome)
         if (!response.agentPending && !response.agentIndeterminate) agentWork.adopt(receipt)
     }

@@ -19,6 +19,7 @@ import com.latenighthack.lockers.room.v1.PostLockerChangesResponse
 import com.latenighthack.lockers.room.v1.WriteOutcome
 import com.latenighthack.lockers.server.agents.IdempotentLockerAgentRegistry
 import com.latenighthack.lockers.server.agents.LockerAgentRegistry
+import com.latenighthack.lockers.server.agents.TransactionalLockerAgentRegistry
 import com.latenighthack.lockers.server.claim.PgTestGate
 import com.latenighthack.lockers.server.services.room.v1.DeliveryOutboxStore
 import com.latenighthack.lockers.server.services.room.v1.FencedMemoryDelegate
@@ -63,6 +64,11 @@ class MoveStoreCostTest {
         override suspend fun processPayload(effectKey: ByteArray, roomId: RoomId, lockerId: LockerId, locker: Locker) =
             frames.map { LockerAgentRegistry.LockerWrite(it, locker) }
     }
+    /** The same frames, prepared before the move commits and applied in its transaction. */
+    private val inlineAgent = object : TransactionalLockerAgentRegistry {
+        override suspend fun prepare(roomId: RoomId, lockerId: LockerId, locker: Locker) =
+            TransactionalLockerAgentRegistry.Prepared(frames.map { LockerAgentRegistry.LockerWrite(it, locker) })
+    }
     private val noGateway = object : SessionGatewayDiscovery {
         override suspend fun findServer(sessionId: SessionId): SessionGatewayService? = null
     }
@@ -76,7 +82,7 @@ class MoveStoreCostTest {
     }
 
     private suspend fun harness(configuration: DatabaseConfiguration, delegate: LifecycleStoreDelegate,
-        countLockRequests: Boolean = true): Harness {
+        countLockRequests: Boolean = true, registry: LockerAgentRegistry = agent): Harness {
         val counter = CountingStoreDelegate(delegate, countLockRequests).also { locks = it }
         val db = Database(configuration, counter, ReadCacheConfiguration.Disabled)
         val outbox = DeliveryOutboxStore(db).also { it.prepareStores() }
@@ -86,12 +92,13 @@ class MoveStoreCostTest {
         db.open()
         repeat(2) { subs.addSubscription(ServerSessionId(byteArrayOf(7, it.toByte())), ServerRoomId(room.rawValue)) }
         val config = LockersConfig.defaults().copy(deliveryWorkerEnabled = false)
-        val service = RoomServiceImpl(subs, lockers, locks, noGateway, LocalRoomOwnership(), agent,
+        val service = RoomServiceImpl(subs, lockers, locks, noGateway, LocalRoomOwnership(), registry,
             SimpleMeterRegistry(), config, outbox)
         return Harness(db, counter, outbox, service)
     }
 
-    private suspend fun measure(h: Harness, lockBudget: Int? = null) {
+    private suspend fun measure(h: Harness, lockBudget: Int? = null, requestBudget: Int = REQUEST_BUDGET,
+        agentBudget: Int = AGENT_BUDGET) {
         h.service.start()
         try {
             // First move admits new lockers; the measured move is the steady state of a game.
@@ -119,8 +126,8 @@ class MoveStoreCostTest {
             // Admission reads counters; no COUNT scan remains on either side of a move.
             val keys = move.request.keys + move.background.keys
             assertTrue(keys.none { it.startsWith("count:") }, "COUNT on the move path: $move")
-            assertTrue(move.requestOps <= REQUEST_BUDGET, "request side: ${move.requestOps} > $REQUEST_BUDGET\n$move")
-            assertTrue(move.backgroundOps <= AGENT_BUDGET, "agent side: ${move.backgroundOps} > $AGENT_BUDGET\n$move")
+            assertTrue(move.requestOps <= requestBudget, "request side: ${move.requestOps} > $requestBudget\n$move")
+            assertTrue(move.backgroundOps <= agentBudget, "agent side: ${move.backgroundOps} > $agentBudget\n$move")
             // A logical lock the transaction already holds is not requested from Postgres again.
             lockBudget?.let { assertTrue(move.requestLocks <= it, "advisory lock statements: $move") }
             // Discovery is woken in-process; an idle room service only runs its slow safety-net scan.
@@ -132,6 +139,8 @@ class MoveStoreCostTest {
         const val REQUEST_BUDGET = 16
         const val AGENT_BUDGET = 18
         const val REQUEST_LOCK_BUDGET = 4
+        const val INLINE_REQUEST_BUDGET = 16
+        const val INLINE_AGENT_BUDGET = 0
         const val IDLE_ROOM_BUDGET = 4
         const val IDLE_POLL_BUDGET = 3
         const val SETTLE_MS = 300L
@@ -144,6 +153,13 @@ class MoveStoreCostTest {
     @Test fun `in-memory move and idle storage cost`(): Unit = runBlocking {
         val configuration = ServerStorage.configuration("move-cost-${kotlin.random.Random.nextLong()}")
         measure(harness(configuration, MeasuredStoreDelegate(FencedMemoryDelegate(InMemoryStoreDelegate()))))
+    }
+
+    @Test fun `in-memory move with a transactional agent commits frames in one transaction`(): Unit = runBlocking {
+        val configuration = ServerStorage.configuration("inline-cost-${kotlin.random.Random.nextLong()}")
+        val delegate = MeasuredStoreDelegate(FencedMemoryDelegate(InMemoryStoreDelegate()))
+        measure(harness(configuration, delegate, registry = inlineAgent), requestBudget = INLINE_REQUEST_BUDGET,
+            agentBudget = INLINE_AGENT_BUDGET)
     }
 
     @Test fun `room blocked behind indeterminate work keeps discovery backed off`(): Unit = runBlocking {
