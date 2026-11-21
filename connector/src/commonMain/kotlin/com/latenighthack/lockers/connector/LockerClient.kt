@@ -398,6 +398,40 @@ class LockerClient(
     }
 
     /**
+     * Rooms whose cache is complete for the connected session: hydrated by a subscribed snapshot at
+     * [Live.sequence], then advanced by every delivered event in room order. A subscribed session
+     * receives every room event, so a sequence gap means a missed delivery; the room then stops
+     * being live and re-hydrates. While live, watchers and revalidation reads skip the network.
+     */
+    private class Live(val session: SessionId, var sequence: Long)
+    private val liveMutex = Mutex()
+    private val liveRooms = HashMap<RoomId, Live>()
+    private suspend fun isLive(roomId: RoomId): Boolean {
+        val session = stream.sessionId.value ?: return false
+        return liveMutex.withLock { liveRooms[roomId.canonical()]?.session == session }
+    }
+    private suspend fun markLive(roomId: RoomId, session: SessionId, watermark: Long) {
+        liveMutex.withLock {
+            val current = liveRooms[roomId]
+            // A slower, older snapshot never moves a live room backwards.
+            if (current == null || current.session != session || current.sequence < watermark) {
+                liveRooms[roomId] = Live(session, watermark)
+            }
+        }
+    }
+    private suspend fun forgetLive(roomId: RoomId) { liveMutex.withLock { liveRooms.remove(roomId.canonical()) } }
+    /** Advances a live room by one delivered event; true when the event reveals a missed delivery. */
+    private suspend fun advanceLive(roomId: RoomId, sequence: Long): Boolean = liveMutex.withLock {
+        val live = liveRooms[roomId] ?: return@withLock false
+        when {
+            sequence <= 0L -> { liveRooms.remove(roomId); false }
+            sequence <= live.sequence -> false
+            sequence == live.sequence + 1 -> { live.sequence = sequence; false }
+            else -> { liveRooms.remove(roomId); true }
+        }
+    }
+
+    /**
      * Best effort: agent-derived lockers committed with a write reach the cache with the reply.
      * Delivery carries the same versions later and is then a no-op; on any local failure it
      * remains the path that applies them.
@@ -652,6 +686,8 @@ class LockerClient(
                 }
             }
         }
+        // Only a subscribed, sequenced snapshot can anchor event-driven freshness.
+        if (session != null && capabilities.subscribeAndSnapshot) markLive(room, session, requireNotNull(watermark))
         lockers
         }
     }
@@ -810,7 +846,7 @@ class LockerClient(
             try {
                 coroutineScope {
                     val hydration = launch {
-                        try { subscribeToRoom(roomId, false); fetchAllLockers(roomId, keyspace) }
+                        try { subscribeToRoom(roomId, false); if (!isLive(roomId)) fetchAllLockers(roomId, keyspace) }
                         catch (e: CancellationException) { throw e }
                         catch (e: Exception) { log.error { "watch hydration failed: $e" } }
                     }
@@ -837,6 +873,13 @@ class LockerClient(
         val hasBody = body != null
         if (body != null && !LockerEnvelope.isSupported(body)) return false
         rememberAuthority(roomId, lockerId, identified?.lockState)
+        if (lockerId != null && advanceLive(roomId, event.roomSequence)) {
+            processingScope.launch {
+                try { hydrateRoom(roomId) }
+                catch (e: CancellationException) { throw e }
+                catch (e: Exception) { log.error { "gap re-hydration failed for ${roomId.toLogString()}: $e" } }
+            }
+        }
 
         if (lockerId != null) {
             if (hasBody) {
@@ -915,6 +958,7 @@ class LockerClient(
     }
 
     suspend fun unsubscribeFromRoom(roomId: RoomId) {
+        forgetLive(roomId)
         stream.unsubscribe(roomId.canonical())
     }
 
@@ -923,7 +967,7 @@ class LockerClient(
         val cached = lockerStore.getAllLockers(roomId, keyspace)
 
         if (cached.isNotEmpty()) {
-            if (revalidate) {
+            if (revalidate && !isLive(roomId)) {
                 processingScope.launch {
                     // background revalidation is best-effort; a network failure must not
                     // surface as an uncaught crash
@@ -966,7 +1010,7 @@ class LockerClient(
         val cached = lockerStore.getLocker(roomId, lockerId.keyspaceOrDefault(), lockerId)
 
         if (cached != null) {
-            if (revalidate) {
+            if (revalidate && !isLive(roomId)) {
                 processingScope.launch {
                     // background revalidation is best-effort; a network failure must not
                     // surface as an uncaught crash
