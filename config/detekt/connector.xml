@@ -267,7 +267,6 @@
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val authority = if (initialKey != null) targetVersion + 1 else authorities[change.lockerId] ?: 0L</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val authority = sync.network { roomService.getLocker(GetLockerRequest(room, id.canonical())) }.locker?.lockState?.publicKey?.rawValue ?: return</ID>
-    <ID>MaxLineLength:LockerClient.kt$LockerClient$val authorityState = if (signingKey != null &amp;&amp; caps.authorityV2) currentAuthorityState(roomId, lockerId) else null</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val body = if (caps.authorityV2) buildWriteBody(signingKey, roomId, lockerId, parentVersion, newPlaintext, authority, notif, true) else provisional</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val body = locker.copy(sealed = sealed.copy(payload = payload.copy(enclosure = enclosure.copy(signature = signature))))</ID>
     <ID>MaxLineLength:LockerClient.kt$LockerClient$val context = if (v2) LockerSigning.unlockContextV2(roomId, scope, parentLockVersion) else LockerSigning.unlockContext(roomId, scope)</ID>

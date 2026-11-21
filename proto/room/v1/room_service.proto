@@ -102,6 +102,9 @@ message PostLockerChangeResponse {
   bytes write_request_id = 8;
   bool agent_indeterminate = 9;
   repeated WriteSourceVersion source_versions = 10;
+  // Agent-derived lockers committed with this write, as subscribers will receive them. Present only
+  // when the agent ran in the write's own transaction; replays omit them (delivery still applies).
+  repeated common.v1.IdentifiedLocker derived_lockers = 11;
 }
 
 message DeleteLockerRequest {
@@ -278,6 +281,9 @@ message PostLockerChangesResponse {
   bytes write_request_id = 7;
   bool agent_indeterminate = 8;
   repeated WriteSourceVersion source_versions = 9;
+  // Agent-derived lockers committed with this write, as subscribers will receive them. Present only
+  // when the agent ran in the write's own transaction; replays omit them (delivery still applies).
+  repeated common.v1.IdentifiedLocker derived_lockers = 10;
 }
 
 // Public metadata read, following GetLocker's read contract. No payloads or request digests.

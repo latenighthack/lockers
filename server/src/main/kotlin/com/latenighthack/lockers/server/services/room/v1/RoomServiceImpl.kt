@@ -623,13 +623,21 @@ class RoomServiceImpl(
             result = PostLockerChangesResponse.Result.CONFLICT, changes = results, lockState = lockState), PostLockerChangesResponse::writeTo))
         // A prepared result applies only when no earlier agent work is still queued for the room.
         val applied = inline != null && !outbox.agentWork.hasActive(room)
-        writeLockers(room, sourceWrites, inline.takeIf { applied }, read, events)
+        val derived = writeLockers(room, sourceWrites, inline.takeIf { applied }, read, events)
         val pending = boundedResponse(PostLockerChangesResponse(result = PostLockerChangesResponse.Result.OK, changes = results,
             lockState = lockState, agentPending = agentRegistry !== LockerAgentRegistry.None && !applied, writeRequestId = request.writeRequestId,
             sourceVersions = normalized.zip(results) { change, result -> WriteSourceVersion(change.lockerId, result.version) }),
             PostLockerChangesResponse::writeTo)
         journal(room, request.copy(changes = normalized), pending, applied, digest, outbox)
-        return StagedWrite.Pending(pending)
+        // Frames ride on the reply only; the stored receipt and journal stay small.
+        return StagedWrite.Pending(withDerived(pending, derived))
+    }
+
+    /** Adds committed derived lockers when the reply still fits the transport envelope. */
+    private fun withDerived(response: PostLockerChangesResponse, derived: List<IdentifiedLocker>): PostLockerChangesResponse {
+        if (derived.isEmpty()) return response
+        val reply = response.copy(derivedLockers = derived)
+        return if (reply.toByteArray().size <= ProtocolValidation.MAX_ENVELOPE_BYTES) reply else response
     }
 
     /** Lockers read once under the room lock: [stored] by identity, [checked] for admission. */
@@ -644,16 +652,20 @@ class RoomServiceImpl(
         return LockerReads(stored, keys.associateWith { stored[it] })
     }
 
-    /** Writes source lockers and, when [inline] applies, derived lockers and the agent's own state. */
+    /**
+     * Writes source lockers and, when [inline] applies, derived lockers and the agent's own state.
+     * Returns the derived lockers as subscribers receive them.
+     */
     private suspend fun writeLockers(room: RoomId, sourceWrites: List<ServerLocker>, inline: InlineAgentResult?,
-        read: LockerReads, events: MutableList<Event>) {
+        read: LockerReads, events: MutableList<Event>): List<IdentifiedLocker> {
         val writes = LinkedHashMap<LockerKey, ServerLocker>().apply { sourceWrites.forEach { put(it.key, it) } }
-        inline?.let { stageDerived(room, it.writes, writes, read.stored, events) }
+        val derived = inline?.let { stageDerived(room, it.writes, writes, read.stored, events) }.orEmpty()
         // Extension stores keep their own write path; the built-in store reuses this transaction's reads.
         val builtIn = lockerStore as? LockerStoreImpl
         val all = writes.values.toList()
         if (builtIn != null) builtIn.updateLockers(all, read.checked) else lockerStore.updateLockers(all)
         inline?.commits?.forEach { it() }
+        return derived
     }
 
     /** Journals the write (settled when its derived result already applied) and its receipt. */
@@ -676,15 +688,15 @@ class RoomServiceImpl(
 
     /** Versions each derived write after any earlier write to the same locker in this commit. */
     private suspend fun stageDerived(room: RoomId, derived: List<ServerAgentDerivedWrite>, writes: MutableMap<LockerKey, ServerLocker>,
-        stored: Map<LockerKey, ServerLocker>, events: MutableList<Event>) {
+        stored: Map<LockerKey, ServerLocker>, events: MutableList<Event>): List<IdentifiedLocker> {
         val serverRoom = ServerRoomId(room.rawValue)
-        for (write in derived) {
+        return derived.map { write ->
             val key = Triple(serverRoom, write.keyspace, ServerLockerId(write.lockerId))
             val version = (writes[key] ?: stored[key])?.version ?: 0
             requireAgentOutput(version in 0 until Long.MAX_VALUE, "Derived locker version exhausted")
             writes[key] = ServerLocker(serverRoom, write.keyspace, ServerLockerId(write.lockerId), write.encodedLocker,
                 version + 1)
-            events.add(derivedEvent(room, write, version + 1))
+            derivedEvent(room, write, version + 1).also { events.add(it) }.let { requireNotNull(it.locker) }
         }
     }
 
@@ -994,7 +1006,8 @@ class RoomServiceImpl(
             val batch = postLockerChanges(context, PostLockerChangesRequest(roomId = request.roomId,
                 changes = listOf(request.copy(writeRequestId = byteArrayOf())), writeRequestId = request.writeRequestId.takeIf { it.isNotEmpty() } ?: Random.nextBytes(32)))
             return@trackResponse batch.changes.firstOrNull()?.copy(agentFailed = batch.agentFailed, agentPending = batch.agentPending, agentIndeterminate = batch.agentIndeterminate,
-                writeRequestId = batch.writeRequestId, sourceVersions = batch.sourceVersions)
+                writeRequestId = batch.writeRequestId, sourceVersions = batch.sourceVersions,
+                derivedLockers = batch.derivedLockers)
                 ?: PostLockerChangeResponse(result = if (batch.result is PostLockerChangesResponse.Result.NOT_OWNER)
                     PostLockerChangeResponse.Result.NOT_OWNER else PostLockerChangeResponse.Result.UNKNOWN_ERROR, redirect = batch.redirect)
     }

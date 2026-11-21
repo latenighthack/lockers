@@ -269,6 +269,7 @@ class IncomingNotification(
 
 private const val WRITE_RETRY_LIMIT = 8
 private const val AUTHORITY_REPAIR_LIMIT = 3
+private const val AUTHORITY_CACHE_LIMIT = 4_096
 
 /**
  * A [LockerWriteException] is terminal (a bad/absent signing key, or an unauthorized
@@ -375,6 +376,41 @@ class LockerClient(
     private class SnapshotWatch(val revision: MutableStateFlow<Long> = MutableStateFlow(0), var users: Int = 0)
     private val watched = mutableMapOf<Pair<RoomId, LockerKeyspace>, SnapshotWatch>()
     private val watchMutex = Mutex()
+
+    // Lock state last reported for each locker by write replies, reads, snapshots and delivered
+    // events. A signed write binds it instead of reading it first; the server still verifies every
+    // signature, so a stale entry only costs a repaired or rebuilt retry, never an unauthorised write.
+    private val authorityMutex = Mutex()
+    private val authorities = LinkedHashMap<Pair<RoomId, LockerId>, LockState>()
+    private suspend fun rememberAuthority(roomId: RoomId?, lockerId: LockerId?, state: LockState?) {
+        if (roomId == null || lockerId == null || state == null) return
+        val key = roomId.canonical() to lockerId.canonical()
+        val copy = LockState.fromByteArray(state.toByteArray())
+        authorityMutex.withLock {
+            authorities.remove(key); authorities[key] = copy
+            while (authorities.size > AUTHORITY_CACHE_LIMIT) authorities.remove(authorities.keys.first())
+        }
+    }
+    private suspend fun cachedAuthority(roomId: RoomId, lockerId: LockerId): LockState? =
+        authorityMutex.withLock { authorities[roomId.canonical() to lockerId.canonical()] }
+    private suspend fun forgetAuthority(roomId: RoomId, lockerId: LockerId) {
+        authorityMutex.withLock { authorities.remove(roomId.canonical() to lockerId.canonical()) }
+    }
+
+    /**
+     * Best effort: agent-derived lockers committed with a write reach the cache with the reply.
+     * Delivery carries the same versions later and is then a no-op; on any local failure it
+     * remains the path that applies them.
+     */
+    private suspend fun acceptDerived(roomId: RoomId, derived: List<IdentifiedLocker>) {
+        for (locker in derived) {
+            val body = locker.locker
+            if (locker.lockerId == null || body == null || !LockerEnvelope.isSupported(body)) continue
+            try { accept(locker.toUpdate(roomId)) }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { log.error { "derived locker acceptance deferred to delivery: $e" } }
+        }
+    }
 
     class LockerUpdate(
         val roomId: RoomId,
@@ -606,6 +642,7 @@ class LockerClient(
             check(response.result.isOk()) { "Missing snapshot record confirmation rejected" }
             stored to response.locker
         }
+        lockers.forEach { rememberAuthority(room, it.lockerId, it.lockState) }
         withAcceptance {
             lockerStore.acceptAtomically {
                 lockers.forEach { acceptLocked(it.toUpdate(room, watermark)) }
@@ -710,6 +747,10 @@ class LockerClient(
                                         request.changes.zip(response.changes).map { (source, committed) -> WriteSourceVersion(source.lockerId, committed.version) })
                                 }
                             } }
+                            request.changes.zip(response.changes).forEach { (change, result) ->
+                                rememberAuthority(roomId, change.lockerId, result.lockState)
+                            }
+                            acceptDerived(roomId, response.derivedLockers)
                             if (response.agentFailed || response.agentPending || response.agentIndeterminate) throw LockerSourceCommittedException(
                                 response.changes.maxOfOrNull { it.version } ?: 0, response.agentPending,
                                 message = "Batch source committed; agent ${if (response.agentIndeterminate) "indeterminate" else if (response.agentPending) "pending" else "failed"}",
@@ -795,6 +836,7 @@ class LockerClient(
         val body = identified?.locker
         val hasBody = body != null
         if (body != null && !LockerEnvelope.isSupported(body)) return false
+        rememberAuthority(roomId, lockerId, identified?.lockState)
 
         if (lockerId != null) {
             if (hasBody) {
@@ -967,6 +1009,7 @@ class LockerClient(
     }
 
     private suspend fun acceptRead(room: RoomId, identified: IdentifiedLocker?, before: StoredLocker?): IdentifiedLocker? {
+        rememberAuthority(room, identified?.lockerId, identified?.lockState)
         withAcceptance {
             if (identified == null || (identified.locker == null && identified.version == 0L)) {
                 before?.let { forgetUnchanged(it) }
@@ -1112,12 +1155,19 @@ class LockerClient(
         var ambiguousAttempt = false
         var submittedAuthority: LockState? = null
         var authorityRepairs = 0
+        var authorityFromCache = false
         var committedAgentStatus: PostLockerChangeResponse? = null
         var committedResponse: PostLockerChangeResponse? = null
         val updatedLocker = try {
             repeatWithBackoff(retryLimit = WRITE_RETRY_LIMIT, exceptionHandler = WRITE_EXCEPTION_HANDLER) {
                 val request = submitted ?: run {
-                    val authorityState = if (signingKey != null && caps.authorityV2) currentAuthorityState(roomId, lockerId) else null
+                    // Ratchets keep reading authority first; other signed writes bind the cached state.
+                    val cachedState = if (signingKey != null && caps.authorityV2 && pendingRatchetKey == null)
+                        cachedAuthority(roomId, lockerId) else null
+                    authorityFromCache = cachedState != null
+                    val authorityState = if (signingKey != null && caps.authorityV2) {
+                        cachedState ?: currentAuthorityState(roomId, lockerId)
+                    } else null
                     submittedAuthority = authorityState?.let { LockState.fromByteArray(it.toByteArray()) }
                     val authority = authorityState?.lockVersion ?: 0L
                     val newPlaintext = transform(currentPlaintext.copyOf())
@@ -1148,6 +1198,7 @@ class LockerClient(
                 catch (failure: Exception) { ambiguousAttempt = true; throw failure }
 
                 if (result.result.isOk()) committedResponse = result
+                rememberAuthority(roomId, lockerId, result.lockState)
                 if (result.result.isOk() && (result.agentFailed || result.agentPending || result.agentIndeterminate)) committedAgentStatus = result
                 log.debug { "updated locker=${lockerId.toLogString()} result=${result.result} version=${result.version}" }
 
@@ -1191,6 +1242,14 @@ class LockerClient(
                                 telemetry.safeRecord(TelemetryOperation.CONNECTOR_CONFLICT, TelemetryOutcome.CONFLICT)
                                 retry()
                             }
+                        }
+                        // A definitive rejection of a write signed from cached authority cannot have
+                        // committed: rebuild it once from a fresh authority read, as before caching.
+                        if (authorityFromCache && !ambiguousAttempt && pendingRatchetKey == null) {
+                            forgetAuthority(roomId, lockerId)
+                            authorityFromCache = false
+                            submitted = null
+                            retry()
                         }
                         if (pendingRatchetKey != null) {
                             if (ambiguousAttempt) resolveRejectedRatchet(request, pendingRatchetKey)
@@ -1239,6 +1298,7 @@ class LockerClient(
         }
         val update = result.toUpdate(roomId)
         acceptCommitted(update, requireNotNull(submitted).writeRequestId)
+        committedResponse?.let { acceptDerived(roomId, it.derivedLockers) }
         adoptionPending?.let { throw it }
         committedAgentStatus?.let { throw LockerSourceCommittedException(it.version, it.agentPending,
             message = "Source committed at version ${it.version}; agent ${if (it.agentIndeterminate) "indeterminate" else if (it.agentPending) "pending" else "failed"}",
@@ -1474,7 +1534,7 @@ class LockerClient(
     private suspend fun currentAuthorityState(roomId: RoomId, lockerId: LockerId): LockState? {
         val response = sync.network { roomService.getLocker(GetLockerRequest(roomId, lockerId.canonical())) }
         check(response.result.isOk()) { "Authority discovery failed: ${response.result}" }
-        return response.locker?.lockState
+        return response.locker?.lockState?.also { rememberAuthority(roomId, lockerId, it) }
     }
 
     private class WriteBody(val locker: Locker, val signature: Signature?)

@@ -109,6 +109,11 @@ class InlineAgentTest {
             val response = h.rpc.postLockerChanges(move(1, 0))
             assertEquals(PostLockerChangesResponse.Result.OK, response.result)
             assertFalse(response.agentPending, "frames committed with the move")
+            // The reply carries the committed frame exactly as subscribers will receive it.
+            val returned = response.derivedLockers.single()
+            assertEquals(1L, returned.version)
+            assertEquals(30L, returned.lockerId?.keyspace?.value)
+            assertEquals(body(1).toByteArray().toList(), requireNotNull(returned.locker).toByteArray().toList())
             assertEquals(1, agent.prepared.get()); assertEquals(1, agent.committed.get())
             assertEquals(1L, h.locker(source)?.version); assertEquals(1L, h.locker(frame)?.version)
             assertEquals(1L, h.locker(LockerId(source.rawValue, LockerKeyspace(stateKeyspace)))?.version)
@@ -121,7 +126,9 @@ class InlineAgentTest {
             val outcome = h.rpc.getWriteOutcome(GetWriteOutcomeRequest(room, move(1, 0).writeRequestId)).outcome
             assertEquals(WriteOutcome.AgentState.APPLIED, outcome?.agentState)
             // A replay is answered from the receipt and journal; agent state never commits twice.
-            assertFalse(h.rpc.postLockerChanges(move(1, 0)).agentPending)
+            val replay = h.rpc.postLockerChanges(move(1, 0))
+            assertFalse(replay.agentPending)
+            assertTrue(replay.derivedLockers.isEmpty(), "replays fall back to delivery for frames")
             assertEquals(1, agent.committed.get())
             assertEquals(1L, h.locker(frame)?.version)
         } finally { h.close() }
@@ -146,6 +153,7 @@ class InlineAgentTest {
             val response = h.rpc.postLockerChanges(move(1, 0))
             assertEquals(PostLockerChangesResponse.Result.OK, response.result)
             assertTrue(response.agentPending)
+            assertTrue(response.derivedLockers.isEmpty())
             assertNull(h.locker(frame))
             agent.failPrepare = false
             val outcome = withTimeout(10_000) { h.service.writeOutcomeFlow(room, move(1, 0).writeRequestId)
