@@ -58,10 +58,14 @@ class InlineAgentTest {
     /** Writes one frame per source write and records agent state through its commit hook. */
     private inner class GameAgent(val lockers: () -> LockerStoreImpl) : TransactionalLockerAgentRegistry {
         val prepared = AtomicInteger(); val committed = AtomicInteger()
-        var failPrepare = false; var failCommit = false
+        val preparedAt = java.util.concurrent.CopyOnWriteArrayList<Long>()
+        @Volatile var failPrepare = false
+        @Volatile var failCommit = false
+        @Volatile var prepareMs = 0L
         override suspend fun prepare(roomId: RoomId, lockerId: LockerId,
             locker: Locker): TransactionalLockerAgentRegistry.Prepared {
-            prepared.incrementAndGet()
+            prepared.incrementAndGet(); preparedAt.add(System.currentTimeMillis())
+            if (prepareMs > 0) delay(prepareMs)
             check(!failPrepare) { "driver unavailable" }
             return TransactionalLockerAgentRegistry.Prepared(listOf(LockerAgentRegistry.LockerWrite(frame, locker))) {
                 check(!failCommit) { "agent state rejected" }
@@ -94,10 +98,18 @@ class InlineAgentTest {
         }
         val config = LockersConfig.defaults().copy(deliveryWorkerEnabled = false)
         val service = RoomServiceImpl(subs, lockers, locks, noGateway, LocalRoomOwnership(), registry,
-            SimpleMeterRegistry(), config, outbox)
+            SimpleMeterRegistry(), config, outbox, agentTimeoutMs = AGENT_DEADLINE_MS, inlineWaitMs = INLINE_WAIT_MS)
         service.start()
         return Harness(db, outbox, lockers, service) to registry as GameAgent
     }
+    private companion object {
+        const val INLINE_WAIT_MS = 150L
+        const val AGENT_DEADLINE_MS = 400L
+    }
+    private suspend fun Harness.outcome(n: Int, parent: Long) =
+        rpc.getWriteOutcome(GetWriteOutcomeRequest(room, move(n, parent).writeRequestId)).outcome?.agentState
+    private suspend fun Harness.awaitOutcome(n: Int, parent: Long, state: WriteOutcome.AgentState) =
+        withTimeout(10_000) { while (outcome(n, parent) != state) delay(20) }
     private suspend fun Harness.locker(id: LockerId) =
         lockers.getLocker(serverRoom, id.keyspace?.value ?: 0, ServerLockerId(id.rawValue))
     private suspend fun Harness.events() = outbox.claim("test", System.currentTimeMillis(), eventsPerRoom = 64)
@@ -129,6 +141,7 @@ class InlineAgentTest {
             val replay = h.rpc.postLockerChanges(move(1, 0))
             assertFalse(replay.agentPending)
             assertTrue(replay.derivedLockers.isEmpty(), "replays fall back to delivery for frames")
+            assertEquals(1, agent.prepared.get(), "a replay never asks the agent again")
             assertEquals(1, agent.committed.get())
             assertEquals(1L, h.locker(frame)?.version)
         } finally { h.close() }
@@ -145,10 +158,9 @@ class InlineAgentTest {
         } finally { h.close() }
     }
 
-    @Test fun `a failed preparation falls back to the journaled agent path`(): Unit = runBlocking {
+    @Test fun `a failed preparation is retried only after the agent deadline`(): Unit = runBlocking {
         val (h, agent) = harness { GameAgent(it) }
         try {
-            // Preparation fails inline and on the first journaled attempt, then succeeds on retry.
             agent.failPrepare = true
             val response = h.rpc.postLockerChanges(move(1, 0))
             assertEquals(PostLockerChangesResponse.Result.OK, response.result)
@@ -156,11 +168,44 @@ class InlineAgentTest {
             assertTrue(response.derivedLockers.isEmpty())
             assertNull(h.locker(frame))
             agent.failPrepare = false
-            val outcome = withTimeout(10_000) { h.service.writeOutcomeFlow(room, move(1, 0).writeRequestId)
-                .let { flow -> var last: WriteOutcome? = null; flow.collect { last = it }; last } }
-            assertEquals(WriteOutcome.AgentState.APPLIED, outcome?.agentState)
+            h.awaitOutcome(1, 0, WriteOutcome.AgentState.APPLIED)
             assertEquals(1L, h.locker(frame)?.version)
             assertEquals(1, agent.committed.get())
+            // One journaled attempt, no sooner than the deadline of the failed one.
+            assertEquals(2, agent.prepared.get())
+            assertTrue(agent.preparedAt[1] - agent.preparedAt[0] >= AGENT_DEADLINE_MS, "${agent.preparedAt}")
+        } finally { h.close() }
+    }
+
+    @Test fun `a preparation that outlasts the request applies from the same agent call`(): Unit = runBlocking {
+        val (h, agent) = harness { GameAgent(it) }
+        try {
+            agent.prepareMs = INLINE_WAIT_MS + 100
+            val response = h.rpc.postLockerChanges(move(1, 0))
+            assertEquals(PostLockerChangesResponse.Result.OK, response.result)
+            assertTrue(response.agentPending, "the request replies once its wait is over")
+            h.awaitOutcome(1, 0, WriteOutcome.AgentState.APPLIED)
+            assertEquals(1, agent.prepared.get(), "the slow call's result applied; it was not repeated")
+            assertEquals(1, agent.committed.get())
+            assertEquals(1L, h.locker(frame)?.version)
+            delay(AGENT_DEADLINE_MS * 2)
+            assertEquals(1, agent.prepared.get())
+        } finally { h.close() }
+    }
+
+    @Test fun `a failing agent gets a bounded number of spaced attempts`(): Unit = runBlocking {
+        val (h, agent) = harness { GameAgent(it) }
+        try {
+            agent.failPrepare = true
+            assertTrue(h.rpc.postLockerChanges(move(1, 0)).agentPending)
+            h.awaitOutcome(1, 0, WriteOutcome.AgentState.FAILED)
+            delay(AGENT_DEADLINE_MS * 2)
+            // The inline attempt plus two journaled attempts, each a full deadline apart.
+            assertEquals(3, agent.prepared.get(), "${agent.preparedAt}")
+            agent.preparedAt.zipWithNext().forEach { (a, b) ->
+                assertTrue(b - a >= AGENT_DEADLINE_MS, "${agent.preparedAt}")
+            }
+            assertNull(h.locker(frame))
         } finally { h.close() }
     }
 

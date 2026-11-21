@@ -139,7 +139,8 @@ class MoveStoreCostTest {
         const val REQUEST_BUDGET = 16
         const val AGENT_BUDGET = 18
         const val REQUEST_LOCK_BUDGET = 4
-        const val INLINE_REQUEST_BUDGET = 16
+        // One receipt read before preparing keeps a retried move from calling the agent again.
+        const val INLINE_REQUEST_BUDGET = 17
         const val INLINE_AGENT_BUDGET = 0
         const val IDLE_ROOM_BUDGET = 4
         const val IDLE_POLL_BUDGET = 3

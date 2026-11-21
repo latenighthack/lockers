@@ -46,6 +46,7 @@ private const val FORWARD_TIMEOUT_MS = 5_000L
 private const val WRITE_OUTCOME_FALLBACK_MS = 1_000L
 private const val AGENT_WAIT_MS = 5_000L
 private const val TRANSACTIONAL_AGENT_VERSION = "lockers.transactional/v1"
+private const val TRANSACTIONAL_AGENT_ATTEMPTS = 2
 
 @ServiceScope
 @Component
@@ -80,10 +81,17 @@ class RoomServiceImpl(
     private val agentTimeoutMs: Long = 30_000,
     private val agentMaxAttempts: Int = 8,
     private val cpuAdmission: CpuAdmission = CpuAdmission(config.resourceLimits),
+    /** How long a request waits for a transactional agent before replying with the write pending. */
+    private val inlineWaitMs: Long = AGENT_WAIT_MS,
 
     private val workTelemetry: OpenTelemetry = GlobalOpenTelemetry.get(),
 ) : BaseServiceImpl(), RoomServer {
-    init { require(agentTimeoutMs in 1..300_000 && agentMaxAttempts in 1..32) }
+    init { require(agentTimeoutMs in 1..300_000 && agentMaxAttempts in 1..32 && inlineWaitMs > 0) }
+    private val inlineBudgetMs = minOf(inlineWaitMs, agentTimeoutMs)
+    // Transactional preparation outlives the request that started it: the agent's slow external
+    // work (a driver call) keeps running and its result still applies, instead of being repeated.
+    private val inlineScope = CoroutineScope(coroutineContext + Dispatchers.IO + SupervisorJob(coroutineContext[Job]) +
+        ServiceLifecycle.context)
     private class AgentOutputRejected(message: String) : IllegalArgumentException(message)
     private fun requireAgentOutput(valid: Boolean, message: String) { if (!valid) throw AgentOutputRejected(message) }
     private val deliveryOutbox = deliveryOutbox ?: lockStore.deliveryOutbox()
@@ -484,8 +492,10 @@ class RoomServiceImpl(
         // Watch before committing: the agent may finish before this request starts waiting.
         return agentWorkflow.signals.watch(room.rawValue, request.writeRequestId) { agentChanges ->
             val seen = agentChanges.value
-            val committed = commitLockerChanges(context, room, request, digest, trace, outbox)
-            if (!committed.result.isOk() || !committed.agentPending || !lifecycleStarted.get()) return@watch committed
+            val (committed, deferred) = commitLockerChanges(context, room, request, digest, trace, outbox)
+            // A deferred journal row belongs to preparation already in flight; nothing is due to wait for.
+            val awaiting = committed.result.isOk() && committed.agentPending && !deferred
+            if (!awaiting || !lifecycleStarted.get()) return@watch committed
             // Hand the room straight to a worker; no discovery scan is needed for the request's own work.
             agentWorkflow.submit(room.rawValue)
             // Waiting observes owned work. A disconnected caller never owns its execution job.
@@ -512,63 +522,122 @@ class RoomServiceImpl(
 
     private sealed interface StagedWrite {
         class Replay(val response: PostLockerChangesResponse) : StagedWrite
-        class Pending(val response: PostLockerChangesResponse) : StagedWrite
+        class Pending(val response: PostLockerChangesResponse, val deferred: Boolean = false) : StagedWrite
     }
 
     @Suppress("LongParameterList")
     private suspend fun commitLockerChanges(context: GrpcRequestContext, room: RoomId, request: PostLockerChangesRequest,
-        digest: ByteArray, trace: WriteTrace, outbox: DeliveryOutboxStore): PostLockerChangesResponse {
+        digest: ByteArray, trace: WriteTrace, outbox: DeliveryOutboxStore): Pair<PostLockerChangesResponse, Boolean> {
         val queuedAt = System.nanoTime()
         val onLost: suspend () -> PostLockerChangesResponse = {
             PostLockerChangesResponse(result = PostLockerChangesResponse.Result.NOT_OWNER,
                 redirect = redirectIfNotOwner(0, room))
         }
-        return runRoomMutation(context, room, onLost) {
+        return runRoomMutation(context, room, { onLost() to false }) {
             meterRegistry.timer("lockers.write.phase", "phase", "room_queue")
                 .record(System.nanoTime() - queuedAt, java.util.concurrent.TimeUnit.NANOSECONDS)
             val events = mutableListOf<Event>()
             val recipients = mutableListOf<SessionId>()
             // Inside the room dispatcher, so no other local mutation of this room interleaves.
-            val inline = prepareInline(room, request, trace)
+            val inline = prepareInline(room, request, trace, outbox)
             val staged = try {
                 trace.phase("source_validation_commit") { outbox.commit(room, recipients, events) {
                     recipients.addAll(subscriptionStore.getAllSessions(ServerRoomId(room.rawValue)).map { SessionId(it.rawValue) })
                     stageLockerChanges(room, request, digest, events, outbox, inline)
                 } }
             } catch (e: BatchRejected) {
-                return@runRoomMutation e.response
+                (inline as? InlinePrep.Running)?.job?.cancel()
+                return@runRoomMutation e.response to false
             }
             trace.recipients = recipients.size
             when (staged) {
-                is StagedWrite.Pending -> staged.response
+                is StagedWrite.Pending -> {
+                    val running = inline as? InlinePrep.Running
+                    if (running != null) {
+                        if (staged.deferred) continueInline(room, request.writeRequestId, running.job)
+                        else running.job.cancel()
+                    }
+                    staged.response to staged.deferred
+                }
                 is StagedWrite.Replay -> {
+                    (inline as? InlinePrep.Running)?.job?.cancel()
                     val work = outbox.agentWork.find(room, request.writeRequestId)
-                    if (staged.response.result.isOk() && work != null) responseForWork(work) else staged.response
+                    val response = if (staged.response.result.isOk() && work != null) responseForWork(work)
+                        else staged.response
+                    response to false
                 }
             }
+        }
+    }
+
+    /**
+     * Applies a preparation that outlived its request, from that same agent call. The journal row
+     * stays undiscoverable until the preparation's own deadline, so the agent is never asked again
+     * while it is still working; if the preparation fails, discovery runs the row afterwards.
+     */
+    private fun continueInline(room: RoomId, writeRequestId: ByteArray, job: Deferred<InlineAgentResult>) {
+        inlineScope.launch {
+            try {
+                val result = runCatching { job.await() }
+                    .onFailure { if (it is CancellationException) throw it }.getOrNull()
+                if (result == null) logger.warn("Inline agent preparation failed after the reply; the journaled path will run it")
+                else applyLate(room, writeRequestId, result)
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (error: Exception) { logger.warn("Late inline agent result was not applied", error) }
+            finally { agentWorkflow.signals.changed(room.rawValue, writeRequestId); agentWorkflow.wake() }
+        }
+    }
+
+    /** Claims the deferred row and applies the late result; a failed apply leaves it to the journaled path. */
+    private suspend fun applyLate(room: RoomId, writeRequestId: ByteArray, result: InlineAgentResult) {
+        val outbox = requireNotNull(deliveryOutbox)
+        val fence = roomOwnership.mutationFence(0, room)
+        val now = System.currentTimeMillis()
+        val claim = outbox.agentWork.claimDeferred(room, writeRequestId, agentVersion, now) ?: return
+        try { applyAgentResult(claim.copy(writes = result.writes), fence, result.commits) }
+        catch (error: Exception) {
+            withContext(NonCancellable) { outbox.agentWork.interrupt(claim, "Late inline result could not be applied") }
+            throw error
         }
     }
 
     /** Derived writes a transactional agent prepared before the room commit; [commits] run inside it. */
     private class InlineAgentResult(val writes: List<ServerAgentDerivedWrite>, val commits: List<suspend () -> Unit>)
 
+    /** A transactional agent's preparation as the room commit finds it. */
+    private sealed interface InlinePrep {
+        class Ready(val result: InlineAgentResult) : InlinePrep
+        /** Still working past the request's wait; its result may still apply after the reply. */
+        class Running(val job: Deferred<InlineAgentResult>) : InlinePrep
+        /** Failed; the journaled attempt waits so the agent's external work is not repeated at once. */
+        data object Failed : InlinePrep
+    }
+
     /**
      * Prepares a transactional agent's result before the room commit, so the source write, its
      * derived lockers and the agent's own state commit together. Null hands the write to the
      * journaled path: other agents, lock-changing writes, failures and slow agents all use it.
      */
-    private suspend fun prepareInline(room: RoomId, request: PostLockerChangesRequest, trace: WriteTrace): InlineAgentResult? {
+    private suspend fun prepareInline(room: RoomId, request: PostLockerChangesRequest, trace: WriteTrace,
+        outbox: DeliveryOutboxStore): InlinePrep? {
         val agent = agentRegistry as? TransactionalLockerAgentRegistry
         // Lock grants and ratchets commit authority; keep their established journaled ordering.
         val eligible = agent != null && request.initialLock == null && request.changes.none { it.ratchet != null }
-        if (!eligible) return null
+        // A retried request is answered from its receipt; never ask the agent to do the work again.
+        if (!eligible || outbox.receipt(room, request.writeRequestId) != null) return null
+        // Not traced into the request: the preparation may outlive it, and the request's trace is not shared.
+        val job = inlineScope.async {
+            withTimeout(agentTimeoutMs) { prepareAll(requireNotNull(agent), room, request.changes) }
+        }
         return try {
-            trace.phase("agent_inline") { withTimeoutOrNull(minOf(agentTimeoutMs, AGENT_WAIT_MS)) {
-                prepareAll(requireNotNull(agent), room, request.changes)
-            } }.also { if (it == null) logger.warn("Inline agent preparation timed out; the journaled path will run it") }
-        } catch (cancelled: CancellationException) { throw cancelled }
+            val ready = trace.phase("agent_inline") { withTimeoutOrNull(inlineBudgetMs) { job.await() } }
+            ready?.let { InlinePrep.Ready(it) } ?: InlinePrep.Running(job).also {
+                logger.warn("Inline agent preparation outlasted the request; its result applies when it completes")
+            }
+        } catch (cancelled: CancellationException) { job.cancel(); throw cancelled }
         catch (error: Exception) {
-            logger.warn("Inline agent preparation failed; the journaled path will run it", error); null
+            logger.warn("Inline agent preparation failed; the journaled path runs it later", error)
+            InlinePrep.Failed
         }
     }
 
@@ -600,7 +669,8 @@ class RoomServiceImpl(
     /** Validates one batch inside the room commit and stages its source writes, journal and receipt. */
     @Suppress("LongParameterList")
     private suspend fun stageLockerChanges(room: RoomId, request: PostLockerChangesRequest, digest: ByteArray,
-        events: MutableList<Event>, outbox: DeliveryOutboxStore, inline: InlineAgentResult?): StagedWrite {
+        events: MutableList<Event>, outbox: DeliveryOutboxStore, prep: InlinePrep?): StagedWrite {
+        val inline = (prep as? InlinePrep.Ready)?.result
         outbox.receipt(room, request.writeRequestId)?.let { old ->
             return StagedWrite.Replay(if (old.requestDigest.contentEquals(digest)) PostLockerChangesResponse.fromByteArray(old.encodedOutcome)
                 else PostLockerChangesResponse(result = PostLockerChangesResponse.Result.REQUEST_ID_REUSED))
@@ -628,9 +698,13 @@ class RoomServiceImpl(
             lockState = lockState, agentPending = agentRegistry !== LockerAgentRegistry.None && !applied, writeRequestId = request.writeRequestId,
             sourceVersions = normalized.zip(results) { change, result -> WriteSourceVersion(change.lockerId, result.version) }),
             PostLockerChangesResponse::writeTo)
-        journal(room, request.copy(changes = normalized), pending, applied, digest, outbox)
+        // An agent still working (or that just failed) must not be asked again at once: the journal
+        // row only becomes discoverable after that preparation's own deadline.
+        val deferred = prep is InlinePrep.Running || prep is InlinePrep.Failed
+        val notBefore = if (deferred) System.currentTimeMillis() + agentTimeoutMs else 0L
+        journal(room, request.copy(changes = normalized), pending, applied, digest, outbox, notBefore)
         // Frames ride on the reply only; the stored receipt and journal stay small.
-        return StagedWrite.Pending(withDerived(pending, derived))
+        return StagedWrite.Pending(withDerived(pending, derived), deferred)
     }
 
     /** Adds committed derived lockers when the reply still fits the transport envelope. */
@@ -671,11 +745,12 @@ class RoomServiceImpl(
     /** Journals the write (settled when its derived result already applied) and its receipt. */
     @Suppress("LongParameterList")
     private suspend fun journal(room: RoomId, request: PostLockerChangesRequest, response: PostLockerChangesResponse,
-        applied: Boolean, digest: ByteArray, outbox: DeliveryOutboxStore) {
+        applied: Boolean, digest: ByteArray, outbox: DeliveryOutboxStore, notBefore: Long) {
         val order = outbox.watermark(room)
         check(order < Long.MAX_VALUE) { "Agent source order exhausted" }
         outbox.agentWork.create(room, request, response, agentVersion, order + 1,
-            applied = agentRegistry === LockerAgentRegistry.None || applied, receiptAbsent = true)
+            applied = agentRegistry === LockerAgentRegistry.None || applied, receiptAbsent = true,
+            notBefore = notBefore)
         outbox.saveReceipt(com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt(
             request.writeRequestId, ServerRoomId(room.rawValue), digest, response.toByteArray()), journaled = true)
     }
@@ -793,8 +868,8 @@ class RoomServiceImpl(
                 outbox.agentWork.interrupt(claim, "Derived commit interrupted")
                 return@coroutineScope
             }
-            if (claim.agentVersion.isNotEmpty() && error !is AgentOutputRejected && claim.attempts < agentMaxAttempts) {
-                outbox.agentWork.retry(claim, error.message ?: "Agent execution failed")
+            if (retryable(claim, error)) {
+                outbox.agentWork.retry(claim, error.message ?: "Agent execution failed", retryDelayMs())
                 return@coroutineScope
             }
             agentFailureCounter.increment(); logger.error("Agent execution failed after source commit", error)
@@ -816,6 +891,17 @@ class RoomServiceImpl(
      * them. The source receipt is not rewritten: while the journal row exists (receipts and journal
      * rows are created and pruned together) replay and outcome reads take agent state from it.
      */
+    /**
+     * A transactional agent's slow external work outlives a cancelled call, so its retries are few
+     * and spaced by the full agent deadline rather than stacked onto that work.
+     */
+    private fun retryable(claim: ServerAgentWork, error: Exception): Boolean {
+        val limit = if (agentRegistry is TransactionalLockerAgentRegistry) minOf(agentMaxAttempts, TRANSACTIONAL_AGENT_ATTEMPTS)
+            else agentMaxAttempts
+        return claim.agentVersion.isNotEmpty() && error !is AgentOutputRejected && claim.attempts < limit
+    }
+    private fun retryDelayMs(): Long? = agentTimeoutMs.takeIf { agentRegistry is TransactionalLockerAgentRegistry }
+
     private suspend fun prepareJournaled(agent: TransactionalLockerAgentRegistry, claim: ServerAgentWork):
         Pair<List<ServerAgentDerivedWrite>, List<suspend () -> Unit>> {
         val request = PostLockerChangesRequest.fromByteArray(claim.encodedRequest)
@@ -1298,6 +1384,7 @@ class RoomServiceImpl(
                     if (failed == null) failed = failure else failed.addSuppressed(failure)
                 }
             }
+            cleanup { inlineScope.coroutineContext[Job]!!.cancelAndJoin() }
             cleanup { agentWorkflow.closeAndJoin() }
             cleanup { forwardConnections.closeAndJoin() }
             cleanup { deliveryWorker?.closeAndJoin() }

@@ -45,7 +45,8 @@ class AgentWorkStore(private val database: Database, private val clock: () -> Lo
      */
     @Suppress("LongParameterList")
     suspend fun create(room: RoomId, request: PostLockerChangesRequest, response: PostLockerChangesResponse, version: String,
-        sourceOrder: Long, applied: Boolean = false, receiptAbsent: Boolean = false) = database.transaction(lock) {
+        sourceOrder: Long, applied: Boolean = false, receiptAbsent: Boolean = false,
+        notBefore: Long = 0) = database.transaction(lock) {
         require(version.encodeToByteArray().size <= 128)
         check(receiptAbsent || find(room, request.writeRequestId) == null) { "Agent work identity reused" }
         admit(room)
@@ -54,7 +55,19 @@ class AgentWorkStore(private val database: Database, private val clock: () -> Lo
             encodedRequest = request.toByteArray(), encodedOutcome = response.toByteArray(), agentVersion = version,
             effectKey = SHA256.digest("lockers.agent.effect.v1".encodeToByteArray() + id), sourceOrder = sourceOrder, createdAt = clock().coerceAtLeast(1),
             traceparent = producerTraceparent(),
-            state = if (applied) AgentWorkState.APPLIED else AgentWorkState.PENDING, completedAt = if (applied) clock().coerceAtLeast(1) else 0))
+            state = if (applied) AgentWorkState.APPLIED else AgentWorkState.PENDING, completedAt = if (applied) clock().coerceAtLeast(1) else 0,
+            leaseUntil = if (applied) 0 else notBefore))
+    }
+    /**
+     * Claims a pending item created with a future due time by the request that is still preparing
+     * it, before discovery may run it. Order and agent version rules are those of [claim].
+     */
+    suspend fun claimDeferred(room: RoomId, id: ByteArray, expectedVersion: String, now: Long,
+        leaseMs: Long = 30_000): ServerAgentWork? = database.transaction(lock) {
+        val row = find(room, id) ?: return@transaction null
+        if (row.state != AgentWorkState.PENDING || row.leaseOwner.isNotEmpty()) return@transaction null
+        if (firstActive(room)?.key?.contentEquals(row.key) != true) return@transaction null
+        claimRow(row, expectedVersion, now, leaseMs)
     }
     /** Historical missing input is explicitly uncertain; completed delete receipts also get retention metadata. */
     suspend fun adopt(receipt: com.latenighthack.lockers.server.storage.v1.ServerWriteReceipt) = database.transaction(lock) {
@@ -141,9 +154,9 @@ class AgentWorkStore(private val database: Database, private val clock: () -> Lo
             completedAt = if (AgentWorkState.terminal(state)) clock().coerceAtLeast(1) else 0))
         value
     }
-    suspend fun retry(claim: ServerAgentWork, reason: String) = database.transaction(lock) {
+    suspend fun retry(claim: ServerAgentWork, reason: String, fixedDelayMs: Long? = null) = database.transaction(lock) {
         val row = current(claim) ?: return@transaction
-        val delayMs = minOf(250L shl row.attempts.coerceIn(0, 6), 10_000)
+        val delayMs = fixedDelayMs ?: minOf(250L shl row.attempts.coerceIn(0, 6), 10_000)
         save(row.copy(state = AgentWorkState.PENDING, leaseOwner = "", leaseUntil = clock() + delayMs, failure = reason.take(1024)))
     }
     suspend fun interrupt(claim: ServerAgentWork, reason: String) = database.transaction(lock) {
