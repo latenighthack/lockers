@@ -267,6 +267,8 @@ class IncomingNotification(
     }
 }
 
+private const val EARLY_ROOM_LIMIT = 1_024
+private const val EARLY_SEQUENCE_LIMIT = 4_096
 private const val WRITE_RETRY_LIMIT = 8
 private const val AUTHORITY_REPAIR_LIMIT = 3
 private const val AUTHORITY_CACHE_LIMIT = 4_096
@@ -410,24 +412,49 @@ class LockerClient(
         val session = stream.sessionId.value ?: return false
         return liveMutex.withLock { liveRooms[roomId.canonical()]?.session == session }
     }
+    /**
+     * Sequences delivered to a room that isn't live yet. The server subscribes the session before
+     * it answers the snapshot, so later events can be delivered before that reply is applied. A
+     * snapshot then anchors at its watermark and advances through these; without them the next
+     * event looks like a missed delivery and re-hydrates the room again.
+     */
+    private class Early(val session: SessionId) { val sequences = HashSet<Long>() }
+    private val earlyRooms = HashMap<RoomId, Early>()
     private suspend fun markLive(roomId: RoomId, session: SessionId, watermark: Long) {
         liveMutex.withLock {
+            val early = earlyRooms.remove(roomId)?.takeIf { it.session == session }?.sequences
+            var sequence = watermark
+            while (early != null && early.remove(sequence + 1)) sequence++
+            // A later delivery that isn't contiguous means one was missed; leave the room unanchored.
+            if (early != null && early.any { it > sequence }) return@withLock
             val current = liveRooms[roomId]
             // A slower, older snapshot never moves a live room backwards.
-            if (current == null || current.session != session || current.sequence < watermark) {
-                liveRooms[roomId] = Live(session, watermark)
+            if (current == null || current.session != session || current.sequence < sequence) {
+                liveRooms[roomId] = Live(session, sequence)
             }
         }
     }
-    private suspend fun forgetLive(roomId: RoomId) { liveMutex.withLock { liveRooms.remove(roomId.canonical()) } }
+    private suspend fun forgetLive(roomId: RoomId) {
+        liveMutex.withLock { liveRooms.remove(roomId.canonical()); earlyRooms.remove(roomId.canonical()) }
+    }
+    private fun recordEarly(roomId: RoomId, sequence: Long) {
+        val session = stream.sessionId.value
+        if (session == null || sequence <= 0L) return
+        val early = earlyRooms[roomId]?.takeIf { it.session == session }
+            ?: Early(session).takeIf { earlyRooms.size < EARLY_ROOM_LIMIT }?.also { earlyRooms[roomId] = it }
+        // Past either bound the room just isn't anchored; watchers re-read it as before.
+        if (early != null && early.sequences.size < EARLY_SEQUENCE_LIMIT) early.sequences += sequence
+        else earlyRooms.remove(roomId)
+    }
     /** Advances a live room by one delivered event; true when the event reveals a missed delivery. */
     private suspend fun advanceLive(roomId: RoomId, sequence: Long): Boolean = liveMutex.withLock {
-        val live = liveRooms[roomId] ?: return@withLock false
+        val live = liveRooms[roomId]?.takeIf { it.session == stream.sessionId.value }
+            ?: return@withLock false.also { recordEarly(roomId, sequence) }
         when {
             sequence <= 0L -> { liveRooms.remove(roomId); false }
             sequence <= live.sequence -> false
             sequence == live.sequence + 1 -> { live.sequence = sequence; false }
-            else -> { liveRooms.remove(roomId); true }
+            else -> { liveRooms.remove(roomId); recordEarly(roomId, sequence); true }
         }
     }
 

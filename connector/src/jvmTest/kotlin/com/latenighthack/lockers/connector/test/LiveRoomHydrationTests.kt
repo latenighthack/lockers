@@ -42,12 +42,16 @@ class LiveRoomHydrationTests {
 
     private class Counting(private val inner: RpcClient) : RpcClient by inner {
         val calls = ConcurrentHashMap<String, AtomicInteger>()
+        /** Holds SubscribeAndSnapshot replies, as a slow network would, after the server has answered. */
+        @Volatile var snapshotReplyDelayMs = 0L
         fun count(method: String) = calls[method]?.get() ?: 0
         fun hydrations() = count("SubscribeAndSnapshot") + count("GetAllLockers")
         override suspend fun unaryCall(method: RpcMethodSpecifier, headers: Map<String, String>,
             request: ByteArray): RpcResponse {
             calls.computeIfAbsent(method.methodName) { AtomicInteger() }.incrementAndGet()
-            return inner.unaryCall(method, headers, request)
+            val response = inner.unaryCall(method, headers, request)
+            if (method.methodName == "SubscribeAndSnapshot" && snapshotReplyDelayMs > 0) delay(snapshotReplyDelayMs)
+            return response
         }
     }
 
@@ -138,6 +142,36 @@ class LiveRoomHydrationTests {
             val healed = subscriber.awaitVersion(room, missed, 2)
             assertEquals(listOf(2), LockerEnvelope.payload(requireNotNull(healed.locker)).map { it.toInt() })
             assertEquals(1, subscriber.rpc.count("SubscribeAndSnapshot"), "${subscriber.rpc.calls}")
+        } finally { subscriber.close(); writer.closeAndJoin() }
+    }
+
+    @Test(timeout = 60_000)
+    fun `events delivered while the snapshot reply is in flight keep the room live`() = withServer { server ->
+        val room = RoomId(Random.nextBytes(32))
+        val first = LockerId(byteArrayOf(1), keyspace); val during = LockerId(byteArrayOf(2), keyspace)
+        val after = LockerId(byteArrayOf(3), keyspace)
+        val subscriber = subscriber(server)
+        val writer = reviewClient(server.ownedRpcClient)
+        try {
+            writer.updateLocker(room, first) { byteArrayOf(1) }
+            subscriber.rpc.snapshotReplyDelayMs = 1_000
+            val watcher = CoroutineScope(Dispatchers.Default).launch {
+                subscriber.client.watchSnapshot(room, keyspace).collect { it.size }
+            }
+            // The server has subscribed the session; these deliveries overtake the snapshot reply.
+            delay(400)
+            writer.updateLocker(room, during) { byteArrayOf(2) }
+            writer.updateLocker(room, during) { byteArrayOf(3) }
+            subscriber.awaitVersion(room, during, 2)
+            subscriber.rpc.snapshotReplyDelayMs = 0
+            delay(1_200)
+            val hydrated = subscriber.rpc.hydrations()
+            writer.updateLocker(room, after) { byteArrayOf(4) }
+            subscriber.awaitVersion(room, after, 1)
+            delay(300)
+            watcher.cancel()
+            assertEquals(hydrated, subscriber.rpc.hydrations(),
+                "in-order delivery re-hydrated the room: ${subscriber.rpc.calls}")
         } finally { subscriber.close(); writer.closeAndJoin() }
     }
 }
