@@ -1,0 +1,7 @@
+# Durable notification cursors
+
+Problem: `notifications` and `broadcasts` replayed the accepted-event journal from cursor 0 on every collection, and no consumer pruned it. Every locker change journals a full snapshot, so a client that played games built a journal of tens of megabytes (one device: 1,809 rows, 37.5 MB against the 64 MB limit). Social's messages and typing managers each paged through all of it at startup, holding the single SQLite connection for seconds, and the journal would eventually reach its limit and refuse new events.
+
+Fix: `durableNotifications(consumer)` resumes after the named consumer's saved cursor. The connector saves the cursor after the collector handles entries (every 64, on catching up and when the collector stops), so a killed process repeats at most those entries and never skips one. Catching up prunes the journal behind the lowest saved cursor and every collecting reader; readers register with a per-database registry because the locker and session journals share one table. `notifications` and `broadcasts` are now live: they start at the journal head.
+
+Cursors are rows in the existing `connector_retention` store, keyed from the consumer name (FNV-1a, keys from 2) and marked with a negative `retainedBytes`, so no schema or store definition changes and the cursors clear with the journal. Older connectors read only the retention row (key 1). A consumer name that is never collected again holds pruning back.

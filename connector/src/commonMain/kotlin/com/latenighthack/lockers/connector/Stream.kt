@@ -38,6 +38,9 @@ interface SessionStore {
     }
     fun eventsAfter(cursor: Long): Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable session event journal required")
     fun liveEvents(): Flow<ConnectorJournalEntry> = throw UnsupportedOperationException("Durable session event journal required")
+    /** Events after [consumer]'s saved cursor; the store saves it as the collector handles them. */
+    fun durableEvents(consumer: String): Flow<ConnectorJournalEntry> =
+        throw UnsupportedOperationException("Durable session event journal required")
 
     suspend fun getSessionId(): SessionId?
     suspend fun updateSessionId(sessionId: SessionId?)
@@ -66,6 +69,7 @@ class SessionStoreImpl(private val keyValueStore: KeyValueStore, private val dat
     override suspend fun pruneEventsThrough(cursor: Long) = eventJournal.pruneThrough(cursor)
     override fun eventsAfter(cursor: Long) = eventJournal.after(cursor).filter { it.kind == 2 }
     override fun liveEvents() = eventJournal.live().filter { it.kind == 2 }
+    override fun durableEvents(consumer: String) = eventJournal.durable(consumer, 2)
     override suspend fun receive(event: Event, accept: suspend () -> Boolean) {
         prepare()
         val ack = StoredAck(requireNotNull(event.roomId).rawValue, requireNotNull(event.eventId).rawValue)
@@ -669,6 +673,14 @@ class Stream(
     val events: Flow<Event> get() = sessionStore.liveEvents().map { Event.fromByteArray(it.payload) }
     suspend fun pruneConfirmedAcksBefore(cutoffMillis: Long) = sessionStore.pruneConfirmedAcksBefore(cutoffMillis)
     fun eventsAfter(cursor: Long): Flow<AcceptedSessionEvent> = sessionStore.eventsAfter(cursor).map {
+        AcceptedSessionEvent(it.cursor, Event.fromByteArray(it.payload))
+    }
+    /** Live events with their journal cursors. */
+    val acceptedEvents: Flow<AcceptedSessionEvent> get() = sessionStore.liveEvents().map {
+        AcceptedSessionEvent(it.cursor, Event.fromByteArray(it.payload))
+    }
+    /** Events after [consumer]'s saved cursor, which advances as the collector handles each one. */
+    fun durableEvents(consumer: String): Flow<AcceptedSessionEvent> = sessionStore.durableEvents(consumer).map {
         AcceptedSessionEvent(it.cursor, Event.fromByteArray(it.payload))
     }
 

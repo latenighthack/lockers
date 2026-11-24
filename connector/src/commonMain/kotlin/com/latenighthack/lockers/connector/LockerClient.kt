@@ -213,12 +213,18 @@ class TypedLockerClient<ValueType>(
                 .map { it.toTyped() }
         }
 
+    /** This keyspace's notifications accepted from now on; see [LockerClient.notifications]. */
     val notifications: Flow<IncomingNotification>
         get() {
             return lockerClient
                 .notifications
                 .filter { it.lockerId.keyspace == keyspace }
         }
+
+    /** This keyspace's notifications after [consumer]'s saved cursor; see [LockerClient.durableNotifications]. */
+    fun durableNotifications(consumer: String): Flow<IncomingNotification> = lockerClient
+        .durableNotifications(consumer)
+        .filter { it.lockerId.keyspace == keyspace }
 
     suspend fun subscribeToRoom(roomId: RoomId, waitForSubscription: Boolean = true) {
         lockerClient.subscribeToRoom(roomId, waitForSubscription)
@@ -569,22 +575,36 @@ class LockerClient(
         }
 
     /** Durable broadcasts; decoding happens in the collector, after transport acceptance and ACK. */
-    fun broadcastsAfter(cursor: Long): Flow<IncomingBroadcast> = stream.eventsAfter(cursor).mapNotNull { accepted ->
-        val event = accepted.event
-        if (event.locker?.lockerId != null) return@mapNotNull null
-        val room = event.roomId?.canonical() ?: return@mapNotNull null
-        val id = event.eventId ?: return@mapNotNull null
-        val payload = event.notification?.payload?.rawValue ?: return@mapNotNull null
-        val context = BroadcastContext(room, id, event.notification?.push?.title, event.notification?.push?.body)
-        val decoded = broadcastCodecs.decode(context, payload) ?: return@mapNotNull null
-        IncomingBroadcast(accepted.cursor, context, decoded)
-    }
-    val broadcasts: Flow<IncomingBroadcast> get() = broadcastsAfter(0)
+    fun broadcastsAfter(cursor: Long): Flow<IncomingBroadcast> = stream.eventsAfter(cursor).mapNotNull { decodeBroadcast(it) }
 
+    /** Broadcasts accepted from now on. */
+    val broadcasts: Flow<IncomingBroadcast> get() = stream.acceptedEvents.mapNotNull { decodeBroadcast(it) }
+
+    private suspend fun decodeBroadcast(accepted: AcceptedSessionEvent): IncomingBroadcast? {
+        val event = accepted.event.takeIf { it.locker?.lockerId == null }
+        val room = event?.roomId?.canonical()
+        val id = event?.eventId
+        val payload = event?.notification?.payload?.rawValue
+        if (room == null || id == null || payload == null) return null
+        val context = BroadcastContext(room, id, event.notification?.push?.title, event.notification?.push?.body)
+        return broadcastCodecs.decode(context, payload)?.let { IncomingBroadcast(accepted.cursor, context, it) }
+    }
+
+    /**
+     * Notifications accepted from now on, for consumers that need only live ones (typing). A
+     * consumer that must handle every notification across restarts uses [durableNotifications].
+     */
     val notifications: Flow<IncomingNotification>
-        get() {
-            return notificationsAfter(0).map { it.notification }
-        }
+        get() = stream.acceptedEvents.mapNotNull { decodeNotification(it.event) }
+
+    /**
+     * Every notification after [consumer]'s saved cursor, then live ones. The connector saves the
+     * cursor as the collector handles them, so a restart resumes instead of replaying the journal,
+     * and prunes the journal behind every saved cursor and collecting reader. [consumer] names one
+     * collector across runs; a name that is never collected again holds the journal back.
+     */
+    fun durableNotifications(consumer: String): Flow<IncomingNotification> =
+        stream.durableEvents(consumer).mapNotNull { decodeNotification(it.event) }
 
     private val roomService = ShardedRoomServiceRpc(rpcClient)
 

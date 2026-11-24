@@ -4,6 +4,8 @@ import com.latenighthack.ktstore.*
 import com.latenighthack.lockers.connector.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** Stable local cursor. Keep it only after the application has handled [payload]. */
 data class ConnectorJournalEntry(val cursor: Long, val kind: Int, val payload: ByteArray, val identity: ByteArray)
@@ -79,16 +81,108 @@ internal class ConnectorEventJournal(private val database: Database, private val
             if (removed < 64) return
         }
     }
-    fun after(cursor: Long): Flow<ConnectorJournalEntry> = flow {
-        require(cursor >= 0)
-        var consumed = cursor
-        while (true) {
-            currentCoroutineContext().ensureActive()
-            val hint = revision.value
-            val entries = page(consumed)
-            entries.forEach { emit(it); consumed = it.cursor }
-            if (entries.size < 64) withTimeoutOrNull(1_000) { revision.first { it != hint } }
+    fun after(cursor: Long): Flow<ConnectorJournalEntry> { require(cursor >= 0); return read { cursor } }
+    fun live(): Flow<ConnectorJournalEntry> = read { head() }
+
+    /**
+     * Entries of [kind] after [consumer]'s saved cursor, resuming where its last run stopped. The
+     * cursor is saved once the collector has handled an entry, every [SAVE_INTERVAL] entries and
+     * whenever the reader catches up, so a restart repeats at most those entries and never skips
+     * one. Catching up also prunes the journal behind every saved cursor and every collecting reader.
+     */
+    fun durable(consumer: String, kind: Int): Flow<ConnectorJournalEntry> = flow {
+        val key = JournalRetentionStore.consumerKey(consumer)
+        var saved = 0L
+        emitAll(read(
+            start = {
+                prepare()
+                val floor = retention.floor()
+                // A new consumer pins the journal where it starts, before anything can prune past it.
+                val resumed = retention.cursor(key)?.coerceAtLeast(floor)
+                    ?: floor.also { retention.saveCursor(key, it) }
+                resumed.also { saved = it }
+            },
+            handled = { entry ->
+                if (entry.cursor - saved >= SAVE_INTERVAL) {
+                    retention.saveCursor(key, entry.cursor)
+                    saved = entry.cursor
+                }
+            },
+            caughtUp = { consumed ->
+                if (consumed != saved) { retention.saveCursor(key, consumed); saved = consumed }
+                pruneBehindReaders()
+            },
+            // A collector that stops keeps what it handled; only a killed process repeats entries.
+            stopped = { consumed -> if (consumed > saved) { retention.saveCursor(key, consumed); saved = consumed } },
+        ).filter { it.kind == kind })
+    }
+
+    /**
+     * Pages entries after [start], registered with [JournalReaders] while collecting so pruning
+     * never removes an entry a reader hasn't reached. A reader registers at cursor 0 until its
+     * start is known, which holds off pruning for that moment.
+     */
+    private fun read(
+        handled: suspend (ConnectorJournalEntry) -> Unit = {},
+        caughtUp: suspend (Long) -> Unit = {},
+        stopped: suspend (Long) -> Unit = {},
+        start: suspend () -> Long,
+    ): Flow<ConnectorJournalEntry> = flow {
+        val reader = JournalReaders.open(database)
+        var consumed = -1L
+        try {
+            consumed = start()
+            JournalReaders.advance(database, reader, consumed)
+            while (true) {
+                currentCoroutineContext().ensureActive()
+                val hint = revision.value
+                val entries = page(consumed)
+                entries.forEach { emit(it); consumed = it.cursor; handled(it) }
+                JournalReaders.advance(database, reader, consumed)
+                if (entries.size < 64) {
+                    caughtUp(consumed)
+                    withTimeoutOrNull(1_000) { revision.first { it != hint } }
+                }
+            }
+        } finally {
+            withContext(NonCancellable) {
+                // Best effort: a closed database can't save, and the next run repeats from the last save.
+                try {
+                    if (consumed >= 0) runCatching { stopped(consumed) }
+                } finally { JournalReaders.close(database, reader) }
+            }
         }
     }
-    fun live(): Flow<ConnectorJournalEntry> = flow { emitAll(after(head())) }
+
+    private suspend fun pruneBehindReaders() {
+        val floor = retention.floor()
+        val saved = retention.consumerCursors().minOrNull()
+        val bound = listOfNotNull(saved, JournalReaders.lowest(database)).minOrNull() ?: return
+        if (bound - floor >= PRUNE_BATCH) pruneThrough(minOf(bound, head()))
+    }
+
+    private companion object {
+        const val SAVE_INTERVAL = 64L
+        const val PRUNE_BATCH = 64L
+    }
+}
+
+/**
+ * Each collecting journal reader's last handled cursor, per database. The locker and session
+ * journals share one table, so pruning from either must respect both journals' readers.
+ */
+private object JournalReaders {
+    private val mutex = Mutex()
+    private val positions = HashMap<Database, HashMap<Long, Long>>()
+    private var next = 0L
+    suspend fun open(database: Database): Long = mutex.withLock {
+        (next++).also { positions.getOrPut(database) { HashMap() }[it] = 0L }
+    }
+    suspend fun advance(database: Database, reader: Long, cursor: Long) = mutex.withLock {
+        positions[database]?.let { if (reader in it) it[reader] = cursor }
+    }
+    suspend fun close(database: Database, reader: Long) = mutex.withLock {
+        positions[database]?.let { it.remove(reader); if (it.isEmpty()) positions.remove(database) }
+    }
+    suspend fun lowest(database: Database): Long? = mutex.withLock { positions[database]?.values?.minOrNull() }
 }
